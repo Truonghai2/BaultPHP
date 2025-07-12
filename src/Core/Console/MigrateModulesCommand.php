@@ -59,7 +59,7 @@ class MigrateModulesCommand extends BaseCommand
                 } elseif ($refresh) {
                     $this->io->warning("Refresh not implemented yet.");
                 } else {
-                    $manager->runMigrations($path);
+                    $manager->run($path);
                 }
             } catch (\Throwable $e) {
                 $this->io->error("Error in module $module: " . $e->getMessage());

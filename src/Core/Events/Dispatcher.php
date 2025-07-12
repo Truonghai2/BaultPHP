@@ -3,34 +3,36 @@
 namespace Core\Events;
 
 use Core\Application;
+use Core\Contracts\Events\EventDispatcherInterface;
 
-class Dispatcher
+class Dispatcher implements EventDispatcherInterface
 {
-    protected Application $app;
     protected array $listeners = [];
 
-    public function __construct(Application $app)
-    {
-        $this->app = $app;
-    }
+    public function __construct(protected Application $app) {}
 
-    public function listen(string $event, string|callable $listener): void
+    /**
+     * Register an event listener.
+     */
+    public function listen(string $event, string $listener): void
     {
         $this->listeners[$event][] = $listener;
     }
 
+    /**
+     * Dispatch an event to its listeners.
+     */
     public function dispatch(object $event): void
     {
         $eventName = get_class($event);
 
-        foreach ($this->getListenersFor($eventName) as $listener) {
-            // Sử dụng container để gọi listener, cho phép inject dependency vào hàm handle()
-            $this->app->call([$this->app->make($listener), 'handle'], ['event' => $event]);
+        if (!isset($this->listeners[$eventName])) {
+            return;
         }
-    }
 
-    protected function getListenersFor(string $eventName): array
-    {
-        return $this->listeners[$eventName] ?? [];
+        foreach ($this->listeners[$eventName] as $listenerClass) {
+            $listenerInstance = $this->app->make($listenerClass);
+            $listenerInstance->handle($event);
+        }
     }
 }
