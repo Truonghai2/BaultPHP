@@ -14,6 +14,7 @@ class AppKernel
 
     public function __construct()
     {
+        error_log(" -> [AppKernel] Initializing...");
         $this->app = new Application(base_path());
 
         // Bind the kernel instance itself into the container for commands to use.
@@ -28,14 +29,18 @@ class AppKernel
         // Trong môi trường production, tải các provider đã được cache để tăng tốc.
         // File này sẽ được tạo bởi một lệnh console, ví dụ: `php bault config:cache`
         $cachedProvidersPath = $this->app->getCachedProvidersPath();
-        if (file_exists($cachedProvidersPath) && !env('APP_DEBUG', false)) {
+        if (file_exists($cachedProvidersPath) && !env('APP_DEBUG', false)) { // Note: env() might not be loaded yet if not CLI
+            error_log(" -> [AppKernel] Loading cached providers from: " . $cachedProvidersPath);
             $this->app->loadCachedProviders(require $cachedProvidersPath);
         } else {
+            error_log(" -> [AppKernel] No cache found or in debug mode. Registering providers manually.");
             $this->registerCoreProviders();
             $this->registerModuleProviders();
         }
 
+        error_log(" -> [AppKernel] Booting service providers...");
         $this->app->boot();
+        error_log(" -> [AppKernel] Initialization complete.");
     }
 
     public function getApplication(): Application
@@ -50,6 +55,7 @@ class AppKernel
 
     protected function registerCoreProviders(): void
     {
+        error_log(" -> [AppKernel] Registering core providers...");
         $providers = $this->getCoreProvidersList();
 
         foreach ($providers as $provider) {
@@ -75,6 +81,7 @@ class AppKernel
 
     protected function registerModuleProviders(): void
     {
+        error_log(" -> [AppKernel] Discovering and registering module providers...");
         $providers = $this->discoverModuleProvidersList();
         foreach ($providers as $provider) {
             $this->app->register($provider);
@@ -89,10 +96,12 @@ class AppKernel
         foreach ($moduleDirs as $dir) {
             $metaFile = $dir . '/module.json';
             if (!file_exists($metaFile)) continue;
+            error_log("    -> Found module meta: " . $metaFile);
 
             $meta = json_decode(file_get_contents($metaFile), true);
             if (!($meta['enabled'] ?? false)) continue;
 
+            error_log("    -> Module '" . ($meta['name'] ?? 'Unknown') . "' is enabled.");
             foreach ($meta['providers'] ?? [] as $provider) {
                 if (class_exists($provider)) {
                     $discoveredProviders[] = $provider;

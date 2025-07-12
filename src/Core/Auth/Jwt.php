@@ -19,7 +19,7 @@ class JWT
         return implode('.', $segments);
     }
 
-    public static function decode(string $token, string $secret, array $allowedAlgs = ['HS256']): ?array
+    public static function decode(string $token, string $secret, array $allowedAlgs = ['HS256']): ?object
     {
         $parts = explode('.', $token);
 
@@ -29,8 +29,8 @@ class JWT
 
         [$header64, $payload64, $signature64] = $parts;
 
-        $header = json_decode(self::base64UrlDecode($header64), true);
-        $payload = json_decode(self::base64UrlDecode($payload64), true);
+        $header = json_decode(self::base64UrlDecode($header64));
+        $payload = json_decode(self::base64UrlDecode($payload64));
         $signature = self::base64UrlDecode($signature64);
 
         $alg = $header['alg'] ?? 'HS256';
@@ -40,7 +40,7 @@ class JWT
         }
 
         $valid = self::sign("$header64.$payload64", $secret, $alg) === $signature;
-        $expired = isset($payload['exp']) && $payload['exp'] < time();
+        $expired = isset($payload->exp) && $payload->exp < time();
 
         return ($valid && !$expired) ? $payload : null;
     }

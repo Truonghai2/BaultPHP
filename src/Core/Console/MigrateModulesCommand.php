@@ -2,6 +2,7 @@
 
 namespace Core\Console;
 
+use Core\ORM\Connection;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\ORM\MigrationManager;
@@ -14,7 +15,7 @@ class MigrateModulesCommand extends BaseCommand
     public function __construct(Application $app)
     {
         $this->app = $app;
-        // If your BaseCommand has a constructor, you might need to call parent::__construct() here.
+        parent::__construct();
     }
 
     public function signature(): string
@@ -30,40 +31,39 @@ class MigrateModulesCommand extends BaseCommand
         $refresh = in_array('--refresh', $args);
         $status = in_array('--status', $args);
 
-        $config = $this->app->make('config');
-        $migrationPaths = $config->get('database.migrations.paths', []);
+        try {
+            $config = $this->app->make('config');
+            $migrationPaths = $config->get('database.migrations.paths', []);
 
-        if (empty($migrationPaths)) {
-            $this->io->info("No migration paths have been registered. Nothing to migrate.");
-            return;
-        }
-
-        foreach ($migrationPaths as $path) {
-            if (!is_dir($path)) continue;
-
-            // Attempt to extract module name from path for better output
-            $module = 'Unknown';
-            if (preg_match('/Modules[\\\\\/]([a-zA-Z0-9]+)/', $path, $matches)) {
-                $module = $matches[1];
+            if (empty($migrationPaths)) {
+                $this->io->info("No migration paths have been registered. Nothing to migrate.");
+                return;
             }
-            $this->io->section("Processing module: $module");
 
-            try {
-                $manager = new MigrationManager();
+            // Lấy kết nối PDO mặc định từ container
+            $pdo = Connection::get($config->get('database.default'));
 
-                if ($status) {
-                    $ran = $manager->getRan();
-                    $this->io->listing($ran);
-                } elseif ($rollback) {
-                    $this->io->warning("Rollback not implemented yet.");
-                } elseif ($refresh) {
-                    $this->io->warning("Refresh not implemented yet.");
+            // Tạo manager, truyền vào kết nối PDO và đối tượng IO
+            $manager = new MigrationManager($pdo, $this->io);
+
+            if ($status) {
+                $ran = $manager->getRan();
+                $this->io->section('Ran Migrations:');
+                if (empty($ran)) {
+                    $this->io->info('No migrations have been run.');
                 } else {
-                    $manager->run($path);
+                    $this->io->listing($ran);
                 }
-            } catch (\Throwable $e) {
-                $this->io->error("Error in module $module: " . $e->getMessage());
+            } elseif ($rollback) {
+                $manager->rollback($migrationPaths);
+            } elseif ($refresh) {
+                $this->io->warning("Refresh not implemented yet.");
+            } else {
+                $manager->run($migrationPaths);
             }
+        } catch (\Throwable $e) {
+            $this->io->error("An error occurred during migration: " . $e->getMessage());
+            return;
         }
 
         $this->io->success("Migration process completed.");

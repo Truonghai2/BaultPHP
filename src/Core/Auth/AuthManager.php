@@ -4,6 +4,7 @@ namespace Core\Auth;
 
 use Core\Application;
 use Core\Contracts\Auth\Guard;
+use Core\Contracts\Auth\UserProvider;
 use InvalidArgumentException;
 
 /**
@@ -34,12 +35,13 @@ class AuthManager
             throw new InvalidArgumentException("Auth guard [{$name}] is not defined.");
         }
 
-        // This is where you could add other drivers like 'session' in the future.
-        if ($config['driver'] === 'request') {
-            return new RequestGuard();
-        } elseif ($config['driver'] === 'session') {
+        if ($config['driver'] === 'session') {
             $provider = $this->createUserProvider($config['provider'] ?? null);
-            return new SessionGuard($this->app, $this->app->make(SessionManager::class), $provider);
+            return new SessionGuard($this->app, $this->app->make(\Core\Session\SessionManager::class), $provider);
+        }
+        if ($config['driver'] === 'jwt') {
+            $provider = $this->createUserProvider($config['provider'] ?? null);
+            return new JwtGuard($this->app->make(\Http\Request::class), $provider);
         }
 
         throw new InvalidArgumentException("Auth driver [{$config['driver']}] for guard [{$name}] is not supported.");
@@ -53,7 +55,7 @@ class AuthManager
 
         $config = $this->app->make('config')->get("auth.providers.{$providerName}");
 
-        if ($config['driver'] === 'eloquent') {
+        if ($config['driver'] === 'orm') {
             return new EloquentUserProvider($config['model']);
         }
 
@@ -67,7 +69,7 @@ class AuthManager
 
     public function getDefaultDriver(): string
     {
-        return $this->app->make('config')->get('auth.default', 'api');
+        return $this->app->make('config')->get('auth.defaults.guard', 'web');
     }
 
     public function reset(): void

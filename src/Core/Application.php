@@ -3,6 +3,7 @@
 namespace Core;
 
 use Core\ContextualBindingBuilder;
+use RuntimeException;
 
 class Application
 {
@@ -10,6 +11,9 @@ class Application
     protected array $instances = [];
     protected array $aliases = [];
     protected array $contextual = [];
+
+    /** @var static|null The shared instance of the application. */
+    protected static ?self $instance = null;
 
     /** @var string[] Stack of classes currently being resolved. */
     protected array $resolvingStack = [];
@@ -23,6 +27,35 @@ class Application
 
     public function __construct(string $basePath = null) {
         $this->basePath = $basePath;
+        $this->registerBaseBindings();
+    }
+
+    /**
+     * Set the shared instance of the application.
+     *
+     * @param self $container
+     * @return self
+     */
+    public static function setInstance(self $container): self
+    {
+        return static::$instance = $container;
+    }
+
+    /**
+     * Get the shared instance of the application.
+     *
+     * @return static|null
+     */
+    public static function getInstance(): ?self
+    {
+        return static::$instance;
+    }
+
+    protected function registerBaseBindings(): void
+    {
+        static::setInstance($this);
+        $this->instance('app', $this);
+        $this->instance(Application::class, $this);
     }
 
     public function when(string $concrete): ContextualBindingBuilder
@@ -35,9 +68,10 @@ class Application
         $this->bindings[$abstract] = compact('concrete', 'singleton');
     }
 
-    public function singleton(string $abstract, mixed $concrete): void
+    public function singleton(string $abstract, mixed $concrete = null): void
     {
-        $this->bind($abstract, $concrete, true);
+        // If no concrete implementation is provided, we'll assume the abstract is the concrete.
+        $this->bind($abstract, $concrete ?? $abstract, true);
     }
 
     /**
@@ -173,7 +207,7 @@ class Application
         $reflector = $this->getFunctionReflector($callback);
         $dependencies = [];
         foreach ($reflector->getParameters() as $parameter) {
-            $paramName = $parameter->getName();
+            $paramName = $parameter->getName(); // This line is correct
             $type = $parameter->getType();
             $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
     
@@ -228,17 +262,21 @@ class Application
 
     public function register(string $providerClass): void
     {
+        error_log("    --> [Application] Registering provider: " . $providerClass);
         $provider = new $providerClass($this);
         $provider->register();
 
         $this->serviceProviders[] = $provider;
+        error_log("    --> [Application] Provider registered: " . $providerClass);
     }
 
     public function boot(): void
     {
         foreach ($this->serviceProviders as $provider) {
             if (method_exists($provider, 'boot')) {
+                error_log("    --> [Application] Booting provider: " . get_class($provider));
                 $provider->boot();
+                error_log("    --> [Application] Provider booted: " . get_class($provider));
             }
         }
     }

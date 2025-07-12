@@ -8,7 +8,7 @@ class MakeUseCaseCommand implements CommandInterface
 {
     public function signature(): string
     {
-        return 'ddd:make-usecase';
+        return 'ddd:make-usecase {module} {name}';
     }
 
     public function handle(array $arguments): void

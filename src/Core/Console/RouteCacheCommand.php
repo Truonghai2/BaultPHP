@@ -2,20 +2,23 @@
 
 namespace Core\Console;
 
+use Core\Console\Contracts\CommandInterface;
 use Core\Application;
 use Core\Routing\Router;
 use App\Providers\RouteServiceProvider;
 
-class RouteCacheCommand
+class RouteCacheCommand implements CommandInterface
 {
-    protected string $name = 'route:cache';
-    protected string $description = 'Create a route cache file for faster route registration.';
-
     public function __construct(protected Application $app)
     {
     }
 
-    public function handle(): int
+    public function signature(): string
+    {
+        return 'route:cache';
+    }
+
+    public function handle(array $arguments): void
     {
         echo "Caching routes...\n";
 
@@ -50,8 +53,7 @@ class RouteCacheCommand
                     if (file_exists($cachePath)) {
                         unlink($cachePath);
                     }
-
-                    return 1;
+                    return;
                 }
             }
         }
@@ -61,8 +63,6 @@ class RouteCacheCommand
         file_put_contents($cachePath, $content);
 
         echo "Routes cached successfully!\n";
-
-        return 0;
     }
 
 }

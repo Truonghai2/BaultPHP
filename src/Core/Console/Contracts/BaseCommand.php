@@ -6,7 +6,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Output\ConsoleOutput;
 use Symfony\Component\Console\Input\ArgvInput;
 
-abstract class BaseCommand
+abstract class BaseCommand implements CommandInterface
 {
     protected SymfonyStyle $io;
 

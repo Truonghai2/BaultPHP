@@ -1,13 +1,13 @@
-# BaultFrame: Framework PHP Hiện Đại & Modular
+# BaultPHP: Framework PHP Hiện Đại & Modular
 
-**BaultFrame** là một framework PHP được xây dựng từ đầu với triết lý thiết kế hướng đến hiệu năng cao, cấu trúc rõ ràng và khả năng mở rộng linh hoạt. Framework lấy cảm hứng từ các tư tưởng của **Domain-Driven Design (DDD)** và kiến trúc modular, giúp việc phát triển các ứng dụng phức tạp trở nên dễ dàng quản lý và bảo trì.
+**BaultPHP** là một framework PHP được xây dựng từ đầu với triết lý thiết kế hướng đến hiệu năng cao, cấu trúc rõ ràng và khả năng mở rộng linh hoạt. Framework lấy cảm hứng từ các tư tưởng của **Domain-Driven Design (DDD)** và kiến trúc modular, giúp việc phát triển các ứng dụng phức tạp trở nên dễ dàng quản lý và bảo trì.
 
 ## Triết lý cốt lõi
 
-*   **Modular là trên hết**: Mọi thứ trong BaultFrame đều có thể được tổ chức thành các **Module** độc lập. Mỗi module có cấu trúc thư mục riêng, service provider, routes, và migrations, cho phép các nhóm phát triển song song và tái sử dụng code hiệu quả.
+*   **Modular là trên hết**: Mọi thứ trong BaultPHP đều có thể được tổ chức thành các **Module** độc lập. Mỗi module có cấu trúc thư mục riêng, service provider, routes, và migrations, cho phép các nhóm phát triển song song và tái sử dụng code hiệu quả.
 *   **Hiệu năng cao**: Framework được thiết kế để tích hợp liền mạch với **RoadRunner**, một application server hiệu năng cao cho PHP, giúp giảm thiểu thời gian khởi động và tối ưu hóa việc sử dụng bộ nhớ trong môi trường production.
 *   **Developer-friendly**: Cung cấp bộ công cụ dòng lệnh (CLI) mạnh mẽ để tự động hóa các tác vụ lặp đi lặp lại như tạo module, controller, use case, v.v., giúp lập trình viên tập trung vào logic nghiệp vụ.
-*   **Tự chủ và Tối giản**: Thay vì phụ thuộc vào các thư viện lớn, BaultFrame tự xây dựng các thành phần cốt lõi như ORM, Routing, và Authentication. Điều này mang lại sự kiểm soát tối đa và một codebase gọn nhẹ, dễ hiểu.
+*   **Tự chủ và Tối giản**: Thay vì phụ thuộc vào các thư viện lớn, BaultPHP tự xây dựng các thành phần cốt lõi như ORM, Routing, và Authentication. Điều này mang lại sự kiểm soát tối đa và một codebase gọn nhẹ, dễ hiểu.
 
 ## Các tính năng nổi bật
 
@@ -44,7 +44,7 @@
 
 ### Routing
 
-BaultFrame hỗ trợ 2 cách định nghĩa route:
+BaultPHP hỗ trợ 2 cách định nghĩa route:
 
 **a. Attribute-based (Khuyến khích)**
 
@@ -82,7 +82,7 @@ use Core\Routing\Router;
 
 return function (Router $router) {
     $router->get('/', function () {
-        return 'Chào mừng đến với BaultFrame!';
+        return 'Chào mừng đến với BaultPHP!';
     });
 };
 ```
@@ -129,31 +129,32 @@ Quản lý thay đổi CSDL một cách có hệ thống.
 1.  Tạo file migration trong thư mục `Infrastructure/Migrations` của module.
 2.  Chạy lệnh để áp dụng các migration mới:
     ```bash
-    php bault ddd:migrate
+    php cli ddd:migrate
     ```
 3.  Các tùy chọn khác:
     ```bash
-    php bault ddd:migrate --rollback  # Quay lại batch cuối cùng
-    php bault ddd:migrate --status    # Xem trạng thái các migration
+    php cli ddd:migrate --rollback  # Quay lại batch cuối cùng
+    php cli ddd:migrate --status    # Xem trạng thái các migration
+    php cli ddd:migrate --refresh   # Rollback tất cả và chạy lại từ đầu
     ```
 
 ### Console Commands
 
-BaultFrame cung cấp một bộ lệnh CLI phong phú để hỗ trợ phát triển.
+BaultPHP cung cấp một bộ lệnh CLI phong phú để hỗ trợ phát triển.
 
 ```bash
 # Chạy server phát triển local
-php bault serve
+php cli serve
 
 # Tạo một module mới với cấu trúc DDD
-php bault ddd:make-module Product
+php cli ddd:make-module Product
 
 # Tạo một UseCase trong module User
-php bault ddd:make-usecase User CreateNewUser
+php cli ddd:make-usecase User CreateNewUser
 
 # Tạo cache cho routes để tăng tốc
-php bault route:cache
+php cli route:cache
 
 # Tạo cache cho service providers
-php bault config:cache
+php cli config:cache
 ```

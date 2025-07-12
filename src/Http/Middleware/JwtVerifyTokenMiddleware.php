@@ -3,40 +3,23 @@
 namespace Http\Middleware;
 
 use App\Exceptions\AuthorizationException;
-use Core\Auth\JWT;
 use Core\Support\Facades\Auth;
 use Http\Request;
-use Modules\User\Infrastructure\Models\User;
 
 class JwtVerifyTokenMiddleware
 {
     public function handle(Request $request, \Closure $next)
     {
-        $token = $request->bearerToken();
-
-        if (!$token) {
-            return $next($request); 
-        }
-
-        try {
-            $payload = JWT::decode($token, env('JWT_SECRET', 'secret'));
-
-            if ($payload && isset($payload->sub)) {
-                $user = User::find($payload->sub);
-
-                if ($user) {
-                    Auth::setUser($user); 
-                    $request->setAttribute('user', $user);
-                }
-            }
-
-            $request->setAttribute('jwt', $payload);
-        } catch (\Exception $e) {
-            // Ném exception để Kernel có thể bắt và xử lý thành response 401 chuẩn.
-            throw new AuthorizationException("Invalid or expired token.", 401);
+        // JwtGuard sẽ tự động giải quyết người dùng từ token.
+        // Chúng ta chỉ cần kích hoạt nó bằng cách gọi một phương thức trên guard.
+        $user = Auth::guard('api')->user();
+        
+        // Nếu có token nhưng không hợp lệ, người dùng sẽ là null.
+        // Chúng ta chỉ ném exception nếu có token nhưng xác thực thất bại.
+        if ($request->bearerToken() && is_null($user)) {
+            throw new AuthorizationException('Unauthenticated.', 401);
         }
 
         return $next($request);
     }
-    
 }

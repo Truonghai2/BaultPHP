@@ -2,19 +2,22 @@
 
 namespace Core\Console;
 
+use Core\Console\Contracts\CommandInterface;
 use Core\Application;
 use Core\AppKernel;
 
-class ConfigCacheCommand
+class ConfigCacheCommand implements CommandInterface
 {
-    protected string $name = 'config:cache';
-    protected string $description = 'Create a service provider cache file for faster application bootstrapping.';
-
     public function __construct(protected Application $app)
     {
     }
 
-    public function handle(): int
+    public function signature(): string
+    {
+        return 'config:cache';
+    }
+
+    public function handle(array $arguments): void
     {
         echo "Caching configuration...\n";
 
@@ -32,7 +35,5 @@ class ConfigCacheCommand
         file_put_contents($cachePath, $content);
 
         echo "Configuration cached successfully!\n";
-
-        return 0;
     }
 }

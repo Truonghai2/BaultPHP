@@ -2,26 +2,76 @@
 
 namespace Core\Auth;
 
-use Modules\User\Infrastructure\Models\User;
+use Core\Contracts\Auth\Authenticatable;
+use Core\Contracts\Auth\Guard;
+use Core\Contracts\Auth\UserProvider;
+use Http\Request;
 
-class JwtGuard
+class JwtGuard implements Guard
 {
-    protected static ?User $userCache = null;
+    protected ?Authenticatable $user = null;
+    protected bool $userResolved = false;
 
-    public static function user(): ?User
+    public function __construct(
+        protected Request $request,
+        protected UserProvider $provider
+    ) {}
+
+    /**
+     * Get the currently authenticated user.
+     */
+    public function user(): ?Authenticatable
     {
-        if (self::$userCache) return self::$userCache;
+        if ($this->userResolved) {
+            return $this->user;
+        }
 
-        $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-        if (!str_starts_with($authHeader, 'Bearer ')) return null;
+        $token = $this->request->bearerToken();
 
-        $token = substr($authHeader, 7);
-        $payload = JWT::decode($token, env('JWT_SECRET', 'secret'));
+        if (!$token) {
+            $this->userResolved = true;
+            return null;
+        }
 
-        if (!$payload || !isset($payload['sub'])) return null;
+        try {
+            // Sử dụng APP_KEY để nhất quán với toàn bộ framework
+            $payload = JWT::decode($token, env('APP_KEY'));
 
-        $user = User::find($payload['sub']);
-        self::$userCache = $user;
-        return $user;
+            if ($payload && isset($payload->sub)) {
+                $this->user = $this->provider->retrieveById($payload->sub);
+            }
+        } catch (\Exception $e) {
+            // Token không hợp lệ, hết hạn, hoặc chữ ký sai.
+            // Người dùng vẫn là null.
+        }
+
+        $this->userResolved = true;
+        return $this->user;
     }
+
+    public function check(): bool
+    {
+        return !is_null($this->user());
+    }
+
+    public function guest(): bool
+    {
+        return !$this->check();
+    }
+
+    public function id()
+    {
+        return $this->user()?->getAuthIdentifier();
+    }
+
+    public function setUser(Authenticatable $user): void
+    {
+        $this->user = $user;
+        $this->userResolved = true;
+    }
+
+    public function login(Authenticatable $user): void {}
+    public function logout(): void {}
+    public function attempt(array $credentials = []): bool { return false; }
+    
 }

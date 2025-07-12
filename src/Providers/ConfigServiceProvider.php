@@ -12,15 +12,8 @@ class ConfigServiceProvider extends ServiceProvider
     {
         $this->app->singleton('config', function ($app) {
             $items = [];
-            $configPath = $app->basePath('config');
-
-            if (is_dir($configPath)) {
-                // This simple glob is sufficient for a flat config directory.
-                foreach (glob($configPath . '/*.php') as $file) {
-                    $key = basename($file, '.php');
-                    $items[$key] = require $file;
-                }
-            }
+            // We are not loading all config files here anymore.
+            // Instead, config values will be loaded on demand.
             
             return new Config($items);
         });

@@ -4,77 +4,54 @@ namespace Core;
 
 use Core\Support\ServiceProvider;
 
-abstract class BaseServiceProvider extends ServiceProvider
+/**
+ * Class BaseServiceProvider
+ *
+ * A base service provider for modules to extend. It provides helper
+ * methods for common module bootstrapping tasks like loading
+ * configurations and migrations.
+ *
+ * @package Core
+ */
+class BaseServiceProvider extends ServiceProvider
 {
-    protected string $modulePath;
+    /**
+     * The base path of the module.
+     *
+     * @var string|null
+     */
+    protected ?string $modulePath = null;
 
+    /**
+     * Register any application services.
+     *
+     * This method is intentionally left empty. Module-specific event-listener
+     * mappings are loaded globally by the `EventServiceProvider` to avoid
+     * redundant and potentially conflicting registrations.
+     *
+     * @return void
+     */
     public function register(): void
     {
-        $this->modulePath = dirname(__DIR__, 2) . '/modules/' . $this->getModuleName();
-
-        $this->registerConfig();
-        $this->registerPermissions();
-        $this->registerEvents();
+        //
     }
 
-    public function boot(): void
+    /**
+     * Get the base path of the module.
+     *
+     * This method uses reflection to determine the directory of the child class,
+     * assuming a standard module structure.
+     *
+     * @return string
+     */
+    protected function getModulePath(): string
     {
-        $this->loadRoutes();
-        $this->loadMigrations();
-    }
-
-    protected function getModuleName(): string
-    {
-        // Get module name from namespace: Modules\User\Providers > User
-        $parts = explode('\\', static::class);
-        return $parts[1] ?? 'Unknown';
-    }
-
-    protected function loadRoutes(): void
-    {
-        $path = $this->modulePath . '/Http/routes.php';
-        if (file_exists($path)) {
-            $this->loadRoutesFrom($path);
+        if ($this->modulePath) {
+            return $this->modulePath;
         }
-    }
 
-    protected function loadMigrations(): void
-    {
-        $path = $this->modulePath . '/Infrastructure/Migrations';
-        if (is_dir($path)) {
-            $this->loadMigrationsFrom($path);
-        }
-    }
-
-    protected function registerPermissions(): void
-    {
-        $file = $this->modulePath . '/permissions.php';
-        if (file_exists($file)) {
-            PermissionRegistrar::register($file);
-        }
-    }
-
-    protected function registerEvents(): void
-    {
-        $file = $this->modulePath . '/events.php';
-        if (file_exists($file)) {
-            /** @var \Core\Events\Dispatcher $dispatcher */
-            $dispatcher = $this->app->make('events');
-            $eventsMap = require $file;
-
-            foreach ($eventsMap as $event => $listeners) {
-                foreach ((array) $listeners as $listener) {
-                    $dispatcher->listen($event, $listener);
-                }
-            }
-        }
-    }
-
-    protected function registerConfig(): void
-    {
-        $file = $this->modulePath . '/config.php';
-        if (file_exists($file)) {
-            $this->mergeConfigFrom($file, strtolower($this->getModuleName()));
-        }
+        $reflector = new \ReflectionClass(static::class);
+        // Assumes the provider is in `Modules/{ModuleName}/Providers/`
+        return $this->modulePath = dirname($reflector->getFileName(), 2);
     }
 }

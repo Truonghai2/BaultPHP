@@ -15,24 +15,37 @@ class Config implements ArrayAccess
 
     public function get(string $key, $default = null)
     {
+        // Check if the exact key is already cached (e.g., from a previous set() call)
         if (array_key_exists($key, $this->items)) {
             return $this->items[$key];
         }
 
-        if (strpos($key, '.') === false) {
-            return $default;
+        // The first segment of a dot-notation key is the config file name.
+        $keys = explode('.', $key);
+        $file = $keys[0];
+
+        // Load the configuration file if it hasn't been loaded yet.
+        if (!isset($this->items[$file])) {
+            $path = base_path("config/{$file}.php");
+            if (file_exists($path)) {
+                $this->items[$file] = require $path;
+            } else {
+                // If the file doesn't exist, we can't find the key.
+                return $default;
+            }
         }
 
-        $items = $this->items;
-        foreach (explode('.', $key) as $segment) {
-            if (is_array($items) && array_key_exists($segment, $items)) {
-                $items = $items[$segment];
+        // Traverse the keys to find the requested value.
+        $value = $this->items;
+        foreach ($keys as $segment) {
+            if (is_array($value) && array_key_exists($segment, $value)) {
+                $value = $value[$segment];
             } else {
                 return $default;
             }
         }
 
-        return $items;
+        return $value;
     }
 
     public function set(string $key, $value): void

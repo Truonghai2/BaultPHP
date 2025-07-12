@@ -10,17 +10,18 @@ function service(string $contract): object {
 if (!function_exists('app')) {
     function app(string $key = null)
     {
-        static $app = null;
+        $instance = \Core\Application::getInstance();
 
-        if (!$app) {
-            $app = require base_path('bootstrap/app.php');
+        if (is_null($instance)) {
+            throw new \RuntimeException('Application instance has not been set. Please bootstrap the application first.');
         }
 
-        if ($key) {
-            return $app[$key] ?? null;
+        if (is_null($key)) {
+            return $instance;
         }
 
-        return $app;
+        // Use the 'make' method to resolve from the container
+        return $instance->make($key);
     }
 }
 

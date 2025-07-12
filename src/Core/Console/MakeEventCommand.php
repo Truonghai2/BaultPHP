@@ -2,43 +2,40 @@
 
 namespace Core\Console;
 
-use Core\Application;
+use Core\Console\Contracts\CommandInterface;
 
-class MakeEventCommand
+class MakeEventCommand implements CommandInterface
 {
-    protected string $name = 'make:event';
-    protected string $description = 'Create a new event class.';
-
-    public function __construct(protected Application $app)
+    public function signature(): string
     {
+        return 'make:event {name}';
     }
 
-    public function handle(array $arguments): int
+    public function handle(array $arguments): void
     {
         $name = $arguments[0] ?? null;
 
         if (!$name) {
             echo "Error: Event name is required.\nUsage: php bault make:event UserRegistered\n";
-            return 1;
+            return;
         }
 
         $className = ucfirst($name);
-        $path = $this->app->basePath("src/Events/{$className}.php");
+        $path = base_path("src/Events/{$className}.php");
         $directory = dirname($path);
 
         if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
+            mkdir($directory, 0755, true);
         }
 
         if (file_exists($path)) {
             echo "Event [{$className}] already exists.\n";
-            return 1;
+            return;
         }
 
         $stub = "<?php\n\nnamespace App\Events;\n\nclass {$className}\n{\n    // public function __construct() {}\n}\n";
         file_put_contents($path, $stub);
 
         echo "Event [src/Events/{$className}.php] created successfully.\n";
-        return 0;
     }
 }

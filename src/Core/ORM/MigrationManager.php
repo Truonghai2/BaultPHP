@@ -79,6 +79,32 @@ class MigrationManager
         }
     }
 
+    public function rollback(array $paths): void
+    {
+        $lastBatch = $this->getLastBatchNumber();
+
+        if (is_null($lastBatch)) {
+            $this->log('<info>Nothing to rollback.</info>');
+            return;
+        }
+
+        $this->rollbackBatch($lastBatch, $paths);
+    }
+
+    public function reset(array $paths): void
+    {
+        $this->log('<info>Rolling back all migrations.</info>');
+
+        $count = 0;
+        while (!is_null($batch = $this->getLastBatchNumber())) {
+            $count += $this->rollbackBatch($batch, $paths);
+        }
+
+        if ($count === 0) {
+            $this->log('<info>Already at base state.</info>');
+        }
+    }
+
     protected function getAllMigrationFiles(array $paths): array
     {
         $files = [];
@@ -137,6 +163,70 @@ class MigrationManager
     {
         $stmt = $this->pdo->query("SELECT MAX(batch) FROM {$this->table}");
         return ($stmt->fetchColumn() ?: 0) + 1;
+    }
+
+    protected function getLastBatchNumber(): ?int
+    {
+        $stmt = $this->pdo->query("SELECT MAX(batch) FROM {$this->table}");
+        $result = $stmt->fetchColumn();
+        return $result ? (int)$result : null;
+    }
+
+    protected function getMigrationsForBatch(int $batch): array
+    {
+        // Lấy theo thứ tự ngược lại để rollback đúng thứ tự (quan trọng khi có khóa ngoại)
+        $stmt = $this->pdo->prepare("SELECT migration FROM {$this->table} WHERE batch = ? ORDER BY id DESC");
+        $stmt->execute([$batch]);
+        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+    }
+
+    protected function deleteMigrationRecord(string $name): void
+    {
+        $stmt = $this->pdo->prepare("DELETE FROM {$this->table} WHERE migration = ?");
+        $stmt->execute([$name]);
+    }
+
+    /**
+     * Rolls back a specific batch of migrations.
+     *
+     * @param int $batch
+     * @param array $paths
+     * @return int The number of migrations rolled back.
+     */
+    protected function rollbackBatch(int $batch, array $paths): int
+    {
+        $migrationsToRollback = $this->getMigrationsForBatch($batch);
+
+        if (empty($migrationsToRollback)) {
+            $this->log("<info>No migrations found in batch {$batch}.</info>");
+            return 0;
+        }
+
+        $this->log("<info>Rolling back batch:</info> {$batch}");
+
+        $allFiles = $this->getAllMigrationFiles($paths);
+
+        foreach ($migrationsToRollback as $migrationName) {
+            $fileFound = false;
+            foreach ($allFiles as $file) {
+                if (str_contains($file, $migrationName)) {
+                    require_once $file;
+                    $class = $this->findMigrationClass($file);
+                    if ($class) {
+                        $instance = new $class();
+                        $instance->down($this->pdo);
+                        $this->deleteMigrationRecord($migrationName);
+                        $this->log("Rolled back: <comment>{$migrationName}</comment>");
+                        $fileFound = true;
+                        break;
+                    }
+                }
+            }
+            if (!$fileFound) {
+                $this->log("<error>Migration file for '{$migrationName}' not found. Skipping.</error>");
+            }
+        }
+        return count($migrationsToRollback);
     }
 
     protected function log(?string $message): void

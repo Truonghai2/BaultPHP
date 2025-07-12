@@ -1,26 +1,84 @@
 #!/usr/bin/env php
 <?php
 
-define('APP_RUNNING_IN_CONSOLE', true);
+define('BAULT_START', microtime(true));
+error_log("==> [CLI] Execution started.");
 
-require __DIR__ . '/vendor/autoload.php';
+// 1. Autoloader
+require_once __DIR__.'/vendor/autoload.php';
+error_log("==> [CLI] Autoloader included.");
 
-use Core\CLI\ConsoleKernel;
+// 2. Environment
+try {
+    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+    $dotenv->load();
+    error_log("==> [CLI] .env file loaded.");
+} catch (\Throwable $e) {
+    error_log("==> [CLI] ERROR: Could not load .env file: " . $e->getMessage());
+    exit(1);
+}
 
-// Load .env
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-$dotenv->load();
+// 3. Application Bootstrap
+error_log("==> [CLI] Bootstrapping application from bootstrap/app.php...");
+try {
+    /** @var \Core\Application $app */
+    $app = require_once __DIR__.'/bootstrap/app.php';
+    error_log("==> [CLI] Application bootstrapped successfully. AppKernel finished.");
+} catch (\Throwable $e) {
+    error_log("==> [CLI] FATAL ERROR during bootstrap: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    exit(1);
+}
 
-// Khởi động toàn bộ ứng dụng bằng cách tạo AppKernel.
-// Việc này đảm bảo tất cả các service (database, config, v.v.) đều sẵn sàng.
-$appKernel = new \Core\AppKernel();
-$app = $appKernel->getApplication();
+// 4. Console Kernel Logic
+global $argv;
+$inputSignature = $argv[1] ?? null;
+error_log("==> [CLI] Input signature: " . ($inputSignature ?? 'null'));
 
-// Lấy ConsoleKernel từ service container.
-// Container sẽ tự động nạp các dependency cho kernel nhờ tính năng autowiring.
-$kernel = $app->make(ConsoleKernel::class);
+if (!$inputSignature) {
+    echo "BaultFrame Console\n\nUsage:\n  command [options] [arguments]\n\n";
+    error_log("==> [CLI] No command provided. Displaying usage info.");
+    exit(0);
+}
 
-// Thực thi câu lệnh và nhận mã trạng thái trả về.
-$status = $kernel->handle($argv);
+try {
+    // Lấy danh sách các lớp command từ ConsoleServiceProvider
+    $consoleProvider = new \App\Providers\ConsoleServiceProvider($app);
+    $reflector = new \ReflectionClass($consoleProvider);
+    $commandsProperty = $reflector->getProperty('commands');
+    $commandClasses = $commandsProperty->getValue($consoleProvider);
+    error_log("==> [CLI] Found " . count($commandClasses) . " command classes from ConsoleServiceProvider.");
 
-exit($status);
+    $matchedCommand = null;
+    foreach ($commandClasses as $commandClass) {
+        /** @var \Core\Console\Contracts\CommandInterface $commandInstance */
+        $commandInstance = $app->make($commandClass);
+        $signature = $commandInstance->signature();
+        error_log("    -> Checking signature: " . $signature);
+
+        // Tách tên lệnh chính ra khỏi các tham số. Ví dụ: 'make:command {name}' -> 'make:command'
+        $baseSignature = preg_split('/[\s{]/', $signature, 2)[0];
+
+        if ($baseSignature === $inputSignature) {
+            $matchedCommand = $commandInstance;
+            error_log("==> [CLI] Matched command: " . $commandClass);
+            break;
+        }
+    }
+
+    if ($matchedCommand) {
+        error_log("==> [CLI] Executing handle() for " . get_class($matchedCommand));
+        $matchedCommand->handle(array_slice($argv, 2));
+        error_log("==> [CLI] Command execution finished.");
+    } else {
+        echo "Command \"$inputSignature\" is not defined.\n";
+        error_log("==> [CLI] No command matched the signature \"$inputSignature\".");
+    }
+} catch (\Throwable $e) {
+    error_log("==> [CLI] FATAL ERROR during command dispatch: " . $e->getMessage() . "\n" . $e->getTraceAsString());
+    if ($app->resolved(\App\Exceptions\Handler::class)) {
+        $app->make(\App\Exceptions\Handler::class)->handle($e);
+    }
+    exit(1);
+}
+
+exit(0);

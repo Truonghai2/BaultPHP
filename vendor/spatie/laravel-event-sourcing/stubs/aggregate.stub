@@ -1,9 +1,0 @@
-<?php
-
-namespace DummyNamespace;
-
-use Spatie\EventSourcing\AggregateRoots\AggregateRoot;
-
-class DummyClass extends AggregateRoot
-{
-}

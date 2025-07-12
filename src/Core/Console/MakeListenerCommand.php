@@ -2,43 +2,40 @@
 
 namespace Core\Console;
 
-use Core\Application;
+use Core\Console\Contracts\CommandInterface;
 
-class MakeListenerCommand
+class MakeListenerCommand implements CommandInterface
 {
-    protected string $name = 'make:listener';
-    protected string $description = 'Create a new event listener class.';
-
-    public function __construct(protected Application $app)
+    public function signature(): string
     {
+        return 'make:listener {name}';
     }
 
-    public function handle(array $arguments): int
+    public function handle(array $arguments): void
     {
         $name = $arguments[0] ?? null;
 
         if (!$name) {
             echo "Error: Listener name is required.\nUsage: php bault make:listener SendWelcomeEmail\n";
-            return 1;
+            return;
         }
 
         $className = ucfirst($name);
-        $path = $this->app->basePath("src/Listeners/{$className}.php");
+        $path = base_path("src/Listeners/{$className}.php");
         $directory = dirname($path);
 
         if (!is_dir($directory)) {
-            mkdir($directory, 0777, true);
+            mkdir($directory, 0755, true);
         }
 
         if (file_exists($path)) {
             echo "Listener [{$className}] already exists.\n";
-            return 1;
+            return;
         }
 
         $stub = "<?php\n\nnamespace App\Listeners;\n\nclass {$className}\n{\n    public function handle(object \$event): void\n    {\n        //\n    }\n}\n";
         file_put_contents($path, $stub);
 
         echo "Listener [src/Listeners/{$className}.php] created successfully.\n";
-        return 0;
     }
 }
