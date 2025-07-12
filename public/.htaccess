@@ -1,0 +1,19 @@
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Chuyển tất cả request trừ file/thư mục thật sự về index.php
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+
+    # Chuyển hướng mọi thứ về index.php
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Bảo mật: chặn truy cập trực tiếp vào các file .env, composer, v.v.
+<FilesMatch "\\.(env|git|log|sql|ini|phar|json|lock|config|yml|yaml)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Bảo mật: không cho xem cấu trúc thư mục
+Options -Indexes

@@ -1,0 +1,16 @@
+#debug-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #1e1e1e;
+    color: #00ff88;
+    font-family: monospace;
+    font-size: 12px;
+    z-index: 99999;
+    padding: 10px;
+    border-top: 2px solid #00ff88;
+    white-space: pre-wrap;
+}

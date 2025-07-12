@@ -1,0 +1,26 @@
+#!/usr/bin/env php
+<?php
+
+define('APP_RUNNING_IN_CONSOLE', true);
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Core\CLI\ConsoleKernel;
+
+// Load .env
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+// Khởi động toàn bộ ứng dụng bằng cách tạo AppKernel.
+// Việc này đảm bảo tất cả các service (database, config, v.v.) đều sẵn sàng.
+$appKernel = new \Core\AppKernel();
+$app = $appKernel->getApplication();
+
+// Lấy ConsoleKernel từ service container.
+// Container sẽ tự động nạp các dependency cho kernel nhờ tính năng autowiring.
+$kernel = $app->make(ConsoleKernel::class);
+
+// Thực thi câu lệnh và nhận mã trạng thái trả về.
+$status = $kernel->handle($argv);
+
+exit($status);

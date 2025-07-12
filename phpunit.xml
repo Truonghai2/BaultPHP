@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="./vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory suffix="Test.php">./Modules/*/Tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Integration">
+            <directory suffix="Test.php">./Modules/*/Tests/Integration</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory suffix=".php">./Modules</directory>
+        </include>
+    </source>
+    <php>
+        <!--
+        |--------------------------------------------------------------------------
+        | Biến môi trường cho Testing
+        |--------------------------------------------------------------------------
+        | Chúng ta sẽ dùng một database riêng cho việc test để không ảnh hưởng
+        | đến dữ liệu phát triển. SQLite in-memory là lựa chọn tốt nhất
+        | vì tốc độ nhanh và không cần file.
+        |
+        -->
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="false"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+    </php>
+</phpunit>
