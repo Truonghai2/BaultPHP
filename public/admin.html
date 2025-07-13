@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assign Role</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 2rem auto; padding: 1rem; border: 1px solid #ccc; border-radius: 8px; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.25rem; }
+        input, select, button { width: 100%; padding: 0.5rem; font-size: 1rem; }
+        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+        #response { margin-top: 1rem; padding: 1rem; border-radius: 4px; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Assign Role to User</h1>
+    <form id="assign-role-form">
+        <div class="form-group">
+            <label for="user_id">User ID:</label>
+            <input type="number" id="user_id" name="user_id" required value="1">
+        </div>
+        <div class="form-group">
+            <label for="role_id">Role ID:</label>
+            <input type="number" id="role_id" name="role_id" required value="1">
+        </div>
+        <div class="form-group">
+            <label for="context_level">Context Level (e.g., system, course, post):</label>
+            <input type="text" id="context_level" name="context_level" required value="system">
+        </div>
+        <div class="form-group">
+            <label for="instance_id">Instance ID (e.g., 1):</label>
+            <input type="number" id="instance_id" name="instance_id" required value="1">
+        </div>
+        <button type="submit">Assign Role</button>
+    </form>
+
+    <div id="response"></div>
+
+    <script>
+        document.getElementById('assign-role-form').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const form = e.target;
+            const userId = form.user_id.value;
+            const responseDiv = document.getElementById('response');
+
+            const formData = {
+                role_id: form.role_id.value,
+                context_level: form.context_level.value,
+                instance_id: form.instance_id.value,
+            };
+
+            const response = await fetch(`/api/admin/users/${userId}/roles`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                body: JSON.stringify(formData)
+            });
+
+            const result = await response.json();
+            responseDiv.className = response.ok ? 'success' : 'error';
+            responseDiv.textContent = result.message;
+        });
+    </script>
+</body>
+</html>

@@ -2,61 +2,65 @@
 
 namespace Core\CLI;
 
+use Core\Application;
+use Symfony\Component\Console\Application as ConsoleApplication;
+use Symfony\Component\Console\Command\Command;
+
 class ConsoleKernel
 {
     protected array $commands = [];
+    protected ConsoleApplication $cli;
+    protected Application $app;
 
-    public function __construct()
+    public function __construct(Application $app)
     {
+        $this->app = $app;
+        $this->cli = new ConsoleApplication('BaultFrame Console', '1.0.0');
         $this->loadCommands();
     }
 
     protected function loadCommands(): void
     {
-        $files = glob(__DIR__ . '/../Console/*Command.php');
+        // Quét command từ core và từ các module
+        $paths = array_merge(
+            glob($this->app->basePath('src/Core/Console/*Command.php')),
+            glob($this->app->basePath('Modules/*/Console/*Command.php'))
+        );
 
-        foreach ($files as $file) {
-            require_once $file;
-            $class = 'Core\\Console\\' . basename($file, '.php');
+        foreach ($paths as $file) {
+            $class = $this->fqcnFromFile($file);
 
-            if (class_exists($class)) {
-                $instance = new $class;
-                $this->commands[$instance->signature()] = $instance;
+            if ($class && class_exists($class) && is_subclass_of($class, Command::class)) {
+                // Sử dụng DI container để khởi tạo command, cho phép inject dependencies
+                $command = $this->app->make($class);
+                $this->cli->add($command);
             }
         }
     }
 
     public function handle(array $argv): void
     {
-        $commandInput = $argv[1] ?? null;
-
-        if (!$commandInput) {
-            $this->output("No command provided. Gõ `--help` để xem danh sách.");
-            return;
-        }
-
-        if ($commandInput === '--help' || $commandInput === '-h') {
-            $this->output("Danh sách command:");
-            foreach ($this->commands as $sig => $cmd) {
-                $this->output(" - {$sig}");
-            }
-            return;
-        }
-
-        foreach ($this->commands as $signature => $commandInstance) {
-            $cmd = explode(' ', $signature)[0];
-
-            if (strtolower($cmd) === strtolower($commandInput)) {
-                $commandInstance->handle(array_slice($argv, 2));
-                return;
-            }
-        }
-
-        $this->output("Command '{$commandInput}' not found.");
+        $this->cli->run();
     }
 
-    protected function output(string $message): void
+    /**
+     * Lấy ra Tên Class Đầy Đủ (FQCN) từ đường dẫn file.
+     * Tương tự phương thức trong RouteServiceProvider.
+     */
+    private function fqcnFromFile(string $filePath): ?string
     {
-        echo $message . PHP_EOL;
+        $relativePath = str_replace(rtrim($this->app->basePath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR, '', $filePath);
+
+        // Bỏ phần mở rộng .php
+        $classPath = substr($relativePath, 0, -4);
+
+        // Chuyển đổi dấu phân cách thư mục thành dấu phân cách namespace
+        // src/Core/Console/MyCommand.php -> Core\Console\MyCommand
+        // Modules/User/Console/UserCommand.php -> Modules\User\Console\UserCommand
+        if (str_starts_with($classPath, 'src/')) {
+            $classPath = substr($classPath, 4);
+        }
+
+        return str_replace(DIRECTORY_SEPARATOR, '\\', $classPath);
     }
 }

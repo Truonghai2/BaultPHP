@@ -3,7 +3,8 @@
 namespace Modules\User\Providers;
 
 use Core\Routing\Router;
-use Illuminate\Support\ServiceProvider;
+use Core\Support\ServiceProvider;
+use Modules\User\Application\Services\AccessControlService;
 
 class UserServiceProvider extends ServiceProvider
 {
@@ -11,19 +12,13 @@ class UserServiceProvider extends ServiceProvider
     {
         $router = $this->app->make(Router::class);
 
-        $routeFile = base_path('Modules/User/Http/Routes/web.php');
-
-        if (file_exists($routeFile)) {
-            $callback = require $routeFile;
-            if (is_callable($callback)) {
-                $callback($router);
-            }
-
-        }
     }
 
     public function register(): void
     {
-        //
+        // Đăng ký AccessControlService với phương thức `bind` để nó trở thành request-scoped.
+        // Mỗi khi `app(AccessControlService::class)` được gọi trong một request mới,
+        // một instance hoàn toàn mới sẽ được tạo ra.
+        $this->app->bind(AccessControlService::class, AccessControlService::class);
     }
 }

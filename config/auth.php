@@ -40,6 +40,15 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Super Admin Permission
+    |--------------------------------------------------------------------------
+    | The permission name that grants a user all permissions across the system.
+    | Assign this permission to your super admin role.
+    */
+    'super_admin_permission' => 'system.manage-all',
+
+    /*
+    |--------------------------------------------------------------------------
     | User Providers
     |--------------------------------------------------------------------------
     |

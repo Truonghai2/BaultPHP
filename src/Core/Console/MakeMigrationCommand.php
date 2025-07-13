@@ -11,6 +11,11 @@ class MakeMigrationCommand extends BaseCommand
         return 'ddd:make-migration {module} {name}';
     }
 
+    public function description(): string
+    {
+        return 'Create a new migration class in the specified module.';
+    }
+
     public function handle(array $args = []): void
     {
         $module = ucfirst($args[0] ?? '');
@@ -72,5 +77,18 @@ PHP;
         file_put_contents($path, $stub);
 
         $this->io->success("Migration [{$fileName}] đã được tạo trong module {$module}.");
+    }
+
+    public function fire(): void
+    {
+        $module = $this->argument('module');
+        $name = $this->argument('name');
+
+        if (!$module || !$name) {
+            $this->io->error('Bạn phải truyền tên module và tên migration.');
+            return;
+        }
+
+        $this->handle([$module, $name]);
     }
 }

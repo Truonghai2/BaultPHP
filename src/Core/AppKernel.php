@@ -2,6 +2,7 @@
 
 namespace Core;
 
+use Core\Module\Module;
 use Core\Contracts\Http\Kernel as KernelContract;
 use Core\Support\Facades\Facade;
 use Core\Support\ServiceProvider;
@@ -69,13 +70,17 @@ class AppKernel
     {
         return [
             \App\Providers\AuthServiceProvider::class,
+            \App\Providers\CacheServiceProvider::class,
             \App\Providers\ConfigServiceProvider::class,
+            \App\Providers\DatabaseServiceProvider::class,
             \App\Providers\ConsoleServiceProvider::class,
             \App\Providers\EventServiceProvider::class,
             \App\Providers\ExceptionServiceProvider::class,
             \App\Providers\LoggingServiceProvider::class,
             \App\Providers\RouteServiceProvider::class,
+            \App\Providers\QueueServiceProvider::class,
             \App\Providers\ValidationServiceProvider::class,
+            \App\Providers\AppServiceProvider::class,
         ];
     }
 
@@ -90,18 +95,32 @@ class AppKernel
 
     protected function discoverModuleProvidersList(): array
     {
-        $discoveredProviders = [];
-        $moduleDirs = glob(base_path('Modules/*'), GLOB_ONLYDIR);
+        $cachedModulesPath = $this->app->basePath('bootstrap/cache/modules.php');
 
-        foreach ($moduleDirs as $dir) {
+        if (file_exists($cachedModulesPath) && !env('APP_DEBUG', false)) {
+            error_log("    -> Loading enabled modules from cache.");
+            $enabledModuleNames = require $cachedModulesPath;
+        } else {
+            // Nếu không có cache (hoặc ở chế độ debug), truy vấn CSDL
+            try {
+                error_log("    -> Loading enabled modules from database.");
+                $enabledModuleNames = Module::where('enabled', true)->pluck('name')->all();
+            } catch (\Exception $e) {
+                // Nếu có lỗi CSDL (ví dụ: chưa migrate), trả về mảng rỗng để tránh crash
+                error_log("Could not fetch enabled modules from database. Is it migrated? Error: " . $e->getMessage());
+                return [];
+            }
+        }
+
+ 
+        $discoveredProviders = [];
+        foreach ($enabledModuleNames as $moduleName) {
+            $dir = base_path('Modules/' . $moduleName);
             $metaFile = $dir . '/module.json';
             if (!file_exists($metaFile)) continue;
-            error_log("    -> Found module meta: " . $metaFile);
 
+            error_log("    -> Loading enabled module: " . $moduleName);
             $meta = json_decode(file_get_contents($metaFile), true);
-            if (!($meta['enabled'] ?? false)) continue;
-
-            error_log("    -> Module '" . ($meta['name'] ?? 'Unknown') . "' is enabled.");
             foreach ($meta['providers'] ?? [] as $provider) {
                 if (class_exists($provider)) {
                     $discoveredProviders[] = $provider;
@@ -111,9 +130,9 @@ class AppKernel
         return $discoveredProviders;
     }
 
+
     public function handle(Request $request): Response
     {
-        // Đăng ký đối tượng Request hiện tại vào container để có thể inject vào controller
         $this->app->instance(Request::class, $request);
 
         /** @var KernelContract $kernel */

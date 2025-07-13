@@ -21,6 +21,17 @@ class MigrationManager
         $this->ensureTable();
     }
 
+    /**
+     * Set the output interface for the manager.
+     *
+     * @param \Symfony\Component\Console\Style\SymfonyStyle $io
+     * @return void
+     */
+    public function setOutput(SymfonyStyle $io): void
+    {
+        $this->io = $io;
+    }
+
     protected function ensureTable(): void
     {
         $this->pdo->exec("

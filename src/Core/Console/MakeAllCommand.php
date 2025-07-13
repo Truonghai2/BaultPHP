@@ -11,9 +11,14 @@ class MakeAllCommand implements CommandInterface
         return 'make:command {name}';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
     {
-        $name = $arguments[0] ?? null;
+        return 'Create a new console command class.';
+    }
+
+    public function handle(array $args = []): void
+    {
+        $name = $args[0] ?? null;
 
         if (!$name) {
             echo "Bạn phải truyền tên command. Ví dụ: `make:command MyCommand`\n";

@@ -12,7 +12,15 @@ use Core\Console\MakeMigrationCommand;
 use Core\Console\MakeListenerCommand;
 use Core\Console\MakeModuleCommand;
 use Core\Console\MakeUseCaseCommand;
+use Core\Console\MakeRuleCommand;
+use Core\Console\ModuleManageCommand;
 use Core\Console\MigrateModulesCommand;
+use Core\Console\MakeJobCommand;
+use Core\Console\QueueFlushCommand;
+use Core\Console\QueueForgetCommand;
+use Core\Console\QueueRetryCommand;
+use Core\Console\QueueFailedCommand;
+use Core\Console\QueueWorkCommand;
 use Core\Console\RouteCacheCommand;
 use Core\Console\ServeCommand;
 
@@ -26,6 +34,12 @@ class ConsoleServiceProvider extends ServiceProvider
         ServeCommand::class,
         MigrateModulesCommand::class,
         DbSeedCommand::class,
+        ModuleManageCommand::class,
+        QueueWorkCommand::class,
+        QueueFailedCommand::class,
+        QueueForgetCommand::class,
+        QueueRetryCommand::class,
+        QueueFlushCommand::class,
 
         // Generators
         MakeAllCommand::class, // make:command
@@ -33,7 +47,10 @@ class ConsoleServiceProvider extends ServiceProvider
         MakeListenerCommand::class,
         MakeMigrationCommand::class,
         MakeModuleCommand::class,
+        \Core\Console\MakeModelCommand::class,
         MakeUseCaseCommand::class,
+        MakeJobCommand::class,
+        MakeRuleCommand::class,
     ];
 
     public function register(): void

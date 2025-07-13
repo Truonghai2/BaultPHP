@@ -11,7 +11,12 @@ class KeyGenerateCommand implements CommandInterface
         return 'key:generate';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
+    {
+        return 'Set the application key.';
+    }
+
+    public function handle(array $args = []): void
     {
         $key = 'base64:'.base64_encode(random_bytes(32));
 

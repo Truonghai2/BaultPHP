@@ -2,7 +2,7 @@
 
 namespace Core\Realtime;
 
-use Illuminate\Support\Facades\Redis;
+use Prometheus\Storage\Redis;
 
 /**
  * RealtimeBroadcaster handles real-time broadcasting of events to users and systems.

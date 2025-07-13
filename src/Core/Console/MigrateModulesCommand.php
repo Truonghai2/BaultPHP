@@ -2,36 +2,50 @@
 
 namespace Core\Console;
 
-use Core\ORM\Connection;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\ORM\MigrationManager;
 
 class MigrateModulesCommand extends BaseCommand
 {
-    protected string $signature = 'ddd:migrate';
-    protected Application $app;
-
-    public function __construct(Application $app)
+    /**
+     * Create a new command instance.
+     *
+     * The MigrationManager is injected by the service container. We also inject
+     * the Application container to resolve the configuration.
+     */
+    public function __construct(
+        private MigrationManager $manager,
+        private Application $app
+    )
     {
-        $this->app = $app;
         parent::__construct();
     }
 
     public function signature(): string
     {
-        return $this->signature;
+        return 'ddd:migrate {--rollback : Rollback the last database migration} {--refresh : Rollback and re-run all migrations} {--status : Show the status of each migration}';
     }
 
-    public function handle(array $args = []): void
+    public function description(): string
+    {
+        return 'Run database migrations for all modules.';
+    }
+
+    /**
+     * The core logic of the command.
+     * This method executes the migration process.
+     */
+    public function fire(): void
     {
         $this->io->title('Running Database Migrations');
 
-        $rollback = in_array('--rollback', $args);
-        $refresh = in_array('--refresh', $args);
-        $status = in_array('--status', $args);
-
         try {
+            // Set the output on the manager for this command execution. This allows the
+            // manager to be constructed without a dependency on the console IO,
+            // making it more reusable.
+            $this->manager->setOutput($this->io);
+
             $config = $this->app->make('config');
             $migrationPaths = $config->get('database.migrations.paths', []);
 
@@ -40,26 +54,22 @@ class MigrateModulesCommand extends BaseCommand
                 return;
             }
 
-            // Lấy kết nối PDO mặc định từ container
-            $pdo = Connection::get($config->get('database.default'));
-
-            // Tạo manager, truyền vào kết nối PDO và đối tượng IO
-            $manager = new MigrationManager($pdo, $this->io);
-
-            if ($status) {
-                $ran = $manager->getRan();
+            if ($this->option('status')) {
+                $ran = $this->manager->getRan();
                 $this->io->section('Ran Migrations:');
                 if (empty($ran)) {
                     $this->io->info('No migrations have been run.');
                 } else {
                     $this->io->listing($ran);
                 }
-            } elseif ($rollback) {
-                $manager->rollback($migrationPaths);
-            } elseif ($refresh) {
-                $this->io->warning("Refresh not implemented yet.");
+            } elseif ($this->option('refresh')) {
+                $this->io->info('Refreshing migrations: Rolling back all migrations and running them again.');
+                $this->manager->reset($migrationPaths);
+                $this->manager->run($migrationPaths);
+            } elseif ($this->option('rollback')) {
+                $this->manager->rollback($migrationPaths);
             } else {
-                $manager->run($migrationPaths);
+                $this->manager->run($migrationPaths);
             }
         } catch (\Throwable $e) {
             $this->io->error("An error occurred during migration: " . $e->getMessage());

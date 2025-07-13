@@ -2,45 +2,33 @@
 
 namespace App\Providers;
 
-use Http\FormRequest;
 use Core\Support\ServiceProvider;
-use Illuminate\Filesystem\Filesystem;
-use Illuminate\Translation\FileLoader;
-use Illuminate\Translation\Translator;
-use Illuminate\Validation\Factory as ValidationFactory;
+use Core\Validation\Factory as ValidationFactory;
+use Http\FormRequest;
 
 class ValidationServiceProvider extends ServiceProvider
 {
+    /**
+     * Register the validation services.
+     *
+     * @return void
+     */
     public function register(): void
     {
-        $this->registerTranslator();
-
         $this->app->singleton('validator', function ($app) {
-            return new ValidationFactory($app['translator'], $app);
+            return new ValidationFactory($app);
         });
+
+        $this->app->singleton(ValidationFactory::class, 'validator');
     }
 
+    /**
+     * Bootstrap any application services.
+     */
     public function boot(): void
     {
-        // Đăng ký một hook để tự động chạy validation sau khi một FormRequest
-        // được resolve từ container.
-        $this->app->afterResolving(FormRequest::class, function ($formRequest) {
-            /** @var FormRequest $formRequest */
-            $formRequest->validateResolved();
-        });
-    }
-
-    protected function registerTranslator(): void
-    {
-        $this->app->singleton('translator', function ($app) {
-            // Đường dẫn tới thư mục chứa các file ngôn ngữ cho validation
-            // Bạn có thể tải chúng từ: https://github.com/laravel/lang
-            $langPath = resource_path('lang');
-
-            $loader = new FileLoader(new Filesystem(), $langPath);
-            $locale = env('APP_LOCALE', 'en');
-
-            return new Translator($loader, $locale);
-        });
+        // This callback ensures that whenever a FormRequest is resolved from the container
+        // (e.g., via controller method injection), its validation logic is automatically executed.
+        $this->app->afterResolving(FormRequest::class, fn(FormRequest $request) => $request->validateResolved());
     }
 }

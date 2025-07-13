@@ -8,47 +8,43 @@ use Database\Seeders\DatabaseSeeder;
 
 class DbSeedCommand extends BaseCommand
 {
-    protected Application $app;
-
-    public function __construct(Application $app)
+    /**
+     * Create a new command instance.
+     */
+    public function __construct(private Application $app)
     {
         parent::__construct();
-        $this->app = $app;
+    }
+
+    public function description(): string
+    {
+        return 'Seed the database with records';
     }
 
     public function signature(): string
     {
-        return 'db:seed {--class=}';
+        return 'db:seed {--class= : The class name of the seeder}';
     }
 
-    public function handle(array $args = []): void
+    public function fire(): void
     {
-        $class = $this->getOption('class', $args);
+        $class = $this->option('class');
 
-        $seederClass = $class ? 'Database\\Seeders\\' . $class : DatabaseSeeder::class;
+        $seederClass = $class ? 'Database\\Seeders\\' . $class : Core\Console\DatabaseSeeder::class;
 
         if (!class_exists($seederClass)) {
             $this->io->error("Seeder class '{$seederClass}' not found.");
             return;
         }
 
+        // We use the application container to resolve the seeder. This allows the
+        // seeder itself to have its own dependencies injected via its constructor,
+        // which is a cleaner approach than manual dependency setting.
         $seeder = $this->app->make($seederClass);
-        $seeder->setContainer($this->app);
 
         $this->io->info("Seeding: {$seederClass}");
         $seeder->run();
 
         $this->io->success('Database seeding completed successfully.');
-    }
-
-    protected function getOption(string $name, array $args): ?string
-    {
-        foreach ($args as $arg) {
-            $prefix = "--{$name}=";
-            if (str_starts_with($arg, $prefix)) {
-                return substr($arg, strlen($prefix));
-            }
-        }
-        return null;
     }
 }

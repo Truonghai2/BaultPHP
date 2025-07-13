@@ -2,21 +2,26 @@
 
 namespace Core\Console;
 
-use Core\Console\Contracts\CommandInterface;
+use Core\Console\Contracts\BaseCommand;
 
-class MakeModuleCommand implements CommandInterface
+class MakeModuleCommand extends BaseCommand
 {
     public function signature(): string
     {
-        return 'ddd:make-module';
+        return 'ddd:make-module {name}';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
     {
-        $name = $arguments[0] ?? null;
+        return 'Create a new module with DDD structure';
+    }
+
+    public function handle(array $args = []): void
+    {
+        $name = $args[0] ?? null;
 
         if (!$name) {
-            echo "Bạn phải truyền tên module. Ví dụ: `ddd:make-module User`\n";
+            $this->io->error('You must provide a module name. Example: `php cli ddd:make-module User`');
             return;
         }
 
@@ -24,7 +29,7 @@ class MakeModuleCommand implements CommandInterface
         $basePath = base_path("Modules/{$name}");
 
         if (is_dir($basePath)) {
-            echo "Module '{$name}' đã tồn tại tại {$basePath}. Không tạo lại.\n";
+            $this->io->error("Module '{$name}' already exists at {$basePath}.");
             return;
         }
 
@@ -71,6 +76,18 @@ class MakeModuleCommand implements CommandInterface
         $providerStub = "<?php\n\nnamespace Modules\\{$name}\\Providers;\n\nuse Core\\BaseServiceProvider;\n\nclass ModuleServiceProvider extends BaseServiceProvider\n{\n    public function register(): void\n    {\n        parent::register();\n    }\n}\n";
         file_put_contents("{$basePath}/Providers/ModuleServiceProvider.php", $providerStub);
 
-        echo "Đã tạo module {$name} với cấu trúc chuẩn DDD.\n";
+        $this->io->success("Module {$name} with DDD structure created successfully.");
+    }
+
+    public function fire(): void
+    {
+        $name = $this->argument('name');
+
+        if (empty($name)) {
+            $this->io->error('Module name is required.');
+            return;
+        }
+
+        $this->handle([$name]);
     }
 }

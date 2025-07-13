@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Module Management</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 800px; margin: 2rem auto; color: #333; }
+        h1 { color: #1d2d3d; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f8f9fa; }
+        button { cursor: pointer; border: 1px solid #ccc; padding: 6px 12px; border-radius: 4px; font-size: 0.9rem; }
+        .btn-enable { background-color: #28a745; color: white; border-color: #28a745; }
+        .btn-disable { background-color: #dc3545; color: white; border-color: #dc3545; }
+        .status-enabled { color: #28a745; font-weight: bold; }
+        .status-disabled { color: #6c757d; }
+        #message { margin-top: 1rem; padding: 1rem; border-radius: 4px; display: none; }
+        .success { background-color: #d4edda; color: #155724; }
+        .error { background-color: #f8d7da; color: #721c24; }
+    </style>
+</head>
+<body>
+    <h1>Module Management</h1>
+    <div id="message"></div>
+    <table>
+        <thead>
+            <tr>
+                <th>Module</th>
+                <th>Version</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="modules-table-body">
+            <!-- Rows will be inserted here by JavaScript -->
+        </tbody>
+    </table>
+
+    <script>
+        const tableBody = document.getElementById('modules-table-body');
+        const messageDiv = document.getElementById('message');
+
+        async function fetchModules() {
+            try {
+                const response = await fetch('/api/admin/modules');
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ message: `HTTP error! status: ${response.status}` }));
+                    throw new Error(errorData.message);
+                }
+                const data = await response.json();
+                renderTable(data.modules);
+
+                if (data.sync_result && data.sync_result.added && data.sync_result.added.length > 0) {
+                    const newModuleNames = data.sync_result.added.join(', ');
+                    showMessage(`New modules detected and registered: ${newModuleNames}. They are now disabled and ready to be enabled.`, 'success');
+                }
+            } catch (error) {
+                showMessage(`Error fetching modules: ${error.message}`, 'error');
+            }
+        }
+
+        function renderTable(modules) {
+            tableBody.innerHTML = '';
+            modules.forEach(module => {
+                const row = document.createElement('tr');
+                const statusClass = module.enabled ? 'status-enabled' : 'status-disabled';
+                const statusText = module.enabled ? 'Enabled' : 'Disabled';
+                const actionButton = module.enabled
+                    ? `<button class="btn-disable" data-module="${module.name}">Disable</button>`
+                    : `<button class="btn-enable" data-module="${module.name}">Enable</button>`;
+
+                row.innerHTML = `
+                    <td>${module.name}</td>
+                    <td>${module.version}</td>
+                    <td><span class="${statusClass}">${statusText}</span></td>
+                    <td>${actionButton}</td>
+                `;
+                tableBody.appendChild(row);
+            });
+        }
+
+        async function setModuleStatus(name, action) {
+            try {
+                const response = await fetch(`/api/admin/modules/${name}/${action}`, { method: 'POST' });
+                const result = await response.json();
+                if (!response.ok) throw new Error(result.message || 'An unknown error occurred.');
+                
+                showMessage(result.message, 'success');
+                fetchModules(); // Refresh the list
+            } catch (error) {
+                showMessage(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        function showMessage(text, type) {
+            messageDiv.textContent = text;
+            messageDiv.className = type;
+            messageDiv.style.display = 'block';
+            setTimeout(() => { messageDiv.style.display = 'none'; }, 5000);
+        }
+
+        tableBody.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                const moduleName = e.target.dataset.module;
+                const action = e.target.classList.contains('btn-enable') ? 'enable' : 'disable';
+                setModuleStatus(moduleName, action);
+            }
+        });
+
+        // Initial load
+        fetchModules();
+    </script>
+    <script src="/admin/js/realtime-notifications.js"></script>
+</body>
+</html>

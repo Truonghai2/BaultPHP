@@ -11,10 +11,15 @@ class MakeUseCaseCommand implements CommandInterface
         return 'ddd:make-usecase {module} {name}';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
     {
-        $module = ucfirst($arguments[0] ?? '');
-        $name = ucfirst($arguments[1] ?? '');
+        return 'Create a new UseCase class within a module.';
+    }
+
+    public function handle(array $args = []): void
+    {
+        $module = ucfirst($args[0] ?? '');
+        $name = ucfirst($args[1] ?? '');
 
         if (!$module || !$name) {
             echo "Bạn phải truyền tên module và tên UseCase. Ví dụ: `ddd:make-usecase User CreatePost`\n";

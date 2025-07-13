@@ -2,23 +2,42 @@
 
 namespace Core\Console;
 
-use Core\Console\Contracts\CommandInterface;
+use Core\Console\Contracts\BaseCommand;
 
-class MakeEventCommand implements CommandInterface
+class MakeEventCommand extends BaseCommand
 {
-    public function signature(): string
+    public function __construct()
     {
-        return 'make:event {name}';
+        parent::__construct();
     }
 
-    public function handle(array $arguments): void
+    public function signature(): string
     {
-        $name = $arguments[0] ?? null;
+        return 'make:event {name : The name of the event class}';
+    }
 
-        if (!$name) {
-            echo "Error: Event name is required.\nUsage: php bault make:event UserRegistered\n";
-            return;
-        }
+    public function description(): string
+    {
+        return 'Create a new event class in the src/Events directory.';
+    }
+
+    /**
+     * The core logic of the command.
+     * This method creates a new event class.
+     */
+    public function fire(): void
+    {
+        $name = $this->argument('name');
+        $this->createEventClass($name);
+    }
+
+    /**
+     * Creates a new event class in the src/Events directory.
+     */
+    private function createEventClass(string $name): void
+    {
+        $this->io->title('Creating Event Class');
+        $this->io->info("Creating event class: {$name}");
 
         $className = ucfirst($name);
         $path = base_path("src/Events/{$className}.php");
@@ -29,13 +48,27 @@ class MakeEventCommand implements CommandInterface
         }
 
         if (file_exists($path)) {
-            echo "Event [{$className}] already exists.\n";
+            $this->io->error("Event [{$className}] already exists.");
             return;
         }
 
         $stub = "<?php\n\nnamespace App\Events;\n\nclass {$className}\n{\n    // public function __construct() {}\n}\n";
         file_put_contents($path, $stub);
+        $this->io->success("Event [src/Events/{$className}.php] created successfully.");
+    }
 
-        echo "Event [src/Events/{$className}.php] created successfully.\n";
+    /**
+     * The entry point for the command.
+     * This method executes the command logic.
+     */
+    public function handle(array $args = []): void
+    {
+        $this->io->title('Creating Event');
+        $name = $this->argument('name');
+        if (empty($name)) {
+            $this->io->error('Event name is required.');
+            return;
+        }
+        $this->fire();
     }
 }

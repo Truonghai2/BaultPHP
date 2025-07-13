@@ -11,10 +11,15 @@ class ServeCommand implements CommandInterface
         return 'serve';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
     {
-        $host = $arguments[0] ?? '127.0.0.1';
-        $port = $arguments[1] ?? '8000';
+        return 'Serve the application on the PHP development server.';
+    }
+
+    public function handle(array $args = []): void
+    {
+        $host = $args[0] ?? '127.0.0.1';
+        $port = $args[1] ?? '8000';
         $docRoot = base_path('public');
 
         if (!is_dir($docRoot)) {

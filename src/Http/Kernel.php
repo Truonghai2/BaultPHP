@@ -26,6 +26,32 @@ class Kernel implements KernelContract
         \Http\Middleware\JwtVerifyTokenMiddleware::class
     ];
 
+    /**
+     * The application's route middleware aliases.
+     * These are used to map a short name to a middleware class.
+     *
+     * @var array<string, class-string>
+     */
+    protected array $routeMiddleware = [
+        'can' => \Http\Middleware\CheckPermissionMiddleware::class,
+    ];
+
+    /**
+     * The application's middleware groups.
+     *
+     * @var array<string, array<int, class-string|string>>
+     */
+    protected array $middlewareGroups = [
+        'web' => [
+            // \App\Http\Middleware\EncryptCookies::class, // Bỏ comment nếu bạn cần mã hóa cookie
+            \Http\Middleware\StartSession::class,
+            \Http\Middleware\VerifyCsrfToken::class,
+        ],
+        'api' => [
+            'throttle:api', // Ví dụ về middleware có tham số
+        ],
+    ];
+
     public function __construct(Application $app, Router $router)
     {
         $this->app = $app;
@@ -37,7 +63,19 @@ class Kernel implements KernelContract
         try {
             $route = $this->router->dispatch($request);
 
-            $middlewares = array_merge($this->middleware, $route->middleware);
+            // Gán đối tượng Route vào Request để các middleware có thể truy cập
+            $request->route = $route;
+
+            // Bắt đầu với middleware toàn cục
+            $middlewares = $this->middleware;
+
+            // Hợp nhất middleware từ group của route (nếu có)
+            if (!empty($route->group) && isset($this->middlewareGroups[$route->group])) {
+                $middlewares = array_merge($middlewares, $this->middlewareGroups[$route->group]);
+            }
+
+            // Hợp nhất middleware được định nghĩa trực tiếp trên route
+            $middlewares = array_merge($middlewares, $route->middleware);
 
             $destination = function (Request $request) use ($route) {
                 $responseContent = $this->app->call($route->handler, $route->parameters);
@@ -55,9 +93,11 @@ class Kernel implements KernelContract
 
             $pipeline = array_reduce(
                 array_reverse($middlewares),
-                function ($next, $middlewareClass) {
+                function ($next, $middleware) {
+                    // Phân tích chuỗi middleware để lấy class và các tham số
+                    [$class, $parameters] = $this->parseMiddleware($middleware);
                     // Resolve middleware từ container để cho phép Dependency Injection
-                    return fn(Request $request) => $this->app->make($middlewareClass)->handle($request, $next);
+                    return fn(Request $request) => $this->app->make($class)->handle($request, $next, ...$parameters);
                 },
                 $destination
             );
@@ -68,6 +108,26 @@ class Kernel implements KernelContract
         } catch (Throwable $e) {
             return $this->renderException($request, $e);
         }
+    }
+
+    /**
+     * Parse a middleware string to get the class and parameters.
+     *
+     * @param  string  $middleware
+     * @return array
+     */
+    protected function parseMiddleware(string $middleware): array
+    {
+        // Tách chuỗi bằng dấu ':'
+        $parts = explode(':', $middleware, 2);
+        $name = $parts[0];
+        $parameters = isset($parts[1]) ? explode(',', $parts[1]) : [];
+
+        // Nếu "name" là một alias trong map, sử dụng class tương ứng.
+        // Ngược lại, giả định "name" là một tên class đầy đủ.
+        $class = $this->routeMiddleware[$name] ?? $name;
+
+        return [$class, $parameters];
     }
 
     protected function renderException(Request $request, Throwable $e): Response

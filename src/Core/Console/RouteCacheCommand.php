@@ -18,7 +18,12 @@ class RouteCacheCommand implements CommandInterface
         return 'route:cache';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
+    {
+        return 'Create a route cache file for faster route registration.';
+    }
+
+    public function handle(array $args = []): void
     {
         echo "Caching routes...\n";
 

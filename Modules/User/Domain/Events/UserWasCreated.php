@@ -2,11 +2,11 @@
 
 namespace Modules\User\Domain\Events;
 
-use Modules\User\Infrastructure\Models\User;
+use Modules\User\Domain\Entities\User as UserEntity;
 
 class UserWasCreated
 {
     public function __construct(
-        public readonly User $user
+        public readonly UserEntity $user
     ) {}
 }

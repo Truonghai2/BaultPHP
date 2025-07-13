@@ -2,10 +2,18 @@
 
 namespace Http;
 
+use Core\Routing\Route;
 use Psr\Http\Message\ServerRequestInterface;
 
 class Request
 {
+    /**
+     * The route instance for the current request.
+     *
+     * @var \Core\Routing\Route|null
+     */
+    public ?Route $route = null;
+
     protected array $get;
     protected array $post;
     protected array $server;
@@ -237,5 +245,17 @@ class Request
     public function setJson(array $data): void
     {
         $this->json = $data;
+    }
+
+    /**
+     * Get a route parameter.
+     *
+     * @param  string  $key
+     * @param  mixed  $default
+     * @return mixed
+     */
+    public function route(string $key, $default = null)
+    {
+        return $this->route?->parameters[$key] ?? $default;
     }
 }

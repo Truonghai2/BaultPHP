@@ -3,16 +3,18 @@
 namespace Http;
 
 use Core\Application;
-use Illuminate\Contracts\Validation\Factory as ValidationFactory;
-use Illuminate\Contracts\Validation\Validator;
-use App\Exceptions\ValidationException;
-use App\Exceptions\AuthorizationException; // Bạn có thể tạo Exception này
+use Core\Contracts\Auth\Authenticatable;
+use Core\Exceptions\ValidationException;
+use App\Exceptions\AuthorizationException;
+use Core\Validation\Factory as ValidationFactory;
+use Core\Validation\Validator;
 
 abstract class FormRequest
 {
     protected Application $app;
     protected Request $request;
     protected ?Validator $validator = null;
+    protected ?Authenticatable $user;
 
     /**
      * FormRequest được tạo thông qua container, cho phép inject các dependency.
@@ -22,6 +24,7 @@ abstract class FormRequest
     {
         $this->app = $app;
         $this->request = $request;
+        $this->user = $this->app->make('auth')->user();
     }
 
     /**
@@ -61,6 +64,9 @@ abstract class FormRequest
         if (is_null($this->validator)) {
             $this->validateResolved();
         }
+        if (!$this->validator) {
+            throw new \LogicException('Validator not initialized before calling validated().');
+        }
         return $this->validator->validated();
     }
 
@@ -77,13 +83,13 @@ abstract class FormRequest
 
         $factory = $this->app->make(ValidationFactory::class);
 
+        // Sử dụng factory tùy chỉnh của chúng ta
         return $factory->make(
-            $this->request->all(), $this->rules(), $this->messages(), $this->attributes()
+            $this->request->all(), $this->rules(), $this->messages()
         );
     }
 
     public function messages(): array { return []; }
-    public function attributes(): array { return []; }
 
     /**
      * Proxy các lời gọi phương thức không tồn tại tới đối tượng Request gốc.

@@ -11,9 +11,14 @@ class MakeListenerCommand implements CommandInterface
         return 'make:listener {name}';
     }
 
-    public function handle(array $arguments): void
+    public function description(): string
     {
-        $name = $arguments[0] ?? null;
+        return 'Create a new event listener class.';
+    }
+
+    public function handle(array $args = []): void
+    {
+        $name = $args[0] ?? null;
 
         if (!$name) {
             echo "Error: Listener name is required.\nUsage: php bault make:listener SendWelcomeEmail\n";

@@ -41,12 +41,40 @@ if (!$inputSignature) {
 }
 
 try {
-    // Lấy danh sách các lớp command từ ConsoleServiceProvider
-    $consoleProvider = new \App\Providers\ConsoleServiceProvider($app);
-    $reflector = new \ReflectionClass($consoleProvider);
-    $commandsProperty = $reflector->getProperty('commands');
-    $commandClasses = $commandsProperty->getValue($consoleProvider);
-    error_log("==> [CLI] Found " . count($commandClasses) . " command classes from ConsoleServiceProvider.");
+    // Lấy danh sách các lớp command từ tất cả các ConsoleServiceProvider đã đăng ký
+    $commandClasses = [];
+
+    // Lấy danh sách provider từ AppKernel (đã được khởi tạo và đăng ký trong app.php)
+    $kernel = $app->make(\Core\AppKernel::class);
+    $providerClasses = $kernel->getProvidersForCaching();
+
+    foreach ($providerClasses as $providerClass) {
+        // Chỉ xử lý các provider là ConsoleServiceProvider
+        if (str_ends_with($providerClass, 'ConsoleServiceProvider')) {
+            try {
+                $providerInstance = $app->make($providerClass);
+                $reflector = new \ReflectionClass($providerInstance);
+
+                // Kiểm tra xem provider có thuộc tính 'commands' không
+                if ($reflector->hasProperty('commands')) {
+                    $commandsProperty = $reflector->getProperty('commands');
+                    if (!$commandsProperty->isPublic()) {
+                        $commandsProperty->setAccessible(true); // Cho phép truy cập thuộc tính protected/private
+                    }
+                    $moduleCommands = $commandsProperty->getValue($providerInstance);
+                    if (is_array($moduleCommands)) {
+                        $commandClasses = array_merge($commandClasses, $moduleCommands);
+                        error_log("==> [CLI] Loaded " . count($moduleCommands) . " command(s) from " . $providerClass);
+                    }
+                }
+            } catch (\Throwable $e) {
+                error_log("==> [CLI] Could not load commands from provider {$providerClass}: " . $e->getMessage());
+            }
+        }
+    }
+
+    $commandClasses = array_unique($commandClasses);
+    error_log("==> [CLI] Total unique commands found: " . count($commandClasses));
 
     $matchedCommand = null;
     foreach ($commandClasses as $commandClass) {

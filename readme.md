@@ -138,6 +138,45 @@ Quản lý thay đổi CSDL một cách có hệ thống.
     php cli ddd:migrate --refresh   # Rollback tất cả và chạy lại từ đầu
     ```
 
+### Database Seeding
+
+BaultPHP cung cấp một cách đơn giản để điền dữ liệu mẫu vào cơ sở dữ liệu của bạn bằng cách sử dụng các lớp "seeder". Tất cả các seeder được đặt trong thư mục `database/seeders`.
+
+**1. Tạo một Seeder**
+
+Tạo một file mới, ví dụ `database/seeders/UserSeeder.php`, và kế thừa từ `Core\Database\Seeder`.
+
+```php
+namespace Database\Seeders;
+
+use Core\Database\Seeder;
+use Modules\User\Infrastructure\Models\User;
+
+class UserSeeder extends Seeder
+{
+    public function run(): void
+    {
+        User::create([
+            'name' => 'Test User',
+            'email' => 'test@example.com',
+            'password' => password_hash('password', PASSWORD_DEFAULT),
+        ]);
+    }
+}
+```
+
+**2. Chạy Seeder**
+
+Bạn có thể chạy các seeder bằng lệnh `db:seed`. Theo mặc định, lệnh này sẽ chạy lớp `Database\Seeders\DatabaseSeeder`, lớp này có thể được sử dụng để gọi các seeder khác.
+
+```bash
+# Chạy seeder chính (DatabaseSeeder)
+php cli db:seed
+
+# Chạy một seeder cụ thể
+php cli db:seed --class=UserSeeder
+```
+
 ### Console Commands
 
 BaultPHP cung cấp một bộ lệnh CLI phong phú để hỗ trợ phát triển.

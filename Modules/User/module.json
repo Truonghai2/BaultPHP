@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "enabled": true,
     "providers": [
-        "Modules\\User\\Providers\\ModuleServiceProvider",
-        "Modules\\User\\Providers\\UserServiceProvider"
+        "Modules\\User\\Providers\\UserServiceProvider",
+        "Modules\\User\\Providers\\ConsoleServiceProvider"
     ]
 }
