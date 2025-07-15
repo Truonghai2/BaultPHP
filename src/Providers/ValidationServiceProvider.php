@@ -15,11 +15,14 @@ class ValidationServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton('validator', function ($app) {
+        // Đăng ký ValidationFactory như một singleton. Đây là binding gốc.
+        $this->app->singleton(ValidationFactory::class, function ($app) {
             return new ValidationFactory($app);
         });
 
-        $this->app->singleton(ValidationFactory::class, 'validator');
+        // Tạo một alias từ tên ngắn 'validator' đến tên class đầy đủ.
+        // Điều này cho phép resolve service thông qua app('validator').
+        $this->app->alias(ValidationFactory::class, 'validator');
     }
 
     /**

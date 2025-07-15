@@ -6,8 +6,6 @@ interface CommandInterface
 {
     /**
      * The signature of the command.
-     * This defines the command name, arguments, and options.
-     * e.g., 'make:controller {name} {--api}'
      *
      * @return string
      */
@@ -15,16 +13,13 @@ interface CommandInterface
 
     /**
      * The description of the command.
-     * This will be shown in the 'list' command.
      *
      * @return string
      */
     public function description(): string;
 
     /**
-     * Execute the console command.
-     *
-     * @param array $args The raw arguments from the command line.
+     * The handler for the command.
      */
-    public function handle(array $args = []): void;
+    public function handle(): int;
 }

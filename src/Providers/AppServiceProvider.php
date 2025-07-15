@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Core\Validation\Factory as ValidationFactory;
 use Core\WebSocket\CentrifugoAPIService;
 use Core\Support\ServiceProvider;
 use Spiral\Goridge\RPC\RPC;
@@ -38,6 +39,17 @@ class AppServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        //
+        // Lấy ra Validation Factory từ container
+        $validator = $this->app->make(ValidationFactory::class);
+
+        // Đăng ký một rule mới tên là 'slug'
+        $validator->extend('slug', function ($attribute, $value, $parameters, $validator) {
+            // Rule này kiểm tra xem chuỗi có phải là một slug hợp lệ không
+            // (chỉ chứa chữ thường, số, và dấu gạch ngang)
+            if (!is_string($value)) {
+                return false;
+            }
+            return preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $value);
+        }, 'Trường :attribute không phải là một slug hợp lệ.');
     }
 }

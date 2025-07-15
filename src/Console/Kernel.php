@@ -1,29 +1,47 @@
-<?php 
+<?php
 
-namespace App\Console;
+namespace Console;
+
+use Core\Application;
+use Symfony\Component\Console\Application as ConsoleApplication;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
 
 class Kernel
 {
     /**
-     * The application's global HTTP middleware stack.
-     *
-     * @var array
+     * The application implementation.
      */
-    protected $middleware = [
-        // Add your global middleware here
-    ];
+    protected Application $app;
 
     /**
-     * The application's route middleware groups.
-     *
-     * @var array
+     * The Symfony Console application.
      */
-    protected $middlewareGroups = [
-        'web' => [
-            // Add your web middleware here
-        ],
-        'api' => [
-            // Add your API middleware here
-        ],
-    ];
+    protected ConsoleApplication $console;
+
+    /**
+     * Create a new console kernel instance.
+     */
+    public function __construct(Application $app)
+    {
+        $this->app = $app;
+        $this->console = new ConsoleApplication('BaultPHP Console', $this->app->version());
+
+        // Đăng ký các command ở đây
+        $this->registerCommands();
+    }
+
+    /**
+     * Run the console application.
+     */
+    public function handle(ArgvInput $input, ConsoleOutput $output): int
+    {
+        return $this->console->run($input, $output);
+    }
+
+    protected function registerCommands(): void
+    {
+        // Logic để load các command từ các provider hoặc từ một thư mục
+        // Ví dụ: $this->console->add(new \App\Console\Commands\MyCommand());
+    }
 }

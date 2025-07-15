@@ -11,7 +11,9 @@ $dotenv->load();
 
 $request = Request::capture();
 $kernel = new AppKernel();
+$app = $kernel->getApplication();
 
-$response = $kernel->handle($request);
+$httpKernel = $app->make(\Core\Contracts\Http\Kernel::class);
+$response = $httpKernel->handle($request);
 
 $response->send();

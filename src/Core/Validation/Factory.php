@@ -4,20 +4,40 @@ namespace Core\Validation;
 
 use Core\Application;
 
-/**
- * Creates Validator instances.
- * This class acts as the main entry point for the validation system.
- */
 class Factory
 {
-    public function __construct(protected Application $app)
+    /**
+     * The application instance.
+     */
+    protected Application $app;
+
+    /**
+     * The registered custom validator extensions.
+     *
+     * @var array
+     */
+    protected array $extensions = [];
+
+    public function __construct(Application $app)
     {
-        // The factory might need the app container later, e.g., for custom rule objects.
+        $this->app = $app;
     }
 
+    /**
+     * Register a custom validation rule.
+     */
+    public function extend(string $rule, \Closure|string $extension, ?string $message = null): void
+    {
+        $this->extensions[$rule] = compact('extension', 'message');
+    }
+
+    /**
+     * Create a new Validator instance.
+     */
     public function make(array $data, array $rules, array $messages = []): Validator
     {
-        // In a more advanced version, we could load default messages from a config file here.
-        return new Validator($this->app, $data, $rules, $messages);
+        $validator = new Validator($data, $rules, $messages);
+        $validator->addExtensions($this->extensions);
+        return $validator;
     }
 }

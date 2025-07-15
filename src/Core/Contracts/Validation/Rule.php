@@ -2,6 +2,11 @@
 
 namespace Core\Contracts\Validation;
 
+/**
+ * Interface Rule
+ *
+ * Defines the contract for a custom validation rule object.
+ */
 interface Rule
 {
     /**

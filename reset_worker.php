@@ -22,6 +22,9 @@ if ($rpcSecret === null) {
 // Worker này kết nối đến RPC của RoadRunner server để có thể điều khiển các worker khác
 $rpc = RPC::create(Environment::fromGlobals()->getRPCAddress());
 
+// Định nghĩa tên phương thức RPC như một hằng số để tránh "magic strings"
+const RESET_METHOD = 'resetter.reset';
+
 // Tạo worker instance sớm hơn để có thể sử dụng cho việc ghi log
 $worker = new Worker(null, Mode::MODE_RPC);
 
@@ -33,7 +36,7 @@ $worker = new Worker(null, Mode::MODE_RPC);
  * @param string $reason (Tùy chọn) Lý do reset để ghi log.
  * @return array Kết quả.
  */
-$rpc->register('resetter.reset', function (string $token, array $services, string $reason = 'Deployment') use ($rpc, $rpcSecret, $worker) {
+$rpc->register(RESET_METHOD, function (string $token, array $services, string $reason = 'Deployment') use ($rpc, $rpcSecret, $worker) {
     // BƯỚC BẢO MẬT QUAN TRỌNG
     // So sánh token được gửi đến với token trên server.
     // Sử dụng hash_equals để chống lại tấn công timing attack.

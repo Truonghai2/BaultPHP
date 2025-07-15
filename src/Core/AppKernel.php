@@ -3,11 +3,8 @@
 namespace Core;
 
 use Core\Module\Module;
-use Core\Contracts\Http\Kernel as KernelContract;
 use Core\Support\Facades\Facade;
 use Core\Support\ServiceProvider;
-use Http\Request;
-use Http\Response;
 
 class AppKernel
 {
@@ -19,13 +16,12 @@ class AppKernel
         $this->app = new Application(base_path());
 
         // Bind the kernel instance itself into the container for commands to use.
-        $this->app->instance(AppKernel::class, $this);
-
-        $this->app->singleton(KernelContract::class, function ($app) {
-            return new \Http\Kernel($app, $app->make(\Core\Routing\Router::class));
-        });
 
         Facade::setFacadeApplication($this->app);
+
+        // Bind Http\Kernel into the container so it can be resolved
+        $this->app->singleton(\Core\Contracts\Http\Kernel::class, \Http\Kernel::class);
+
 
         // Trong môi trường production, tải các provider đã được cache để tăng tốc.
         // File này sẽ được tạo bởi một lệnh console, ví dụ: `php bault config:cache`
@@ -128,19 +124,5 @@ class AppKernel
             }
         }
         return $discoveredProviders;
-    }
-
-
-    public function handle(Request $request): Response
-    {
-        $this->app->instance(Request::class, $request);
-
-        /** @var KernelContract $kernel */
-        $kernel = $this->app->make(KernelContract::class);
-
-        $response = $kernel->handle($request);
-        $kernel->terminate($request, $response);
-
-        return $response;
     }
 }

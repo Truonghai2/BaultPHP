@@ -26,8 +26,12 @@ git pull origin main # Hoặc `master`, `develop` tùy vào branch của bạn
 # 3. Cài đặt các dependency của Composer
 # --no-dev: Không cài các gói chỉ dành cho môi trường phát triển.
 # --optimize-autoloader: Tối ưu hóa autoloader của Composer để tăng tốc.
-echo "📦 Cài đặt/Cập nhật các gói Composer..."
+echo "📦 Cài đặt các gói Composer..."
 composer install --no-dev --optimize-autoloader
+
+# 3.5 Đồng bộ các module từ filesystem vào CSDL
+echo "Đồng bộ modules..."
+php cli module:sync
 
 # 4. Chạy database migrations
 # Đảm bảo schema của CSDL luôn được cập nhật.
@@ -66,7 +70,7 @@ RPC_TOKEN=$(grep RPC_SECRET_TOKEN .env | cut -d '=' -f2)
 if [ -n "$RPC_TOKEN" ]; then
     curl -X POST -H "Content-Type: application/json" \
          -d "[\"$RPC_TOKEN\", [\"http\", \"centrifugo\"], \"Deployment a new version\"]" \
-         http://127.0.0.1:6001/rpc?method=resetter.reset
+         http://127.0.0.1:6001/rpc?method=resetter.reset # Tên method vẫn giữ nguyên ở đây, nhưng việc có hằng số trong code PHP giúp dễ bảo trì hơn
 fi
 
 echo "✅ Quá trình triển khai hoàn tất!"

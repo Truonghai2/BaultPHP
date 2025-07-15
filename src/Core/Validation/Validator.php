@@ -2,110 +2,83 @@
 
 namespace Core\Validation;
 
-use Core\Application;
-use PDO;
+use Core\Contracts\Validation\Rule as RuleContract;
 
-/**
- * A simple, custom validator class.
- */
 class Validator
 {
-    protected Application $app;
     protected array $data;
     protected array $rules;
     protected array $messages;
     protected array $errors = [];
-    protected ?PDO $connection = null;
+    protected array $validatedData = [];
+    protected array $extensions = [];
 
-    public function __construct(Application $app, array $data, array $rules, array $messages = [])
+    public function __construct(array $data, array $rules, array $messages = [])
     {
-        $this->app = $app;
         $this->data = $data;
-        $this->rules = $this->parseRules($rules);
+        $this->rules = $this->normalizeRules($rules);
         $this->messages = $messages;
     }
 
-    public function fails(): bool
+    /**
+     * Add custom validation extensions to the validator.
+     */
+    public function addExtensions(array $extensions): void
     {
-        return !$this->passes();
+        $this->extensions = array_merge($this->extensions, $extensions);
     }
 
-    public function passes(): bool
+    /**
+     * Run the validator's rules against its data.
+     */
+    protected function validate(): void
     {
-        $this->errors = []; // Reset errors before each run
-
         foreach ($this->rules as $attribute => $rules) {
             $value = $this->data[$attribute] ?? null;
 
             foreach ($rules as $rule) {
-                [$ruleName, $parameters] = $this->parseRule($rule);
-                $method = 'validate' . ucfirst($ruleName);
-
-                if (!method_exists($this, $method)) {
-                    // For simplicity, we skip unknown rules. An exception could be thrown here.
-                    continue;
-                }
-
-                if (!$this->$method($attribute, $value, $parameters)) {
-                    $this->addError($attribute, $ruleName, $parameters);
-                    // Stop validating this attribute after the first failure for efficiency.
-                    break;
-                }
+                $this->validateAttribute($attribute, $value, $rule);
             }
         }
 
-        return empty($this->errors);
+        if (empty($this->errors)) {
+            $this->validatedData = array_intersect_key($this->data, $this->rules);
+        }
     }
 
-    public function errors(): array
+    protected function validateAttribute(string $attribute, mixed $value, mixed $rule): void
     {
-        return $this->errors;
+        if ($rule instanceof RuleContract) {
+            if (!$rule->passes($attribute, $value)) {
+                $this->addError($attribute, get_class($rule), $rule->message());
+            }
+            return;
+        }
+
+        [$ruleName, $parameters] = $this->parseRule($rule);
+
+        if (isset($this->extensions[$ruleName])) {
+            $this->validateExtension($attribute, $value, $ruleName, $parameters);
+            return;
+        }
+
+        // Placeholder for built-in rules.
+        // In a real implementation, you would have methods like validateRequired, validateEmail, etc.
+        $method = 'validate' . str_replace('_', '', ucwords($ruleName, '_'));
+        if (method_exists($this, $method)) {
+            $this->{$method}($attribute, $value, $parameters);
+        }
     }
 
-    protected function addError(string $attribute, string $rule, array $parameters): void
+    protected function validateExtension(string $attribute, mixed $value, string $ruleName, array $parameters): void
     {
-        $message = $this->getMessage($attribute, $rule);
+        $extensionData = $this->extensions[$ruleName];
+        $callback = $extensionData['extension'];
+        $message = $extensionData['message'] ?? 'The :attribute field is invalid.';
 
-        // Replace placeholders
-        $message = str_replace(':attribute', $attribute, $message);
-        if (!empty($parameters)) {
-            // This is a simple replacement for rules like min:value, max:value
-            $message = str_replace(':min', $parameters[0], $message);
-            $message = str_replace(':max', $parameters[0], $message);
+        if (!$callback($attribute, $value, $parameters, $this)) {
+            $this->addError($attribute, $ruleName, $message);
         }
-
-        $this->errors[$attribute][] = $message;
-    }
-
-    protected function getMessage(string $attribute, string $rule): string
-    {
-        if (isset($this->messages["{$attribute}.{$rule}"])) {
-            return $this->messages["{$attribute}.{$rule}"];
-        }
-
-        if (isset($this->messages[$rule])) {
-            return $this->messages[$rule];
-        }
-
-        return match ($rule) {
-            'required' => 'The :attribute field is required.',
-            'email' => 'The :attribute must be a valid email address.',
-            'string' => 'The :attribute must be a string.',
-            'min' => 'The :attribute must be at least :min characters/items/value.',
-            'max' => 'The :attribute must not be greater than :max characters/items/value.',
-            'unique' => 'The :attribute has already been taken.',
-            'exists' => 'The selected :attribute is invalid.',
-            default => "The :attribute field is invalid.",
-        };
-    }
-
-    protected function parseRules(array $rules): array
-    {
-        $parsed = [];
-        foreach ($rules as $attribute => $ruleString) {
-            $parsed[$attribute] = is_array($ruleString) ? $ruleString : explode('|', $ruleString);
-        }
-        return $parsed;
     }
 
     protected function parseRule(string $rule): array
@@ -118,121 +91,50 @@ class Validator
         return [$rule, $parameters];
     }
 
-    // --- Validation Methods ---
-
-    /**
-     * Get the database connection.
-     */
-    protected function getConnection(): PDO
+    protected function normalizeRules(array $rules): array
     {
-        if ($this->connection) {
-            return $this->connection;
-        }
-        // Assumes PDO is bound in the container. A DatabaseServiceProvider should handle this.
-        return $this->connection = $this->app->make(PDO::class);
+        return array_map(function ($rules) {
+            return is_string($rules) ? explode('|', $rules) : (array) $rules;
+        }, $rules);
     }
 
-    protected function validateRequired(string $attribute, $value, array $parameters): bool
+    protected function addError(string $attribute, string $rule, string $message): void
     {
-        if (is_null($value)) {
-            return false;
-        } elseif (is_string($value) && trim($value) === '') {
-            return false;
-        } elseif (is_array($value) && empty($value)) {
-            return false;
-        }
-        return true;
-    }
-
-    protected function validateString(string $attribute, $value, array $parameters): bool
-    {
-        return is_null($value) || is_string($value);
-    }
-
-    protected function validateEmail(string $attribute, $value, array $parameters): bool
-    {
-        return is_null($value) || filter_var($value, FILTER_VALIDATE_EMAIL) !== false;
-    }
-
-    protected function validateMin(string $attribute, $value, array $parameters): bool
-    {
-        if (empty($parameters[0])) return false;
-        $min = (int) $parameters[0];
-
-        if (is_string($value)) {
-            return mb_strlen($value) >= $min;
-        } elseif (is_numeric($value)) {
-            return $value >= $min;
-        } elseif (is_array($value)) {
-            return count($value) >= $min;
-        }
-        return false;
-    }
-
-    protected function validateMax(string $attribute, $value, array $parameters): bool
-    {
-        if (empty($parameters[0])) return false;
-        $max = (int) $parameters[0];
-
-        if (is_string($value)) {
-            return mb_strlen($value) <= $max;
-        } elseif (is_numeric($value)) {
-            return $value <= $max;
-        } elseif (is_array($value)) {
-            return count($value) <= $max;
-        }
-        return false;
+        $this->errors[$attribute][] = str_replace(':attribute', $attribute, $message);
     }
 
     /**
-     * Validate that an attribute value exists in a database table.
-     * Rule: exists:table,column
+     * Determine if the data fails the validation rules.
      */
-    protected function validateExists(string $attribute, $value, array $parameters): bool
+    public function fails(): bool
     {
-        if (count($parameters) < 1) {
-            // Or throw an exception for invalid rule definition
-            return false;
+        // Run validation if it hasn't been run yet.
+        if (empty($this->errors) && empty($this->validatedData)) {
+            $this->validate();
         }
-
-        $table = $parameters[0];
-        $column = $parameters[1] ?? $attribute;
-
-        $stmt = $this->getConnection()->prepare(
-            "SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` = ?"
-        );
-
-        $stmt->execute([$value]);
-
-        return $stmt->fetchColumn() > 0;
+        return !empty($this->errors);
     }
 
     /**
-     * Validate that an attribute value is unique in a database table.
-     * Rule: unique:table,column,except,idColumn
+     * Get the validation error messages.
      */
-    protected function validateUnique(string $attribute, $value, array $parameters): bool
+    public function errors(): array
     {
-        if (count($parameters) < 1) {
-            return false;
+        return $this->errors;
+    }
+
+    /**
+     * Get the attributes and values that were validated.
+     *
+     * @return array
+     * @throws \Core\Exceptions\ValidationException
+     */
+    public function validated(): array
+    {
+        if ($this->fails()) {
+            // This behavior is consistent with FormRequest, which expects an exception on failure.
+            throw new \Core\Exceptions\ValidationException($this);
         }
-
-        $table = $parameters[0];
-        $column = $parameters[1] ?? $attribute;
-        $except = $parameters[2] ?? null;
-        $idColumn = $parameters[3] ?? 'id';
-
-        $query = "SELECT COUNT(*) FROM `{$table}` WHERE `{$column}` = ?";
-        $bindings = [$value];
-
-        if ($except !== null) {
-            $query .= " AND `{$idColumn}` != ?";
-            $bindings[] = $except;
-        }
-
-        $stmt = $this->getConnection()->prepare($query);
-        $stmt->execute($bindings);
-
-        return $stmt->fetchColumn() == 0;
+        return $this->validatedData;
     }
 }

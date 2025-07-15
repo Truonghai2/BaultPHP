@@ -1,112 +1,20 @@
 #!/usr/bin/env php
 <?php
 
-define('BAULT_START', microtime(true));
-error_log("==> [CLI] Execution started.");
+// cli
+require __DIR__.'/vendor/autoload.php';
 
-// 1. Autoloader
-require_once __DIR__.'/vendor/autoload.php';
-error_log("==> [CLI] Autoloader included.");
+// Load .env
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
 
-// 2. Environment
-try {
-    $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
-    $dotenv->load();
-    error_log("==> [CLI] .env file loaded.");
-} catch (\Throwable $e) {
-    error_log("==> [CLI] ERROR: Could not load .env file: " . $e->getMessage());
-    exit(1);
-}
+// 1. Bootstrap the application to get the container
+$appKernel = new \Core\AppKernel();
+$app = $appKernel->getApplication();
 
-// 3. Application Bootstrap
-error_log("==> [CLI] Bootstrapping application from bootstrap/app.php...");
-try {
-    /** @var \Core\Application $app */
-    $app = require_once __DIR__.'/bootstrap/app.php';
-    error_log("==> [CLI] Application bootstrapped successfully. AppKernel finished.");
-} catch (\Throwable $e) {
-    error_log("==> [CLI] FATAL ERROR during bootstrap: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    exit(1);
-}
+// 2. Create and run the Console Kernel
+$consoleKernel = new Core\CLI\ConsoleKernel($app);
 
-// 4. Console Kernel Logic
-global $argv;
-$inputSignature = $argv[1] ?? null;
-error_log("==> [CLI] Input signature: " . ($inputSignature ?? 'null'));
+ $status = $consoleKernel->handle();
 
-if (!$inputSignature) {
-    echo "BaultFrame Console\n\nUsage:\n  command [options] [arguments]\n\n";
-    error_log("==> [CLI] No command provided. Displaying usage info.");
-    exit(0);
-}
-
-try {
-    // Lấy danh sách các lớp command từ tất cả các ConsoleServiceProvider đã đăng ký
-    $commandClasses = [];
-
-    // Lấy danh sách provider từ AppKernel (đã được khởi tạo và đăng ký trong app.php)
-    $kernel = $app->make(\Core\AppKernel::class);
-    $providerClasses = $kernel->getProvidersForCaching();
-
-    foreach ($providerClasses as $providerClass) {
-        // Chỉ xử lý các provider là ConsoleServiceProvider
-        if (str_ends_with($providerClass, 'ConsoleServiceProvider')) {
-            try {
-                $providerInstance = $app->make($providerClass);
-                $reflector = new \ReflectionClass($providerInstance);
-
-                // Kiểm tra xem provider có thuộc tính 'commands' không
-                if ($reflector->hasProperty('commands')) {
-                    $commandsProperty = $reflector->getProperty('commands');
-                    if (!$commandsProperty->isPublic()) {
-                        $commandsProperty->setAccessible(true); // Cho phép truy cập thuộc tính protected/private
-                    }
-                    $moduleCommands = $commandsProperty->getValue($providerInstance);
-                    if (is_array($moduleCommands)) {
-                        $commandClasses = array_merge($commandClasses, $moduleCommands);
-                        error_log("==> [CLI] Loaded " . count($moduleCommands) . " command(s) from " . $providerClass);
-                    }
-                }
-            } catch (\Throwable $e) {
-                error_log("==> [CLI] Could not load commands from provider {$providerClass}: " . $e->getMessage());
-            }
-        }
-    }
-
-    $commandClasses = array_unique($commandClasses);
-    error_log("==> [CLI] Total unique commands found: " . count($commandClasses));
-
-    $matchedCommand = null;
-    foreach ($commandClasses as $commandClass) {
-        /** @var \Core\Console\Contracts\CommandInterface $commandInstance */
-        $commandInstance = $app->make($commandClass);
-        $signature = $commandInstance->signature();
-        error_log("    -> Checking signature: " . $signature);
-
-        // Tách tên lệnh chính ra khỏi các tham số. Ví dụ: 'make:command {name}' -> 'make:command'
-        $baseSignature = preg_split('/[\s{]/', $signature, 2)[0];
-
-        if ($baseSignature === $inputSignature) {
-            $matchedCommand = $commandInstance;
-            error_log("==> [CLI] Matched command: " . $commandClass);
-            break;
-        }
-    }
-
-    if ($matchedCommand) {
-        error_log("==> [CLI] Executing handle() for " . get_class($matchedCommand));
-        $matchedCommand->handle(array_slice($argv, 2));
-        error_log("==> [CLI] Command execution finished.");
-    } else {
-        echo "Command \"$inputSignature\" is not defined.\n";
-        error_log("==> [CLI] No command matched the signature \"$inputSignature\".");
-    }
-} catch (\Throwable $e) {
-    error_log("==> [CLI] FATAL ERROR during command dispatch: " . $e->getMessage() . "\n" . $e->getTraceAsString());
-    if ($app->resolved(\App\Exceptions\Handler::class)) {
-        $app->make(\App\Exceptions\Handler::class)->handle($e);
-    }
-    exit(1);
-}
-
-exit(0);
+exit($status);

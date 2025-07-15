@@ -5,6 +5,7 @@ namespace Core\CLI;
 use Core\Application;
 use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Command\Command;
+use Throwable;
 
 class ConsoleKernel
 {
@@ -23,7 +24,7 @@ class ConsoleKernel
     {
         // Quét command từ core và từ các module
         $paths = array_merge(
-            glob($this->app->basePath('src/Core/Console/*Command.php')),
+            glob($this->app->basePath('src/Core/Console/Commands/*Command.php')),
             glob($this->app->basePath('Modules/*/Console/*Command.php'))
         );
 
@@ -31,36 +32,61 @@ class ConsoleKernel
             $class = $this->fqcnFromFile($file);
 
             if ($class && class_exists($class) && is_subclass_of($class, Command::class)) {
-                // Sử dụng DI container để khởi tạo command, cho phép inject dependencies
-                $command = $this->app->make($class);
-                $this->cli->add($command);
+                try {
+                    // Sử dụng DI container để khởi tạo command, cho phép inject dependencies
+                    $command = $this->app->make($class);
+
+                    // If it's one of our base commands, inject the core application instance.
+                    // This avoids the signature conflict with Symfony's setApplication.
+                    if (method_exists($command, 'setCoreApplication')) {
+                        $command->setCoreApplication($this->app);
+                    }
+                    $this->cli->add($command);
+                } catch (Throwable $e) {
+                    // Ghi lỗi ra console nếu một command không thể được khởi tạo,
+                    // nhưng không làm dừng toàn bộ ứng dụng CLI.
+                    $this->cli->add(new FailedCommand($class, $e->getMessage()));
+                }
             }
         }
     }
 
-    public function handle(array $argv): void
+    /**
+     * Run the console application.
+     */
+    public function handle(): int
     {
-        $this->cli->run();
+        return $this->cli->run();
     }
 
     /**
      * Lấy ra Tên Class Đầy Đủ (FQCN) từ đường dẫn file.
-     * Tương tự phương thức trong RouteServiceProvider.
+     * Phương thức này sử dụng một map PSR-4 để làm cho logic linh hoạt và dễ bảo trì hơn.
      */
     private function fqcnFromFile(string $filePath): ?string
     {
-        $relativePath = str_replace(rtrim($this->app->basePath(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR, '', $filePath);
+        // Định nghĩa các ánh xạ PSR-4.
+        // Thứ tự rất quan trọng: các đường dẫn cụ thể hơn nên được đặt trước.
+        $psr4Mappings = [
+            'Core\\' => $this->app->basePath('src/Core'),
+            'Modules\\' => $this->app->basePath('Modules'),
+            // 'App\\' => $this->app->basePath('src'), // Có thể thêm các mapping khác ở đây
+        ];
 
-        // Bỏ phần mở rộng .php
-        $classPath = substr($relativePath, 0, -4);
+        $normalizedPath = str_replace('\\', '/', $filePath);
 
-        // Chuyển đổi dấu phân cách thư mục thành dấu phân cách namespace
-        // src/Core/Console/MyCommand.php -> Core\Console\MyCommand
-        // Modules/User/Console/UserCommand.php -> Modules\User\Console\UserCommand
-        if (str_starts_with($classPath, 'src/')) {
-            $classPath = substr($classPath, 4);
+        foreach ($psr4Mappings as $namespace => $path) {
+            $normalizedBasePath = rtrim(str_replace('\\', '/', $path), '/');
+            if (str_starts_with($normalizedPath, $normalizedBasePath)) {
+                // Lấy đường dẫn class tương đối so với thư mục gốc của PSR-4
+                $relativeClassPath = substr($normalizedPath, strlen($normalizedBasePath) + 1);
+                // Bỏ phần mở rộng .php
+                $classPathWithoutExt = substr($relativeClassPath, 0, -4);
+                // Tạo lại FQCN hoàn chỉnh
+                return $namespace . str_replace('/', '\\', $classPathWithoutExt);
+            }
         }
 
-        return str_replace(DIRECTORY_SEPARATOR, '\\', $classPath);
+        return null;
     }
 }

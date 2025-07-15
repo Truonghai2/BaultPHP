@@ -2,11 +2,18 @@
 
 namespace Core;
 
-use Core\ContextualBindingBuilder;
 use RuntimeException;
+use LogicException;
 
 class Application
 {
+    /**
+     * The BaultFrame framework version.
+     *
+     * @var string
+     */
+    public const VERSION = '1.0.0';
+
     protected array $bindings = [];
     protected array $instances = [];
     protected array $aliases = [];
@@ -20,6 +27,9 @@ class Application
 
     /** @var array Cache for reflection objects to speed up instantiation. */
     protected array $reflectionCache = [];
+
+    /** @var bool Indicates if the application has "booted". */
+    protected bool $isBooted = false;
 
     protected array $serviceProviders = [];
     protected array $resolvingCallbacks = [];
@@ -63,6 +73,17 @@ class Application
         return new ContextualBindingBuilder($this, $concrete);
     }
 
+    /**
+     * Alias a type to a different name.
+     *
+     * @param string $abstract
+     * @param string $alias
+     */
+    public function alias(string $abstract, string $alias): void
+    {
+        $this->aliases[$alias] = $abstract;
+    }
+
     public function bind(string $abstract, mixed $concrete, bool $singleton = false): void
     {
         $this->bindings[$abstract] = compact('concrete', 'singleton');
@@ -86,19 +107,28 @@ class Application
     /**
      * Resolve the given type from the container.
      *
-     * @throws \Exception if a circular dependency is detected.
+     * @throws LogicException if a circular dependency is detected.
+     * @throws RuntimeException if the type cannot be resolved.
      */
     public function make(string $abstract, array $parameters = []): mixed
     {
+        $abstract = $this->getAlias($abstract);
+
         if (isset($this->instances[$abstract])) {
             return $this->instances[$abstract];
+        }
+
+        // Detect circular dependencies.
+        if (in_array($abstract, $this->resolvingStack)) {
+            $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
+            throw new LogicException("Circular dependency detected while resolving: [{$path}]");
         }
 
         // Add the abstract to the resolving stack to detect circular dependencies.
         $this->resolvingStack[] = $abstract;
 
         try {
-            $object = $this->build($abstract);
+            $object = $this->build($abstract, $parameters);
         } finally {
             // Remove the abstract from the stack once resolution is complete.
             array_pop($this->resolvingStack);
@@ -120,30 +150,28 @@ class Application
 
     /**
      * Build an instance of the given class.
+     *
+     * @throws RuntimeException
      */
-    protected function build(string $concrete): mixed
+    protected function build(string $concrete, array $parameters = []): mixed
     {
         if (isset($this->bindings[$concrete])) {
             $binding = $this->bindings[$concrete]['concrete'];
             if (is_callable($binding)) {
-                return $binding($this);
+                return $binding($this, $parameters);
             }
             $concrete = $binding;
         }
 
         $reflector = $this->getReflector($concrete);
         if (!$reflector->isInstantiable()) {
-            throw new \Exception("Class [$concrete] is not instantiable.");
+            throw new RuntimeException("Class [$concrete] is not instantiable.");
         }
 
         $constructor = $reflector->getConstructor();
 
         if (is_null($constructor)) {
             return new $concrete();
-        }
-
-        if (in_array($concrete, $this->resolvingStack, true) && end($this->resolvingStack) !== $concrete) {
-            throw new \Exception("Circular dependency detected while resolving [$concrete].");
         }
 
         $dependencies = $this->resolveDependencies($constructor->getParameters());
@@ -153,6 +181,8 @@ class Application
 
     /**
      * Resolve all of the dependencies from the ReflectionParameters.
+     *
+     * @throws RuntimeException
      */
     protected function resolveDependencies(array $dependencies): array
     {
@@ -165,7 +195,7 @@ class Application
                     continue;
                 }
                 $context = end($this->resolvingStack);
-                throw new \Exception("Cannot resolve un-typed parameter \${$dependency->getName()} in class {$context}");
+                throw new RuntimeException("Cannot resolve un-typed parameter \${$dependency->getName()} in class {$context}");
             }
 
             $results[] = $this->resolveClassParameter($dependency);
@@ -173,6 +203,11 @@ class Application
         return $results;
     }
 
+    /**
+     * Resolve a class based dependency from the container.
+     *
+     * @throws RuntimeException
+     */
     protected function resolveClassParameter(\ReflectionParameter $parameter): mixed
     {
         $type = $parameter->getType()->getName();
@@ -190,7 +225,6 @@ class Application
 
     /**
      * Call the given Closure / class@method and inject its dependencies.
-     *
      */
     public function call($callback, array $parameters = [])
     {
@@ -200,7 +234,9 @@ class Application
 
         if (is_array($callback)) {
             [$class, $method] = $callback;
-            $instance = $this->make($class);
+            // Nếu phần tử đầu tiên đã là một đối tượng, hãy sử dụng nó.
+            // Ngược lại, resolve nó từ container.
+            $instance = is_object($class) ? $class : $this->make($class);
             $callback = [$instance, $method];
         }
 
@@ -210,21 +246,15 @@ class Application
             $paramName = $parameter->getName(); // This line is correct
             $type = $parameter->getType();
             $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
-    
+
             if (array_key_exists($paramName, $parameters)) {
-                // --- BẮT ĐẦU LOGIC ROUTE MODEL BINDING ---
-                // If the parameter is type-hinted as a Model, resolve it from the database
-                if ($typeName && class_exists($typeName) && is_subclass_of($typeName, \Core\ORM\Model::class)) {
-                    // Assumes your Model has a static findOrFail method
-                    $dependencies[] = $typeName::findOrFail($parameters[$paramName]); // This assumes an ORM like Eloquent
-                    continue;
-                }
-                // --- KẾT THÚC LOGIC ROUTE MODEL BINDING ---
                 $dependencies[] = $parameters[$paramName];
-            } elseif ($typeName && class_exists($typeName)) {
+            } elseif ($typeName && (class_exists($typeName) || interface_exists($typeName))) {
                 $dependencies[] = $this->make($typeName);
             } elseif ($parameter->isDefaultValueAvailable()) {
                 $dependencies[] = $parameter->getDefaultValue();
+            } else {
+                throw new RuntimeException("Unresolvable dependency resolving [$parameter] in " . $reflector->getName());
             }
         }
         return $callback(...$dependencies);
@@ -232,11 +262,10 @@ class Application
 
     protected function getReflector(string $class): \ReflectionClass
     {
-        if (!class_exists($class)) {
-            throw new \Exception("Class [$class] not found.");
-        }
-
         if (!isset($this->reflectionCache[$class])) {
+            if (!class_exists($class)) {
+                throw new RuntimeException("Class [$class] not found.");
+            }
             $this->reflectionCache[$class] = new \ReflectionClass($class);
         }
         return $this->reflectionCache[$class];
@@ -272,13 +301,19 @@ class Application
 
     public function boot(): void
     {
+        if ($this->isBooted) {
+            return;
+        }
+
         foreach ($this->serviceProviders as $provider) {
             if (method_exists($provider, 'boot')) {
                 error_log("    --> [Application] Booting provider: " . get_class($provider));
-                $provider->boot();
+                $this->call([$provider, 'boot']);
                 error_log("    --> [Application] Provider booted: " . get_class($provider));
             }
         }
+
+        $this->isBooted = true;
     }
 
     /**
@@ -295,6 +330,25 @@ class Application
     public function resolved(string $abstract): bool
     {
         return isset($this->instances[$abstract]);
+    }
+
+    /**
+     * Get the alias for an abstract if available.
+     */
+    public function getAlias(string $abstract): string
+    {
+        return $this->aliases[$abstract] ?? $abstract;
+    }
+
+    /**
+     * Determine if a given string is an alias.
+     *
+     * @param  string  $name
+     * @return bool
+     */
+    public function isAlias(string $name): bool
+    {
+        return isset($this->aliases[$name]);
     }
 
     public function addContextualBinding(string $concrete, string $abstract, string|\Closure $implementation): void
@@ -324,5 +378,15 @@ class Application
                 $this->register($providerClass);
             }
         }
+    }
+
+    /**
+     * Get the version number of the application.
+     *
+     * @return string
+     */
+    public function version(): string
+    {
+        return static::VERSION;
     }
 }

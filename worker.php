@@ -1,5 +1,6 @@
 <?php
 
+use Core\Contracts\Http\Kernel as KernelContract;
 use Nyholm\Psr7\Factory\Psr17Factory;
 use Psr\Http\Message\ServerRequestInterface;
 use Spiral\RoadRunner\Http\PSR7Worker;
@@ -12,7 +13,14 @@ $dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
 $dotenv->load();
 
 // Khởi tạo AppKernel của bạn một lần duy nhất
-$appKernel = new \Core\AppKernel();
+$kernel = new \Core\AppKernel();
+$app = $kernel->getApplication();
+
+// Bind Http\Kernel vào container
+$app->singleton(KernelContract::class, function ($app) {
+    return new \Http\Kernel($app, $app->make(\Core\Routing\Router::class));
+});
+$httpKernel = $app->make(KernelContract::class);
 
 $worker = Worker::create();
 $psrFactory = new Psr17Factory();
@@ -28,8 +36,11 @@ while ($psrRequest = $psr7->waitRequest()) {
         // Chuyển đổi PSR-7 Request sang Request của bạn
         $baultRequest = \Http\Request::fromPsr7($psrRequest);
 
-        // Xử lý request thông qua AppKernel
-        $baultResponse = $appKernel->handle($baultRequest);
+        // Đưa request vào container để có thể resolve ở nơi khác
+        $app->instance(\Http\Request::class, $baultRequest);
+
+        // Xử lý request thông qua HttpKernel
+        $baultResponse = $httpKernel->handle($baultRequest);
 
         // Chuyển đổi Response của bạn sang PSR-7 Response và gửi đi
         $psr7->respond($baultResponse->toPsr7());
@@ -37,11 +48,15 @@ while ($psrRequest = $psr7->waitRequest()) {
         // Gửi lỗi về cho RoadRunner để ghi log
         $psr7->getWorker()->error((string)$e);
     } finally {
-        // QUAN TRỌNG: Reset các service có trạng thái sau mỗi request.
-        // Điều này ngăn chặn dữ liệu từ request này rò rỉ sang request tiếp theo.
-        if (class_exists(\Core\Support\Facades\Auth::class)) {
-            \Core\Support\Facades\Auth::reset();
+        // QUAN TRỌNG: Tự động reset tất cả các service đã được đăng ký là "stateful".
+        // Cách tiếp cận này đảm bảo rằng không có trạng thái nào bị rò rỉ giữa các request,
+        // và chúng ta không cần phải sửa đổi file này mỗi khi thêm một service stateful mới.
+        if (isset($baultRequest, $baultResponse)) {
+            $httpKernel->terminate($baultRequest, $baultResponse);
         }
-        // Bạn có thể thêm các lệnh reset cho các service có trạng thái khác ở đây.
+
+        foreach ($app->getByTag(\Core\Contracts\StatefulService::class) as $service) {
+            $service->resetState();
+        }
     }
 }

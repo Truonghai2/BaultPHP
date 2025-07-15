@@ -22,11 +22,14 @@
         "jimdo/prometheus_client_php": "^0.6.0",
         "spiral/roadrunner": "^2025.1",
         "roadrunner-php/centrifugo": "^2.2",
-        "guzzlehttp/guzzle": "^7.9"
+        "guzzlehttp/guzzle": "^7.9",
+        "dragonmantank/cron-expression": "^3.4",
+        "symfony/process": "^7.3"
     },
     "require-dev": {
         "phpunit/phpunit": "^10.3",
-        "filp/whoops": "^2.15"
+        "filp/whoops": "^2.15",
+        "spiral/roadrunner-cli": "^2.7"
     },
     "autoload": {
         "psr-4": {

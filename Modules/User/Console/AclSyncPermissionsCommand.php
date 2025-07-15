@@ -8,17 +8,17 @@ use Modules\User\Infrastructure\Models\Permission;
 
 class AclSyncPermissionsCommand extends BaseCommand
 {
-    public function __construct(protected Application $app)
-    {
-        parent::__construct();
-    }
-
     public function signature(): string
     {
         return 'acl:sync-permissions';
     }
 
-    public function handle(array $args = []): void
+    public function description(): string
+    {
+        return 'Synchronize permissions from files to the database.';
+    }
+
+    public function handle(): int
     {
         $this->io->title('Synchronizing Permissions from Files to Database');
 
@@ -57,6 +57,7 @@ class AclSyncPermissionsCommand extends BaseCommand
         }
 
         $this->io->success('Permissions synchronized successfully!');
+        return 0;
     }
 
     protected function getFilePermissions(): array

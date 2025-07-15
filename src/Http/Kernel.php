@@ -43,11 +43,13 @@ class Kernel implements KernelContract
      */
     protected array $middlewareGroups = [
         'web' => [
+            \Http\Middleware\SubstituteBindings::class,
             // \App\Http\Middleware\EncryptCookies::class, // Bỏ comment nếu bạn cần mã hóa cookie
             \Http\Middleware\StartSession::class,
             \Http\Middleware\VerifyCsrfToken::class,
         ],
         'api' => [
+            \Http\Middleware\SubstituteBindings::class,
             'throttle:api', // Ví dụ về middleware có tham số
         ],
     ];
