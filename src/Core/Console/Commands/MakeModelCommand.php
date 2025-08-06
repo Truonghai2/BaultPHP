@@ -6,7 +6,6 @@ use Core\Console\Contracts\BaseCommand;
 
 class MakeModelCommand extends BaseCommand
 {
-    
     public function signature(): string
     {
         return 'make:model {module} {name}';
@@ -17,7 +16,6 @@ class MakeModelCommand extends BaseCommand
         return 'Create a new model in the specified module.';
     }
 
-    
     public function handle(): int
     {
         $this->io->title('Creating Model');
@@ -37,7 +35,7 @@ class MakeModelCommand extends BaseCommand
      */
     public function fire(): void
     {
-    
+
         $module = $this->argument('module');
         $name = $this->argument('name');
         $this->createModelClass($module, $name);

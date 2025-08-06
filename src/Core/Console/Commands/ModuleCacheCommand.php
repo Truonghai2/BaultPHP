@@ -3,7 +3,6 @@
 namespace Core\Console\Commands;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Module\Module; 
 use Throwable;
 
 class ModuleCacheCommand extends BaseCommand
@@ -24,13 +23,17 @@ class ModuleCacheCommand extends BaseCommand
 
         $cachePath = $this->app->basePath('bootstrap/cache/modules.php');
 
-        try {
-            $enabledModuleNames = Module::where('enabled', true)->pluck('name')->all();
-        } catch (Throwable $e) {
-            $this->error('Could not retrieve modules from the database. Please ensure it is configured and migrated.');
-            $this->line('Error: ' . $e->getMessage());
-            return 1;
+        $enabledModuleNames = [];
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
+
+        foreach ($moduleJsonPaths as $path) {
+            $data = json_decode(file_get_contents($path), true);
+            if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
+                $enabledModuleNames[] = $data['name'];
+            }
         }
+
+        // Sắp xếp để đảm bảo file cache nhất quán
 
         $exported = var_export($enabledModuleNames, true);
         $content = "<?php\n\nreturn " . $exported . ";\n";

@@ -1,0 +1,114 @@
+<?php
+
+namespace {{ namespace }};
+
+use Core\Auth\Access\Response;
+use Modules\User\Infrastructure\Models\User;
+{{ model_import }}
+
+class {{ class_name }}
+{
+    /**
+     * Thực hiện các kiểm tra phân quyền trước.
+     * Phương thức này được gọi trước bất kỳ phương thức nào khác trong policy.
+     *
+     * @param \Modules\User\Infrastructure\Models\User $user
+     * @param string $ability
+     * @return bool|null
+     */
+    public function before(User $user, string $ability): ?bool
+    {
+        // Ví dụ: Cấp toàn bộ quyền cho super admin
+        // if ($user->isSuperAdmin()) {
+        //     return true;
+        // }
+
+        return null; // Để các phương thức khác trong policy xử lý
+    }
+
+    /**
+     * Xác định xem người dùng có thể xem danh sách các {{ model_variable }} hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @return bool
+     */
+    public function viewAny(User $user): bool
+    {
+        //
+    }
+
+    /**
+     * Xác định xem người dùng có thể xem một {{ model_variable }} cụ thể hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @param  \{{ model_name }}  ${{ model_variable }}
+     * @return bool
+     */
+    public function view(User $user, {{ model_name }} ${{ model_variable }}): bool
+    {
+        //
+    }
+
+    /**
+     * Xác định xem người dùng có thể tạo mới {{ model_variable }} hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @return bool
+     */
+    public function create(User $user): bool
+    {
+        //
+    }
+
+    /**
+     * Xác định xem người dùng có thể cập nhật {{ model_variable }} hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @param  \{{ model_name }}  ${{ model_variable }}
+     * @return \Core\Auth\Access\Response|bool
+     */
+    public function update(User $user, {{ model_name }} ${{ model_variable }}): Response|bool
+    {
+        // Ví dụ: Trả về Response để tùy chỉnh thông báo lỗi
+        // return $user->id === ${{ model_variable }}->user_id
+        //            ? Response::allow()
+        //            : Response::deny('Bạn không sở hữu tài nguyên này.');
+        return true;
+    }
+
+    /**
+     * Xác định xem người dùng có thể xóa {{ model_variable }} hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @param  \{{ model_name }}  ${{ model_variable }}
+     * @return bool
+     */
+    public function delete(User $user, {{ model_name }} ${{ model_variable }}): bool
+    {
+        //
+    }
+
+    /**
+     * Xác định xem người dùng có thể khôi phục một {{ model_variable }} đã bị xóa mềm hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @param  \{{ model_name }}  ${{ model_variable }}
+     * @return bool
+     */
+    public function restore(User $user, {{ model_name }} ${{ model_variable }}): bool
+    {
+        //
+    }
+
+    /**
+     * Xác định xem người dùng có thể xóa vĩnh viễn một {{ model_variable }} hay không.
+     *
+     * @param  \Modules\User\Infrastructure\Models\User  $user
+     * @param  \{{ model_name }}  ${{ model_variable }}
+     * @return bool
+     */
+    public function forceDelete(User $user, {{ model_name }} ${{ model_variable }}): bool
+    {
+        //
+    }
+}

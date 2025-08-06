@@ -3,11 +3,12 @@
 namespace Core\ORM;
 
 use Core\ORM\Exceptions\ModelNotFoundException;
+use Core\Support\Collection;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use PDO;
 
 class QueryBuilder
 {
-    protected PDO $pdo;
     protected string $modelClass;
     protected string $table;
     protected array $wheres = [];
@@ -23,7 +24,6 @@ class QueryBuilder
     public function __construct(string $modelClass)
     {
         $this->modelClass = $modelClass;
-        $this->pdo = Connection::get();
     }
 
     /**
@@ -33,7 +33,7 @@ class QueryBuilder
      */
     public function getModel(): Model
     {
-        return new $this->modelClass;
+        return new $this->modelClass();
     }
 
     public function table(string $table): self
@@ -76,7 +76,7 @@ class QueryBuilder
     public function with(string|array $relations): self
     {
         $this->eagerLoad = $this->parseWithRelations(
-            is_array($relations) ? $relations : func_get_args()
+            is_array($relations) ? $relations : func_get_args(),
         );
         return $this;
     }
@@ -105,7 +105,7 @@ class QueryBuilder
                 throw new \BadMethodCallException(sprintf(
                     'Call to undefined relationship %s on model %s.',
                     $relationName,
-                    get_class($model)
+                    get_class($model),
                 ));
             }
 
@@ -131,7 +131,6 @@ class QueryBuilder
                 throw new \InvalidArgumentException(sprintf('Column [%s] is not filterable on model [%s].', $column, get_class($model)));
             }
         }
-
 
         if (func_num_args() === 2) {
             $value = $operator;
@@ -248,7 +247,7 @@ class QueryBuilder
 
     public function find(int $id): ?Model
     {
-        return $this->where((new $this->modelClass)->getKeyName(), '=', $id)->first();
+        return $this->where((new $this->modelClass())->getKeyName(), '=', $id)->first();
     }
 
     /**
@@ -276,7 +275,7 @@ class QueryBuilder
         if (!is_null($result = $this->find($id))) {
             return $result;
         }
-        throw (new ModelNotFoundException)->setModel($this->modelClass);
+        throw (new ModelNotFoundException())->setModel($this->modelClass);
     }
 
     public function first(): ?Model
@@ -284,10 +283,10 @@ class QueryBuilder
         // By cloning the query and using limit(1)->get(), we reuse the existing
         // query building and eager loading logic, reducing code duplication
         // and ensuring consistent behavior.
-        $query = clone $this;
-        $models = $query->limit(1)->get();
+        $models = (clone $this)->limit(1)->get();
 
-        return $models[0] ?? null;
+        // Sử dụng phương thức first() của Collection để code dễ đọc hơn.
+        return $models->first();
     }
 
     /**
@@ -313,10 +312,10 @@ class QueryBuilder
         if (! is_null($result = $this->first())) {
             return $result;
         }
-        throw (new ModelNotFoundException)->setModel($this->modelClass);
+        throw (new ModelNotFoundException())->setModel($this->modelClass);
     }
 
-    public function get(): array
+    public function get(): Collection
     {
         $columns = implode(', ', $this->columns);
         $sql = "SELECT {$columns} FROM {$this->table}";
@@ -330,7 +329,7 @@ class QueryBuilder
         $sql .= $limitClause;
 
         $bindings = array_merge($whereBindings, $limitBindings);
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->getConnection('read')->prepare($sql);
         $stmt->execute($bindings);
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -339,7 +338,45 @@ class QueryBuilder
         if (!empty($models) && !empty($this->eagerLoad)) {
             $this->eagerLoadRelations($models);
         }
-        return $models;
+        return new Collection($models);
+    }
+
+    /**
+     * Paginate the given query.
+     *
+     * @param  int  $perPage
+     * @param  string  $pageName
+     * @param  int|null  $page
+     * @return \Core\ORM\Paginator
+     */
+    public function paginate(int $perPage = 15, string $pageName = 'page', ?int $page = null): Paginator
+    {
+        // Determine the current page number from the request if not provided.
+        $page = $page ?: (int) app(Request::class)->query($pageName, 1);
+
+        // Clone the query builder to get the total count without affecting the main query's limit/offset.
+        $total = (clone $this)->count();
+
+        // Get the results for the current page.
+        $results = $this->forPage($page, $perPage)->get();
+
+        // Create and return the paginator instance.
+        return new Paginator($results, $total, $perPage, $page, [
+            'path' => app(ServerRequestInterface::class)->getUri()->getPath(),
+            'pageName' => $pageName,
+        ]);
+    }
+
+    /**
+     * Constrain the query to the given page.
+     *
+     * @param  int  $page
+     * @param  int  $perPage
+     * @return $this
+     */
+    public function forPage(int $page, int $perPage = 15): self
+    {
+        return $this->offset(($page - 1) * $perPage)->limit($perPage);
     }
 
     public function groupBy(...$columns): self
@@ -367,7 +404,7 @@ class QueryBuilder
         $sql .= $this->buildJoinClause();
         $sql .= $whereClause;
 
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->getConnection('read')->prepare($sql);
         $stmt->execute($bindings);
 
         return (int) $stmt->fetchColumn();
@@ -378,7 +415,7 @@ class QueryBuilder
         // Re-use the `first()` method logic but just check for existence.
         // This is more efficient than `count() > 0` as it can stop at the first record.
         $query = clone $this; // Clone to not affect the original query object
-        $query->select((new $this->modelClass)->getKeyName());
+        $query->select((new $this->modelClass())->getKeyName());
 
         return (bool) $query->first();
     }
@@ -386,28 +423,49 @@ class QueryBuilder
     public function insertGetId(array $attributes): ?int
     {
         $columns = implode(', ', array_keys($attributes));
-        $placeholders = implode(', ', array_fill(0, count($attributes), '?'));
+        $values = [];
+        $bindings = [];
+
+        foreach ($attributes as $value) {
+            if ($value instanceof RawExpression) {
+                $values[] = $value->getValue();
+            } else {
+                $values[] = '?';
+                $bindings[] = $value;
+            }
+        }
+        $placeholders = implode(', ', $values);
 
         $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
 
-        $stmt = $this->pdo->prepare($sql);
-        $stmt->execute(array_values($attributes));
+        $pdo = $this->getConnection('write');
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($bindings);
 
-        $id = $this->pdo->lastInsertId();
+        $id = $pdo->lastInsertId();
         return $id ? (int)$id : null;
     }
 
     public function update(array $attributes): bool
     {
-        $setClause = implode(', ', array_map(fn($col) => "{$col} = ?", array_keys($attributes)));
+        $setParts = [];
+        $bindings = [];
+
+        foreach ($attributes as $column => $value) {
+            if ($value instanceof RawExpression) {
+                $setParts[] = "{$column} = " . $value->getValue();
+            } else {
+                $setParts[] = "{$column} = ?";
+                $bindings[] = $value;
+            }
+        }
+        $setClause = implode(', ', $setParts);
         [$whereClause, $whereBindings] = $this->buildWhereClause();
 
         $sql = "UPDATE {$this->table} SET {$setClause}" . $whereClause;
 
-        $bindings = array_merge(array_values($attributes), $whereBindings);
-
-        $stmt = $this->pdo->prepare($sql);
-        return $stmt->execute($bindings);
+        $stmt = $this->getConnection('write')->prepare($sql);
+        return $stmt->execute(array_merge($bindings, $whereBindings));
     }
 
     public function delete(): bool
@@ -416,11 +474,11 @@ class QueryBuilder
         if ($model->usesSoftDeletes()) {
             return $this->performSoftDelete();
         }
-        
+
         [$whereClause, $bindings] = $this->buildWhereClause();
         $sql = "DELETE FROM {$this->table}" . $whereClause;
 
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->getConnection('write')->prepare($sql);
         return $stmt->execute($bindings);
     }
 
@@ -468,8 +526,12 @@ class QueryBuilder
             }
             // Handle standard operators (including LIKE)
             else {
-                $conditions[] = "{$where['column']} {$where['operator']} ?";
-                $bindings[] = $where['value'];
+                if ($where['value'] instanceof RawExpression) {
+                    $conditions[] = "{$where['column']} {$where['operator']} " . $where['value']->getValue();
+                } else {
+                    $conditions[] = "{$where['column']} {$where['operator']} ?";
+                    $bindings[] = $where['value'];
+                }
             }
         }
 
@@ -542,11 +604,10 @@ class QueryBuilder
         return [$sql, $bindings];
     }
 
-
     protected function hydrate(array $attributes): Model
     {
         /** @var Model $model */
-        $model = new $this->modelClass;
+        $model = new $this->modelClass();
         return $model->newFromBuilder($attributes);
     }
 
@@ -642,9 +703,21 @@ class QueryBuilder
         return $parsed;
     }
 
+    /**
+     * @deprecated Use getConnection('write') instead. This method is for backward compatibility.
+     * @return PDO
+     */
     public function getPdo(): PDO
     {
-        return $this->pdo;
+        return $this->getConnection('write');
+    }
+
+    /**
+     * Get the PDO connection instance for a specific type.
+     */
+    protected function getConnection(string $type): PDO
+    {
+        return Connection::get(null, $type);
     }
 
     /**
@@ -675,7 +748,7 @@ class QueryBuilder
 
         $bindings = array_merge($whereBindings, $limitBindings);
 
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->getConnection('read')->prepare($sql);
         $stmt->execute($bindings);
 
         $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -724,7 +797,7 @@ class QueryBuilder
         [$whereClause, $bindings] = $this->buildWhereClause();
         $sql = "DELETE FROM {$this->table}" . $whereClause;
 
-        $stmt = $this->pdo->prepare($sql);
+        $stmt = $this->getConnection('write')->prepare($sql);
         return $stmt->execute($bindings);
     }
 
@@ -783,5 +856,19 @@ class QueryBuilder
         }
 
         throw new \BadMethodCallException(sprintf('Call to undefined method %s::%s()', static::class, $method));
+    }
+
+    public function decrement(string $column, int $amount = 1): bool
+    {
+        return $this->update([
+            $column => new RawExpression("`$column` - $amount"),
+        ]);
+    }
+
+    public function increment(string $column, int $amount = 1): bool
+    {
+        return $this->update([
+            $column => new RawExpression("`$column` + $amount"),
+        ]);
     }
 }

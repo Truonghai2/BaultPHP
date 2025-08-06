@@ -8,4 +8,3 @@ return [
         Modules\User\Providers\ModuleServiceProvider::class,
     ],
 ];
-

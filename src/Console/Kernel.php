@@ -1,47 +1,20 @@
 <?php
 
-namespace Console;
+namespace App\Console;
 
-use Core\Application;
-use Symfony\Component\Console\Application as ConsoleApplication;
-use Symfony\Component\Console\Input\ArgvInput;
-use Symfony\Component\Console\Output\ConsoleOutput;
+use Core\Console\Kernel as CoreKernel;
+use Core\Console\Scheduling\Schedule;
 
-class Kernel
+class Kernel extends CoreKernel
 {
     /**
-     * The application implementation.
+     * Define the application's command schedule.
+     *
+     * @param  \Core\Console\Scheduling\Schedule  $schedule
+     * @return void
      */
-    protected Application $app;
-
-    /**
-     * The Symfony Console application.
-     */
-    protected ConsoleApplication $console;
-
-    /**
-     * Create a new console kernel instance.
-     */
-    public function __construct(Application $app)
+    protected function schedule(Schedule $schedule): void
     {
-        $this->app = $app;
-        $this->console = new ConsoleApplication('BaultPHP Console', $this->app->version());
-
-        // Đăng ký các command ở đây
-        $this->registerCommands();
-    }
-
-    /**
-     * Run the console application.
-     */
-    public function handle(ArgvInput $input, ConsoleOutput $output): int
-    {
-        return $this->console->run($input, $output);
-    }
-
-    protected function registerCommands(): void
-    {
-        // Logic để load các command từ các provider hoặc từ một thư mục
-        // Ví dụ: $this->console->add(new \App\Console\Commands\MyCommand());
+        // $schedule->command('app:health-check')->hourly();
     }
 }

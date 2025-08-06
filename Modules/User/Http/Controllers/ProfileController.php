@@ -4,30 +4,31 @@ namespace Modules\User\Http\Controllers;
 
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
-use Http\Request;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 class ProfileController
 {
     #[Route('/', method: 'GET')]
-    public function index(Request $request)
+    public function index(ServerRequestInterface $request): ResponseInterface
     {
-        dd("ProfileController@index called");
+        // Trả về view 'welcome' đã có sẵn trong project của bạn.
+        // Hàm view() và response() là các helper function của framework.
+        return response(view('welcome'));
     }
 
     #[Route('/api/profile', method: 'GET', middleware: [\Http\Middleware\AuthMiddleware::class])]
-    public function show(Request $request)
+    public function show(ServerRequestInterface $request)
     {
-        // Middleware AuthMiddleware đã chạy và xác thực người dùng.
-        // Chúng ta có thể an toàn lấy thông tin người dùng từ Auth facade.
+        /** @var \Modules\User\Infrastructure\Models\User|null $user */
         $user = Auth::user();
 
         if (!$user) {
-            // Trường hợp này hiếm khi xảy ra nếu middleware hoạt động đúng
             return ['error' => 'User not found, although authenticated.'];
         }
 
         return [
-            'id' => $user->id,
+            'id' => $user->getAuthIdentifier(),
             'name' => $user->name,
             'email' => $user->email,
         ];

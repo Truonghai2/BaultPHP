@@ -15,7 +15,7 @@ class UserMapper
         return new UserEntity(
             $model->id,
             $model->name,
-            $model->email
+            $model->email,
         );
     }
 

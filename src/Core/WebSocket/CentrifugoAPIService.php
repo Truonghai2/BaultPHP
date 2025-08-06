@@ -48,7 +48,7 @@ class CentrifugoAPIService
             return true;
         } catch (GuzzleException $e) {
             // Trong ứng dụng thực tế, bạn nên log lỗi này.
-            error_log("Failed to send command to Centrifugo: " . $e->getMessage());
+            error_log('Failed to send command to Centrifugo: ' . $e->getMessage());
             return false;
         }
     }

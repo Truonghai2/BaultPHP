@@ -29,7 +29,8 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     public function find(int $id): ?UserEntity
     {
-        $model = $this->model->newQuery()->find($id);
+        /** @var UserModel|null $model */
+        $model = $this->model->find($id);
         return $model ? UserMapper::toEntity($model) : null;
     }
 
@@ -48,7 +49,7 @@ class EloquentUserRepository implements UserRepositoryInterface
         $data = UserMapper::toModelData($userEntity);
 
         // Filter out null password to avoid overwriting it
-        $updateData = array_filter($data, fn($value) => !is_null($value));
+        $updateData = array_filter($data, fn ($value) => !is_null($value));
 
         $model->fill($updateData);
         return $model->save();
@@ -62,10 +63,33 @@ class EloquentUserRepository implements UserRepositoryInterface
 
     protected function findOrFail(int $id): UserModel
     {
-        $user = $this->model->newQuery()->find($id);
+        /** @var UserModel|null $user */
+        $user = $this->model->find($id);
         if (!$user) {
             throw new NotFoundException("User with ID {$id} not found.");
         }
         return $user;
+    }
+
+    public function findById(int $id): ?UserEntity
+    {
+        /** @var UserModel|null $model */
+        $model = $this->model->find($id);
+        return $model ? UserMapper::toEntity($model) : null;
+    }
+
+    public function save(UserEntity $user): bool
+    {
+        // If the entity has an ID, it's an update operation.
+        if ($user->getId()) {
+            return $this->update($user);
+        }
+
+        // Otherwise, it's a create operation.
+        // The `create` method returns the new entity, so we can check its
+        // existence to determine success.
+        $createdEntity = $this->create($user);
+
+        return $createdEntity instanceof UserEntity;
     }
 }

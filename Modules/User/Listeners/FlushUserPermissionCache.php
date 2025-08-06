@@ -3,9 +3,9 @@
 namespace Modules\User\Listeners;
 
 use Core\Contracts\Queue\ShouldQueue;
-use Modules\User\Application\Services\PermissionCacheService;
 use Modules\User\Domain\Events\RoleAssignedToUser;
 use Modules\User\Domain\Events\RolePermissionsChanged;
+use Modules\User\Domain\Services\PermissionCacheService;
 
 class FlushUserPermissionCache implements ShouldQueue
 {
@@ -29,7 +29,7 @@ class FlushUserPermissionCache implements ShouldQueue
         if ($event instanceof RolePermissionsChanged) {
             // This is the critical part: if a role's permissions change,
             // we must flush the cache for ALL users who have this role.
-            
+
             // We assume the Role model has a relationship to get all its users.
             // If not, you'll need to add it: `public function users() { return $this->belongsToMany(User::class, 'role_assignments'); }`
             $usersToFlush = $event->role->users()->get();

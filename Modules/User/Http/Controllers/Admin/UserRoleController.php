@@ -2,62 +2,55 @@
 
 namespace Modules\User\Http\Controllers\Admin;
 
-use Core\Contracts\Events\EventDispatcherInterface;
-use Http\Request;
-use Http\Response;
-use Modules\User\Application\Services\AccessControlService;
-use Modules\User\Domain\Events\RoleAssignedToUser;
-use Modules\User\Infrastructure\Models\Role;
-use Modules\User\Infrastructure\Models\RoleAssignment;
+use Http\JsonResponse;
+use InvalidArgumentException;
+use Modules\User\Application\Commands\UserRole\AssignRoleToUserCommand;
+use Modules\User\Application\Handlers\UserRole\AssignRoleToUserHandler;
+use Modules\User\Domain\Exceptions\RoleNotFoundException;
+use Modules\User\Domain\Exceptions\UserNotFoundException;
+use Modules\User\Http\Requests\AssignRoleRequest;
 use Modules\User\Infrastructure\Models\User;
+use Psr\Http\Message\ResponseInterface;
 
 class UserRoleController
 {
     public function __construct(
-        private AccessControlService $acl,
-        private EventDispatcherInterface $dispatcher
-    ) {}
+        private AssignRoleToUserHandler $assignRoleHandler,
+    ) {
+    }
 
     /**
      * Gán một vai trò cho người dùng trong một context cụ thể.
      */
-    public function assignRole(Request $request, User $user): Response
+    public function assign(AssignRoleRequest $request, User $user): ResponseInterface
     {
-        // Validate input
-        $roleId = $request->input('role_id');
-        $contextLevel = $request->input('context_level');
-        $instanceId = $request->input('instance_id');
+        // 1. Validation is now handled automatically by AssignRoleRequest.
+        // We can get the validated data directly.
+        $validated = $request->validated();
 
-        if (!$roleId || !$contextLevel || !$instanceId) {
-            return (new Response())->json(['message' => 'role_id, context_level, and instance_id are required.'], 422);
+        try {
+            // 2. Create Command from validated data
+            $command = new AssignRoleToUserCommand(
+                userId: $user->id,
+                roleId: (int)$validated['role_id'],
+                contextLevel: $validated['context_level'],
+                instanceId: (int)$validated['instance_id'],
+            );
+
+            // 3. Execute the command handler
+            $this->assignRoleHandler->handle($command);
+
+            // 4. Return a successful response
+            // In CQRS, commands typically don't return data.
+            // The response is a simple acknowledgment.
+            return new JsonResponse([
+                'message' => 'Role assignment command executed successfully.',
+            ]);
+        } catch (RoleNotFoundException | UserNotFoundException | InvalidArgumentException $e) {
+            return new JsonResponse(['message' => $e->getMessage()], 404);
+        } catch (\Throwable $e) {
+            // Log the error in a real application: error_log($e->getMessage());
+            return new JsonResponse(['message' => 'An unexpected error occurred.'], 500);
         }
-
-        $role = Role::find($roleId);
-        if (!$role) {
-            return (new Response())->json(['message' => 'Role not found.'], 404);
-        }
-
-        // Tìm hoặc tạo context
-        // Tạm thời, chúng ta giả định model context tồn tại.
-        // Trong thực tế, bạn cần một cách để lấy model từ context_level và instance_id.
-        // Ví dụ: $modelClass = 'Modules\\Post\\Infrastructure\\Models\\Post'; $model = $modelClass::find($instanceId);
-        // Để đơn giản, chúng ta sẽ resolve context trực tiếp.
-        $context = $this->acl->resolveContextByLevelAndId($contextLevel, $instanceId);
-
-        // Sử dụng updateOrCreate để tránh trùng lặp và dễ dàng cập nhật
-        RoleAssignment::updateOrCreate(
-            [
-                'user_id' => $user->id,
-                'context_id' => $context->id,
-            ],
-            [
-                'role_id' => $role->id,
-            ]
-        );
-
-        // Fire an event to notify the system that a role has been assigned.
-        $this->dispatcher->dispatch(new RoleAssignedToUser($user, $role));
-
-        return (new Response())->json(['message' => "Role '{$role->name}' assigned to user '{$user->name}' in context '{$context->context_level}:{$context->instance_id}'."]);
     }
 }

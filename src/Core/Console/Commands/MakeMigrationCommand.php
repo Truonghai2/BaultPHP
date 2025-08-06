@@ -3,86 +3,158 @@
 namespace Core\Console\Commands;
 
 use Core\Console\Contracts\BaseCommand;
+use InvalidArgumentException;
 
 class MakeMigrationCommand extends BaseCommand
 {
+    /**
+     * The name and signature of the console command.
+     *
+     * @return string
+     */
     public function signature(): string
     {
-        return 'ddd:make-migration {module} {name}';
+        return 'ddd:make-migration {name : The name of the migration (e.g., create_users_table)} {--module= : The module to create the migration in}';
     }
 
+    /**
+     * The console command description.
+     *
+     * @return string
+     */
     public function description(): string
     {
-        return 'Create a new migration class in the specified module.';
+        return 'Create a new migration file in a module or globally.';
     }
 
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
     public function handle(): int
     {
-        $module = $this->argument('module');
         $name = $this->argument('name');
+        $module = $this->option('module');
 
-        if (!$module || !$name) {
-            $this->io->error('Bạn phải truyền tên module và tên migration.');
-            $this->io->writeln('Ví dụ: <info>php cli ddd:make-migration User create_users_table</info>');
-            return 1;
-        }
-        $this->fire();
-        return 0;
-    }
-
-    public function fire(): void
-    {
-        $module = ucfirst($this->argument('module'));
-        $name = $this->argument('name');
-        
-        // Chuyển tên sang dạng snake_case để đặt tên file
-        $name = strtolower(preg_replace('/(?<!^)[A-Z]/', '_$0', $name));
-
-        $modulePath = base_path("Modules/{$module}");
-        if (!is_dir($modulePath)) {
-            $this->io->error("Module '{$module}' không tồn tại.");
-            return;
+        // Validate the migration name format
+        if (!preg_match('/^[a-z0-9_]+$/', $name)) {
+            $this->io->error('Invalid migration name. Please use snake_case format.');
+            return self::FAILURE;
         }
 
-        $timestamp = date('Y_m_d_His');
-        $fileName = "{$timestamp}_{$name}.php";
-        $path = "{$modulePath}/Infrastructure/Migrations/{$fileName}";
-        $directory = dirname($path);
+        $path = $this->getMigrationPath($module);
 
-        if (!is_dir($directory)) {
-            mkdir($directory, 0755, true);
+        if (!is_dir($path)) {
+            mkdir($path, 0775, true);
         }
 
-        // Chuyển tên snake_case sang StudlyCase để đặt tên class
-        $className = str_replace(' ', '', ucwords(str_replace('_', ' ', $name)));
+        $fileName = date('Y_m_d_His') . '_' . $name . '.php';
+        $fullPath = $path . '/' . $fileName;
 
-        $stub = <<<PHP
-<?php
+        try {
+            $stub = $this->createStub($name, $module);
+        } catch (InvalidArgumentException $e) {
+            $this->io->error($e->getMessage());
+            return self::FAILURE;
+        }
 
-namespace Modules\\{$module}\\Infrastructure\\Migrations;
+        file_put_contents($fullPath, $stub);
 
-use Core\\ORM\\Migration\\Migration;
-use PDO;
+        $this->io->success("Migration [{$fullPath}] created successfully.");
 
-class {$className} implements Migration
-{
-    public function up(PDO \$pdo): void
-    {
-        \$pdo->exec("
-            -- SQL to create table goes here
-        ");
+        return self::SUCCESS;
     }
 
-    public function down(PDO \$pdo): void
+    /**
+     * Get the full path to the migration directory.
+     *
+     * @param string|null $module
+     * @return string
+     */
+    protected function getMigrationPath(?string $module): string
     {
-        \$pdo->exec("
-            -- SQL to drop table goes here
-        ");
-    }
-}
-PHP;
+        if ($module) {
+            return base_path('Modules/' . ucfirst($module) . '/Infrastructure/Migrations');
+        }
 
-        file_put_contents($path, $stub);
-        $this->io->success("Migration [{$fileName}] đã được tạo trong module {$module}.");
+        return base_path('database/migrations');
+    }
+
+    /**
+     * Get the appropriate migration stub content.
+     *
+     * @param string $name
+     * @param string|null $module
+     * @return string
+     */
+    protected function createStub(string $name, ?string $module): string
+    {
+        $tableName = null;
+
+        // Determine which stub to use and parse the table name
+        if (str_starts_with($name, 'create_') && str_ends_with($name, '_table')) {
+            $stubPath = $this->getStubPath('create');
+            $tableName = substr($name, 7, -6);
+        } elseif (preg_match('/(add|update|delete|remove)_.*_to_(.*)_table$/', $name, $matches)) {
+            $stubPath = $this->getStubPath('update');
+            $tableName = $matches[2];
+        } else {
+            $stubPath = $this->getStubPath('plain');
+        }
+
+        $stubContent = file_get_contents($stubPath);
+        if ($stubContent === false) {
+            throw new InvalidArgumentException("Unable to read stub file at: {$stubPath}");
+        }
+
+        return $this->populateStub($stubContent, $tableName, $module);
+    }
+
+    /**
+     * Get the path to a migration stub file.
+     *
+     * @param string $type
+     * @return string
+     */
+    protected function getStubPath(string $type): string
+    {
+        $path = base_path("src/Core/Console/Commands/stubs/migration.{$type}.stub");
+        if (!file_exists($path)) {
+            // Create stubs directory if it doesn't exist
+            $stubsDir = dirname($path);
+            if (!is_dir($stubsDir)) {
+                mkdir($stubsDir, 0755, true);
+            }
+            // You might want to create default stubs here if they don't exist
+            throw new InvalidArgumentException("Stub file [migration.{$type}.stub] not found in {$stubsDir}.");
+        }
+        return $path;
+    }
+
+    /**
+     * Populate the stub with the dynamic data.
+     *
+     * @param string $stub
+     * @param string|null $tableName
+     * @param string|null $module
+     * @return string
+     */
+    protected function populateStub(string $stub, ?string $tableName, ?string $module): string
+    {
+        $namespace = $module
+            ? 'namespace Modules\\' . ucfirst($module) . '\\Infrastructure\\Migrations;'
+            : '';
+
+        $replacements = [
+            '{{ namespace }}' => $namespace ? $namespace . "\n" : '',
+            '{{ table }}' => $tableName ?? '',
+        ];
+
+        // Also handle placeholders without spaces
+        $replacements['{{namespace}}'] = $replacements['{{ namespace }}'];
+        $replacements['{{table}}'] = $replacements['{{ table }}'];
+
+        return str_replace(array_keys($replacements), array_values($replacements), $stub);
     }
 }

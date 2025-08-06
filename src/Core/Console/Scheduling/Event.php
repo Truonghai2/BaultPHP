@@ -51,18 +51,43 @@ class Event
         return $this;
     }
 
-    public function everyMinute(): self { return $this->cron('* * * * *'); }
-    public function everyFiveMinutes(): self { return $this->cron('*/5 * * * *'); }
-    public function everyTenMinutes(): self { return $this->cron('*/10 * * * *'); }
-    public function hourly(): self { return $this->cron('0 * * * *'); }
-    public function daily(): self { return $this->cron('0 0 * * *'); }
-    public function dailyAt(string $time): self {
+    public function everyMinute(): self
+    {
+        return $this->cron('* * * * *');
+    }
+    public function everyFiveMinutes(): self
+    {
+        return $this->cron('*/5 * * * *');
+    }
+    public function everyTenMinutes(): self
+    {
+        return $this->cron('*/10 * * * *');
+    }
+    public function hourly(): self
+    {
+        return $this->cron('0 * * * *');
+    }
+    public function daily(): self
+    {
+        return $this->cron('0 0 * * *');
+    }
+    public function dailyAt(string $time): self
+    {
         $segments = explode(':', $time);
         return $this->cron("{$segments[1]} {$segments[0]} * * *");
     }
-    public function twiceDaily(int $hour1 = 1, int $hour2 = 13): self { return $this->cron("0 {$hour1},{$hour2} * * *"); }
-    public function weekly(): self { return $this->cron('0 0 * * 0'); }
-    public function monthly(): self { return $this->cron('0 0 1 * *'); }
+    public function twiceDaily(int $hour1 = 1, int $hour2 = 13): self
+    {
+        return $this->cron("0 {$hour1},{$hour2} * * *");
+    }
+    public function weekly(): self
+    {
+        return $this->cron('0 0 * * 0');
+    }
+    public function monthly(): self
+    {
+        return $this->cron('0 0 1 * *');
+    }
 
     public function description(string $description): self
     {

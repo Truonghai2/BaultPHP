@@ -1,46 +1,70 @@
 {
-    "name": "bault/baultphp",
-    "description": "A modern, modular PHP framework.",
-    "type": "project",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Bault.Dev",
-            "email": "contact@bault.dev"
-        }
-    ],
-    "require": {
-        "php": "^8.1",
-        "vlucas/phpdotenv": "^5.5",
-        "symfony/http-foundation": "^6.3",
-        "symfony/var-dumper": "^6.3",
-        "symfony/console": "^6.3",
-        "nyholm/psr7": "^1.8",
-        "spiral/roadrunner-http": "^3.5",
-        "firebase/php-jwt": "^6.9",
-        "predis/predis": "^3.0",
-        "jimdo/prometheus_client_php": "^0.6.0",
-        "spiral/roadrunner": "^2025.1",
-        "roadrunner-php/centrifugo": "^2.2",
-        "guzzlehttp/guzzle": "^7.9",
-        "dragonmantank/cron-expression": "^3.4",
-        "symfony/process": "^7.3"
-    },
-    "require-dev": {
-        "phpunit/phpunit": "^10.3",
-        "filp/whoops": "^2.15",
-        "spiral/roadrunner-cli": "^2.7"
-    },
-    "autoload": {
-        "psr-4": {
-            "App\\": "src/",
-            "Core\\": "src/Core/",
-            "Http\\": "src/Http/",
-            "Modules\\": "Modules/",
-            "Database\\Seeders\\": "database/seeders/"
-        },
-        "files": [
-            "src/Core/helpers.php"
-        ]
+  "name": "bault/baultphp",
+  "description": "A modern, modular PHP framework.",
+  "type": "project",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Bault.Dev",
+      "email": "contact@bault.dev"
     }
+  ],
+  "require": {
+    "php": "^8.2",
+    "vlucas/phpdotenv": "^5.5",
+    "symfony/http-foundation": "^7.0",
+    "symfony/var-dumper": "^6.3",
+    "symfony/console": "^6.3",
+    "nyholm/psr7": "^1.8",
+    "firebase/php-jwt": "^6.11",
+    "predis/predis": "^3.0",
+    "guzzlehttp/guzzle": "^7.9",
+    "dragonmantank/cron-expression": "^3.4",
+    "symfony/process": "^7.3",
+    "illuminate/translation": "^11.0",
+    "ramsey/uuid": "^4.9",
+    "monolog/monolog": "^3.9",
+    "symfony/psr-http-message-bridge": "^7.3",
+    "symfony/yaml": "^7.3",
+    "meilisearch/meilisearch-php": "^1.15",
+    "psy/psysh": "^0.12.9",
+    "symfony/mailer": "^7.1",
+    "illuminate/view": "^11.0",
+    "thecodingmachine/graphqlite": "8.0",
+    "thecodingmachine/graphqlite-bundle": "7.1",
+    "livewire/livewire": "^3.6",
+    "spatie/file-system-watcher": "^1.2",
+    "symfony/cache": "^7.3",
+    "razonyang/psr7-swoole": "^1.0",
+    "laminas/laminas-stratigility": "^3.0",
+    "filp/whoops": "^2.18"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.3",
+    "phpstan/phpstan": "^2.1",
+    "friendsofphp/php-cs-fixer": "^3.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "App\\Providers\\": "src/Providers/",
+      "App\\Rules\\": "src/Rules/",
+      "App\\Exceptions\\": "src/Exceptions/",
+      "Core\\": "src/Core/",
+      "Http\\": "src/Http/",
+      "Modules\\": "Modules/",
+      "Database\\Seeders\\": "database/seeders/"
+    },
+    "files": [
+      "src/Core/helpers.php"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "php-http/discovery": true
+    },
+    "platform": {
+      "php": "8.2",
+      "ext-swoole": "5.0"
+    }
+  }
 }

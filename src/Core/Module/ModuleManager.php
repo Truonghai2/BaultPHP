@@ -3,7 +3,8 @@
 namespace Core\Module;
 
 use Core\Application;
-use Core\Module\Module; // Sử dụng Model mới
+
+// Sử dụng Model mới
 
 class ModuleManager
 {
@@ -25,7 +26,7 @@ class ModuleManager
      */
     public function enable(string $moduleName): void
     {
-        $module = Module::where('name', $moduleName)->first();
+        $module = Module::where('name', '=', $moduleName)->first();
         if (!$module) {
             throw new \Exception("Module '{$moduleName}' not found in the database. Run 'php cli module:sync'.");
         }
@@ -39,7 +40,7 @@ class ModuleManager
      */
     public function disable(string $moduleName): void
     {
-        $module = Module::where('name', $moduleName)->first();
+        $module = Module::where('name', '=', $moduleName)->first();
         if (!$module) {
             throw new \Exception("Module '{$moduleName}' not found in the database.");
         }
@@ -55,7 +56,7 @@ class ModuleManager
     public function getEnabledModuleNames(): array
     {
         // Có thể cache kết quả này để tăng hiệu năng
-        return Module::where('enabled', true)->pluck('name')->all();
+        return Module::where('enabled', '=', true)->pluck('name')->all();
     }
 
     /**

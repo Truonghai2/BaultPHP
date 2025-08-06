@@ -20,6 +20,8 @@ interface CommandInterface
 
     /**
      * The handler for the command.
+     *
+     * @return int Should return 0 on success, or a non-zero integer on failure.
      */
     public function handle(): int;
 }

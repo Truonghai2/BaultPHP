@@ -11,7 +11,7 @@ trait SoftDeletes
      */
     public static function bootSoftDeletes(): void
     {
-        static::addGlobalScope(new SoftDeletingScope);
+        static::addGlobalScope(new SoftDeletingScope());
     }
 
     /**

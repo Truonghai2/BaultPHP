@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Core\Support;
 
@@ -6,16 +6,22 @@ use Core\Application;
 
 abstract class ServiceProvider
 {
-    public function __construct(protected Application $app) {}
+    public function __construct(protected Application $app)
+    {
+    }
 
-    public function register(): void {}
+    public function register(): void
+    {
+    }
 
-    public function boot(): void {}
+    public function boot(): void
+    {
+    }
 
     protected function commands(array $commands): void
     {
         foreach ($commands as $command) {
-            $this->app->bind($command, fn () => new $command);
+            $this->app->bind($command, fn () => new $command());
         }
     }
 

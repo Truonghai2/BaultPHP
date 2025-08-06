@@ -1,9 +1,7 @@
 <?php
 
-
 namespace Core\Console\Commands;
 
-use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\WebSocket\CentrifugoWorker;
 
@@ -19,7 +17,6 @@ class CentrifugoServeCommand extends BaseCommand
      */
     protected string $description = 'Starts the Centrifugo proxy worker.';
 
-    
     public function signature(): string
     {
         return $this->signature;
@@ -51,4 +48,3 @@ class CentrifugoServeCommand extends BaseCommand
         $worker->run();
     }
 }
-

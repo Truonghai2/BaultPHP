@@ -22,20 +22,37 @@ class Connection
      * @param string|null $name
      * @return PDO
      * @throws \Exception
-     */    
-    public static function get(string $name = null): PDO
+     */
+    public static function get(string $name = null, string $type = 'write'): PDO
     {
         $name ??= config('database.default', 'mysql');
+        $poolKey = "{$name}::{$type}";
 
-        if (isset(static::$pool[$name])) {
-            return static::$pool[$name];
+        if (isset(static::$pool[$poolKey])) {
+            return static::$pool[$poolKey];
         }
 
         $connections = config('database.connections');
-        $config = $connections[$name] ?? null;
+        $originalConfig = $connections[$name] ?? null;
 
-        if (!$config) {
+        if (!$originalConfig) {
             throw new \Exception("Database connection [$name] not configured.");
+        }
+
+        // Bắt đầu với một bản sao sạch của config cho lần resolve này
+        $config = $originalConfig;
+
+        // Xử lý tách biệt read/write
+        if (isset($config['read']) && isset($config['write'])) {
+            if (!in_array($type, ['read', 'write'])) {
+                throw new \InvalidArgumentException("Loại kết nối không hợp lệ [{$type}]. Phải là 'read' hoặc 'write'.");
+            }
+
+            // Hợp nhất config cơ sở với config của loại kết nối cụ thể.
+            // Config cụ thể (ví dụ: 'host') sẽ ghi đè lên config cơ sở.
+            $typeSpecificConfig = $config[$type];
+            unset($config['read'], $config['write']);
+            $config = array_merge($config, $typeSpecificConfig);
         }
 
         $driver = $config['driver'];
@@ -43,39 +60,51 @@ class Connection
 
         try {
             $dsn = self::makeDsn($config);
+
+            $defaultOptions = [
+                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_PERSISTENT => false,
+            ];
+            $options = ($config['options'] ?? []) + $defaultOptions;
+
             $pdo = new PDO(
                 $dsn,
                 $config['username'] ?? null,
                 $config['password'] ?? null,
-                [
-                    PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                    PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                    PDO::ATTR_PERSISTENT => false,
-                ]
+                $options,
             );
 
-            static::$pool[$name] = $pdo;
+            static::$pool[$poolKey] = $pdo;
         } catch (PDOException $e) {
             if (
                 $driver === 'mysql' &&
-                str_contains($e->getMessage(), "Unknown database")
+                str_contains($e->getMessage(), 'Unknown database')
             ) {
                 echo "Database `$dbname` không tồn tại.\n";
-                echo "Bạn có muốn tạo mới không? (y/n): ";
+                echo 'Bạn có muốn tạo mới không? (y/n): ';
                 $answer = strtolower(trim(fgets(STDIN)));
 
                 if ($answer === 'y') {
-                    self::createDatabase($config);
-                    return self::get($name);
+                    // Luôn sử dụng config 'write' để tạo database
+                    $writeConfig = $originalConfig;
+                    if (isset($writeConfig['write'])) {
+                        $typeSpecificConfig = $writeConfig['write'];
+                        unset($writeConfig['read'], $writeConfig['write']);
+                        $writeConfig = array_merge($writeConfig, $typeSpecificConfig);
+                    }
+
+                    self::createDatabase($writeConfig);
+                    return self::get($name, $type); // Gọi lại với type ban đầu
                 }
 
-                throw new \Exception("Quá trình bị huỷ. Cơ sở dữ liệu chưa được tạo.");
+                throw new \Exception('Quá trình bị huỷ. Cơ sở dữ liệu chưa được tạo.');
             }
 
             throw $e;
         }
 
-        return static::$pool[$name];
+        return static::$pool[$poolKey];
     }
 
     /**
@@ -95,11 +124,19 @@ class Connection
      */
     protected static function makeDsn(array $config): string
     {
-        return match ($config['driver']) {
-            'mysql' => "mysql:host={$config['host']};port={$config['port']};dbname={$config['database']};charset={$config['charset']}",
-            'pgsql' => "pgsql:host={$config['host']};port={$config['port']};dbname={$config['database']};user={$config['username']};password={$config['password']}",
-            'sqlite' => "sqlite:{$config['database']}",
-            default => throw new \Exception("Unsupported driver [{$config['driver']}]"),
+        $driver = $config['driver'];
+
+        return match ($driver) {
+            'mysql', 'pgsql' => sprintf(
+                '%s:host=%s;port=%s;dbname=%s%s',
+                $driver,
+                $config['host'],
+                $config['port'] ?? ($driver === 'mysql' ? 3306 : 5432),
+                $config['database'],
+                ($driver === 'mysql' ? ';charset=' . ($config['charset'] ?? 'utf8mb4') : '')
+            ),
+            'sqlite' => 'sqlite:' . $config['database'],
+            default => throw new \Exception("Unsupported driver [{$driver}]"),
         };
     }
 
@@ -111,16 +148,39 @@ class Connection
      */
     protected static function createDatabase(array $config): void
     {
-        $dsn = "mysql:host={$config['host']};port={$config['port']};charset={$config['charset']}";
-        $pdo = new PDO(
-            $dsn,
-            $config['username'] ?? null,
-            $config['password'] ?? null,
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        // Đảm bảo rằng chúng ta có cấu hình host, vì nó rất quan trọng để kết nối.
+        if (empty($config['host'])) {
+            throw new \InvalidArgumentException('Database host is not configured for creation.');
+        }
+
+        // Xây dựng DSN mà không chỉ định tên database, vì nó chưa tồn tại.
+        $dsn = sprintf(
+            'mysql:host=%s;port=%s;charset=%s',
+            $config['host'],
+            $config['port'] ?? 3306,
+            $config['charset'] ?? 'utf8mb4'
         );
 
-        $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$config['database']}` CHARACTER SET {$config['charset']} COLLATE utf8mb4_unicode_ci");
+        try {
+            $pdo = new PDO(
+                $dsn,
+                $config['username'] ?? null,
+                $config['password'] ?? null,
+                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+            );
 
-        echo "Database `{$config['database']}` đã được tạo thành công.\n";
+            $dbName = $config['database'];
+            $charset = $config['charset'] ?? 'utf8mb4';
+            $collation = $config['collation'] ?? 'utf8mb4_unicode_ci';
+
+            // Sử dụng prepared statements để tăng cường bảo mật và tránh SQL injection.
+            $stmt = $pdo->prepare("CREATE DATABASE IF NOT EXISTS `" . str_replace("`", "``", $dbName) . "` CHARACTER SET ? COLLATE ?");
+            $stmt->execute([$charset, $collation]);
+
+            echo "Database `{$dbName}` đã được tạo thành công.\n";
+        } catch (PDOException $e) {
+            // Cung cấp thông báo lỗi chi tiết hơn để dễ dàng gỡ lỗi.
+            throw new \RuntimeException("Không thể tạo database: " . $e->getMessage(), (int)$e->getCode(), $e);
+        }
     }
 }

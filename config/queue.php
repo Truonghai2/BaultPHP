@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Default Queue Connection Name
@@ -31,7 +30,16 @@ return [
         'sync' => [
             'driver' => 'sync',
         ],
-
+        'swoole' => [
+            'driver' => 'swoole',
+            'queue' => 'default',
+        ],
+        'database' => [
+            'driver' => 'database',
+            'table' => 'jobs',
+            'queue' => 'default',
+            'retry_after' => 90,
+        ],
         'redis' => [
             'driver' => 'redis',
             'connection' => 'default', // Tên kết nối redis trong config/database.php

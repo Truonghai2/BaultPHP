@@ -4,20 +4,32 @@ namespace Core\Queue\Drivers;
 
 use Core\Application;
 use Core\Contracts\Queue\Job;
+use Core\Contracts\Queue\Queue;
+use Throwable;
 
-class SyncQueue extends Queue
+class SyncQueue implements Queue
 {
-    public function __construct(protected Application $app) {}
-
-    public function push(Job $job, string $queue = null): void
+    public function __construct(protected Application $app)
     {
-        // For the sync driver, we resolve and handle the job immediately.
-        $this->app->make(get_class($job))->handle();
     }
 
-    public function pop(string $queue = null): ?Job
+    public function push(Job $job, ?string $queue = null): void
     {
-        // The sync driver doesn't actually queue anything, so pop does nothing.
+        try {
+            $job->handle();
+        } catch (Throwable $e) {
+            // In a real sync driver, you might want to log this failure.
+            throw $e;
+        }
+    }
+
+    public function later($delay, Job $job, ?string $queue = null): void
+    {
+        $this->push($job, $queue);
+    }
+
+    public function pop(?string $queue = null): ?Job
+    {
         return null;
     }
 }

@@ -2,29 +2,28 @@
 
 namespace Http;
 
+use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
 use Core\Exceptions\ValidationException;
-use App\Exceptions\AuthorizationException;
 use Core\Validation\Factory as ValidationFactory;
 use Core\Validation\Validator;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 abstract class FormRequest
 {
     protected Application $app;
-    protected Request $request;
+    protected ServerRequestInterface $request;
     protected ?Validator $validator = null;
     protected ?Authenticatable $user;
 
     /**
      * FormRequest được tạo thông qua container, cho phép inject các dependency.
-     * Container sẽ tự động inject Application và Request gốc.
+     * Container sẽ tự động inject Application.
      */
-    public function __construct(Application $app, Request $request)
+    public function __construct(Application $app)
     {
         $this->app = $app;
-        $this->request = $request;
-        $this->user = $this->app->make('auth')->user();
     }
 
     /**
@@ -38,6 +37,28 @@ abstract class FormRequest
     public function authorize(): bool
     {
         return true;
+    }
+
+    /**
+     * Set the current request instance for the form request.
+     *
+     * @param ServerRequestInterface $request
+     * @return $this
+     */
+    public function setRequest(ServerRequestInterface $request): static
+    {
+        $this->request = $request;
+        $this->user = $this->user();
+
+        return $this;
+    }
+
+    /**
+     * Get the user making the request.
+     */
+    public function user(): ?Authenticatable
+    {
+        return $this->request->getAttribute('user') ?? $this->app->make('auth')->user();
     }
 
     /**
@@ -83,13 +104,33 @@ abstract class FormRequest
 
         $factory = $this->app->make(ValidationFactory::class);
 
-        // Sử dụng factory tùy chỉnh của chúng ta
         return $factory->make(
-            $this->request->all(), $this->rules(), $this->messages()
+            $this->validationData(),
+            $this->rules(),
+            $this->messages(),
         );
     }
 
-    public function messages(): array { return []; }
+    /**
+     * Get the data to be validated from the request.
+     * By default, it merges route parameters, query string, and parsed body.
+     */
+    protected function validationData(): array
+    {
+        $route = $this->request->getAttribute('route');
+        $routeParams = $route ? $route->parameters : [];
+
+        return array_merge(
+            $routeParams,
+            $this->request->getQueryParams(),
+            (array) $this->request->getParsedBody()
+        );
+    }
+
+    public function messages(): array
+    {
+        return [];
+    }
 
     /**
      * Proxy các lời gọi phương thức không tồn tại tới đối tượng Request gốc.

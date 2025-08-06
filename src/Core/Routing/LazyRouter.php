@@ -2,8 +2,6 @@
 
 namespace Core\Routing;
 
-use Core\Routing\Router;
-
 class LazyRouter
 {
     protected string $basePath;

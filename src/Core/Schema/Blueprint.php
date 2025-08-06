@@ -5,6 +5,12 @@ namespace Core\Schema;
 class Blueprint
 {
     protected string $table;
+    /**
+     * The commands that should be run for the table.
+     *
+     * @var array
+     */
+    protected array $commands = [];
     protected array $columns = [];
 
     public function __construct(string $table)
@@ -12,9 +18,51 @@ class Blueprint
         $this->table = $table;
     }
 
+    /**
+     * Create a new auto-incrementing big integer (8-byte) column on the table.
+     * This is the recommended primary key type.
+     *
+     * @param  string  $name
+     * @return void
+     */
     public function id(string $name = 'id'): void
     {
+        $this->bigIncrements($name);
+    }
+
+    /**
+     * Create a new auto-incrementing integer (4-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return void
+     */
+    public function increments(string $name = 'id'): void
+    {
         $this->columns[$name] = new ColumnDefinition("`$name` INT UNSIGNED AUTO_INCREMENT PRIMARY KEY");
+    }
+
+    /**
+     * Create a new auto-incrementing big integer (8-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return void
+     */
+    public function bigIncrements(string $name = 'id'): void
+    {
+        $this->columns[$name] = new ColumnDefinition("`$name` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY");
+    }
+
+    /**
+     * Create a new unsigned big integer (8-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
+    public function unsignedBigInteger(string $name): ColumnDefinition
+    {
+        $col = new ColumnDefinition("`$name` BIGINT UNSIGNED");
+        $this->columns[$name] = $col;
+        return $col;
     }
 
     public function string(string $name, int $length = 255): ColumnDefinition
@@ -34,6 +82,27 @@ class Blueprint
     public function integer(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` INT");
+        $this->columns[$name] = $col;
+        return $col;
+    }
+
+    public function unsignedInteger(string $name): ColumnDefinition
+    {
+        $col = new ColumnDefinition("`$name` INT UNSIGNED");
+        $this->columns[$name] = $col;
+        return $col;
+    }
+
+    public function tinyInteger(string $name): ColumnDefinition
+    {
+        $col = new ColumnDefinition("`$name` TINYINT");
+        $this->columns[$name] = $col;
+        return $col;
+    }
+
+    public function unsignedTinyInteger(string $name): ColumnDefinition
+    {
+        $col = new ColumnDefinition("`$name` TINYINT UNSIGNED");
         $this->columns[$name] = $col;
         return $col;
     }
@@ -60,15 +129,34 @@ class Blueprint
 
     public function getCreateSql(): string
     {
-        $parts = [];
-
+        $columnsSql = [];
         foreach ($this->columns as $name => $col) {
-            foreach ($col->getSql($name) as $line) {
-                $parts[] = $line;
+            $columnsSql[] = $col->getSql();
+
+            // Collect single-column index/unique constraints from the column definition
+            if ($col->isUnique) {
+                $this->unique($name);
+            }
+            if ($col->isIndex) {
+                $this->index($name);
             }
         }
 
-        return "CREATE TABLE `{$this->table}` (\n  " . implode(",\n  ", $parts) . "\n)";
+        $commandsSql = [];
+        foreach ($this->commands as $command) {
+            $cols = implode(', ', array_map(fn ($c) => "`$c`", $command['columns']));
+            $constraintName = $command['name'];
+            $type = strtoupper($command['type']); // INDEX or UNIQUE
+
+            $commandsSql[] = "{$type} `{$constraintName}` ({$cols})";
+        }
+
+        // Remove duplicates that might arise from both fluent and direct calls
+        $commandsSql = array_unique($commandsSql);
+
+        $sqlParts = array_merge($columnsSql, $commandsSql);
+
+        return "CREATE TABLE `{$this->table}` (\n  " . implode(",\n  ", $sqlParts) . "\n)";
     }
 
     public function getDropSql(): string
@@ -76,13 +164,29 @@ class Blueprint
         return "DROP TABLE IF EXISTS `{$this->table}`";
     }
 
-    public function unique(string $column): void
+    /**
+     * Specify a unique index for the table.
+     *
+     * @param  string|array  $columns
+     * @param  string|null  $name
+     * @return void
+     */
+    public function unique(string|array $columns, ?string $name = null): void
     {
-        if (isset($this->columns[$column])) {
-            $this->columns[$column]->setUnique();
-        }
+        $this->addCommand('unique', $columns, $name);
     }
 
+    /**
+     * Specify an index for the table.
+     *
+     * @param  string|array  $columns
+     * @param  string|null  $name
+     * @return void
+     */
+    public function index(string|array $columns, ?string $name = null): void
+    {
+        $this->addCommand('index', $columns, $name);
+    }
     public function foreign(string $column, string $references, string $onDelete = 'CASCADE'): void
     {
         if (isset($this->columns[$column])) {
@@ -105,6 +209,25 @@ class Blueprint
         return $this->getCreateSql();
     }
 
+    /**
+     * Add a new command to the blueprint.
+     *
+     * @param  string  $type
+     * @param  string|array  $columns
+     * @param  string|null  $name
+     * @return void
+     */
+    protected function addCommand(string $type, string|array $columns, ?string $name = null): void
+    {
+        $columns = (array) $columns;
+        $name = $name ?? $this->table . '_' . implode('_', $columns) . '_' . $type;
+
+        $this->commands[] = [
+            'type'    => $type,
+            'columns' => $columns,
+            'name'    => $name,
+        ];
+    }
     public function createIndex(string $name, array $columns): void
     {
         // This method can be used to create an index on the table.
@@ -163,7 +286,7 @@ class Blueprint
     {
         // This method can be used to add a primary key constraint.
         // Implementation can be added as needed.
-        $this->columns['primary_key'] = new ColumnDefinition('PRIMARY KEY (' . implode(', ', array_map(fn($col) => "`$col`", $columns)) . ')');
+        $this->columns['primary_key'] = new ColumnDefinition('PRIMARY KEY (' . implode(', ', array_map(fn ($col) => "`$col`", $columns)) . ')');
     }
 
     public function dropPrimaryKey(): void

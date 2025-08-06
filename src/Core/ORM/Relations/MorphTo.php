@@ -37,7 +37,7 @@ class MorphTo extends Relation
         }
 
         /** @var Model $instance */
-        $instance = new $type;
+        $instance = new $type();
         $query = $instance->newQuery();
 
         return $query->where($instance->getKeyName(), '=', $id)->first();
@@ -82,10 +82,12 @@ class MorphTo extends Relation
         $results = [];
 
         foreach ($this->modelsByType as $type => $ids) {
-            if (empty($ids)) continue;
+            if (empty($ids)) {
+                continue;
+            }
 
             /** @var Model $instance */
-            $instance = new $type;
+            $instance = new $type();
             $query = $instance->newQuery();
             $typeResults = $query->whereIn($instance->getKeyName(), array_unique($ids))->get();
             $results = array_merge($results, $typeResults);

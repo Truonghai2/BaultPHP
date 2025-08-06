@@ -8,7 +8,11 @@ use Core\ORM\QueryBuilder;
 interface Scope
 {
     /**
-     * Apply the scope to a given Eloquent query builder.
+     * Áp dụng scope vào một QueryBuilder cho trước.
+     *
+     * @param  \Core\ORM\QueryBuilder  $builder
+     * @param  \Core\ORM\Model  $model
+     * @return void
      */
-    public function apply(QueryBuilder $builder, Model $model): void;
+    public function apply(QueryBuilder $builder, Model $model);
 }

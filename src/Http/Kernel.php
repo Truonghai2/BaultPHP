@@ -1,14 +1,24 @@
-<?php 
+<?php
 
 namespace Http;
 
+use App\Exceptions\Handler as ExceptionHandler;
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\NotFoundException;
-use App\Exceptions\Handler as ExceptionHandler;
 use Core\Application;
-use Core\Contracts\Http\Kernel as KernelContract;
+use Core\Http\FormRequest;
+use Core\Routing\Route;
 use Core\Routing\Router;
+use JsonSerializable;
+use Laminas\Stratigility\MiddlewarePipe;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
+use ReflectionMethod;
+use ReflectionParameter;
 use Throwable;
+use LogicException;
 
 class Kernel implements KernelContract
 {
@@ -21,9 +31,10 @@ class Kernel implements KernelContract
      * @var array
      */
     protected array $middleware = [
+        \Http\Middleware\HttpMetricsMiddleware::class,
         \Http\Middleware\TrimStrings::class,
         \Http\Middleware\ConvertEmptyStringsToNull::class,
-        \Http\Middleware\JwtVerifyTokenMiddleware::class
+        \Http\Middleware\SetLocaleMiddleware::class,
     ];
 
     /**
@@ -49,8 +60,10 @@ class Kernel implements KernelContract
             \Http\Middleware\VerifyCsrfToken::class,
         ],
         'api' => [
+            \Http\Middleware\JwtVerifyTokenMiddleware::class,
             \Http\Middleware\SubstituteBindings::class,
-            'throttle:api', // Ví dụ về middleware có tham số
+            \Http\Middleware\CorsMiddleware::class,
+            'throttle:60,1', // Giới hạn 60 request mỗi phút cho các route trong group này
         ],
     ];
 
@@ -60,51 +73,70 @@ class Kernel implements KernelContract
         $this->router = $router;
     }
 
-    public function handle(Request $request): Response
+    public function handle(ServerRequestInterface $request): ResponseInterface
     {
         try {
             $route = $this->router->dispatch($request);
 
-            // Gán đối tượng Route vào Request để các middleware có thể truy cập
-            $request->route = $route;
+            // Attach the route to the request so that middleware can access it
+            $request = $request->withAttribute('route', $route);
 
-            // Bắt đầu với middleware toàn cục
-            $middlewares = $this->middleware;
+            $pipe = new MiddlewarePipe();
 
-            // Hợp nhất middleware từ group của route (nếu có)
-            if (!empty($route->group) && isset($this->middlewareGroups[$route->group])) {
-                $middlewares = array_merge($middlewares, $this->middlewareGroups[$route->group]);
+            // 1. Add global middleware to the pipeline
+            foreach ($this->middleware as $middleware) {
+                $pipe->pipe($this->resolveMiddleware($middleware));
             }
 
-            // Hợp nhất middleware được định nghĩa trực tiếp trên route
-            $middlewares = array_merge($middlewares, $route->middleware);
-
-            $destination = function (Request $request) use ($route) {
-                $responseContent = $this->app->call($route->handler, $route->parameters);
-
-                if ($responseContent instanceof Response) {
-                    return $responseContent;
+            // 2. Add group middleware to the pipeline
+            $group = $route->group ?? '';
+            if (!empty($group) && isset($this->middlewareGroups[$group])) {
+                foreach ($this->middlewareGroups[$group] as $middleware) {
+                    $pipe->pipe($this->resolveMiddleware($middleware));
                 }
+            }
 
-                if (is_array($responseContent) || is_object($responseContent)) {
-                    return (new Response())->json($responseContent);
+            // 3. Add route-specific middleware to the pipeline
+            foreach ($route->middleware as $middleware) {
+                $pipe->pipe($this->resolveMiddleware($middleware));
+            }
+
+            // 4. Create the final handler that executes the controller
+            $finalHandler = new class($this->app, $route, $this) implements RequestHandlerInterface {
+                public function __construct(
+                    private Application $app,
+                    private \Core\Routing\Route $route,
+                    private Kernel $kernel // Inject the Kernel instance
+                ) {}
+
+                public function handle(ServerRequestInterface $request): ResponseInterface
+                {
+                    // Resolve dependencies and call the controller action
+                    $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
+
+                    // If the controller already returned a Response object, just return it
+                    if ($responseContent instanceof ResponseInterface) {
+                        return $responseContent;
+                    }
+
+                    // If the controller returned an array or object, convert it to a JSON response
+                    if (is_array($responseContent) || is_object($responseContent) || $responseContent instanceof \JsonSerializable) {
+                        return response()->json($responseContent);
+                    }
+
+                    // For all other cases (null, string, etc.), create a standard response.
+                    // The empty body check will be handled centrally in the main handle method.
+                    return response((string) $responseContent);
                 }
-
-                return (new Response())->setContent((string) $responseContent);
             };
 
-            $pipeline = array_reduce(
-                array_reverse($middlewares),
-                function ($next, $middleware) {
-                    // Phân tích chuỗi middleware để lấy class và các tham số
-                    [$class, $parameters] = $this->parseMiddleware($middleware);
-                    // Resolve middleware từ container để cho phép Dependency Injection
-                    return fn(Request $request) => $this->app->make($class)->handle($request, $next, ...$parameters);
-                },
-                $destination
-            );
+            // 5. Process the request through the middleware pipeline
+            $response = $pipe->process($request, $finalHandler);
 
-            return $pipeline($request);
+            
+
+            return $response;
+
         } catch (NotFoundException | MethodNotAllowedException $e) {
             return $this->renderException($request, $e);
         } catch (Throwable $e) {
@@ -113,34 +145,109 @@ class Kernel implements KernelContract
     }
 
     /**
-     * Parse a middleware string to get the class and parameters.
-     *
-     * @param  string  $middleware
-     * @return array
+     * Resolve controller dependencies and call the handler.
+     * This method handles automatic FormRequest validation and injection.
      */
-    protected function parseMiddleware(string $middleware): array
+    public function resolveAndCallController(Application $app, Route $route, ServerRequestInterface $request): mixed
     {
-        // Tách chuỗi bằng dấu ':'
-        $parts = explode(':', $middleware, 2);
-        $name = $parts[0];
-        $parameters = isset($parts[1]) ? explode(',', $parts[1]) : [];
+        [$controllerClass, $method] = $route->handler;
 
-        // Nếu "name" là một alias trong map, sử dụng class tương ứng.
-        // Ngược lại, giả định "name" là một tên class đầy đủ.
-        $class = $this->routeMiddleware[$name] ?? $name;
+        $reflectionMethod = new ReflectionMethod($controllerClass, $method);
+        $parameters = $reflectionMethod->getParameters();
 
-        return [$class, $parameters];
+        $dependencies = [];
+        foreach ($parameters as $parameter) {
+            $dependencies[] = $this->resolveParameter($app, $route, $request, $parameter);
+        }
+
+        // Resolve the controller instance from the container to allow dependency injection in its constructor
+        $controllerInstance = $app->make($controllerClass);
+
+        return $reflectionMethod->invokeArgs($controllerInstance, $dependencies);
     }
 
-    protected function renderException(Request $request, Throwable $e): Response
+    /**
+     * Resolve a single parameter for the controller method.
+     */
+    protected function resolveParameter(Application $app, Route $route, ServerRequestInterface $request, ReflectionParameter $parameter): mixed
+    {
+        $type = $parameter->getType();
+        $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
+
+        // Debugging: Dump the parameter and request to see what's going on
+        
+
+        // 1. Resolve FormRequest: create, set request, and validate
+        if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
+            /** @var FormRequest $formRequest */
+            $formRequest = $app->make($typeName);
+            $formRequest->setRequest($request);
+            $formRequest->validateResolved();
+            return $formRequest;
+        }
+
+        // 2. Resolve ServerRequestInterface itself
+        if ($typeName === ServerRequestInterface::class) {
+            return $request;
+        }
+
+        // 3. Resolve route parameters by name (handles route model binding)
+        if ($route && array_key_exists($parameter->getName(), $route->parameters)) {
+            return $route->parameters[$parameter->getName()];
+        }
+
+        // 4. Resolve other classes from the container
+        if ($typeName && $app->has($typeName)) {
+            return $app->make($typeName);
+        }
+
+        // 5. Handle default values or throw an error for unresolvable parameters
+        if ($parameter->isDefaultValueAvailable()) {
+            return $parameter->getDefaultValue();
+        }
+
+        throw new \LogicException("Unable to resolve controller parameter: [\${$parameter->getName()}] in method {$route->handler[0]}::{$route->handler[1]}");
+    }
+
+    protected function resolveMiddleware(string $middleware): \Psr\Http\Server\MiddlewareInterface
+    {
+        // TODO: Xử lý các middleware có tham số như 'throttle:60,1' sẽ cần một factory phức tạp hơn.
+        // Hiện tại, chúng ta chỉ resolve các class middleware từ container.
+        $class = $this->routeMiddleware[$middleware] ?? $middleware;
+        return $this->app->make($class);
+    }
+
+    protected function renderException(ServerRequestInterface $request, Throwable $e): ResponseInterface
     {
         $handler = $this->app->make(ExceptionHandler::class);
         $handler->report($e);
         return $handler->renderForHttp($request, $e);
     }
 
-    public function terminate(Request $request, Response $response): void
+    public function terminate(ServerRequestInterface $request, ResponseInterface $response): void
     {
         // Các tác vụ sau khi response đã được gửi đi, ví dụ: ghi log, lưu session...
+    }
+
+    /**
+     * Register a new route middleware alias.
+     *
+     * @param  string  $name
+     * @param  class-string  $class
+     */
+    public function aliasMiddleware(string $name, string $class): void
+    {
+        $this->routeMiddleware[$name] = $class;
+    }
+
+    /**
+     * Register a new middleware group.
+     *
+     * @param  string  $group
+     * @param  array<int, class-string|string>  $middleware
+     */
+    public function middlewareGroup(string $group, array $middleware): void
+    {
+        $this->middlewareGroups[$group] = $middleware;
     }
 }

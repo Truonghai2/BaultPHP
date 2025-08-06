@@ -1,0 +1,49 @@
+includes:
+    # Sử dụng các quy tắc mới nhất và tốt nhất từ PHPStan
+    - vendor/phpstan/phpstan/conf/bleedingEdge.neon
+
+    # Bỏ qua tất cả các lỗi hiện có để tập trung vào code mới.
+    # Tạo file này bằng lệnh: vendor/bin/phpstan analyse --generate-baseline
+    - phpstan-baseline.neon
+
+parameters:
+    # --- Mức độ phân tích ---
+    # Level 0 là lỏng lẻo nhất, level 9 là nghiêm ngặt nhất.
+    # Bạn nên bắt đầu với level 4 hoặc 5 và tăng dần khi đã sửa hết lỗi.
+    level: 5
+
+    # --- Các đường dẫn cần phân tích ---
+    # Liệt kê các thư mục chứa mã nguồn chính của bạn.
+    paths:
+        - src
+        - Modules
+        - database
+
+    # --- Các file cần được load trước khi phân tích ---
+    # Hữu ích cho các file helper không tuân theo autoloading.
+    bootstrapFiles:
+        - vendor/autoload.php
+        - src/Core/helpers.php
+
+    # --- Phiên bản PHP của dự án ---
+    # Giúp PHPStan bắt các lỗi liên quan đến phiên bản.
+    # 80100 tương đương với PHP 8.1
+    phpVersion: 80100
+
+    # --- Bỏ qua các lỗi cụ thể ---
+    # Sử dụng regular expression để khớp với thông báo lỗi.
+    ignoreErrors:
+        # Ví dụ: Bỏ qua một loại lỗi trên toàn bộ dự án
+        -
+            message: '#PHPDoc tag @var with type .* is redundant#'
+
+    # --- Loại trừ hoàn toàn các file hoặc thư mục khỏi quá trình phân tích ---
+    # Hữu ích cho các thư mục chứa code của bên thứ ba hoặc code auto-generated.
+    excludePaths:
+        - 'vendor/*'
+        - 'database/migrations/*'
+        - 'src/LegacyCode/*' # Một ví dụ khác
+
+# --- Đăng ký các quy tắc tùy chỉnh ---
+rules:
+    - App\Rules\PHPStan\NoModelsInControllersRule

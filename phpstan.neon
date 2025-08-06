@@ -1,0 +1,13 @@
+parameters:
+    level: 5 # Bắt đầu với level 5, sau đó tăng dần lên 8 hoặc 9 (max)
+    paths:
+        - src
+        - Modules
+    bootstrapFiles:
+        - vendor/autoload.php
+        - src/Core/helpers.php # Nạp các helper function để PHPStan biết chúng tồn tại
+    checkMissingIterableValueType: false
+    checkGenericClassInNonGenericObjectType: false
+    excludePaths:
+        - '*/tests/*'
+        - '*/database/migrations/*'

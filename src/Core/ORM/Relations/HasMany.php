@@ -27,7 +27,7 @@ class HasMany extends Relation
 
     public function addEagerConstraints(array $models)
     {
-        $keys = array_map(fn($model) => $model->getAttribute($this->localKey), $models);
+        $keys = array_map(fn ($model) => $model->getAttribute($this->localKey), $models);
         $this->query->where($this->foreignKey, 'IN', array_unique($keys));
     }
 

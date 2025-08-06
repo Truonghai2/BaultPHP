@@ -26,7 +26,6 @@ class MakeJobCommand extends BaseCommand
         $this->createJobClass($module, $name);
     }
 
-    
     /**
      * Creates a new job class in the specified module.
      */
@@ -52,7 +51,7 @@ class MakeJobCommand extends BaseCommand
         $stub = "<?php\n\nnamespace Modules\\{$module}\\Application\\Jobs;\n\nuse Core\\Console\\Contracts\\BaseJob;\n\nclass {$jobName} extends BaseJob\n{\n    public function handle()\n    {\n        // Handle the job logic here.\n    }\n}\n";
         file_put_contents($path, $stub);
         $this->io->success("Job [{$jobName}] created successfully in module [{$module}].");
-    }   
+    }
 
     /**
      * The entry point for the command.
@@ -68,7 +67,7 @@ class MakeJobCommand extends BaseCommand
             return 1;
         }
         $this->fire();
-        
+
         return 0;
     }
 }

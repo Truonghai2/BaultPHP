@@ -2,9 +2,9 @@
 
 namespace Core\Console\Commands;
 
-use Core\Routing\Router;
 use App\Providers\RouteServiceProvider;
 use Core\Console\Contracts\BaseCommand;
+use Core\Routing\Router;
 
 class RouteCacheCommand extends BaseCommand
 {

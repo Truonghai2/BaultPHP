@@ -27,7 +27,7 @@ class MorphToMany extends BelongsToMany
         string $relatedPivotKey,
         string $parentKey,
         string $relatedKey,
-        string $morphType
+        string $morphType,
     ) {
         $this->morphType = $morphType;
         $this->morphClass = $parent->getMorphClass();
@@ -44,12 +44,16 @@ class MorphToMany extends BelongsToMany
     public function attach($id): void
     {
         $ids = is_array($id) ? $id : [$id];
-        if (empty($ids)) return;
+        if (empty($ids)) {
+            return;
+        }
 
         $current = $this->getAttachedIds($ids);
         $toAttach = array_values(array_diff($ids, $current));
 
-        if (empty($toAttach)) return;
+        if (empty($toAttach)) {
+            return;
+        }
 
         $records = [];
         foreach ($toAttach as $relatedId) {

@@ -3,8 +3,8 @@
 namespace Core\Services;
 
 use Illuminate\Filesystem\Filesystem;
-use ZipArchive;
 use Illuminate\Support\Str;
+use ZipArchive;
 
 /**
  * ModuleInstallerService handles the installation of modules from ZIP files.
@@ -16,7 +16,7 @@ class ModuleInstallerService
 
     public function __construct()
     {
-        $this->fs = new Filesystem;
+        $this->fs = new Filesystem();
     }
 
     public function install(string $zipPath): void
@@ -58,7 +58,7 @@ class ModuleInstallerService
 
     protected function extractZip(string $zipPath, string $extractTo): void
     {
-        $zip = new ZipArchive;
+        $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
             throw new \Exception('Không thể giải nén file module.');
         }
@@ -103,8 +103,8 @@ class ModuleInstallerService
         $expected = trim(file_get_contents($hashFile));
 
         $allFiles = collect($this->fs->allFiles($dir))
-            ->filter(fn($file) => !in_array($file->getFilename(), ['HASH']))
-            ->sortBy(fn($f) => $f->getRelativePathname())
+            ->filter(fn ($file) => !in_array($file->getFilename(), ['HASH']))
+            ->sortBy(fn ($f) => $f->getRelativePathname())
             ->values();
 
         $combined = '';
@@ -123,7 +123,7 @@ class ModuleInstallerService
     {
         $dangerous = ['eval', 'exec', 'shell_exec', 'passthru', 'system', 'proc_open', 'popen'];
         $phpFiles = collect($this->fs->allFiles($dir))
-            ->filter(fn($f) => $f->getExtension() === 'php');
+            ->filter(fn ($f) => $f->getExtension() === 'php');
 
         foreach ($phpFiles as $file) {
             $content = file_get_contents($file);
@@ -140,16 +140,16 @@ class ModuleInstallerService
         $invalid = collect($this->fs->allFiles($dir))->filter(function ($file) {
             $path = $file->getPathname();
             return Str::contains($path, [
-                'Core/', 'src/Core', 'bootstrap/', 'config/app.php', 'routes/web.php'
+                'Core/', 'src/Core', 'bootstrap/', 'config/app.php', 'routes/web.php',
             ]);
         });
 
         if ($invalid->count() > 0) {
-            throw new \Exception("❌ Module không được phép ghi đè Core/framework hoặc file hệ thống.");
+            throw new \Exception('❌ Module không được phép ghi đè Core/framework hoặc file hệ thống.');
         }
 
         if (!$this->fs->exists($dir . '/Providers/ModuleServiceProvider.php')) {
-            throw new \Exception("❌ Module phải có Providers/ModuleServiceProvider.php");
+            throw new \Exception('❌ Module phải có Providers/ModuleServiceProvider.php');
         }
     }
 }

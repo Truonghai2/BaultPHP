@@ -38,7 +38,7 @@ class Parser
     protected static function name(string $signature): string
     {
         if (! preg_match('/[^\s]+/', $signature, $matches)) {
-            throw new InvalidArgumentException('Unable to determine command name from signature: '.$signature);
+            throw new InvalidArgumentException('Unable to determine command name from signature: ' . $signature);
         }
 
         return $matches[0];
@@ -109,6 +109,8 @@ class Parser
         }
 
         switch (true) {
+            case preg_match('/^(.+)=(.+)$/', $token, $matches):
+                return new InputOption($matches[1], $shortcut, InputOption::VALUE_OPTIONAL, $description, $matches[2]);
             case str_ends_with($token, '=*'):
                 return new InputOption(trim($token, '=*'), $shortcut, InputOption::VALUE_OPTIONAL | InputOption::VALUE_IS_ARRAY, $description);
             case str_ends_with($token, '='):
@@ -130,6 +132,10 @@ class Parser
     {
         $parts = preg_split('/\s+:\s+/', trim($token), 2);
 
-        return count($parts) === 2 ? $parts : [$token, ''];
+        if (count($parts) === 2) {
+            return [trim($parts[0]), trim($parts[1])];
+        }
+
+        return [trim($token), ''];
     }
 }

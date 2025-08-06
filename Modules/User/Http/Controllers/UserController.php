@@ -1,29 +1,67 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\User\Http\Controllers;
 
+use Core\CQRS\CommandBus;
 use Core\Routing\Attributes\Route;
-use Http\Response;
-use Modules\User\Http\Requests\StoreUserRequest;
-use Modules\User\Infrastructure\Models\User; // Giả sử bạn có model này
+use Modules\User\Application\Commands\DeleteUserCommand;
+use Modules\User\Application\Commands\UpdateUserProfileCommand;
+use Modules\User\Application\UserFinder;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
+#[Route('/api/users')]
 class UserController
 {
-    #[Route('/api/users', method: 'POST')]
-    public function store(StoreUserRequest $request): Response
+    // Inject service Query và CommandBus chung
+    public function __construct(
+        private readonly UserFinder $userFinder,
+        private readonly CommandBus $commandBus,
+    ) {
+    }
+
+    /**
+     * QUERY: Lấy một user theo ID. Sử dụng UserFinder đã được tối ưu cho việc đọc.
+     */
+    #[Route('/{id}', method: 'GET')]
+    public function show(int $id): ResponseInterface
     {
-        // Nếu code chạy đến đây, nghĩa là request đã được phân quyền và xác thực thành công.
-        // Chúng ta có thể an toàn lấy dữ liệu đã được xác thực.
-        $validatedData = $request->validated();
+        $userDto = $this->userFinder->findById($id);
 
-        // Giả sử model User của bạn có thể mass-assign
-        $user = User::create([
-            'name' => $validatedData['name'],
-            'email' => $validatedData['email'],
-            'password' => password_hash($validatedData['password'], PASSWORD_DEFAULT),
-        ]);
+        if (!$userDto) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
 
-        return (new Response())
-            ->json(['message' => 'User created successfully.', 'data' => $user], 201);
+        return response()->json($userDto);
+    }
+
+    /**
+     * COMMAND: Cập nhật thông tin user. Sử dụng UseCase tập trung vào việc ghi.
+     */
+    #[Route('/{id}', method: 'PUT')]
+    public function update(int $id, ServerRequestInterface $request): ResponseInterface
+    {
+        // Lấy dữ liệu từ body của request theo chuẩn PSR-7
+        $data = (array) $request->getParsedBody();
+
+        $command = new UpdateUserProfileCommand($id, $data['name'] ?? null, $data['email'] ?? null);
+
+        $this->commandBus->dispatch($command);
+
+        return response()->json(['message' => 'User updated successfully.']);
+    }
+
+    /**
+     * COMMAND: Xóa một user.
+     * Authorization được xử lý trong Handler thông qua Policy.
+     */
+    #[Route('/{id}', method: 'DELETE')]
+    public function destroy(int $id): ResponseInterface
+    {
+        $this->commandBus->dispatch(new DeleteUserCommand($id));
+
+        return response()->json(null, 204);
     }
 }

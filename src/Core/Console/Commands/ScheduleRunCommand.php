@@ -2,15 +2,14 @@
 
 namespace Core\Console\Commands;
 
-use App\Console\Kernel as AppConsoleKernel;
-use Core\Application;
 use Core\Console\Contracts\BaseCommand;
+use Core\Console\Kernel as AppConsoleKernel;
 use Core\Console\Scheduling\Schedule;
 
 class ScheduleRunCommand extends BaseCommand
 {
     public function __construct(
-        private AppConsoleKernel $kernel
+        private AppConsoleKernel $kernel,
     ) {
         parent::__construct();
     }

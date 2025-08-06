@@ -2,6 +2,8 @@
 
 namespace Core\ORM;
 
+use Core\Schema\Migration;
+use Core\Schema\Schema;
 use PDO;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -11,13 +13,16 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 class MigrationManager
 {
     protected PDO $pdo;
-    protected string $table = 'migrations';
+    protected string $table;
     protected ?SymfonyStyle $io;
+    protected Schema $schema;
 
-    public function __construct(PDO $pdo, ?SymfonyStyle $io = null)
+    public function __construct(PDO $pdo, string $migrationTable = 'migrations')
     {
         $this->pdo = $pdo;
-        $this->io = $io;
+        $this->io = null; // Khởi tạo là null, sẽ được set sau qua setOutput()
+        $this->table = $migrationTable;
+        $this->schema = new Schema($this->pdo);
         $this->ensureTable();
     }
 
@@ -75,16 +80,25 @@ class MigrationManager
         foreach ($toRun as $file) {
             $name = basename($file, '.php');
 
-            require_once $file;
+            // `require_once` can return a value. For new-style migrations, it will return the instance.
+            $instance = require_once $file;
 
-            $class = $this->findMigrationClass($file);
-            if (!$class) {
-                $this->log("<error>Migration class not found in $file</error>");
+            // If it's not an object, it's an old-style migration. We need to find and instantiate the class.
+            if (!is_object($instance)) {
+                $class = $this->findMigrationClass($file);
+                if (!$class) {
+                    $this->log("<error>Migration class not found in '{$file}' and it did not return an object.</error>");
+                    continue;
+                }
+                $instance = new $class();
+            }
+
+            if (!method_exists($instance, 'up')) {
+                $this->log("<error>Migration instance from '{$file}' does not have an 'up' method.</error>");
                 continue;
             }
 
-            $instance = new $class();
-            $instance->up($this->pdo);
+            $this->runUp($instance);
             $this->recordMigration($name, $batch);
             $this->log("Migrated: <comment>$name</comment>");
         }
@@ -118,9 +132,19 @@ class MigrationManager
 
     protected function getAllMigrationFiles(array $paths): array
     {
+        // Automatically include the default application migration path.
+        // This makes the manager smarter and removes the need for a dedicated service provider.
+        $defaultPath = base_path('database/migrations');
+        if (is_dir($defaultPath) && !in_array($defaultPath, $paths, true)) {
+            // Add the default path to the beginning of the array.
+            array_unshift($paths, $defaultPath);
+        }
+
         $files = [];
         foreach ($paths as $path) {
-            if (!is_dir($path)) continue;
+            if (!is_dir($path)) {
+                continue;
+            }
             $globResult = glob($path . '/*.php');
             if ($globResult) {
                 $files = array_merge($files, $globResult);
@@ -141,17 +165,25 @@ class MigrationManager
 
         for ($i = 0; $i < count($tokens); $i++) {
             if ($tokens[$i][0] === T_NAMESPACE) {
+                $namespace = ''; // Reset namespace
                 for ($j = $i + 1; $j < count($tokens); $j++) {
                     if ($tokens[$j] === ';') {
                         $namespaceFound = true;
+                        $i = $j; // Continue main loop from here
                         break;
                     }
-                    $namespace .= is_array($tokens[$j]) ? $tokens[$j][1] : '';
+                    if (is_array($tokens[$j]) && in_array($tokens[$j][0], [T_STRING, T_NAME_QUALIFIED], true)) {
+                        $namespace .= $tokens[$j][1];
+                    } elseif (is_string($tokens[$j]) && $tokens[$j] === '\\') {
+                        $namespace .= '\\';
+                    }
                 }
             }
 
             if ($tokens[$i][0] === T_CLASS) {
-                if (isset($tokens[$i + 2][1])) {
+                // Look for the class name token which must be a T_STRING.
+                // This check avoids picking up 'extends' or other keywords.
+                if (isset($tokens[$i + 2]) && is_array($tokens[$i + 2]) && $tokens[$i + 2][0] === T_STRING) {
                     $class = $tokens[$i + 2][1];
                     $classFound = true;
                     break;
@@ -159,7 +191,9 @@ class MigrationManager
             }
         }
 
-        if (!$classFound) return null;
+        if (!$classFound) {
+            return null;
+        }
 
         return $namespaceFound ? trim($namespace) . '\\' . $class : $class;
     }
@@ -221,16 +255,23 @@ class MigrationManager
             $fileFound = false;
             foreach ($allFiles as $file) {
                 if (str_contains($file, $migrationName)) {
-                    require_once $file;
-                    $class = $this->findMigrationClass($file);
-                    if ($class) {
+                    $instance = require_once $file;
+
+                    if (!is_object($instance)) {
+                        $class = $this->findMigrationClass($file);
+                        if (!$class) {
+                            continue; // Log and continue, maybe the file was deleted but not the record
+                        }
                         $instance = new $class();
-                        $instance->down($this->pdo);
+                    }
+
+                    if (method_exists($instance, 'down')) {
+                        $this->runDown($instance);
                         $this->deleteMigrationRecord($migrationName);
                         $this->log("Rolled back: <comment>{$migrationName}</comment>");
                         $fileFound = true;
-                        break;
                     }
+                    break; // Found the file, break inner loop
                 }
             }
             if (!$fileFound) {
@@ -238,6 +279,28 @@ class MigrationManager
             }
         }
         return count($migrationsToRollback);
+    }
+
+    protected function runUp(object $instance): void
+    {
+        if ($instance instanceof Migration) {
+            $instance->setSchema($this->schema);
+            $instance->up();
+        } else {
+            // Old style migration
+            $instance->up($this->pdo);
+        }
+    }
+
+    protected function runDown(object $instance): void
+    {
+        if ($instance instanceof Migration) {
+            $instance->setSchema($this->schema);
+            $instance->down();
+        } else {
+            // Old style migration
+            $instance->down($this->pdo);
+        }
     }
 
     protected function log(?string $message): void

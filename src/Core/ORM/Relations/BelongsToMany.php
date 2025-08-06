@@ -21,7 +21,7 @@ class BelongsToMany extends Relation
         string $foreignPivotKey,
         string $relatedPivotKey,
         string $parentKey,
-        string $relatedKey
+        string $relatedKey,
     ) {
         $this->pivotTable = $pivotTable;
         $this->foreignPivotKey = $foreignPivotKey;
@@ -40,12 +40,12 @@ class BelongsToMany extends Relation
             $this->pivotTable,
             "{$this->relatedTable}.{$this->relatedKey}",
             '=',
-            "{$this->pivotTable}.{$this->relatedPivotKey}"
+            "{$this->pivotTable}.{$this->relatedPivotKey}",
         );
         $this->query->where(
             "{$this->pivotTable}.{$this->foreignPivotKey}",
             '=',
-            $this->parent->getAttribute($this->parentKey)
+            $this->parent->getAttribute($this->parentKey),
         );
 
         return $this->query->get();
@@ -53,13 +53,13 @@ class BelongsToMany extends Relation
 
     public function addEagerConstraints(array $models)
     {
-        $parentKeys = array_map(fn($model) => $model->getAttribute($this->parentKey), $models);
+        $parentKeys = array_map(fn ($model) => $model->getAttribute($this->parentKey), $models);
         $this->query->select("{$this->relatedTable}.*", "{$this->pivotTable}.{$this->foreignPivotKey} as pivot_foreign_key");
         $this->query->join(
             $this->pivotTable,
             "{$this->relatedTable}.{$this->relatedKey}",
             '=',
-            "{$this->pivotTable}.{$this->relatedPivotKey}"
+            "{$this->pivotTable}.{$this->relatedPivotKey}",
         );
         $this->query->where("{$this->pivotTable}.{$this->foreignPivotKey}", 'IN', array_unique($parentKeys));
     }

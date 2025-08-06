@@ -1,24 +1,29 @@
-<?php 
+<?php
 
 namespace Core\CQRS;
 
-use Illuminate\Bus\Dispatcher;
-
-class CommandBus
+/**
+ * Dispatches a command to its corresponding handler.
+ */
+interface CommandBus
 {
-    protected array $handlers = [];
+    /**
+     * Register a command-to-handler mapping.
+     *
+     * @param string $commandClass The fully qualified class name of the command.
+     * @param string $handlerClass The fully qualified class name of the handler.
+     */
+    public function register(string $commandClass, string $handlerClass): void;
 
-    public function register(string $commandClass, callable $handler): void
-    {
-        $this->handlers[$commandClass] = $handler;
-    }
+    /**
+     * Register a map of commands to their handlers.
+     *
+     * @param array<class-string<Command>, class-string<CommandHandler>> $map
+     */
+    public function map(array $map): void;
 
-    public function dispatch(object $command): mixed
-    {
-        $class = get_class($command);
-        if (!isset($this->handlers[$class])) {
-            throw new \RuntimeException("No handler for command: {$class}");
-        }
-        return call_user_func($this->handlers[$class], $command);
-    }
+    /**
+     * Dispatch a command to its handler.
+     */
+    public function dispatch(Command $command);
 }

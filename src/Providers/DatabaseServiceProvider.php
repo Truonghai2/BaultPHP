@@ -2,55 +2,68 @@
 
 namespace App\Providers;
 
+use Core\ORM\Connection;
+use Core\ORM\MigrationManager;
 use Core\Support\ServiceProvider;
 use PDO;
-use RuntimeException;
 
 class DatabaseServiceProvider extends ServiceProvider
 {
     /**
-     * Register the database services.
+     * Register any application services.
+     *
+     * This is the perfect place to register paths for migrations, seeders, etc.
      *
      * @return void
      */
     public function register(): void
     {
+        // Đăng ký PDO instance như một singleton.
+        // Logic này nên được tập trung ở đây thay vì trong một phương thức static.
+        // Điều này giúp DI container quản lý hoàn toàn vòng đời của PDO.
         $this->app->singleton(PDO::class, function ($app) {
-            /** @var \Core\Config $config */
+            // Lấy ra đối tượng config từ container
             $config = $app->make('config');
 
-            $default = $config->get('database.default');
-            if (!$default) {
-                throw new RuntimeException('Default database connection not specified in config/database.php.');
+            // Lấy tên kết nối mặc định (ví dụ: 'mysql') từ file config/database.php
+            $connectionName = $config->get('database.default', 'mysql');
+
+            // Lấy toàn bộ cấu hình cho kết nối mặc định đó
+            $connectionConfig = $config->get("database.connections.{$connectionName}");
+
+            if (!$connectionConfig) {
+                throw new \InvalidArgumentException("Database connection [{$connectionName}] is not configured.");
             }
 
-            $connection = $config->get("database.connections.{$default}");
-            if (!$connection) {
-                throw new RuntimeException("Database connection [{$default}] not configured.");
-            }
+            // Lấy host từ cấu hình 'write' nếu có, nếu không thì lấy host chung.
+            $host = $connectionConfig['write']['host'] ?? $connectionConfig['host'];
 
-            // Build DSN string. Example: mysql:host=127.0.0.1;port=3306;dbname=bault;charset=utf8mb4
+            // Tạo chuỗi DSN (Data Source Name)
             $dsn = sprintf(
                 '%s:host=%s;port=%s;dbname=%s;charset=%s',
-                $connection['driver'],
-                $connection['host'],
-                $connection['port'] ?? '3306', // Default port for mysql
-                $connection['database'],
-                $connection['charset'] ?? 'utf8mb4'
+                $connectionConfig['driver'],
+                $host,
+                $connectionConfig['port'],
+                $connectionConfig['database'],
+                $connectionConfig['charset']
             );
 
-            $options = $connection['options'] ?? [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
-            ];
+            try {
+                return new PDO($dsn, $connectionConfig['username'], $connectionConfig['password'], $connectionConfig['options'] ?? []);
+            } catch (\PDOException $e) {
+                throw new \RuntimeException("Could not connect to the database [{$connectionName}]. Please check your configuration. Error: " . $e->getMessage(), (int)$e->getCode(), $e);
+            }
+        });
 
-            return new PDO(
-                $dsn,
-                $connection['username'],
-                $connection['password'],
-                $options
-            );
+        // The MigrationManager now automatically detects the default migration path.
+        // This provider is the perfect place to register database-related services.
+
+        $this->app->singleton(MigrationManager::class, function ($app) {
+            // Bây giờ chúng ta có thể resolve PDO trực tiếp từ container.
+            $config = $app->make('config');
+            $pdo = $app->make(PDO::class);
+            $table = $config->get('database.migrations.table', 'migrations');
+            return new MigrationManager($pdo, $table);
         });
     }
 }

@@ -11,13 +11,14 @@ class CreateUser
 {
     public function __construct(
         private UserRepositoryInterface $userRepository,
-        private EventDispatcherInterface $dispatcher
-    ) {}
+        private EventDispatcherInterface $dispatcher,
+    ) {
+    }
 
     public function handle(array $data): UserEntity
     {
         if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-            throw new \InvalidArgumentException("Invalid email address.");
+            throw new \InvalidArgumentException('Invalid email address.');
         }
 
         $hashedPassword = password_hash($data['password'], PASSWORD_DEFAULT);
@@ -26,7 +27,6 @@ class CreateUser
 
         $createdUser = $this->userRepository->create($userEntity);
 
-        // Bắn event để thông báo cho các thành phần khác trong hệ thống
         $this->dispatcher->dispatch(new UserWasCreated($createdUser));
 
         return $createdUser;

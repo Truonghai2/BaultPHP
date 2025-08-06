@@ -26,4 +26,12 @@ class Schema
         $sql = "DROP TABLE IF EXISTS `$table`";
         $this->pdo->exec($sql);
     }
+
+    /**
+     * Execute a raw SQL statement against the database.
+     */
+    public function statement(string $query): bool
+    {
+        return $this->pdo->exec($query) !== false;
+    }
 }

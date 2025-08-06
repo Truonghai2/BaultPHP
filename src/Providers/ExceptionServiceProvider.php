@@ -7,6 +7,14 @@ use Core\Support\ServiceProvider;
 
 class ExceptionServiceProvider extends ServiceProvider
 {
+    protected array $listener = [
+
+    ];
+    /**
+     * Register the exception services.
+     *
+     * @return void
+     */
     public function register(): void
     {
         $this->app->singleton(Handler::class, Handler::class);

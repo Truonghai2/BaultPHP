@@ -11,7 +11,7 @@ class User
     private ?int $id;
     private string $name;
     private string $email;
-    private ?string $password; // Password can be null when fetching from DB without it
+    private ?string $password;
 
     public function __construct(?int $id, string $name, string $email, ?string $password = null)
     {
@@ -39,5 +39,11 @@ class User
     public function getPassword(): ?string
     {
         return $this->password;
+    }
+
+    public function updateProfile(string $name, string $email): void
+    {
+        $this->name = trim($name);
+        $this->email = strtolower($email);
     }
 }

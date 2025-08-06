@@ -41,7 +41,7 @@ class AuthManager
         }
         if ($config['driver'] === 'jwt') {
             $provider = $this->createUserProvider($config['provider'] ?? null);
-            return new JwtGuard($this->app->make(\Http\Request::class), $provider);
+            return new JwtGuard($this->app->make(\Psr\Http\Message\ServerRequestInterface::class), $provider);
         }
 
         throw new InvalidArgumentException("Auth driver [{$config['driver']}] for guard [{$name}] is not supported.");
@@ -50,7 +50,7 @@ class AuthManager
     protected function createUserProvider(?string $providerName): UserProvider
     {
         if (is_null($providerName)) {
-            throw new InvalidArgumentException("Auth provider not defined for guard.");
+            throw new InvalidArgumentException('Auth provider not defined for guard.');
         }
 
         $config = $this->app->make('config')->get("auth.providers.{$providerName}");
