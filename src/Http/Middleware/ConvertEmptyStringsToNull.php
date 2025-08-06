@@ -2,32 +2,32 @@
 
 namespace Http\Middleware;
 
-use Http\Request;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class ConvertEmptyStringsToNull
+class ConvertEmptyStringsToNull implements MiddlewareInterface
 {
-    public function handle(Request $request, callable $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        $request->merge([
-            'get' => self::convert($request->get()),
-            'post' => self::convert($request->post()),
-        ]);
+        $body = $request->getParsedBody();
 
-        if ($request->isJson()) {
-            $json = $request->json();
-            $request->setJson(self::convert($json));
+        if (is_array($body)) {
+            $request = $request->withParsedBody($this->convert($body));
         }
 
-        return $next($request);
+        return $handler->handle($request);
     }
 
-    protected static function convert(array $data): array
+    protected function convert(array $data): array
     {
         return array_map(function ($value) {
             if (is_array($value)) {
-                return static::convert($value);
+                return $this->convert($value);
             }
-            return is_string($value) && $value === '' ? null : $value;
+
+            return $value === '' ? null : $value;
         }, $data);
     }
 }

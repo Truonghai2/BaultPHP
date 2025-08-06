@@ -100,7 +100,7 @@ class ModuleSynchronizer
         try {
             $payload = json_encode([
                 'event' => 'new_module_detected',
-                'data' => $moduleMeta
+                'data' => $moduleMeta,
             ]);
             $this->rpc->call('informer.broadcast', $payload);
         } catch (\Throwable $e) {

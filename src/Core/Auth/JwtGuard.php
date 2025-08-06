@@ -5,7 +5,6 @@ namespace Core\Auth;
 use Core\Contracts\Auth\Authenticatable;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
-use Http\Request;
 
 class JwtGuard implements Guard
 {
@@ -13,9 +12,10 @@ class JwtGuard implements Guard
     protected bool $userResolved = false;
 
     public function __construct(
-        protected Request $request,
-        protected UserProvider $provider
-    ) {}
+        protected ServerRequestInterface $request,
+        protected UserProvider $provider,
+    ) {
+    }
 
     /**
      * Get the currently authenticated user.
@@ -70,8 +70,15 @@ class JwtGuard implements Guard
         $this->userResolved = true;
     }
 
-    public function login(Authenticatable $user): void {}
-    public function logout(): void {}
-    public function attempt(array $credentials = []): bool { return false; }
-    
+    public function login(Authenticatable $user): void
+    {
+    }
+    public function logout(): void
+    {
+    }
+    public function attempt(array $credentials = []): bool
+    {
+        return false;
+    }
+
 }

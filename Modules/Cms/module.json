@@ -1,0 +1,8 @@
+{
+  "name": "Cms",
+  "alias": "cms",
+  "version": "1.0.0",
+  "description": "Content Management System Module.",
+  "providers": ["Modules\\Cms\\Providers\\CmsServiceProvider"],
+  "enabled": true
+}

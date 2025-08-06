@@ -1,4 +1,4 @@
-<?php 
+<?php
 
 namespace Core\Services;
 
@@ -23,14 +23,14 @@ class ModuleRegistry
             $json = $dir . '/module.json';
 
             if (!file_exists($json)) {
-                $this->markError($pdo, $name, "Không tìm thấy module.json");
+                $this->markError($pdo, $name, 'Không tìm thấy module.json');
                 continue;
             }
 
             $meta = json_decode(file_get_contents($json), true);
 
             // Nếu chưa có trong DB → thêm
-            $stmt = $pdo->prepare("SELECT id FROM modules WHERE name = ?");
+            $stmt = $pdo->prepare('SELECT id FROM modules WHERE name = ?');
             $stmt->execute([$name]);
             $exists = $stmt->fetch();
 
@@ -41,7 +41,7 @@ class ModuleRegistry
                 $stmt->execute([
                     $meta['name'] ?? $name,
                     $meta['version'] ?? '1.0.0',
-                    $meta['description'] ?? ''
+                    $meta['description'] ?? '',
                 ]);
             }
         }

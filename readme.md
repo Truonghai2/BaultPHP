@@ -5,7 +5,7 @@
 ## Triết lý cốt lõi
 
 *   **Modular là trên hết**: Mọi thứ trong BaultPHP đều có thể được tổ chức thành các **Module** độc lập. Mỗi module có cấu trúc thư mục riêng, service provider, routes, và migrations, cho phép các nhóm phát triển song song và tái sử dụng code hiệu quả.
-*   **Hiệu năng cao**: Framework được thiết kế để tích hợp liền mạch với **RoadRunner**, một application server hiệu năng cao cho PHP, giúp giảm thiểu thời gian khởi động và tối ưu hóa việc sử dụng bộ nhớ trong môi trường production.
+*   **Hiệu năng cao**: Framework được xây dựng trên nền tảng **Swoole**, một PHP extension cho phép lập trình bất đồng bộ, hiệu năng cao, giúp xử lý hàng ngàn kết nối đồng thời với độ trễ thấp.
 *   **Developer-friendly**: Cung cấp bộ công cụ dòng lệnh (CLI) mạnh mẽ để tự động hóa các tác vụ lặp đi lặp lại như tạo module, controller, use case, v.v., giúp lập trình viên tập trung vào logic nghiệp vụ.
 *   **Tự chủ và Tối giản**: Thay vì phụ thuộc vào các thư viện lớn, BaultPHP tự xây dựng các thành phần cốt lõi như ORM, Routing, và Authentication. Điều này mang lại sự kiểm soát tối đa và một codebase gọn nhẹ, dễ hiểu.
 
@@ -17,28 +17,29 @@
 *   **ORM tùy biến**: Một lớp ORM (Object-Relational Mapping) được xây dựng riêng, hỗ trợ các thao tác cơ bản với cơ sở dữ liệu, soft deletes, và query builder.
 *   **Hệ thống Migration mạnh mẽ**: Quản lý schema cơ sở dữ liệu cho từng module, hỗ trợ chạy, rollback theo từng batch.
 *   **Xác thực (Authentication) đa cơ chế**: Hỗ trợ nhiều "guard" khác nhau, bao gồm `SessionGuard` cho web truyền thống và `JwtGuard` cho các API stateless.
-*   **Tích hợp RoadRunner**: Sẵn sàng cho môi trường production hiệu năng cao với file `worker.php` được cấu hình sẵn.
+*   **Tích hợp Swoole**: Sẵn sàng cho môi trường production hiệu năng cao với server được quản lý qua các lệnh `server:start`, `server:stop`, và `server:reload`.
 *   **Bộ công cụ CLI tiện lợi**: Bao gồm các lệnh `serve`, `route:cache`, `config:cache`, và rất nhiều lệnh `make:*`, `ddd:*` để tăng tốc phát triển.
 *   **Xử lý lỗi tập trung**: `ExceptionHandler` trung tâm với sự hỗ trợ của `Whoops` cho môi trường debug, giúp việc gỡ lỗi trở nên trực quan.
 
 ## Kiến trúc tổng quan
 
-### 1. Khởi động ứng dụng (Application Bootstrapping)
+### 1. Khởi động Server (Server Bootstrapping)
 
 1.  Mọi request đều đi qua `public/index.php`, khởi tạo `Core\AppKernel`.
-2.  `AppKernel` tạo ra một instance của `Core\Application` (DI Container).
-3.  Kernel đăng ký các **Service Provider** cốt lõi và các provider từ những module được kích hoạt (dựa trên file `module.json`).
-4.  Sau khi tất cả provider được `register`, Kernel sẽ gọi phương thức `boot` trên từng provider.
-5.  Cuối cùng, request được chuyển đến `Http\Kernel` để xử lý.
+2.  Một đối tượng `Core\Server\SwooleServer` được tạo ra.
+3.  Swoole server khởi tạo các **Worker Process**.
+4.  Trong mỗi Worker Process, một instance của `Core\Application` (DI Container) được khởi tạo và bootstrap **CHỈ MỘT LẦN**. Quá trình bootstrap này sẽ đăng ký và boot tất cả các **Service Provider**.
+5.  Worker process sau đó sẵn sàng nhận và xử lý nhiều request.
 
 ### 2. Luồng xử lý Request
 
-1.  `Http\Kernel` nhận `Request`.
-2.  `Router` tìm kiếm route phù hợp với URI và phương thức HTTP.
-3.  Nếu tìm thấy, router sẽ thực thi handler của route đó (thường là một phương thức trong Controller).
-4.  Controller xử lý logic, có thể tương tác với các Use Case, Model, và các service khác.
-5.  Controller trả về một đối tượng `Response`.
-6.  `Http\Kernel` gửi `Response` về cho client.
+1.  Khi có một HTTP request đến, Swoole server chuyển nó đến một Worker Process đang rảnh.
+2.  Sự kiện `request` của `SwooleServer` được kích hoạt.
+3.  Request của Swoole được chuyển đổi thành một PSR-7 Request.
+4.  Request được xử lý bởi `Application->handle()` (thông qua `Http\Kernel`).
+5.  `Router` tìm kiếm route phù hợp, thực thi Controller, và nhận về một PSR-7 Response.
+6.  PSR-7 Response được chuyển đổi ngược lại thành Swoole Response và gửi về cho client.
+7.  Worker được dọn dẹp (reset các stateful service) và sẵn sàng cho request tiếp theo mà không cần khởi động lại framework.
 
 ## Các thành phần chính
 

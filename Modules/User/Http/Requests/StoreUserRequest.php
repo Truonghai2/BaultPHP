@@ -3,30 +3,34 @@
 namespace Modules\User\Http\Requests;
 
 use Http\FormRequest;
-use Core\Support\Facades\Auth;
 
 class StoreUserRequest extends FormRequest
 {
     /**
-     * Xác định xem người dùng có được phép thực hiện request này hay không.
+     * Determine if the user is authorized to make this request.
+     *
+     * @return bool
      */
     public function authorize(): bool
     {
-        // Ví dụ: Chỉ người dùng đã đăng nhập mới có thể tạo người dùng mới.
-        // Trong ứng dụng thực tế, bạn có thể kiểm tra quyền hạn (permission).
-        return Auth::check();
+        // Ví dụ: chỉ có admin mới được phép tạo người dùng mới.
+        // return $this->user?->can('user.create') ?? false;
+
+        // Hiện tại, chúng ta sẽ cho phép để phục vụ demo.
+        return true;
     }
 
     /**
-     * Lấy các quy tắc xác thực áp dụng cho request.
+     * Get the validation rules that apply to the request.
+     *
+     * @return array<string, string>
      */
     public function rules(): array
     {
         return [
-            'name' => ['required', 'string', 'max:255'],
-            // Giả sử bạn đã có `DatabaseServiceProvider` để rule `unique` hoạt động
-            'email' => ['required', 'email', 'unique:users,email'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
         ];
     }
 }

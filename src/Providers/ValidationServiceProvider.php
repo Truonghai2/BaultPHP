@@ -32,6 +32,6 @@ class ValidationServiceProvider extends ServiceProvider
     {
         // This callback ensures that whenever a FormRequest is resolved from the container
         // (e.g., via controller method injection), its validation logic is automatically executed.
-        $this->app->afterResolving(FormRequest::class, fn(FormRequest $request) => $request->validateResolved());
+        $this->app->afterResolving(FormRequest::class, fn (FormRequest $request) => $request->validateResolved());
     }
 }

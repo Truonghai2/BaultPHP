@@ -13,7 +13,9 @@ class Config
         $config = require base_path("config/$file.php");
 
         foreach ($path as $segment) {
-            if (!isset($config[$segment])) return $default;
+            if (!isset($config[$segment])) {
+                return $default;
+            }
             $config = $config[$segment];
         }
 

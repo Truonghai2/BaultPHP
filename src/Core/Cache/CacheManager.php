@@ -3,7 +3,8 @@
 namespace Core\Cache;
 
 use Core\Application;
-use Predis\Client as RedisClient;
+use Core\Contracts\Cache\Store;
+use InvalidArgumentException;
 
 class CacheManager
 {
@@ -15,37 +16,78 @@ class CacheManager
         $this->app = $app;
     }
 
-    public function store(string $name = null)
+    public function store($name = null): Store
     {
         $name = $name ?: $this->getDefaultDriver();
-        return $this->stores[$name] ??= $this->resolve($name);
+        return $this->stores[$name] = $this->get($name);
     }
 
-    protected function resolve(string $name)
+    protected function get($name): Store
     {
-        $config = $this->app->make('config')->get("cache.stores.{$name}");
-
-        if (is_null($config)) {
-            throw new \InvalidArgumentException("Cache store [{$name}] is not configured.");
-        }
-
-        if ($config['driver'] === 'redis') {
-            return $this->createRedisDriver($config);
-        }
-
-        throw new \InvalidArgumentException("Driver [{$config['driver']}] is not supported.");
+        return $this->stores[$name] ?? $this->resolve($name);
     }
 
-    protected function createRedisDriver(array $config): RedisClient
+    protected function resolve($name): Store
     {
-        $redisConfig = $this->app->make('config')->get("database.redis.{$config['connection']}");
-        return new RedisClient([
-            'scheme' => 'tcp',
-            'host'   => $redisConfig['host'],
-            'port'   => $redisConfig['port'],
-            'password' => $redisConfig['password'],
-            'database' => $redisConfig['database'],
-        ]);
+        $config = $this->getConfig($name);
+        $driverMethod = 'create' . ucfirst($config['driver']) . 'Driver';
+
+        if (method_exists($this, $driverMethod)) {
+            return $this->{$driverMethod}($config);
+        }
+
+        throw new InvalidArgumentException("Driver [{$config['driver']}] is not supported.");
+    }
+
+    /**
+     * Tạo một instance của Redis cache driver.
+     *
+     * @param  array  $config
+     * @return \Core\Cache\RedisStore
+     */
+    protected function createRedisDriver(array $config): Store
+    {
+        $redis = $this->app->make('redis');
+        return new RedisStore($redis, $this->app->make('config')->get('cache.prefix', 'bault_cache'));
+    }
+
+    /**
+     * Tạo một instance của file cache driver.
+     *
+     * @param  array  $config
+     * @return \Core\Cache\FileStore
+     */
+    protected function createFileDriver(array $config): FileStore
+    {
+        // Giả định rằng 'files' đã được bind vào container.
+        // Nếu chưa, bạn cần tạo một FilesystemServiceProvider.
+        $filesystem = $this->app->make(\Illuminate\Filesystem\Filesystem::class);
+
+        return new FileStore($filesystem, $config['path']);
+    }
+
+    /**
+     * Lưu một item vào cache trong một số giây nhất định.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @param  int  $seconds
+     * @return bool
+     */
+    public function put(string $key, mixed $value, int $seconds): bool
+    {
+        return $this->store()->put($key, $value, $seconds);
+    }
+
+    /**
+     * Xóa một item khỏi cache.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function forget(string $key): bool
+    {
+        return $this->store()->forget($key);
     }
 
     public function getDefaultDriver(): string
@@ -53,9 +95,13 @@ class CacheManager
         return $this->app->make('config')->get('cache.default');
     }
 
-    public function __call(string $method, array $parameters)
+    protected function getConfig($name): array
     {
-        // Proxy calls to the default store
-        return $this->store()->{$method}(...$parameters);
+        return $this->app->make('config')->get("cache.stores.{$name}");
+    }
+
+    public function __call($method, $parameters)
+    {
+        return $this->store()->$method(...$parameters);
     }
 }

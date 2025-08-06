@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
-use Core\Contracts\Events\EventDispatcherInterface;
+use Core\Events\EventDispatcherInterface;
 use Core\Events\Dispatcher;
+use Core\Events\ModuleChanged;
+use Core\Listeners\ClearRelatedCacheOnModuleChange;
 use Core\Support\ServiceProvider;
 
 class EventServiceProvider extends ServiceProvider
@@ -13,17 +15,33 @@ class EventServiceProvider extends ServiceProvider
      *
      * @var array<class-string, array<int, class-string>>
      */
-    protected array $listen = [];
+    protected array $listen = [
+        ModuleChanged::class => [
+            ClearRelatedCacheOnModuleChange::class,
+        ],
+    ];
 
     public function register(): void
     {
+        // Bind Core\Events\Dispatcher to both the core interface and the illuminate interface
+        // so either can be type hinted.
         $this->app->singleton(EventDispatcherInterface::class, function ($app) {
             return new Dispatcher($app);
         });
+        // Explicitly bind the dispatcher to the 'events' key.
+        $this->app->alias(EventDispatcherInterface::class, 'events');
     }
 
     public function boot(): void
     {
+        $events = $this->app->make('events');
+
+        foreach ($this->listen as $event => $listeners) {
+            foreach ($listeners as $listener) {
+                $events->listen($event, $listener);
+            }
+        }
+
         $dispatcher = $this->app->make(EventDispatcherInterface::class);
 
         // Load global listeners
@@ -38,7 +56,9 @@ class EventServiceProvider extends ServiceProvider
         $moduleDirs = glob(base_path('Modules/*'), GLOB_ONLYDIR);
         foreach ($moduleDirs as $dir) {
             $eventsFile = $dir . '/events.php';
-            if (!file_exists($eventsFile)) continue;
+            if (!file_exists($eventsFile)) {
+                continue;
+            }
 
             $moduleListeners = require $eventsFile;
             foreach ($moduleListeners as $event => $listeners) {

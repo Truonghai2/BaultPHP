@@ -2,10 +2,11 @@
 
 namespace Core;
 
-use RuntimeException;
-use LogicException;
+use Core\Exceptions\ContainerException;
+use Core\Exceptions\NotFoundException;
+use Psr\Container\ContainerInterface;
 
-class Application
+class Application implements ContainerInterface
 {
     /**
      * The BaultFrame framework version.
@@ -18,6 +19,9 @@ class Application
     protected array $instances = [];
     protected array $aliases = [];
     protected array $contextual = [];
+
+    /** @var array<string, array<int, string>> Mảng lưu trữ các tag và các abstract được gán. */
+    protected array $tags = [];
 
     /** @var static|null The shared instance of the application. */
     protected static ?self $instance = null;
@@ -35,9 +39,48 @@ class Application
     protected array $resolvingCallbacks = [];
     protected string $basePath;
 
-    public function __construct(string $basePath = null) {
+    public function __construct(string $basePath = null)
+    {
         $this->basePath = $basePath;
         $this->registerBaseBindings();
+    }
+
+    /**
+     * Determine if the given abstract type has been bound.
+     *
+     * @param  string  $abstract
+     * @return bool
+     */
+    public function bound(string $abstract): bool
+    {
+        $abstract = $this->getAlias($abstract);
+
+        return isset($this->bindings[$abstract])
+            || isset($this->instances[$abstract]);
+    }
+
+    /**
+     * Returns true if the container can return an entry for the given identifier.
+     * This is the `has` method required by the PSR-11 ContainerInterface.
+     *
+     * @param string $id Identifier of the entry to look for.
+     * @return bool
+     */
+    public function has(string $id): bool
+    {
+        return $this->bound($id);
+    }
+
+    /**
+     * Finds an entry of the container by its identifier and returns it.
+     * This is the `get` method required by the PSR-11 ContainerInterface.
+     *
+     * @param string $id Identifier of the entry to look for.
+     * @return mixed Entry.
+     */
+    public function get(string $id)
+    {
+        return $this->make($id);
     }
 
     /**
@@ -66,6 +109,13 @@ class Application
         static::setInstance($this);
         $this->instance('app', $this);
         $this->instance(Application::class, $this);
+
+        // Register the configuration service as a core singleton.
+        // This is crucial because many parts of the framework, including provider
+        // discovery, depend on the config service being available very early.
+        $this->singleton('config', function () {
+            return new \Core\Config();
+        });
     }
 
     public function when(string $concrete): ContextualBindingBuilder
@@ -84,8 +134,11 @@ class Application
         $this->aliases[$alias] = $abstract;
     }
 
-    public function bind(string $abstract, mixed $concrete, bool $singleton = false): void
+    public function bind(string $abstract, mixed $concrete = null, bool $singleton = false): void
     {
+        if (is_null($concrete)) {
+            $concrete = $abstract;
+        }
         $this->bindings[$abstract] = compact('concrete', 'singleton');
     }
 
@@ -121,7 +174,7 @@ class Application
         // Detect circular dependencies.
         if (in_array($abstract, $this->resolvingStack)) {
             $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
-            throw new LogicException("Circular dependency detected while resolving: [{$path}]");
+            throw new ContainerException("Circular dependency detected while resolving: [{$path}]");
         }
 
         // Add the abstract to the resolving stack to detect circular dependencies.
@@ -132,6 +185,11 @@ class Application
         } finally {
             // Remove the abstract from the stack once resolution is complete.
             array_pop($this->resolvingStack);
+        }
+
+        // If the resolved object is a FormRequest, automatically trigger its validation.
+        if ($object instanceof \Http\FormRequest) {
+            $object->validateResolved();
         }
 
         // If it's a singleton, store the instance for future requests.
@@ -165,7 +223,7 @@ class Application
 
         $reflector = $this->getReflector($concrete);
         if (!$reflector->isInstantiable()) {
-            throw new RuntimeException("Class [$concrete] is not instantiable.");
+            throw new ContainerException("Class [$concrete] is not instantiable.");
         }
 
         $constructor = $reflector->getConstructor();
@@ -187,19 +245,34 @@ class Application
     protected function resolveDependencies(array $dependencies): array
     {
         $results = [];
+
         foreach ($dependencies as $dependency) {
             $type = $dependency->getType();
-            if (!$type instanceof \ReflectionNamedType || $type->isBuiltin()) {
-                if ($dependency->isDefaultValueAvailable()) {
-                    $results[] = $dependency->getDefaultValue();
-                    continue;
-                }
-                $context = end($this->resolvingStack);
-                throw new RuntimeException("Cannot resolve un-typed parameter \${$dependency->getName()} in class {$context}");
+
+            // Nếu tham số có kiểu và không phải là kiểu built-in, resolve nó từ container.
+            if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
+                $results[] = $this->resolveClassParameter($dependency);
+                continue;
             }
 
-            $results[] = $this->resolveClassParameter($dependency);
+            // Nếu tham số không có kiểu hoặc là kiểu built-in, kiểm tra xem có giá trị mặc định không.
+            if ($dependency->isDefaultValueAvailable()) {
+                $results[] = $dependency->getDefaultValue();
+                continue;
+            }
+
+            // Nếu không có giá trị mặc định và không thể resolve, đây là một lỗi.
+            $context = end($this->resolvingStack);
+            $paramName = $dependency->getName();
+            $message = "Cannot resolve parameter `{$paramName}`";
+            if ($context) {
+                $message .= " in class `{$context}`";
+            }
+            $message .= '. Please provide a type hint or a default value.';
+
+            throw new ContainerException($message);
         }
+
         return $results;
     }
 
@@ -254,7 +327,7 @@ class Application
             } elseif ($parameter->isDefaultValueAvailable()) {
                 $dependencies[] = $parameter->getDefaultValue();
             } else {
-                throw new RuntimeException("Unresolvable dependency resolving [$parameter] in " . $reflector->getName());
+                throw new ContainerException("Unresolvable dependency resolving [$parameter] in " . $reflector->getName());
             }
         }
         return $callback(...$dependencies);
@@ -263,8 +336,9 @@ class Application
     protected function getReflector(string $class): \ReflectionClass
     {
         if (!isset($this->reflectionCache[$class])) {
-            if (!class_exists($class)) {
-                throw new RuntimeException("Class [$class] not found.");
+            // Check for both classes and interfaces before attempting to reflect.
+            if (!class_exists($class) && !interface_exists($class)) {
+                throw new NotFoundException("Class or interface [{$class}] not found.");
             }
             $this->reflectionCache[$class] = new \ReflectionClass($class);
         }
@@ -291,12 +365,10 @@ class Application
 
     public function register(string $providerClass): void
     {
-        error_log("    --> [Application] Registering provider: " . $providerClass);
         $provider = new $providerClass($this);
         $provider->register();
 
         $this->serviceProviders[] = $provider;
-        error_log("    --> [Application] Provider registered: " . $providerClass);
     }
 
     public function boot(): void
@@ -307,9 +379,7 @@ class Application
 
         foreach ($this->serviceProviders as $provider) {
             if (method_exists($provider, 'boot')) {
-                error_log("    --> [Application] Booting provider: " . get_class($provider));
                 $this->call([$provider, 'boot']);
-                error_log("    --> [Application] Provider booted: " . get_class($provider));
             }
         }
 
@@ -361,6 +431,11 @@ class Application
         return $this->basePath . ($path ? DIRECTORY_SEPARATOR . $path : $path);
     }
 
+    public function bootstrapPath(string $path = ''): string
+    {
+        return $this->basePath('bootstrap' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+
     public function getCachedRoutesPath(): string
     {
         return $this->basePath('bootstrap/cache/routes.php');
@@ -371,15 +446,6 @@ class Application
         return $this->basePath('bootstrap/cache/providers.php');
     }
 
-    public function loadCachedProviders(array $providers): void
-    {
-        foreach ($providers as $providerClass) {
-            if (class_exists($providerClass)) {
-                $this->register($providerClass);
-            }
-        }
-    }
-
     /**
      * Get the version number of the application.
      *
@@ -388,5 +454,44 @@ class Application
     public function version(): string
     {
         return static::VERSION;
+    }
+
+    /**
+     * Gán một tag cho một hoặc nhiều abstract.
+     *
+     * @param  string|array  $abstracts
+     * @param  string  $tag
+     * @return void
+     */
+    public function tag(string|array $abstracts, string $tag): void
+    {
+        if (!isset($this->tags[$tag])) {
+            $this->tags[$tag] = [];
+        }
+
+        foreach ((array) $abstracts as $abstract) {
+            $this->tags[$tag][] = $abstract;
+        }
+    }
+
+    /**
+     * Resolve tất cả các binding đã được gán một tag nhất định.
+     *
+     * @param  string  $tag
+     * @return array<object>
+     */
+    public function getByTag(string $tag): array
+    {
+        return isset($this->tags[$tag]) ? array_map([$this, 'make'], $this->tags[$tag]) : [];
+    }
+
+    /**
+     * Determine if the application is running in the console.
+     *
+     * @return bool
+     */
+    public function runningInConsole(): bool
+    {
+        return in_array(php_sapi_name(), ['cli', 'phpdbg']);
     }
 }

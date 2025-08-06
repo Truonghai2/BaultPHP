@@ -26,7 +26,7 @@ class MakeUseCaseCommand extends BaseCommand
             return 1;
         }
 
-        $path = __DIR__ . "/../../../Modules/{$module}/Application/UseCases/{$name}.php";
+        $path = base_path("Modules/{$module}/Application/UseCases/{$name}.php");
         $directory = dirname($path);
 
         if (!is_dir($directory)) {
@@ -39,6 +39,6 @@ class MakeUseCaseCommand extends BaseCommand
 
         $this->io->success("UseCase {$name} đã được tạo trong module {$module}.\n");
 
-        return 1;
+        return 0; // Trả về 0 cho thành công, khác 0 cho lỗi.
     }
 }

@@ -28,14 +28,13 @@ class MakeModuleCommand extends BaseCommand
         }
 
         $name = ucfirst($name);
-        $basePath = base_path("Modules/{$name}");
+        $basePath = base_path("/Modules/{$name}");
 
         if (is_dir($basePath)) {
             $this->io->error("Module '{$name}' already exists at {$basePath}.");
             return 1;
         }
 
-        $basePath = __DIR__ . '/../../../Modules/' . $name;
         $structure = [
             '/Application/DTOs',
             '/Application/UseCases/Commands',
@@ -71,6 +70,7 @@ class MakeModuleCommand extends BaseCommand
 
         file_put_contents("{$basePath}/module.json", json_encode([
             'name' => $name,
+            'enabled' => true,
             'version' => '1.0.0',
             'providers' => ["Modules\\{$name}\\Providers\\ModuleServiceProvider"]
         ], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));

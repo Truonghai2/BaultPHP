@@ -4,17 +4,22 @@ namespace Modules\User\Infrastructure\Models;
 
 use Core\Contracts\Auth\Authenticatable;
 use Core\ORM\Model;
-use Core\ORM\Relations\BelongsToMany;
 use Core\ORM\Relations\HasMany;
-use Modules\User\Application\Services\AccessControlService;
+use Modules\User\Domain\Services\AccessControlService;
 
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string $password
+ * @property-read \DateTimeInterface|null $created_at
+ * @property-read \DateTimeInterface|null $updated_at
+ */
 class User extends Model implements Authenticatable
 {
     protected static string $table = 'users';
-    
-    protected array $fillable = ['name', 'email', 'password'];
 
-    private ?AccessControlService $acl = null;
+    protected array $fillable = ['name', 'email', 'password'];
 
     public function getAuthIdentifier()
     {
@@ -31,10 +36,10 @@ class User extends Model implements Authenticatable
         return $this->password;
     }
 
-    public function posts(): HasMany
-    {
-        return $this->hasMany(Post::class);
-    }
+    // public function posts(): HasMany
+    // {
+    //     return $this->hasMany(Post::class);
+    // }
 
     /**
      * A user has many role assignments in different contexts.
@@ -66,17 +71,8 @@ class User extends Model implements Authenticatable
      */
     public function hasRole(string $roleName, $context = null): bool
     {
-        $role = Role::where('name', $roleName)->first();
-        if (!$role) {
-            return false;
-        }
-
-        // Nếu không có context, kiểm tra ở cấp hệ thống
-        $contextId = $context ? app(AccessControlService::class)->resolveContext($context)->id : 1;
-
-        return $this->roleAssignments()
-            ->where('role_id', $role->id)
-            ->where('context_id', $contextId)
-            ->exists();
+        // Delegate the role check to the optimized AccessControlService.
+        // This leverages the central caching mechanism and respects context hierarchy.
+        return app(AccessControlService::class)->hasRole($this, $roleName, $context);
     }
 }

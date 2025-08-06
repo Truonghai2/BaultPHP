@@ -3,7 +3,6 @@
 namespace Core\Events;
 
 use Core\Application;
-use Core\Contracts\Events\EventDispatcherInterface;
 use Core\Contracts\Queue\ShouldQueue;
 use Core\Queue\QueueManager;
 
@@ -18,12 +17,13 @@ class Dispatcher implements EventDispatcherInterface
     protected QueueManager $queue;
 
     public function __construct(protected Application $app)
-    {}
+    {
+    }
 
     /**
      * Register an event listener.
      */
-    public function listen(string $event, string $listener): void
+    public function listen(string $event, string|callable $listener): void
     {
         $this->listeners[$event][] = $listener;
     }
@@ -34,7 +34,9 @@ class Dispatcher implements EventDispatcherInterface
     public function dispatch(object $event): void
     {
         $eventName = get_class($event);
-        if (!isset($this->listeners[$eventName])) return;
+        if (!isset($this->listeners[$eventName])) {
+            return;
+        }
 
         foreach ($this->listeners[$eventName] as $listenerClass) {
             $this->dispatchToListener($event, $listenerClass);

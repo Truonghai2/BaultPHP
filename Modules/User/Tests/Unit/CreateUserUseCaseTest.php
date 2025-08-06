@@ -6,7 +6,6 @@ use Core\Contracts\Events\EventDispatcherInterface;
 use Modules\User\Application\UseCases\CreateUser;
 use Modules\User\Domain\Events\UserWasCreated;
 use Modules\User\Domain\Repositories\UserRepositoryInterface;
-use Modules\User\Infrastructure\Models\User;
 use PHPUnit\Framework\TestCase;
 
 class CreateUserUseCaseTest extends TestCase
@@ -21,7 +20,7 @@ class CreateUserUseCaseTest extends TestCase
         // Định nghĩa hành vi mong muốn cho repository mock.
         $userRepositoryMock->expects($this->once())
             ->method('create')
-            ->willReturn($createdUserInstance = new User(['id' => 1, 'name' => 'John Doe', 'email' => 'john@example.com']));
+            ->willReturn($createdUserInstance = new \Modules\User\Domain\Entities\User(1, 'John Doe', 'john@example.com'));
 
         // Định nghĩa hành vi mong muốn cho event dispatcher mock.
         // Chúng ta kỳ vọng phương thức `dispatch` được gọi đúng 1 lần.
@@ -49,7 +48,7 @@ class CreateUserUseCaseTest extends TestCase
 
         // 3. Assert (Xác nhận)
         // Kiểm tra kết quả trả về có đúng như mong đợi không.
-        $this->assertInstanceOf(User::class, $resultUser);
-        $this->assertSame($createdUserInstance, $resultUser, "The returned user should be the same instance from the repository mock.");
+        $this->assertInstanceOf(\Modules\User\Domain\Entities\User::class, $resultUser);
+        $this->assertSame($createdUserInstance, $resultUser, 'The returned user should be the same instance from the repository mock.');
     }
 }

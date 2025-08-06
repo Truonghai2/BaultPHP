@@ -3,20 +3,9 @@
 namespace Core\Console\Commands;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Module\ModuleManager;
 
 class ModuleManageCommand extends BaseCommand
 {
-    /**
-     * Create a new command instance.
-     *
-     * The ModuleManager is injected automatically by the service container.
-     */
-    public function __construct(private ModuleManager $manager)
-    {
-        parent::__construct();
-    }
-
     public function description(): string
     {
         return 'Manage application modules (list, enable, disable)';
@@ -31,47 +20,78 @@ class ModuleManageCommand extends BaseCommand
     {
         if ($this->option('list')) {
             $this->displayModuleList();
-            return 1;
+            return self::SUCCESS;
         }
 
         if ($name = $this->option('enable')) {
-            try {
-                $this->manager->enable($name);
-                $this->io->success("Module '{$name}' enabled successfully.");
-                $this->io->info("Module cache cleared automatically. You may still need to clear other caches (e.g., `route:cache`).");
-            } catch (\Exception $e) {
-                $this->io->error($e->getMessage());
-            }
-            return 0;
+            return $this->setModuleStatus($name, true);
         }
 
         if ($name = $this->option('disable')) {
-            try {
-                $this->manager->disable($name);
-                $this->io->success("Module '{$name}' disabled successfully.");
-                $this->io->info("Module cache cleared automatically. You may still need to clear other caches (e.g., `route:cache`).");
-            } catch (\Exception $e) {
-                $this->io->error($e->getMessage());
-            }
-            return 1;
+            return $this->setModuleStatus($name, false);
         }
 
-        $this->io->writeln("Please provide an option: --list, --enable=<ModuleName>, or --disable=<ModuleName>");
-        return 1;
+        $this->io->writeln('Please provide an option: --list, --enable=<ModuleName>, or --disable=<ModuleName>');
+        return self::FAILURE;
+    }
+
+    /**
+     * Sets the enabled status of a module by modifying its module.json file.
+     *
+     * @param string $moduleName The name of the module.
+     * @param bool $enabled The desired status (true for enabled, false for disabled).
+     * @return int The command exit code.
+     */
+    protected function setModuleStatus(string $moduleName, bool $enabled): int
+    {
+        $moduleJsonPath = base_path("Modules/{$moduleName}/module.json");
+
+        if (!file_exists($moduleJsonPath)) {
+            $this->io->error("Module '{$moduleName}' not found at expected path: {$moduleJsonPath}");
+            return self::FAILURE;
+        }
+
+        $moduleData = json_decode(file_get_contents($moduleJsonPath), true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            $this->io->error("Error decoding JSON for module '{$moduleName}'. Please check for syntax errors in module.json.");
+            return self::FAILURE;
+        }
+
+        $moduleData['enabled'] = $enabled;
+
+        file_put_contents(
+            $moduleJsonPath,
+            json_encode($moduleData, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+        );
+
+        $status = $enabled ? 'enabled' : 'disabled';
+        $this->io->success("Module '{$moduleName}' has been {$status}.");
+        $this->io->info('Please clear relevant caches (e.g., `php cli cache:clear`) for the change to take full effect.');
+
+        return self::SUCCESS;
     }
 
     protected function displayModuleList(): void
     {
-        $modules = $this->manager->getAllModules();
-        if (empty($modules)) {
-            $this->io->info("No modules found.");
+        $modulePaths = glob(base_path('Modules/*/module.json'));
+        if (empty($modulePaths)) {
+            $this->io->info('No modules found.');
             return;
         }
 
-        $tableData = array_map(function ($module) {
-            $status = $module['enabled'] ? '<fg=green>Enabled</>' : '<fg=red>Disabled</>';
-            return [$module['name'], $module['version'], $status];
-        }, $modules);
+        $tableData = [];
+        foreach ($modulePaths as $path) {
+            $data = json_decode(file_get_contents($path), true);
+            if (isset($data['name'])) {
+                $status = ($data['enabled'] ?? false) ? '<fg=green>Enabled</>' : '<fg=red>Disabled</>';
+                $tableData[] = [
+                    $data['name'],
+                    $data['version'] ?? 'N/A',
+                    $status
+                ];
+            }
+        }
 
         $this->io->table(['Module Name', 'Version', 'Status'], $tableData);
     }

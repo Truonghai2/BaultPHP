@@ -1,11 +1,9 @@
-<?php 
+<?php
 
 namespace Core\Routing;
 
 use Core\Application;
-use Http\Request;
-use App\Exceptions\NotFoundException;
-use App\Exceptions\MethodNotAllowedException;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Router
 {
@@ -51,13 +49,14 @@ class Router
     /**
      * Finds a route that matches the given request.
      *
-     * @throws NotFoundException
-     * @throws MethodNotAllowedException
+     * @throws \App\Exceptions\NotFoundException
+     * @throws \App\Exceptions\MethodNotAllowedException
      */
-    public function dispatch(Request $request): Route
+    public function dispatch(\Psr\Http\Message\ServerRequestInterface $request): Route
     {
-        $requestMethod = $request->method();
-        $requestPath = $request->path();
+        $requestMethod = $request->getMethod();
+        $requestPath = rtrim($request->getUri()->getPath(), '/');
+        if ($requestPath === '') $requestPath = '/';
 
         foreach ($this->routes[$requestMethod] ?? [] as $uri => $route) {
             $pattern = $this->compileRoutePattern($uri);
@@ -70,7 +69,9 @@ class Router
 
         // Check for 405 Method Not Allowed
         foreach ($this->routes as $method => $routes) {
-            if ($method === $requestMethod) continue;
+            if ($method === $requestMethod) {
+                continue;
+            }
             foreach ($routes as $uri => $route) {
                 if (preg_match($this->compileRoutePattern($uri), $requestPath)) {
                     throw new MethodNotAllowedException('Method Not Allowed', 405);
@@ -96,8 +97,10 @@ class Router
         foreach ($this->routes as $method => $routes) {
             foreach ($routes as $uri => $route) {
                 $export[$method][$uri] = [
-                    'handler' => $route->handler,
+                    'handler'    => $route->handler,
                     'middleware' => $route->middleware,
+                    'bindings'   => $route->bindings,
+                    'group'      => $route->group ?? null,
                 ];
             }
         }
@@ -112,13 +115,14 @@ class Router
         $this->routes = [];
         foreach ($cachedRoutes as $method => $routes) {
             foreach ($routes as $uri => $data) {
-                $route = new Route($method, $uri, $data['handler']);
-                $route->middleware($data['middleware']);
+                $route           = new Route($method, $uri, $data['handler']);
+                $route->middleware = $data['middleware'] ?? [];
+                $route->bindings   = $data['bindings'] ?? [];
+                $route->group      = $data['group'] ?? null;
                 $this->routes[$method][$uri] = $route;
             }
         }
     }
-
 
     public function resource(string $uri, string $controller, array $options = []): void
     {
@@ -137,17 +141,17 @@ class Router
 
         // Apply only/except
         if (!empty($options['only'])) {
-            $map = array_filter($map, fn($k) => in_array($k, $options['only']), ARRAY_FILTER_USE_KEY);
+            $map = array_filter($map, fn ($k) => in_array($k, $options['only']), ARRAY_FILTER_USE_KEY);
         }
         if (!empty($options['except'])) {
-            $map = array_filter($map, fn($k) => !in_array($k, $options['except']), ARRAY_FILTER_USE_KEY);
+            $map = array_filter($map, fn ($k) => !in_array($k, $options['except']), ARRAY_FILTER_USE_KEY);
         }
 
         foreach ($map as $action => [$method, $uri]) {
             $this->addRoute($method, $uri, [$controller, $action]);
         }
     }
-    
+
     public function listRoutes(): array
     {
         return array_map(function ($route) {

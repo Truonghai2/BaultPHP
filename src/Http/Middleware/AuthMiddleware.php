@@ -1,19 +1,19 @@
-<?php 
+<?php
 
 namespace Http\Middleware;
 
 use Core\Support\Facades\Auth;
-use Http\Request;
-use Http\Response;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
+use Http\ResponseFactory;
 
 class AuthMiddleware
 {
-    public function handle(Request $request, callable $next): Response
+    public function handle(ServerRequestInterface $request, callable $next)
     {
         if (!Auth::check()) {
-            return (new Response())
-                ->setStatus(401)
-                ->setContent('Unauthorized');
+            return (new ResponseFactory())
+                ->make('Unauthorized', 401);
         }
 
         return $next($request);

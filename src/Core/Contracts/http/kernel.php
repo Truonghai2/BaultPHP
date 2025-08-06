@@ -1,12 +1,12 @@
-<?php 
+<?php
 
 namespace Core\Contracts\Http;
 
-use Http\Request;
-use Http\Response;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 interface Kernel
 {
-    public function handle(Request $request): Response;
-    public function terminate(Request $request, Response $response): void;
+    public function handle(ServerRequestInterface $request): ResponseInterface;
+    public function terminate(ServerRequestInterface $request, ResponseInterface $response): void;
 }

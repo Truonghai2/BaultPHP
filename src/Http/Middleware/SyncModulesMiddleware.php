@@ -5,7 +5,7 @@ namespace Http\Middleware;
 use Closure;
 use Core\Cache\CacheManager;
 use Core\Module\ModuleSynchronizer;
-use Http\Request;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -18,7 +18,7 @@ class SyncModulesMiddleware
 
     public function __construct(
         private ?CacheManager $cache,
-        private ModuleSynchronizer $synchronizer
+        private ModuleSynchronizer $synchronizer,
     ) {
     }
 

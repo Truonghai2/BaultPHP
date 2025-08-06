@@ -29,6 +29,10 @@ git pull origin main # Hoặc `master`, `develop` tùy vào branch của bạn
 echo "📦 Cài đặt các gói Composer..."
 composer install --no-dev --optimize-autoloader
 
+# 3.1 Đảm bảo các thư mục cần thiết tồn tại
+echo "📁 Tạo các thư mục cần thiết..."
+mkdir -p storage/logs
+
 # 3.5 Đồng bộ các module từ filesystem vào CSDL
 echo "Đồng bộ modules..."
 php cli module:sync
@@ -44,6 +48,7 @@ echo "🧹 Xóa các file cache cũ..."
 php cli config:clear
 php cli route:clear   # Giả sử bạn có lệnh route:clear
 php cli module:clear
+rm -f storage/cache/cms_blocks.php # Xóa cache của các block trong CMS
 
 # 6. Tạo các file cache mới đã được tối ưu hóa
 # Đây là bước quan trọng nhất để tăng tốc ứng dụng trong môi trường production.
@@ -62,15 +67,11 @@ chmod -R 775 storage bootstrap/cache
 # echo "Tắt chế độ bảo trì..."
 # rm -f storage/framework/maintenance.flag
 
-# 9. Khởi động lại các worker của RoadRunner
-# Lệnh này sẽ gửi một yêu cầu RPC đến RoadRunner để reset các worker 'http' và 'centrifugo'.
-echo "🔄 Khởi động lại các worker của RoadRunner..."
-# Đọc token bí mật từ file .env để bảo mật
-RPC_TOKEN=$(grep RPC_SECRET_TOKEN .env | cut -d '=' -f2)
-if [ -n "$RPC_TOKEN" ]; then
-    curl -X POST -H "Content-Type: application/json" \
-         -d "[\"$RPC_TOKEN\", [\"http\", \"centrifugo\"], \"Deployment a new version\"]" \
-         http://127.0.0.1:6001/rpc?method=resetter.reset # Tên method vẫn giữ nguyên ở đây, nhưng việc có hằng số trong code PHP giúp dễ bảo trì hơn
-fi
+# 9. Khởi động lại các worker của Swoole (Graceful Reload)
+# Lệnh này sẽ gửi tín hiệu SIGUSR1 đến master process,
+# yêu cầu nó khởi động lại tất cả các worker một cách tuần tự
+# mà không làm gián đoạn dịch vụ (zero-downtime).
+echo "🔄 Gửi tín hiệu reload đến Swoole server..."
+php cli server:reload
 
 echo "✅ Quá trình triển khai hoàn tất!"

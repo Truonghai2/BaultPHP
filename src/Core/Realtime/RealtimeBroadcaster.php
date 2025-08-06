@@ -2,15 +2,12 @@
 
 namespace Core\Realtime;
 
-use Prometheus\Storage\Redis;
-
 /**
  * RealtimeBroadcaster handles real-time broadcasting of events to users and systems.
  * It uses Redis for publishing messages to specific channels.
  */
 class RealtimeBroadcaster
 {
-
     public function user(int $userId, array $data): void
     {
         $this->emit("user.{$userId}", $data);

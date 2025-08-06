@@ -1,0 +1,30 @@
+<?php
+
+namespace {{ namespace }};
+
+use Core\Console\Contracts\BaseCommand;
+
+class {{ class_name }} extends BaseCommand
+{
+    public function signature(): string
+    {
+        return '{{ command_signature }}';
+    }
+
+    public function description(): string
+    {
+        return '{{ command_description }}';
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return int
+     */
+    public function handle(): int
+    {
+        $this->io->info('Command logic goes here.');
+
+        return self::SUCCESS;
+    }
+}

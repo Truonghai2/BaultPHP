@@ -1,7 +1,7 @@
 <?php
 
 use Core\AppKernel;
-use Http\Request;
+use Nyholm\Psr7\Factory\Psr17Factory;
 
 require_once __DIR__ . '/../vendor/autoload.php';
 
@@ -9,7 +9,8 @@ require_once __DIR__ . '/../vendor/autoload.php';
 $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/../');
 $dotenv->load();
 
-$request = Request::capture();
+$psr17Factory = new Psr17Factory();
+$request = $psr17Factory->createServerRequestFromGlobals();
 $kernel = new AppKernel();
 $app = $kernel->getApplication();
 

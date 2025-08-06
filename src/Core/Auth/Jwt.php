@@ -10,7 +10,7 @@ class JWT
 
         $segments = [
             self::base64UrlEncode(json_encode($header)),
-            self::base64UrlEncode(json_encode($payload))
+            self::base64UrlEncode(json_encode($payload)),
         ];
 
         $signature = self::sign(implode('.', $segments), $secret, $alg);

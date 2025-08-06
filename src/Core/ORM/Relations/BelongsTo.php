@@ -27,7 +27,7 @@ class BelongsTo extends Relation
 
     public function addEagerConstraints(array $models)
     {
-        $keys = array_map(fn($model) => $model->getAttribute($this->foreignKey), $models);
+        $keys = array_map(fn ($model) => $model->getAttribute($this->foreignKey), $models);
         $this->query->where($this->ownerKey, 'IN', array_unique($keys));
     }
 

@@ -1,19 +1,16 @@
 <?php
 
 namespace Core\ORM;
-use Core\ORM\Events\Observable;
-use Core\ORM\Scopes\Scope;
-use Core\ORM\SoftDeletes;
-use Core\ORM\Exceptions\ModelNotFoundException;
 
-use PDO;
-use Core\ORM\QueryBuilder;
-use Core\ORM\Relations\Relation;
-use Core\ORM\Relations\HasMany;
+use Core\ORM\Events\Observable;
 use Core\ORM\Relations\BelongsTo;
 use Core\ORM\Relations\BelongsToMany;
+use Core\ORM\Relations\HasMany;
 use Core\ORM\Relations\MorphMany;
 use Core\ORM\Relations\MorphTo;
+use Core\ORM\Relations\Relation;
+use Core\ORM\Scopes\Scope;
+use Core\Support\Collection;
 
 abstract class Model
 {
@@ -228,7 +225,7 @@ abstract class Model
         $this->setAttribute($column, date('Y-m-d H:i:s'));
 
         return $this->newQuery()->where($this->getKeyName(), $this->getKey())->update([
-            $column => $this->getAttribute($column)
+            $column => $this->getAttribute($column),
         ]);
     }
 
@@ -302,6 +299,26 @@ abstract class Model
     public function getUpdatedAtColumn(): string
     {
         return defined('static::UPDATED_AT') ? static::UPDATED_AT : 'updated_at';
+    }
+
+    /**
+     * Get the name of the "deleted at" column.
+     *
+     * @return string
+     */
+    public function getDeletedAtColumn(): string
+    {
+        return defined('static::DELETED_AT') ? static::DELETED_AT : 'deleted_at';
+    }
+
+    /**
+     * Get the fully qualified "deleted at" column.
+     *
+     * @return string
+     */
+    public function getQualifiedDeletedAtColumn(): string
+    {
+        return $this->getTable() . '.' . $this->getDeletedAtColumn();
     }
 
     /**
@@ -427,7 +444,7 @@ abstract class Model
         return static::query()->findOr($id, $callback);
     }
 
-    public static function all(): array
+    public static function all(): Collection
     {
         return static::query()->get();
     }
@@ -448,7 +465,7 @@ abstract class Model
 
     public static function query(): QueryBuilder
     {
-        return (new static)->newQuery();
+        return (new static())->newQuery();
     }
 
     public function newQuery(): QueryBuilder
@@ -474,7 +491,9 @@ abstract class Model
 
     protected static function boot(): void
     {
-        // Can be overridden in child models
+        // Áp dụng một global scope cho tất cả các model.
+        // Mọi model kế thừa từ lớp này sẽ tự động chỉ truy vấn các bản ghi có is_active = 1.
+        static::addGlobalScope(new \Core\ORM\Scopes\ActiveScope());
     }
 
     protected function bootTraits(): void
@@ -500,7 +519,7 @@ abstract class Model
 
     protected function hasMany(string $related, ?string $foreignKey = null, ?string $localKey = null): HasMany
     {
-        $instance = new $related;
+        $instance = new $related();
         $foreignKey = $foreignKey ?: strtolower(basename(str_replace('\\', '/', get_class($this)))) . '_' . $this->getKeyName();
         $localKey = $localKey ?: $this->getKeyName();
 
@@ -509,7 +528,7 @@ abstract class Model
 
     protected function belongsTo(string $related, ?string $foreignKey = null, ?string $ownerKey = null): BelongsTo
     {
-        $instance = new $related;
+        $instance = new $related();
         $foreignKey = $foreignKey ?: strtolower(basename(str_replace('\\', '/', $related))) . '_' . $instance->getKeyName();
         $ownerKey = $ownerKey ?: $instance->getKeyName();
 
@@ -520,9 +539,9 @@ abstract class Model
         string $related,
         ?string $table = null,
         ?string $foreignPivotKey = null,
-        ?string $relatedPivotKey = null
+        ?string $relatedPivotKey = null,
     ): BelongsToMany {
-        $instance = new $related;
+        $instance = new $related();
 
         // Guess pivot table name
         $table = $table ?: $this->getPivotTableName($related);
@@ -537,7 +556,7 @@ abstract class Model
     {
         $models = [
             strtolower(basename(str_replace('\\', '/', get_class($this)))),
-            strtolower(basename(str_replace('\\', '/', $related)))
+            strtolower(basename(str_replace('\\', '/', $related))),
         ];
         sort($models);
         return implode('_', $models);
@@ -548,7 +567,7 @@ abstract class Model
      */
     protected function morphMany(string $related, string $name): MorphMany
     {
-        $instance = new $related;
+        $instance = new $related();
 
         // e.g., from 'commentable', we get 'commentable_type' and 'commentable_id'
         $morphType = $name . '_type';
@@ -580,7 +599,7 @@ abstract class Model
 
     public function newFromBuilder(array $attributes = []): static
     {
-        $model = new static;
+        $model = new static();
         $model->attributes = $attributes;
         $model->original = $attributes;
         return $model;
@@ -592,5 +611,25 @@ abstract class Model
     public function forgetAttribute(string $key): void
     {
         unset($this->attributes[$key]);
+    }
+
+    /**
+     * Replicate the model into a new, non-existent instance.
+     *
+     * @return static
+     */
+    public function replicate(): static
+    {
+        // Create a new instance without passing attributes to the constructor.
+        $clone = new static();
+
+        // Manually copy all attributes from the original model.
+        // This bypasses the `fillable` check.
+        $clone->attributes = $this->attributes;
+
+        // Unset the primary key to ensure it's treated as a new record on save.
+        unset($clone->attributes[$this->getKeyName()]);
+
+        return $clone;
     }
 }

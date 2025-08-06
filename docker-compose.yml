@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # Service cho ứng dụng BaultPHP
+  app:
+    build:
+      context: .
+      # Dockerfile này sẽ build image cho ứng dụng, cài đặt Swoole, Redis, Node.js...
+      dockerfile: docker/Dockerfile
+    container_name: bault_app
+    restart: unless-stopped
+    ports:
+      - "9501:9501" # Port cho Swoole server
+      - "5173:5173" # Port cho Vite dev server (Rất quan trọng cho front-end dev)
+    env_file:
+      - .env
+    working_dir: /var/www/html
+    volumes:
+      - ./:/var/www/html # Đồng bộ code từ host vào container
+      - /var/www/html/vendor # Sử dụng anonymous volume để Docker quản lý thư mục vendor
+      - /var/www/html/node_modules # Tương tự cho node_modules
+    networks:
+      - bault-network
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://localhost:9501"]
+      start_period: 45s
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  # Service cho Nginx Reverse Proxy
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: bault_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - bault-network
+    depends_on:
+      app:
+        condition: service_healthy
+
+  # Service cho CSDL MySQL
+  db:
+    image: mysql:8.3
+    container_name: bault_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-bault} 
+      MYSQL_ROOT_PASSWORD_FILE: /run/secrets/db_password
+    volumes:
+      - db_data:/var/lib/mysql
+    networks:
+      - bault-network
+    secrets:
+      - db_password
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root --password=\"$(cat /run/secrets/db_password)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Service cho Redis
+  redis:
+    image: redis:7.2-alpine
+    container_name: bault_redis
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - bault-network
+
+  # Service cho Centrifugo
+  centrifugo:
+    image: centrifugo/centrifugo:v5
+    container_name: bault_centrifugo
+    # Tương tự, sử dụng secrets cho các thông tin nhạy cảm.
+    restart: unless-stopped
+    command: centrifugo --config=/centrifugo/config.json --admin --health
+    ports:
+      - "8000:8000" # Port API của Centrifugo
+    volumes:
+      - ./docker/centrifugo/config.json:/centrifugo/config.json:ro
+    networks:
+      - bault-network
+    secrets:
+      - centrifugo_api_key
+      - centrifugo_jwt_secret
+      - centrifugo_admin_password
+      - centrifugo_admin_secret
+
+  # Service cho phpMyAdmin
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: bault_phpmyadmin
+    restart: unless-stopped
+    ports:
+      - "8081:80" # Truy cập phpMyAdmin qua http://localhost:8081
+    environment:
+      PMA_HOST: db
+      PMA_USER: root
+      # CẢI THIỆN: Sử dụng secret để an toàn và nhất quán hơn.
+      # PMA_PASSWORD_FILE chỉ cho phpMyAdmin đọc mật khẩu từ file.
+      PMA_PASSWORD_FILE: /run/secrets/db_password
+      UPLOAD_LIMIT: 1G # Tùy chọn: Tăng giới hạn upload file
+    networks:
+      - bault-network
+    depends_on:
+      db:
+        condition: service_healthy
+    secrets:
+      - db_password
+
+networks:
+  bault-network:
+    driver: bridge
+    
+secrets:
+  db_password:
+    file: ./docker/secrets/db_password.txt
+  centrifugo_api_key:
+    file: ./docker/secrets/centrifugo_api_key.txt
+  centrifugo_jwt_secret:
+    file: ./docker/secrets/centrifugo_jwt_secret.txt
+  centrifugo_admin_password:
+    file: ./docker/secrets/centrifugo_admin_password.txt
+  centrifugo_admin_secret:
+    file: ./docker/secrets/centrifugo_admin_secret.txt
+
+volumes:
+  db_data:
+    driver: local

@@ -1,0 +1,13 @@
+{
+  "admin": true,
+  "admin_password": "file:/run/secrets/centrifugo_admin_password",
+  "admin_secret": "file:/run/secrets/centrifugo_admin_secret",
+  "api_key": "file:/run/secrets/centrifugo_api_key",
+  "token_hmac_secret_key": "file:/run/secrets/centrifugo_jwt_secret",
+
+  "allowed_origins": ["*"],
+
+  "log_level": "info",
+
+  "presence": true
+}

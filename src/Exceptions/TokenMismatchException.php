@@ -2,12 +2,11 @@
 
 namespace App\Exceptions;
 
-use Exception;
-
-class TokenMismatchException extends Exception
+/**
+ * Ném ra khi CSRF token không khớp.
+ * Exception này thường được ExceptionHandler bắt lại để trả về response 419.
+ */
+class TokenMismatchException extends \Exception
 {
-    public function __construct(string $message = 'CSRF token mismatch.', int $code = 419, ?\Throwable $previous = null)
-    {
-        parent::__construct($message, $code, $previous);
-    }
+    // Bạn có thể thêm các logic tùy chỉnh ở đây nếu cần trong tương lai.
 }

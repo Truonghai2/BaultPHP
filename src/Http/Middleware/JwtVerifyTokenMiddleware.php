@@ -2,24 +2,35 @@
 
 namespace Http\Middleware;
 
-use App\Exceptions\AuthorizationException;
-use Core\Support\Facades\Auth;
-use Http\Request;
+use Http\ResponseFactory;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
+use Psr\Http\Server\RequestHandlerInterface;
 
-class JwtVerifyTokenMiddleware
+class JwtVerifyTokenMiddleware implements MiddlewareInterface
 {
-    public function handle(Request $request, \Closure $next)
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // JwtGuard sẽ tự động giải quyết người dùng từ token.
-        // Chúng ta chỉ cần kích hoạt nó bằng cách gọi một phương thức trên guard.
-        $user = Auth::guard('api')->user();
-        
-        // Nếu có token nhưng không hợp lệ, người dùng sẽ là null.
-        // Chúng ta chỉ ném exception nếu có token nhưng xác thực thất bại.
-        if ($request->bearerToken() && is_null($user)) {
-            throw new AuthorizationException('Unauthenticated.', 401);
+        $header = $request->getHeaderLine('Authorization');
+
+        if ($header && preg_match('/Bearer\s+(.*)$/i', $header, $matches)) {
+            $token = $matches[1];
+
+            try {
+                $decoded = JWT::decode($token, new Key(config('app.key'), 'HS256'));
+                // Gán user ID hoặc toàn bộ payload vào request để các phần sau sử dụng.
+                // Sử dụng 'jwt_user' để tránh xung đột với các thuộc tính khác.
+                $request = $request->withAttribute('jwt_user', $decoded->data);
+            } catch (\Exception $e) {
+                // BẢO MẬT: Không bao giờ bỏ qua lỗi xác thực.
+                // Nếu token không hợp lệ, trả về lỗi 401 ngay lập tức.
+                return (new ResponseFactory())->json(['error' => 'Unauthorized', 'message' => $e->getMessage()], 401);
+            }
         }
 
-        return $next($request);
+        return $handler->handle($request);
     }
 }

@@ -3,6 +3,7 @@
 namespace Core\CLI;
 
 use Core\Application;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Application as ConsoleApplication;
 use Symfony\Component\Console\Command\Command;
 use Throwable;
@@ -12,43 +13,80 @@ class ConsoleKernel
     protected array $commands = [];
     protected ConsoleApplication $cli;
     protected Application $app;
+    protected string $commandSuffix;
 
     public function __construct(Application $app)
     {
         $this->app = $app;
         $this->cli = new ConsoleApplication('BaultFrame Console', '1.0.0');
-        $this->loadCommands();
+        $this->commandSuffix = config('app.command_suffix', 'Command.php');
     }
 
     protected function loadCommands(): void
     {
-        // Quét command từ core và từ các module
-        $paths = array_merge(
-            glob($this->app->basePath('src/Core/Console/Commands/*Command.php')),
-            glob($this->app->basePath('Modules/*/Console/*Command.php'))
-        );
+        $registeredCommands = [];
+        $paths = [];
+        $paths = array_merge($paths, $this->scanCommands($this->app->basePath('src/Core/Console/Commands')));
+        $paths = array_merge($paths, $this->scanCommands($this->app->basePath('app/Console/Commands')));
+        foreach (glob($this->app->basePath('Modules/*'), GLOB_ONLYDIR) as $moduleDir) {
+            $paths = array_merge($paths, $this->scanCommands($moduleDir . '/Console'));
+        }
 
         foreach ($paths as $file) {
             $class = $this->fqcnFromFile($file);
 
             if ($class && class_exists($class) && is_subclass_of($class, Command::class)) {
                 try {
-                    // Sử dụng DI container để khởi tạo command, cho phép inject dependencies
                     $command = $this->app->make($class);
 
-                    // If it's one of our base commands, inject the core application instance.
-                    // This avoids the signature conflict with Symfony's setApplication.
                     if (method_exists($command, 'setCoreApplication')) {
                         $command->setCoreApplication($this->app);
                     }
-                    $this->cli->add($command);
+
+                    if (isset($registeredCommands[$command->getName()])) {
+                        $this->app->make(LoggerInterface::class)->warning("Duplicate command name '{$command->getName()}' from '{$class}'. It will be overridden.");
+                    }
+
+                    $registeredCommands[$command->getName()] = $class;
+
+                    $logger = $this->app->make(LoggerInterface::class);
+                    $decoratedCommand = new LoggingCommandDecorator($command, $logger);
+
+                    $this->cli->add($decoratedCommand);
                 } catch (Throwable $e) {
-                    // Ghi lỗi ra console nếu một command không thể được khởi tạo,
-                    // nhưng không làm dừng toàn bộ ứng dụng CLI.
-                    $this->cli->add(new FailedCommand($class, $e->getMessage()));
+                    if ($this->app->bound(LoggerInterface::class)) {
+                        $logger = $this->app->make(LoggerInterface::class);
+                        $logger->error("Không thể khởi tạo console command '{class}'.", [
+                            'class'     => $class,
+                            'exception' => $e,
+                        ]);
+                    }
+                    $this->cli->add(new FailedCommand($class, $e));
                 }
             }
         }
+    }
+
+    /**
+     * Scan a directory for command files recursively.
+     */
+    private function scanCommands(string $directory): array
+    {
+        if (!is_dir($directory)) {
+            return [];
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::LEAVES_ONLY,
+        );
+        $files = [];
+        foreach ($iterator as $file) {
+            if ($file->isFile() && $file->getExtension() === 'php' && str_ends_with($file->getFilename(), 'Command.php')) {
+                $files[] = $file->getPathname();
+            }
+        }
+        return array_filter($files, fn ($file) => str_ends_with(basename($file), $this->commandSuffix));
     }
 
     /**
@@ -56,6 +94,10 @@ class ConsoleKernel
      */
     public function handle(): int
     {
+        // Tải tất cả các command ngay trước khi chạy ứng dụng console.
+        // Logic này giờ chỉ được thực thi trong môi trường CLI.
+        $this->loadCommands();
+
         return $this->cli->run();
     }
 
@@ -65,12 +107,12 @@ class ConsoleKernel
      */
     private function fqcnFromFile(string $filePath): ?string
     {
-        // Định nghĩa các ánh xạ PSR-4.
-        // Thứ tự rất quan trọng: các đường dẫn cụ thể hơn nên được đặt trước.
+        // Define PSR-4 mappings.
+        // Order is important: more specific paths should come first.
         $psr4Mappings = [
             'Core\\' => $this->app->basePath('src/Core'),
             'Modules\\' => $this->app->basePath('Modules'),
-            // 'App\\' => $this->app->basePath('src'), // Có thể thêm các mapping khác ở đây
+            'App\\' => $this->app->basePath('src'), // Keep the App namespace pointing to src/
         ];
 
         $normalizedPath = str_replace('\\', '/', $filePath);
@@ -78,11 +120,11 @@ class ConsoleKernel
         foreach ($psr4Mappings as $namespace => $path) {
             $normalizedBasePath = rtrim(str_replace('\\', '/', $path), '/');
             if (str_starts_with($normalizedPath, $normalizedBasePath)) {
-                // Lấy đường dẫn class tương đối so với thư mục gốc của PSR-4
+                // Get the relative class path from the PSR-4 root directory
                 $relativeClassPath = substr($normalizedPath, strlen($normalizedBasePath) + 1);
-                // Bỏ phần mở rộng .php
+                // Remove the .php extension
                 $classPathWithoutExt = substr($relativeClassPath, 0, -4);
-                // Tạo lại FQCN hoàn chỉnh
+                // Reconstruct the full FQCN
                 return $namespace . str_replace('/', '\\', $classPathWithoutExt);
             }
         }

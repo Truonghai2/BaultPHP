@@ -16,7 +16,14 @@ abstract class TestCase extends BaseTestCase
      */
     public function createApplication(): Application
     {
-        $kernel = new AppKernel();
+        // Set the DB_CONNECTION environment variable for testing
+        $_ENV['DB_CONNECTION'] = 'sqlite';
+        $_SERVER['DB_CONNECTION'] = 'sqlite';
+
+        $app = new Application(
+            $_ENV['APP_BASE_PATH'] ?? realpath(__DIR__.'/../')
+        );
+        $kernel = new AppKernel($app);
         return $kernel->getApplication();
     }
 

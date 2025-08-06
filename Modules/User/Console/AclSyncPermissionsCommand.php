@@ -2,9 +2,10 @@
 
 namespace Modules\User\Console;
 
-use Core\Application;
 use Core\Console\Contracts\BaseCommand;
+use Core\Support\Collection;
 use Modules\User\Infrastructure\Models\Permission;
+use Throwable;
 
 class AclSyncPermissionsCommand extends BaseCommand
 {
@@ -22,41 +23,23 @@ class AclSyncPermissionsCommand extends BaseCommand
     {
         $this->io->title('Synchronizing Permissions from Files to Database');
 
-        // 1. Lấy tất cả quyền từ các file permissions.php
+        // 1. Thu thập dữ liệu
         $filePermissions = $this->getFilePermissions();
+        $dbPermissions = Permission::all()->keyBy('name');
         $this->io->info(count($filePermissions) . ' permissions found in module files.');
+        $this->io->info($dbPermissions->count() . ' permissions found in the database.');
 
-        // 2. Lấy tất cả quyền từ CSDL
-        $dbPermissions = Permission::all()->map(fn($p) => $p->name)->all();
-        $this->io->info(count($dbPermissions) . ' permissions found in the database.');
+        // 2. Tính toán sự khác biệt
+        $filePermissionNames = array_keys($filePermissions);
+        $dbPermissionNames = $dbPermissions->keys()->all();
+        $toAddNames = array_diff($filePermissionNames, $dbPermissionNames);
+        $toRemoveNames = array_diff($dbPermissionNames, $filePermissionNames);
+        $toCheckNames = array_intersect($filePermissionNames, $dbPermissionNames);
 
-        // 3. Tính toán quyền cần thêm và xóa
-        $toAdd = array_diff($filePermissions, $dbPermissions);
-        $toRemove = array_diff($dbPermissions, $filePermissions);
+        // 3. Thực hiện đồng bộ và báo cáo kết quả
+        $changes = $this->performSync($toAddNames, $toCheckNames, $toRemoveNames, $filePermissions, $dbPermissions);
+        $this->reportChanges($changes);
 
-        // 4. Thực hiện thêm quyền mới
-        if (!empty($toAdd)) {
-            $this->io->section('Adding new permissions:');
-            foreach ($toAdd as $permissionName) {
-                Permission::create(['name' => $permissionName]);
-                $this->io->writeln("  - <fg=green>Added:</> {$permissionName}");
-            }
-        } else {
-            $this->io->writeln('No new permissions to add.');
-        }
-
-        // 5. Thực hiện xóa quyền không còn dùng
-        if (!empty($toRemove)) {
-            $this->io->section('Removing stale permissions:');
-            Permission::where('name', 'IN', $toRemove)->delete();
-            foreach ($toRemove as $permissionName) {
-                $this->io->writeln("  - <fg=red>Removed:</> {$permissionName}");
-            }
-        } else {
-            $this->io->writeln('No stale permissions to remove.');
-        }
-
-        $this->io->success('Permissions synchronized successfully!');
         return 0;
     }
 
@@ -68,13 +51,104 @@ class AclSyncPermissionsCommand extends BaseCommand
         foreach ($moduleDirs as $dir) {
             $permissionFile = $dir . '/permissions.php';
             if (file_exists($permissionFile)) {
-                $modulePermissions = require $permissionFile;
-                if (is_array($modulePermissions)) {
-                    $permissions = array_merge($permissions, $modulePermissions);
+                try {
+                    $modulePermissions = require $permissionFile;
+                    if (is_array($modulePermissions)) {
+                        $permissions = array_merge($permissions, $modulePermissions);
+                    }
+                } catch (Throwable $e) {
+                    $this->io->warning("Could not load permissions from: {$permissionFile}. Error: {$e->getMessage()}");
                 }
             }
         }
 
-        return array_unique($permissions);
+        return $permissions;
+    }
+
+    private function performSync(array $toAdd, array $toCheck, array $toRemove, array $filePerms, Collection $dbPerms): array
+    {
+        $addedCount = $this->syncAdded($toAdd, $filePerms);
+        $updatedCount = $this->syncUpdated($toCheck, $filePerms, $dbPerms);
+        $removedCount = $this->syncRemoved($toRemove);
+
+        return ['added' => $addedCount, 'updated' => $updatedCount, 'removed' => $removedCount];
+    }
+
+    private function syncAdded(array $names, array $filePerms): int
+    {
+        if (empty($names)) {
+            return 0;
+        }
+
+        $this->io->section('Adding new permissions:');
+        foreach ($names as $name) {
+            $details = $filePerms[$name];
+            Permission::create([
+                'name' => $name,
+                'description' => $details['description'] ?? '',
+                'captype' => $details['captype'] ?? 'notAll',
+            ]);
+            $this->io->writeln("  - <fg=green>Added:</> {$name}");
+        }
+        return count($names);
+    }
+
+    private function syncUpdated(array $names, array $filePerms, Collection $dbPerms): int
+    {
+        if (empty($names)) {
+            return 0;
+        }
+
+        $this->io->section('Checking existing permissions for updates:');
+        $updatedCount = 0;
+        foreach ($names as $name) {
+            $fileDetails = $filePerms[$name];
+            $dbPermission = $dbPerms[$name];
+
+            $descriptionChanged = ($fileDetails['description'] ?? '') !== $dbPermission->description;
+            $captypeChanged = ($fileDetails['captype'] ?? 'notAll') !== $dbPermission->captype;
+
+            if ($descriptionChanged || $captypeChanged) {
+                $dbPermission->description = $fileDetails['description'] ?? '';
+                $dbPermission->captype = $fileDetails['captype'] ?? 'notAll';
+                $dbPermission->save();
+                $this->io->writeln("  - <fg=yellow>Updated:</> {$name} (details changed)");
+                $updatedCount++;
+            }
+        }
+
+        if ($updatedCount === 0) {
+            $this->io->writeln('No permissions needed an update.');
+        }
+        return $updatedCount;
+    }
+
+    private function syncRemoved(array $names): int
+    {
+        if (empty($names)) {
+            return 0;
+        }
+
+        $this->io->section('Removing stale permissions:');
+        $numRemoved = Permission::where('name', 'IN', $names)->delete();
+        foreach ($names as $name) {
+            $this->io->writeln("  - <fg=red>Removed:</> {$name}");
+        }
+        return 1;
+    }
+
+    private function reportChanges(array $changes): void
+    {
+        $this->io->newLine();
+        if (array_sum($changes) === 0) {
+            $this->io->success('Permissions are already up-to-date.');
+        } else {
+            $this->io->success(sprintf(
+                'Synchronization complete! Added: %d, Updated: %d, Removed: %d.',
+                $changes['added'],
+                $changes['updated'],
+                $changes['removed'],
+            ));
+        }
     }
 }

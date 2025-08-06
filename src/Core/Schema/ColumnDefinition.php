@@ -5,10 +5,12 @@ namespace Core\Schema;
 class ColumnDefinition
 {
     protected string $sql;
-    protected bool $isUnique = false;
+    public bool $isUnique = false;
     protected $defaultValue = null;
     protected bool $hasDefault = false;
     protected bool $isNullable = false;
+    public bool $isIndex = false;
+    protected ?string $comment = null;
 
     public function __construct(string $sql)
     {
@@ -44,7 +46,30 @@ class ColumnDefinition
         return $this;
     }
 
-    public function getSql(string $column): array
+    /**
+     * Add an index to the column.
+     *
+     * @return $this
+     */
+    public function index(): self
+    {
+        $this->isIndex = true;
+        return $this;
+    }
+
+    /**
+     * Add a comment to the column.
+     *
+     * @param string $comment
+     * @return $this
+     */
+    public function comment(string $comment): self
+    {
+        $this->comment = $comment;
+        return $this;
+    }
+
+    public function getSql(): string
     {
         $baseSql = $this->sql;
 
@@ -55,24 +80,27 @@ class ColumnDefinition
         }
 
         if ($this->hasDefault) {
-            if (is_string($this->defaultValue)) {
-                $baseSql .= " DEFAULT '" . addslashes($this->defaultValue) . "'";
+            if (is_null($this->defaultValue)) {
+                $baseSql .= ' DEFAULT NULL';
+            } elseif (is_string($this->defaultValue)) {
+                // Handle special keywords like CURRENT_TIMESTAMP without quotes
+                if (in_array(strtoupper($this->defaultValue), ['CURRENT_TIMESTAMP'])) {
+                    $baseSql .= ' DEFAULT ' . $this->defaultValue;
+                } else {
+                    $baseSql .= " DEFAULT '" . addslashes($this->defaultValue) . "'";
+                }
             } elseif (is_bool($this->defaultValue)) {
-                $baseSql .= " DEFAULT " . ($this->defaultValue ? '1' : '0');
-            } elseif (is_null($this->defaultValue)) {
-                $baseSql .= " DEFAULT NULL";
+                $baseSql .= ' DEFAULT ' . ($this->defaultValue ? '1' : '0');
             } else {
-                $baseSql .= " DEFAULT " . $this->defaultValue;
+                $baseSql .= ' DEFAULT ' . $this->defaultValue;
             }
         }
 
-        $sqls = [$baseSql];
-
-        if ($this->isUnique) {
-            $sqls[] = "UNIQUE (`$column`)";
+        if ($this->comment) {
+            $baseSql .= " COMMENT '" . addslashes($this->comment) . "'";
         }
 
-        return $sqls;
+        return $baseSql;
     }
 
     public function setOption(string $key, mixed $value): void
@@ -89,6 +117,11 @@ class ColumnDefinition
             case 'unique':
                 if ($value) {
                     $this->unique();
+                }
+                break;
+            case 'index':
+                if ($value) {
+                    $this->index();
                 }
                 break;
             default:

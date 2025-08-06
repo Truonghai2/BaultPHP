@@ -15,7 +15,7 @@ class AppHealthCheckCommand extends BaseCommand
      */
     public function __construct(
         private ?PDO $pdo,
-        private ?CentrifugoAPIService $centrifugo
+        private ?CentrifugoAPIService $centrifugo,
     ) {
         parent::__construct();
     }

@@ -2,7 +2,6 @@
 
 namespace App\Providers;
 
-use Core\Application;
 use Core\Config;
 use Core\Support\ServiceProvider;
 
@@ -14,7 +13,7 @@ class ConfigServiceProvider extends ServiceProvider
             $items = [];
             // We are not loading all config files here anymore.
             // Instead, config values will be loaded on demand.
-            
+
             return new Config($items);
         });
     }

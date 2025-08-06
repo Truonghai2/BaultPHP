@@ -2,46 +2,43 @@
 
 namespace Core\Console\Commands;
 
-use Core\Console\Contracts\BaseCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 
-class KeyGenerateCommand extends BaseCommand
+class KeyGenerateCommand extends Command
 {
-    public function signature(): string
+    protected static $defaultName = 'key:generate';
+
+    protected function configure()
     {
-        return 'key:generate';
+        $this->setDescription('Generate a new application key.');
     }
 
-    public function description(): string
-    {
-        return 'Set the application key.';
-    }
-
-    public function handle(): int
+    protected function execute(InputInterface $input, OutputInterface $output)
     {
         $key = 'base64:'.base64_encode(random_bytes(32));
 
-        $envPath = base_path('.env');
+        $path = base_path('.env');
 
-        if (!file_exists($envPath)) {
-            $this->io->error(".env file not found. Please create it from .env.example first.");
-            return 1;
+        if (file_exists($path)) {
+            $content = file_get_contents($path);
+
+            if (strpos($content, 'APP_KEY=') !== false) {
+                $content = preg_replace(
+                    '/APP_KEY=.*/',
+                    'APP_KEY='.$key,
+                    $content
+                );
+            } else {
+                $content .= "\nAPP_KEY=".$key;
+            }
+
+            file_put_contents($path, $content);
         }
 
-        $content = file_get_contents($envPath);
+        $output->writeln("Application key set successfully.");
 
-        if (str_contains($content, 'APP_KEY=')) {
-            $content = preg_replace(
-                '/^APP_KEY=.*$/m',
-                'APP_KEY='.$key,
-                $content
-            );
-        } else {
-            $content .= "\nAPP_KEY=".$key."\n";
-        }
-
-        file_put_contents($envPath, $content);
-
-        $this->io->success("Application key [$key] set successfully.");
-        return 0;
+        return Command::SUCCESS;
     }
 }

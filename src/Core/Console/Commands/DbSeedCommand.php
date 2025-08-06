@@ -4,11 +4,9 @@ namespace Core\Console\Commands;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
-use Database\Seeders\DatabaseSeeder;
 
 class DbSeedCommand extends BaseCommand
 {
-
     public function description(): string
     {
         return 'Seed the database with records';

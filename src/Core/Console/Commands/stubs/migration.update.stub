@@ -1,0 +1,28 @@
+<?php
+
+{{ namespace }}
+use Core\Schema\Blueprint;
+use Core\Schema\Migration;
+
+return new class extends Migration
+{
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
+    {
+        $this->schema->table('{{ table }}', function (Blueprint $table) {
+            //
+        });
+    }
+
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
+    {
+        $this->schema->table('{{ table }}', function (Blueprint $table) {
+            //
+        });
+    }
+};

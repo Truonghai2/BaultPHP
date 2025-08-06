@@ -2,12 +2,10 @@
 
 namespace App\Providers;
 
-use Modules\User\Application\Services\AccessControlService;
 use Core\Auth\AuthManager;
-use Core\Auth\RequestGuard;
-use Core\Auth\SessionGuard;
+use Core\Contracts\StatefulService;
 use Core\Support\ServiceProvider;
-use Modules\User\Infrastructure\Models\User;
+use Modules\User\Domain\Services\AccessControlService;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -16,6 +14,9 @@ class AuthServiceProvider extends ServiceProvider
         $this->app->singleton(AuthManager::class, function ($app) {
             return new AuthManager($app);
         });
+
+        // Gán tag cho AuthManager để nó được reset sau mỗi request.
+        $this->app->tag(AuthManager::class, \Core\Contracts\StatefulService::class);
 
         // Guards are resolved via the AuthManager, so we don't need to register them here directly.
         // The AuthManager will create and cache them as singletons for the request lifecycle.

@@ -38,7 +38,7 @@ class MakeRuleCommand extends BaseCommand
     public function fire(): void
     {
         $name = $this->argument('name');
-        $path = app_path("Rules");
+        $path = app_path('Rules');
 
         if (!is_dir($path)) {
             mkdir($path, 0755, true);

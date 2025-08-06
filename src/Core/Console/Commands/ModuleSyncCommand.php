@@ -2,9 +2,8 @@
 
 namespace Core\Console\Commands;
 
-use Core\Application;
-use Core\Module\ModuleSynchronizer;
 use Core\Console\Contracts\BaseCommand;
+use Core\Module\ModuleSynchronizer;
 use Throwable;
 
 class ModuleSyncCommand extends BaseCommand

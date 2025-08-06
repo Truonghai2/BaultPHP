@@ -18,7 +18,7 @@ class MorphedByMany extends MorphToMany
         string $relatedPivotKey, // e.g., post_id
         string $parentKey,       // e.g., id on tags table
         string $relatedKey,      // e.g., id on posts table
-        string $morphType
+        string $morphType,
     ) {
         parent::__construct($query, $parent, $pivotTable, $foreignPivotKey, $relatedPivotKey, $parentKey, $relatedKey, $morphType);
     }

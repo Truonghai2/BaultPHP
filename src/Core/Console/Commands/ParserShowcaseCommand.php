@@ -25,17 +25,16 @@ class ParserShowcaseCommand extends BaseCommand
      * @var string
      */
     protected string $signature = 'parser:showcase 
-                                   {required_arg : The user ID that is required.}
-                                   {optional_arg?}
-                                   {arg_with_default=default_value}
-                                   {required_array_arg*}
-                                   {optional_array_arg?*}
-                                   {--flag}
-                                   {--required_val=}
-                                   {--optional_val[=low]}
-                                   {--array_opt=*}
-                                   {--shortcut|-S}
-                                   {--verbose|-v : Increase verbosity level.}';
+                    {required_arg : The user ID that is required.} 
+                    {optional_arg? : An optional argument.} 
+                    {arg_with_default=default_value : Has a default value.} 
+                    {optional_array_arg?* : Optional array argument. Must be the last argument.}
+                    {--flag : A boolean flag}
+                    {--required_val= : A required option with a value}
+                    {--optional_val[=low] : An optional option with default}
+                    {--array_opt=* : An array option}
+                    {--shortcut|-S : Shortcut option}
+                    {--verbose|-v : Increase verbosity level.}';
 
     /**
      * The console command description.
@@ -74,11 +73,10 @@ class ParserShowcaseCommand extends BaseCommand
     private function displayArguments(): void
     {
         $this->info("\n<fg=yellow>Arguments:</>");
-        $this->line("1. Required (required_arg): <fg=cyan>" . $this->argument('required_arg') . "</>");
-        $this->line("2. Optional (optional_arg): <fg=cyan>" . ($this->argument('optional_arg') ?? '[Not Provided]') . "</>");
-        $this->line("3. Optional w/ Default (arg_with_default): <fg=cyan>" . $this->argument('arg_with_default') . "</>");
-        $this->line("4. Required Array (required_array_arg): <fg=cyan>" . $this->formatArrayOutput($this->argument('required_array_arg')) . "</>");
-        $this->line("5. Optional Array (optional_array_arg): <fg=cyan>" . $this->formatArrayOutput($this->argument('optional_array_arg')) . "</>");
+        $this->line('1. Required (required_arg): <fg=cyan>' . $this->argument('required_arg') . '</>');
+        $this->line('2. Optional (optional_arg): <fg=cyan>' . ($this->argument('optional_arg') ?? '[Not Provided]') . '</>');
+        $this->line('3. Optional w/ Default (arg_with_default): <fg=cyan>' . $this->argument('arg_with_default') . '</>');
+        $this->line('4. Optional Array (optional_array_arg): <fg=cyan>' . $this->formatArrayOutput($this->argument('optional_array_arg')) . '</>');
     }
 
     /**
@@ -87,12 +85,12 @@ class ParserShowcaseCommand extends BaseCommand
     private function displayOptions(): void
     {
         $this->info("\n<fg=yellow>Options:</>");
-        $this->line("1. Flag (--flag): <fg=cyan>" . ($this->option('flag') ? 'true' : 'false') . "</>");
-        $this->line("2. Value Required (--required_val): <fg=cyan>" . ($this->option('required_val') ?? '[Not Provided]') . "</>");
-        $this->line("3. Value Optional (--optional_val): <fg=cyan>" . $this->option('optional_val') . "</>");
-        $this->line("4. Array (--array_opt): <fg=cyan>" . $this->formatArrayOutput($this->option('array_opt')) . "</>");
-        $this->line("5. Shortcut (--shortcut|-S): <fg=cyan>" . ($this->option('shortcut') ? 'true' : 'false') . "</>");
-        $this->line("6. Verbose Flag (--verbose|-v): <fg=cyan>" . ($this->option('verbose') ? 'true' : 'false') . "</>");
+        $this->line('1. Flag (--flag): <fg=cyan>' . ($this->option('flag') ? 'true' : 'false') . '</>');
+        $this->line('2. Value Required (--required_val): <fg=cyan>' . ($this->option('required_val') ?? '[Not Provided]') . '</>');
+        $this->line('3. Value Optional (--optional_val): <fg=cyan>' . $this->option('optional_val') . '</>');
+        $this->line('4. Array (--array_opt): <fg=cyan>' . $this->formatArrayOutput($this->option('array_opt')) . '</>');
+        $this->line('5. Shortcut (--shortcut|-S): <fg=cyan>' . ($this->option('shortcut') ? 'true' : 'false') . '</>');
+        $this->line('6. Verbose Flag (--verbose|-v): <fg=cyan>' . ($this->option('verbose') ? 'true' : 'false') . '</>');
     }
 
     /**

@@ -6,7 +6,6 @@ use Core\Console\Contracts\BaseCommand;
 
 class MakeEventCommand extends BaseCommand
 {
-
     public function signature(): string
     {
         return 'make:event {name : The name of the event class}';
