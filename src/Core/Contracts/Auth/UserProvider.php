@@ -2,6 +2,9 @@
 
 namespace Core\Contracts\Auth;
 
+/**
+ * UserProvider is responsible for retrieving user information from a data source.
+ */
 interface UserProvider
 {
     /**

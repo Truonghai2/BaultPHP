@@ -1,3 +1,218 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Custom styles cho code highlighting */
+pre[class*="language-"] {
+  @apply text-sm bg-gray-800/90 rounded-md !important;
+}
+
+/* Animation cho các button và hover effects */
+.hover\:bg-gray-800\/70:hover {
+  transition: all 0.3s ease;
+}
+
+/* Gradient animation cho background */
+.bg-gradient-animation {
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Custom scrollbar cho code blocks */
+pre::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+pre::-webkit-scrollbar-track {
+  background-color: #1f2937; /* Tương ứng với bg-gray-800 */
+}
+
+pre::-webkit-scrollbar-thumb {
+  background-color: rgba(
+    99,
+    102,
+    241,
+    0.5
+  ); /* Tương ứng với bg-indigo-500 với 50% opacity */
+  border-radius: 9999px; /* Tương ứng với rounded-full */
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .code-preview {
+    @apply text-xs;
+  }
+}
+
+/* Code Preview Styling */
+.code-with-line-numbers {
+  counter-reset: line;
+  padding: 0 1rem;
+}
+
+.code-with-line-numbers code {
+  display: block;
+  position: relative;
+  padding-left: 3.5rem;
+}
+
+.code-with-line-numbers code > * {
+  position: relative;
+  z-index: 2;
+}
+
+.code-with-line-numbers code::before {
+  counter-increment: line;
+  content: counter(line);
+  position: absolute;
+  left: -2.5rem;
+  width: 2rem;
+  text-align: right;
+  color: #4b5563;
+  opacity: 0.5;
+}
+
+/* Syntax Highlighting Enhancements */
+.token.comment,
+.token.prolog,
+.token.doctype,
+.token.cdata {
+  color: #6b7280;
+  font-style: italic;
+}
+
+.token.function {
+  color: #60a5fa;
+}
+
+.token.keyword {
+  color: #f472b6;
+}
+
+.token.string {
+  color: #34d399;
+}
+
+.token.number {
+  color: #f59e0b;
+}
+
+/* Scrollbar Styling */
+.overflow-x-auto::-webkit-scrollbar {
+  height: 6px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+}
+
+.overflow-x-auto::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+}
+
+/* Code Window Effects */
+.code-window {
+  backdrop-filter: blur(8px);
+  transition: all 0.3s ease;
+}
+
+.code-window:hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Logo Animation và Effects */
+.logo-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.logo-glow {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 150%;
+  height: 150%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(
+    circle,
+    rgba(99, 102, 241, 0.15) 0%,
+    rgba(99, 102, 241, 0) 70%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.logo-container:hover .logo-glow {
+  opacity: 1;
+}
+
+/* Nav Links Hover Effect */
+.nav-link {
+  position: relative;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: -2px;
+  left: 0;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  transition: width 0.3s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+/* Login Button Animation */
+.login-button-glow {
+  position: absolute;
+  top: -1px;
+  bottom: -1px;
+  left: -1px;
+  right: -1px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: -1;
+}
+
+.group:hover .login-button-glow {
+  opacity: 0.2;
+}
+
+/* Logo hover effect */
+.group:hover .bg-gradient-to-r {
+  animation: glow 2s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    opacity: 0.2;
+  }
+  to {
+    opacity: 0.4;
+    transform: scale(1.05);
+  }
+}

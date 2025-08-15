@@ -6,8 +6,7 @@ parameters:
     bootstrapFiles:
         - vendor/autoload.php
         - src/Core/helpers.php # Nạp các helper function để PHPStan biết chúng tồn tại
-    checkMissingIterableValueType: false
-    checkGenericClassInNonGenericObjectType: false
+    
     excludePaths:
         - '*/tests/*'
         - '*/database/migrations/*'

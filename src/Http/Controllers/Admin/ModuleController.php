@@ -4,12 +4,13 @@ namespace Http\Controllers\Admin;
 
 use Core\Module\ModuleManager;
 use Core\Routing\Attributes\Route;
+use Core\Support\Facades\Log;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Spiral\Goridge\RPC\RPC;
 
 // Add a Route attribute to the class to define a common prefix for all routes within.
 // Apply the 'can' middleware with the 'admin.modules.manage' permission.
-#[Route('/api/admin/modules', middleware: 'can:admin.modules.manage')]
+#[Route(prefix: '/api/admin/modules', middleware: ['can:admin.modules.manage'])]
 class ModuleController
 {
     public function __construct(private ModuleManager $moduleManager, private ?RPC $rpc)
@@ -24,8 +25,7 @@ class ModuleController
     {
         $modules = $this->moduleManager->getAllModules();
 
-        // Get the sync result from middleware (if any)
-        $syncResult = $request->attributes->get('sync_result');
+        $syncResult = $request->getAttribute('sync_result');
 
         return response()->json([
             'modules' => $modules,
@@ -72,6 +72,7 @@ class ModuleController
             ]);
             return response()->json(['message' => "Module '{$moduleName}' {$pastTenseAction} successfully."]);
         } catch (\Exception $e) {
+            Log::error("Failed to {$action} module '{$moduleName}': " . $e->getMessage(), ['exception' => $e]);
             return response()->json(['message' => $e->getMessage()], 500);
         }
     }

@@ -4,7 +4,6 @@ namespace Core\ORM;
 
 use Core\Schema\Migration;
 use Core\Schema\Schema;
-use PDO;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 /**
@@ -12,17 +11,23 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class MigrationManager
 {
-    protected PDO $pdo;
+    protected \PDO $pdo; // Ensure this is using the global PDO
     protected string $table;
     protected ?SymfonyStyle $io;
     protected Schema $schema;
 
-    public function __construct(PDO $pdo, string $migrationTable = 'migrations')
+    /**
+     * MigrationManager constructor.
+     * @param \PDO $pdo
+     * @param Schema $schema
+     * @param string $migrationTable
+     */
+    public function __construct(\PDO $pdo, Schema $schema, string $migrationTable = 'migrations')
     {
         $this->pdo = $pdo;
+        $this->schema = $schema;
         $this->io = null; // Khởi tạo là null, sẽ được set sau qua setOutput()
         $this->table = $migrationTable;
-        $this->schema = new Schema($this->pdo);
         $this->ensureTable();
     }
 
@@ -58,7 +63,7 @@ class MigrationManager
     public function getRan(): array
     {
         $stmt = $this->pdo->query("SELECT migration FROM {$this->table}");
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
     public function run(array $paths): void
@@ -78,29 +83,35 @@ class MigrationManager
         $batch = $this->getNextBatchNumber();
 
         foreach ($toRun as $file) {
-            $name = basename($file, '.php');
+            try {
+                $name = basename($file, '.php');
 
-            // `require_once` can return a value. For new-style migrations, it will return the instance.
-            $instance = require_once $file;
+                // `require_once` can return a value. For new-style migrations, it will return the instance.
+                $instance = require_once $file;
 
-            // If it's not an object, it's an old-style migration. We need to find and instantiate the class.
-            if (!is_object($instance)) {
-                $class = $this->findMigrationClass($file);
-                if (!$class) {
-                    $this->log("<error>Migration class not found in '{$file}' and it did not return an object.</error>");
-                    continue;
+                // If it's not an object, it's an old-style migration. We need to find and instantiate the class.
+                if (!is_object($instance)) {
+                    $class = $this->findMigrationClass($file);
+                    if (!$class) {
+                        $this->log("<error>Migration class not found in '{$file}' and it did not return an object.</error>");
+                        continue; // Skip this file and move to the next
+                    }
+                    $instance = new $class();
                 }
-                $instance = new $class();
-            }
 
-            if (!method_exists($instance, 'up')) {
-                $this->log("<error>Migration instance from '{$file}' does not have an 'up' method.</error>");
-                continue;
-            }
+                if (!method_exists($instance, 'up')) {
+                    $this->log("<error>Migration instance from '{$file}' does not have an 'up' method.</error>");
+                    continue; // Skip this file and move to the next
+                }
 
-            $this->runUp($instance);
-            $this->recordMigration($name, $batch);
-            $this->log("Migrated: <comment>$name</comment>");
+                $this->runUp($instance);
+                $this->recordMigration($name, $batch);
+                $this->log("Migrated: <comment>$name</comment>");
+            } catch (\Throwable $e) {
+                $this->log("<error>FATAL ERROR in migration file: {$file}</error>");
+                // Re-throw the exception to be handled by the calling command, which will stop the process.
+                throw $e;
+            }
         }
     }
 
@@ -154,48 +165,29 @@ class MigrationManager
         return $files;
     }
 
+    /**
+     * Extracts the fully qualified class name from a PHP file.
+     *
+     * @param string $file The full path to the PHP file.
+     * @return string|null The FQCN or null if not found.
+     */
     protected function findMigrationClass(string $file): ?string
     {
         $content = file_get_contents($file);
-        $tokens = token_get_all($content);
+        $namespace = null;
         $class = null;
-        $namespace = '';
-        $namespaceFound = false;
-        $classFound = false;
 
-        for ($i = 0; $i < count($tokens); $i++) {
-            if ($tokens[$i][0] === T_NAMESPACE) {
-                $namespace = ''; // Reset namespace
-                for ($j = $i + 1; $j < count($tokens); $j++) {
-                    if ($tokens[$j] === ';') {
-                        $namespaceFound = true;
-                        $i = $j; // Continue main loop from here
-                        break;
-                    }
-                    if (is_array($tokens[$j]) && in_array($tokens[$j][0], [T_STRING, T_NAME_QUALIFIED], true)) {
-                        $namespace .= $tokens[$j][1];
-                    } elseif (is_string($tokens[$j]) && $tokens[$j] === '\\') {
-                        $namespace .= '\\';
-                    }
-                }
-            }
-
-            if ($tokens[$i][0] === T_CLASS) {
-                // Look for the class name token which must be a T_STRING.
-                // This check avoids picking up 'extends' or other keywords.
-                if (isset($tokens[$i + 2]) && is_array($tokens[$i + 2]) && $tokens[$i + 2][0] === T_STRING) {
-                    $class = $tokens[$i + 2][1];
-                    $classFound = true;
-                    break;
-                }
-            }
+        // Match the namespace declaration
+        if (preg_match('/^namespace\s+([^;]+);/m', $content, $matches)) {
+            $namespace = $matches[1];
         }
 
-        if (!$classFound) {
-            return null;
+        // Match the class declaration
+        if (preg_match('/^class\s+([^\s{]+)/m', $content, $matches)) {
+            $class = $matches[1];
         }
 
-        return $namespaceFound ? trim($namespace) . '\\' . $class : $class;
+        return ($namespace && $class) ? $namespace . '\\' . $class : $class;
     }
 
     protected function recordMigration(string $name, int $batch): void
@@ -222,7 +214,7 @@ class MigrationManager
         // Lấy theo thứ tự ngược lại để rollback đúng thứ tự (quan trọng khi có khóa ngoại)
         $stmt = $this->pdo->prepare("SELECT migration FROM {$this->table} WHERE batch = ? ORDER BY id DESC");
         $stmt->execute([$batch]);
-        return $stmt->fetchAll(PDO::FETCH_COLUMN);
+        return $stmt->fetchAll(\PDO::FETCH_COLUMN);
     }
 
     protected function deleteMigrationRecord(string $name): void
@@ -249,32 +241,32 @@ class MigrationManager
 
         $this->log("<info>Rolling back batch:</info> {$batch}");
 
-        $allFiles = $this->getAllMigrationFiles($paths);
+        // Create a map of migration names to file paths for efficient lookup.
+        $filesMap = [];
+        foreach ($this->getAllMigrationFiles($paths) as $file) {
+            $filesMap[basename($file, '.php')] = $file;
+        }
 
         foreach ($migrationsToRollback as $migrationName) {
-            $fileFound = false;
-            foreach ($allFiles as $file) {
-                if (str_contains($file, $migrationName)) {
-                    $instance = require_once $file;
+            if (isset($filesMap[$migrationName])) {
+                $file = $filesMap[$migrationName];
+                $instance = require_once $file;
 
-                    if (!is_object($instance)) {
-                        $class = $this->findMigrationClass($file);
-                        if (!$class) {
-                            continue; // Log and continue, maybe the file was deleted but not the record
-                        }
-                        $instance = new $class();
+                if (!is_object($instance)) {
+                    $class = $this->findMigrationClass($file);
+                    if (!$class) {
+                        $this->log("<error>Could not find a class in migration file: {$file}</error>");
+                        continue;
                     }
-
-                    if (method_exists($instance, 'down')) {
-                        $this->runDown($instance);
-                        $this->deleteMigrationRecord($migrationName);
-                        $this->log("Rolled back: <comment>{$migrationName}</comment>");
-                        $fileFound = true;
-                    }
-                    break; // Found the file, break inner loop
+                    $instance = new $class();
                 }
-            }
-            if (!$fileFound) {
+
+                if (method_exists($instance, 'down')) {
+                    $this->runDown($instance);
+                    $this->deleteMigrationRecord($migrationName);
+                    $this->log("Rolled back: <comment>{$migrationName}</comment>");
+                }
+            } else {
                 $this->log("<error>Migration file for '{$migrationName}' not found. Skipping.</error>");
             }
         }
@@ -283,7 +275,7 @@ class MigrationManager
 
     protected function runUp(object $instance): void
     {
-        if ($instance instanceof Migration) {
+        if ($instance instanceof \Core\Schema\Migration) {
             $instance->setSchema($this->schema);
             $instance->up();
         } else {
@@ -294,7 +286,7 @@ class MigrationManager
 
     protected function runDown(object $instance): void
     {
-        if ($instance instanceof Migration) {
+        if ($instance instanceof \Core\Schema\Migration) {
             $instance->setSchema($this->schema);
             $instance->down();
         } else {

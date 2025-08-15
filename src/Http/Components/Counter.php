@@ -2,8 +2,8 @@
 
 namespace Http\Components;
 
-use Core\Frontend\Component;
 use Core\Frontend\Attributes\CallableMethod;
+use Core\Frontend\Component;
 
 /**
  * Một component Counter đơn giản để minh họa.

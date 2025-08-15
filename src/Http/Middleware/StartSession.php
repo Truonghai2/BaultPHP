@@ -2,7 +2,6 @@
 
 namespace Http\Middleware;
 
-use Closure;
 use Core\Application;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;

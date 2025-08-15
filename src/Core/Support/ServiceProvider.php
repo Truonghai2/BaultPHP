@@ -50,4 +50,9 @@ abstract class ServiceProvider
         $paths = $config->get('database.migrations.paths', []);
         $config->set('database.migrations.paths', array_unique(array_merge($paths, [$path])));
     }
+
+    protected function loadViewsFrom(string $path, string $namespace): void
+    {
+        $this->app->make('view')->addNamespace($namespace, $path);
+    }
 }

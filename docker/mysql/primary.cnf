@@ -1,0 +1,13 @@
+# /docker/mysql/primary.cnf
+# This configuration is for the primary (writable) database.
+
+[mysqld]
+# A unique server ID is required for replication.
+server-id = 1
+
+# Enable binary logging, which is required for replication.
+log-bin = mysql-bin
+
+# Enable GTID (Global Transaction Identifier) mode for robust replication.
+gtid_mode = ON
+enforce_gtid_consistency = ON

@@ -11,8 +11,7 @@ use Attribute;
 class Middleware
 {
     public function __construct(
-        public string|array $middleware
+        public string|array $middleware,
     ) {
     }
 }
-

@@ -2,7 +2,8 @@
 
 namespace Core\Services;
 
-use Illuminate\Filesystem\Filesystem;
+use Core\Filesystem\Filesystem;
+use Core\Support\Facades\Log;
 use Illuminate\Support\Str;
 use ZipArchive;
 
@@ -12,11 +13,9 @@ use ZipArchive;
  */
 class ModuleInstallerService
 {
-    protected Filesystem $fs;
-
-    public function __construct()
+    public function __construct(protected Filesystem $fs)
     {
-        $this->fs = new Filesystem();
+        // Filesystem is now injected by the DI container.
     }
 
     public function install(string $zipPath): void
@@ -38,17 +37,21 @@ class ModuleInstallerService
             throw new \Exception("Module '{$moduleMeta['name']}' đã tồn tại.");
         }
 
-        $this->fs->copyDirectory($tmpDir, $targetDir);
-        $this->fs->deleteDirectory($tmpDir);
+        // --- Cải tiến Bảo mật: Sử dụng `moveDirectory` thay vì `copyDirectory` ---
+        // Việc di chuyển (move) là một hành động nguyên tử hơn trên nhiều hệ thống file,
+        // giúp giảm thiểu nguy cơ tấn công Race Condition (TOCTOU), nơi kẻ tấn công
+        // có thể thay đổi file trong thư mục tạm sau khi đã được xác thực nhưng trước khi được sao chép.
+        $this->fs->moveDirectory($tmpDir, $targetDir);
+        // Không cần xóa $tmpDir nữa vì nó đã được di chuyển.
 
         event(new \Core\Events\ModuleInstalled($moduleMeta['name'], auth()->id() ?? null));
-        echo "Module '{$moduleMeta['name']}' đã được cài đặt thành công.\n";
+        Log::info("Module '{$moduleMeta['name']}' đã được cài đặt thành công.", ['installer' => 'zip']);
     }
 
     protected function ensureZipIsValid(string $zipPath): void
     {
         if (!file_exists($zipPath) || mime_content_type($zipPath) !== 'application/zip') {
-            throw new \Exception('File không hợp lệ hoặc không phải định dạng ZIP.');
+            throw new \Exception('File không hợp lệ hoặc không phải là file ZIP.');
         }
 
         if (filesize($zipPath) > 50 * 1024 * 1024) { // 50MB
@@ -60,9 +63,37 @@ class ModuleInstallerService
     {
         $zip = new ZipArchive();
         if ($zip->open($zipPath) !== true) {
-            throw new \Exception('Không thể giải nén file module.');
+            throw new \Exception('Không thể mở file module ZIP.');
         }
-        $this->fs->deleteDirectory($extractTo);
+
+        // --- Cải tiến Bảo mật: Chống Zip Bomb (Denial of Service) ---
+        // Tính tổng kích thước file sau khi giải nén để tránh bị tấn công làm đầy ổ đĩa.
+        $totalUncompressedSize = 0;
+        $maxUncompressedSize = 250 * 1024 * 1024; // Giới hạn 250MB
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $stat = $zip->statIndex($i);
+            if (substr($stat['name'], -1) !== '/') { // Chỉ tính file, bỏ qua thư mục
+                $totalUncompressedSize += $stat['size'];
+            }
+        }
+        if ($totalUncompressedSize > $maxUncompressedSize) {
+            $zip->close();
+            throw new \Exception('Kích thước module sau khi giải nén vượt quá giới hạn 250MB.');
+        }
+
+        // --- Cải tiến Bảo mật: Chống Zip Slip (Path Traversal) ---
+        // Kiểm tra tất cả các đường dẫn file trong ZIP trước khi giải nén.
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+            if (str_contains($filename, '..')) {
+                $zip->close();
+                throw new \Exception("Phát hiện đường dẫn không an toàn trong file ZIP: {$filename}");
+            }
+        }
+
+        // SỬA LỖI: Nếu tất cả các kiểm tra đã qua, tiến hành giải nén.
+        // Lệnh này đã bị thiếu trong phiên bản trước.
+        $this->fs->ensureDirectoryExists($extractTo);
         $zip->extractTo($extractTo);
         $zip->close();
     }
@@ -107,12 +138,21 @@ class ModuleInstallerService
             ->sortBy(fn ($f) => $f->getRelativePathname())
             ->values();
 
-        $combined = '';
+        // --- Cải tiến Hiệu năng: Sử dụng streaming để tính hash ---
+        // Thay vì đọc tất cả file vào bộ nhớ, chúng ta xử lý từng file một.
+        // Điều này giúp giảm đáng kể việc sử dụng bộ nhớ và ngăn ngừa lỗi
+        // "memory exhausted" với các module lớn.
+        $hashContext = hash_init('sha256');
         foreach ($allFiles as $file) {
-            $combined .= file_get_contents($file);
+            // Sử dụng hash_update_stream để hiệu quả hơn là file_get_contents
+            $stream = fopen($file->getRealPath(), 'r');
+            if ($stream === false) {
+                throw new \Exception("Không thể đọc file để xác thực: {$file->getRelativePathname()}");
+            }
+            hash_update_stream($hashContext, $stream);
+            fclose($stream);
         }
-
-        $actual = hash('sha256', $combined);
+        $actual = hash_final($hashContext);
 
         if (!hash_equals($expected, $actual)) {
             throw new \Exception('Chữ ký HASH không khớp, module có thể bị sửa đổi.');

@@ -13,7 +13,7 @@ class Resource
 {
     public function __construct(
         public string $uri,
-        public array $options = []
+        public array $options = [],
     ) {
     }
 }

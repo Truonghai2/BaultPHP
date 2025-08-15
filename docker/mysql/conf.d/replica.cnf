@@ -1,0 +1,9 @@
+# docker/mysql/replica.cnf
+[mysqld]
+# ID máy chủ phải là duy nhất và khác với primary
+server-id=2
+# Bật chế độ chỉ đọc để ngăn các ghi nhầm vào replica
+read-only=1
+# Bật GTID để tương thích với primary
+gtid-mode=ON
+enforce-gtid-consistency=ON

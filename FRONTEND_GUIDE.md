@@ -1,8 +1,8 @@
-# Hướng Dẫn Tích Hợp Frontend với BaultFrame
+# Hướng Dẫn Tích Hợp Frontend với BaultPHP
 
-Chào mừng các lập trình viên frontend! Tài liệu này sẽ hướng dẫn bạn cách kết nối và tương tác với backend được xây dựng bằng BaultFrame.
+Chào mừng các lập trình viên frontend! Tài liệu này sẽ hướng dẫn bạn cách kết nối và tương tác với backend được xây dựng bằng BaultPHP.
 
-BaultFrame là một backend mạnh mẽ, cung cấp các API RESTful và kết nối WebSocket để xây dựng các ứng dụng web động và hiện đại.
+BaultPHP là một backend mạnh mẽ, cung cấp các API RESTful và kết nối WebSocket để xây dựng các ứng dụng web động và hiện đại.
 
 ## Mục Lục
 
@@ -20,7 +20,7 @@ BaultFrame là một backend mạnh mẽ, cung cấp các API RESTful và kết 
 
 ## 1. Tổng Quan về API
 
-Backend BaultFrame cung cấp các endpoint API theo chuẩn REST. Một ví dụ điển hình là các endpoint quản lý bài viết đã được định nghĩa trong `CRUD_TUTORIAL.md`:
+Backend BaultPHP cung cấp các endpoint API theo chuẩn REST. Một ví dụ điển hình là các endpoint quản lý bài viết đã được định nghĩa trong `CRUD_TUTORIAL.md`:
 
 - **`GET /api/posts`**: Lấy danh sách tất cả bài viết.
 - **`POST /api/posts`**: Tạo một bài viết mới.
@@ -148,7 +148,7 @@ async function deletePost(postId, token) {
 
 Khi phát triển, frontend của bạn (ví dụ: `http://localhost:5173`) và backend (`http://localhost:8080`) thường chạy trên hai "origin" khác nhau (do khác cổng). Trình duyệt sẽ chặn các request từ frontend đến backend vì lý do bảo mật, gây ra lỗi **CORS**.
 
-Để khắc phục, backend BaultFrame cần được cấu hình để cho phép các request từ origin của frontend. Điều này thường được thực hiện bằng cách thêm một **Middleware** trong BaultFrame để tự động thêm các HTTP header cần thiết vào mỗi response.
+Để khắc phục, backend BaultPHP cần được cấu hình để cho phép các request từ origin của frontend. Điều này thường được thực hiện bằng cách thêm một **Middleware** trong BaultPHP để tự động thêm các HTTP header cần thiết vào mỗi response.
 
 **Các header cần thiết:**
 
@@ -162,7 +162,7 @@ Hãy liên hệ với đội ngũ backend để đảm bảo middleware này đ�
 
 ## 5. Tích Hợp Real-time với WebSocket
 
-BaultFrame sử dụng **Centrifuge** để cung cấp các tính năng real-time qua WebSocket. Điều này rất hữu ích cho các thông báo, chat, hoặc cập nhật dữ liệu trực tiếp.
+BaultPHP sử dụng **Centrifuge** để cung cấp các tính năng real-time qua WebSocket. Điều này rất hữu ích cho các thông báo, chat, hoặc cập nhật dữ liệu trực tiếp.
 
 **Thư viện phía Frontend:**
 
@@ -204,4 +204,4 @@ sub.subscribe();
 centrifuge.connect();
 ```
 
-Tài liệu này cung cấp các thông tin cơ bản để bạn bắt đầu. Chúc bạn xây dựng được một giao diện người dùng tuyệt vời với BaultFrame!
+Tài liệu này cung cấp các thông tin cơ bản để bạn bắt đầu. Chúc bạn xây dựng được một giao diện người dùng tuyệt vời với BaultPHP!

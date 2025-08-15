@@ -82,8 +82,11 @@ class LoggingCommandDecorator extends Command
             return $exitCode;
         } catch (Throwable $e) {
             // Ghi log bất kỳ exception nào xảy ra trong quá trình thực thi của command.
+            // Thêm file và line để dễ dàng xác định vị trí lỗi.
             $this->logger->error("Command '{$commandName}' failed with an exception.", [
-                'exception' => $e, // Monolog sẽ tự động định dạng exception
+                'exception' => get_class($e),
+                'file'      => $e->getFile(),
+                'line'      => $e->getLine(),
                 'message'   => $e->getMessage(),
             ]);
 

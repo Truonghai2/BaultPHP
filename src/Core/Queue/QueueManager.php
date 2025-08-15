@@ -2,27 +2,30 @@
 
 namespace Core\Queue;
 
+use Closure;
 use Core\Application;
-use Core\Contracts\Queue\Queue;
-use Core\Redis\RedisManager;
+use Core\Contracts\Queue\Queue as QueueContract;
 use InvalidArgumentException;
 
 class QueueManager
 {
     /**
      * The application instance.
-     * @var Application
+     *
+     * @var \Core\Application
      */
     protected Application $app;
 
     /**
      * The array of resolved queue connections.
+     *
      * @var array
      */
     protected array $connections = [];
 
     /**
-     * The array of registered queue connectors.
+     * The array of queue connectors.
+     *
      * @var array
      */
     protected array $connectors = [];
@@ -35,10 +38,10 @@ class QueueManager
     /**
      * Get a queue connection instance.
      *
-     * @param string|null $name
-     * @return Queue
+     * @param  string|null  $name
+     * @return \Core\Contracts\Queue\Queue
      */
-    public function connection(?string $name = null): Queue
+    public function connection(?string $name = null): QueueContract
     {
         $name = $name ?: $this->getDefaultDriver();
 
@@ -53,18 +56,18 @@ class QueueManager
     /**
      * Resolve a queue connection.
      *
-     * @param string $name
-     * @return Queue
+     * @param  string  $name
+     * @return \Core\Contracts\Queue\Queue
      */
-    protected function resolve(string $name): Queue
+    protected function resolve(string $name): QueueContract
     {
         $config = $this->getConfig($name);
 
-        if (isset($this->connectors[$config['driver']])) {
-            return call_user_func($this->connectors[$config['driver']], $config);
+        if (!isset($this->connectors[$config['driver']])) {
+            throw new InvalidArgumentException("No connector for [{$config['driver']}].");
         }
 
-        throw new InvalidArgumentException("Unsupported queue driver [{$config['driver']}].");
+        return $this->connectors[$config['driver']]($config);
     }
 
     /**
@@ -74,17 +77,9 @@ class QueueManager
      * @param  \Closure  $resolver
      * @return void
      */
-    public function addConnector(string $driver, \Closure $resolver): void
+    public function addConnector(string $driver, Closure $resolver): void
     {
         $this->connectors[$driver] = $resolver;
-    }
-
-    /**
-     * Get the name of the default queue connection.
-     */
-    public function getDefaultDriver(): string
-    {
-        return $this->app->make('config')->get('queue.default', 'sync');
     }
 
     /**
@@ -95,17 +90,16 @@ class QueueManager
      */
     protected function getConfig(string $name): array
     {
-        $config = $this->app->make('config')->get("queue.connections.{$name}");
+        return $this->app->make('config')->get("queue.connections.{$name}");
+    }
 
-        if (is_null($config)) {
-            throw new InvalidArgumentException("Queue connection [{$name}] is not configured.");
-        }
-
-        return $config;
+    public function getDefaultDriver(): string
+    {
+        return $this->app->make('config')->get('queue.default');
     }
 
     /**
-     * Dynamically pass methods to the default connection.
+     * Dynamically pass calls to the default connection.
      *
      * @param  string  $method
      * @param  array  $parameters

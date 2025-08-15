@@ -31,7 +31,7 @@ class ThrottleRequests implements MiddlewareInterface
         $this->cache->set(
             $key,
             $this->cache->get($key, 0) + 1,
-            $decayMinutes * 60
+            $decayMinutes * 60,
         );
 
         $response = $handler->handle($request);
@@ -40,7 +40,7 @@ class ThrottleRequests implements MiddlewareInterface
         return $this->addHeaders(
             $response,
             $maxAttempts,
-            $this->calculateRemainingAttempts($key, $maxAttempts)
+            $this->calculateRemainingAttempts($key, $maxAttempts),
         );
     }
 

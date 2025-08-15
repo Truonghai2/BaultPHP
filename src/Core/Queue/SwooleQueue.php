@@ -6,29 +6,24 @@ use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Queue\Queue;
 use Core\Queue\Jobs\ProcessJobTask;
+use Core\Redis\RedisManager;
 use Core\Server\SwooleServer;
 use DateInterval;
 use DateTimeInterface;
 use RuntimeException;
-use Ramsey\Uuid\Uuid;
 
 class SwooleQueue implements Queue
 {
     protected SwooleServer $server;
-    protected \Predis\ClientInterface|\Redis $redis;
+    protected RedisManager $redisManager;
 
     public function __construct(protected Application $app)
     {
         if (!$app->bound(SwooleServer::class)) {
             throw new RuntimeException('The Swoole queue driver can only be used when running within the Swoole server.');
         }
-
-        // Resolve the running SwooleServer instance from the container.
-        // This assumes the SwooleServer is registered as a singleton.
         $this->server = $this->app->make(SwooleServer::class);
-
-        // Resolve Redis client from the container.
-        $this->redis = $this->app->make('redis');
+        $this->redisManager = $this->app->make(RedisManager::class);
     }
 
     /**
@@ -57,7 +52,10 @@ class SwooleQueue implements Queue
         $queueName = $this->getQueueName($queue);
         $serializedJob = serialize($job);
 
-        $this->redis->zadd($queueName, [$serializedJob => $executionTimestamp]);
+        // The RedisManager's __call magic method is now Swoole-aware.
+        // It will automatically get a connection from the pool, execute the command,
+        // and put the connection back, making this operation safe.
+        $this->redisManager->zadd($queueName, [$serializedJob => $executionTimestamp]);
     }
 
     /**

@@ -8,5 +8,5 @@ namespace Core\Queue;
  * được đẩy vào hàng đợi thay vì thực thi ngay lập tức.
  */
 interface ShouldQueue
-{}
-
+{
+}

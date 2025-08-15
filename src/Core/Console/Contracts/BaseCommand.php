@@ -120,8 +120,10 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
      */
     public function line(string $string, string $style = null): void
     {
+        // Only write output if the I/O handler has been initialized.
+        // This prevents "headers already sent" errors when a command that starts
+        // a server (like serve:start) tries to log something before the server loop begins.
         if (!isset($this->io)) {
-            echo $string . PHP_EOL;
             return;
         }
 

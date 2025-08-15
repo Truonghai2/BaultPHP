@@ -30,7 +30,7 @@ class CentrifugoController
             $user = Auth::guard('jwt_ws')->userFromToken($token);
 
             if (!$user) {
-                return new JsonResponse(['error' => 'Invalid token'], 401);
+                return new JsonResponse(['error' => 'Authentication failed'], 401);
             }
 
             // Success! Return the user's ID to Centrifugo.
@@ -38,7 +38,8 @@ class CentrifugoController
             // You can also subscribe the user to their personal channels here.
             return new JsonResponse(['user' => (string) $user->getAuthIdentifier()]);
         } catch (\Throwable $e) {
-            return new JsonResponse(['error' => 'Authentication service error'], 500);
+            // It's often better to return a 401 for any failure to prevent leaking server state.
+            return new JsonResponse(['error' => 'Authentication failed'], 401);
         }
     }
 }

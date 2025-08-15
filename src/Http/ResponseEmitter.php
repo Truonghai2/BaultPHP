@@ -15,23 +15,19 @@ class ResponseEmitter
             return;
         }
 
-        // Send status line
         header(sprintf(
             'HTTP/%s %s %s',
             $response->getProtocolVersion(),
             $response->getStatusCode(),
-            $response->getReasonPhrase()
+            $response->getReasonPhrase(),
         ), true, $response->getStatusCode());
 
-        // Send headers
         foreach ($response->getHeaders() as $name => $values) {
             foreach ($values as $value) {
                 header(sprintf('%s: %s', $name, $value), false);
             }
         }
 
-        // Send body
         echo $response->getBody();
     }
 }
-

@@ -2,13 +2,8 @@
 
 namespace App\Providers;
 
-use Core\Routing\Attributes\Middleware as MiddlewareAttribute;
-use Core\Routing\Attributes\Route as RouteAttribute;
-use Core\Routing\Attributes\Resource as ResourceAttribute;
+use Core\Routing\RouteRegistrar;
 use Core\Support\ServiceProvider;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
-use ReflectionClass;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -19,9 +14,19 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Register the provider itself so it can be injected into other services like commands.
+        // We wrap it in a closure to ensure the DI container correctly handles it
+        // as a factory, even though we are returning the existing instance.
+        // This avoids reflection issues with pre-existing objects.
+        $this->app->singleton(static::class, fn () => $this);
+
         $this->app->singleton(\Core\Routing\Router::class, function ($app) {
             return new \Core\Routing\Router($app);
         });
+
+        // Đăng ký RouteRegistrar một cách tường minh.
+        // Điều này giúp DI container biết cách khởi tạo nó và làm cho dependency rõ ràng hơn.
+        $this->app->singleton(RouteRegistrar::class);
 
         $this->registerCommands();
     }
@@ -39,11 +44,7 @@ class RouteServiceProvider extends ServiceProvider
             return;
         }
 
-        // $this->bootFileBasedRouting($router); // Vô hiệu hóa việc load route từ file
-        $this->bootAttributeRouting($router);
-
-        // Đăng ký route đặc biệt cho việc upload file của component
-        $router->addRoute('POST', '/bault/upload-file', [\App\Http\Controllers\ComponentUploadController::class, '__invoke']);
+        $this->mapRoutes($router);
     }
 
     /**
@@ -52,10 +53,65 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function loadRoutesForCaching(\Core\Routing\Router $router): void
     {
-        // $this->bootFileBasedRouting($router); // Vô hiệu hóa việc load route từ file
-        $this->bootAttributeRouting($router);
+        $this->mapRoutes($router);
     }
 
+    /**
+     * Define the routes for the application.
+     * This is the single source of truth for all route registrations.
+     */
+    protected function mapRoutes(\Core\Routing\Router $router): void
+    {
+        // 1. Register all routes defined by attributes in the application and modules.
+        $this->mapAttributeRoutes($router);
+
+        // 2. Register other manual/global routes that are not component-based.
+        $router->post('/bault/upload-file', [\Http\Controllers\ComponentUploadController::class, '__invoke']);
+        $router->post('/bault/update', [\Http\Controllers\ComponentController::class, '__invoke']);
+    }
+
+    /**
+     * Scan all relevant directories and register routes defined by attributes.
+     * This is the single source for attribute-based routing.
+     */
+    protected function mapAttributeRoutes(\Core\Routing\Router $router): void
+    {
+        $registrar = $this->app->make(RouteRegistrar::class);
+        $paths = $this->getRouteAttributePaths();
+
+        if (!empty($paths)) {
+            $registrar->registerRoutes($router, $paths);
+        }
+    }
+
+    /**
+     * Get all paths where controllers with route attributes might be located.
+     *
+     * @return string[]
+     */
+    protected function getRouteAttributePaths(): array
+    {
+        $normalize = fn (string $path): string => str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $path);
+
+        $pathsToScan = [];
+
+        // 1. Add the core application's top-level controller path.
+        // The RouteRegistrar is responsible for scanning this path recursively.
+        $coreControllerPath = $normalize(base_path('src/Http/Controllers'));
+        if (is_dir($coreControllerPath)) {
+            $pathsToScan[] = $coreControllerPath;
+        }
+
+        // 2. Add the top-level controller paths from all modules.
+        // The RouteRegistrar will handle the recursive scanning within each of these.
+        $moduleControllerPaths = glob($normalize(base_path('Modules/*/Http/Controllers')), GLOB_ONLYDIR);
+        if ($moduleControllerPaths) {
+            $pathsToScan = array_merge($pathsToScan, $moduleControllerPaths);
+        }
+
+        // Return a clean list of top-level directories to be scanned.
+        return $pathsToScan;
+    }
     /**
      * Register the route caching commands.
      */
@@ -65,6 +121,8 @@ class RouteServiceProvider extends ServiceProvider
             $commands = [
                 \Core\Console\Commands\RouteCacheCommand::class,
                 \Core\Console\Commands\RouteClearCommand::class,
+                \Core\Console\Commands\RouteListCommand::class, // Thêm dòng này
+                \Core\Console\Commands\PerformanceTestCommand::class,
             ];
 
             foreach ($commands as $commandClass) {
@@ -80,160 +138,5 @@ class RouteServiceProvider extends ServiceProvider
                 }
             }
         }
-    }
-
-    /**
-     * Load routes from the main traditional route file.
-     *
-     * @param \Core\Routing\Router $router
-     */
-    protected function bootFileBasedRouting(\Core\Routing\Router $router): void
-    {
-        $routeFile = base_path('routes/web.php');
-
-        if (file_exists($routeFile)) {
-            $callback = require $routeFile;
-            if (is_callable($callback)) {
-                $callback($router);
-            }
-        }
-    }
-
-    /**
-     * Scan for and register routes defined by attributes in all enabled modules.
-     *
-     * @param \Core\Routing\Router $router
-     */
-    protected function bootAttributeRouting(\Core\Routing\Router $router): void
-    {
-        // Mở rộng để quét cả controller của app chính và của các module
-        $controllerPaths = array_merge(
-            glob(base_path('src/Http/Controllers'), GLOB_ONLYDIR),
-            glob(base_path('Modules/*/Http/Controllers'), GLOB_ONLYDIR),
-        );
-
-        foreach ($controllerPaths as $path) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path));
-            $phpFiles = new \RegexIterator($iterator, '/\.php$/');
-
-            foreach ($phpFiles as $phpFile) {
-                $class = $this->fqcnFromFile($phpFile->getRealPath());
-                if (!$class) {
-                    continue;
-                }
-
-                try {
-                    $reflector = new ReflectionClass($class);
-                } catch (\ReflectionException $e) {
-                    continue; // Skip if class cannot be reflected
-                }
-
-                if ($reflector->isAbstract() || $reflector->isInterface()) {
-                    continue;
-                }
-
-                // Check for a Resource attribute first. If found, register it and skip to the next class.
-                $resourceAttributes = $reflector->getAttributes(ResourceAttribute::class, \ReflectionAttribute::IS_INSTANCEOF);
-                if (!empty($resourceAttributes)) {
-                    /** @var ResourceAttribute $resourceAttribute */
-                    $resourceAttribute = $resourceAttributes[0]->newInstance();
-                    // Use the existing Router::resource method to create all standard routes.
-                    $router->resource($resourceAttribute->uri, $class, $resourceAttribute->options);
-                    continue; // A resource controller is fully defined, move to the next file.
-                }
-
-                // Get the route prefix, middleware, and group from the class-level Route attribute
-                $classAttributes = $reflector->getAttributes(RouteAttribute::class, \ReflectionAttribute::IS_INSTANCEOF);
-                $routePrefix = '';
-                $classMiddleware = [];
-                $classGroup = null;
-
-                if (!empty($classAttributes)) {
-                    /** @var RouteAttribute $classRouteAttribute */
-                    $classRouteAttribute = $classAttributes[0]->newInstance();
-                    $routePrefix = rtrim($classRouteAttribute->uri, '/');
-                    $classMiddleware = $classRouteAttribute->middleware;
-                    $classGroup = $classRouteAttribute->group ?? null;
-                }
-
-                foreach ($reflector->getMethods() as $method) {
-                    // Get middleware defined directly on the method, to be shared by all its routes.
-                    $methodMiddlewareAttributes = $method->getAttributes(MiddlewareAttribute::class, \ReflectionAttribute::IS_INSTANCEOF);
-                    $methodSharedMiddleware = [];
-                    foreach ($methodMiddlewareAttributes as $middlewareAttribute) {
-                        /** @var MiddlewareAttribute $instance */
-                        $instance = $middlewareAttribute->newInstance();
-                        $methodSharedMiddleware = array_merge($methodSharedMiddleware, (array) $instance->middleware);
-                    }
-
-                    $attributes = $method->getAttributes(RouteAttribute::class, \ReflectionAttribute::IS_INSTANCEOF);
-
-                    foreach ($attributes as $attribute) {
-                        /** @var RouteAttribute $routeAttribute */
-                        $routeAttribute = $attribute->newInstance();
-
-                        // Combine the class prefix with the method URI
-                        $methodUri = ltrim($routeAttribute->uri, '/');
-                        $uri = $routePrefix . ($methodUri === '' ? '' : '/' . $methodUri);
-
-                        // Handle the case of an empty URI (e.g. class prefix only)
-                        if ($uri === '') {
-                            $uri = '/';
-                        }
-                        
-                        $bindings = [];
-
-                        // Phân tích cú pháp URI để tìm các binding tùy chỉnh (ví dụ: {post:slug})
-                        $uri = preg_replace_callback('/\{([a-zA-Z_][a-zA-Z0-9_]*):([a-zA-Z_][a-zA-Z0-9_]*)\}/', function ($matches) use (&$bindings) {
-                            // Lưu lại binding: 'post' => 'slug'
-                            $bindings[$matches[1]] = $matches[2];
-                            // Trả về URI với tham số chuẩn để router có thể nhận diện
-                            return '{' . $matches[1] . '}';
-                        }, $uri);
-
-                        $route = $router->addRoute(
-                            strtoupper($routeAttribute->method),
-                            $uri,
-                            [$class, $method->getName()],
-                        );
-
-                        // Combine middleware from class, method, and route-specific attributes.
-                        $finalMiddleware = array_merge($classMiddleware, $methodSharedMiddleware, $routeAttribute->middleware);
-                        $route->middleware($finalMiddleware);
-
-                        $route->bindings = $bindings; // Gán thông tin binding vào đối tượng Route
-                        $route->group = $routeAttribute->group ?? $classGroup; // Method's group overrides class's group
-                    }
-                }
-            }
-        }
-    }
-
-    /**
-     * Lấy ra Tên Class Đầy Đủ (FQCN) từ đường dẫn file.
-     * Phương thức này giả định cấu trúc thư mục tuân thủ PSR-4 so với thư mục gốc.
-     * Nó nhanh và đáng tin cậy hơn rất nhiều so với việc phân tích nội dung file.
-     */
-    private function fqcnFromFile(string $filePath): ?string
-    {
-        $basePath = rtrim(base_path(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
-        $relativePath = str_replace($basePath, '', $filePath);
-
-        // Bỏ phần mở rộng .php
-        $classPath = substr($relativePath, 0, -4);
-
-        // Ánh xạ thư mục gốc sang namespace gốc dựa trên cấu trúc PSR-4 trong composer.json
-        // "App\" -> "src/"
-        // "Modules\" -> "Modules/"
-        if (str_starts_with($classPath, 'src' . DIRECTORY_SEPARATOR)) {
-            $classPath = 'App' . substr($classPath, 3);
-        } elseif (str_starts_with($classPath, 'Modules' . DIRECTORY_SEPARATOR)) {
-            // For Modules, the namespace is already correct based on the path
-            // No modification needed here, as the namespace is already correct.
-        }
-
-        // Chuyển đổi dấu phân cách thư mục thành dấu phân cách namespace để có FQCN
-        $fqcn = str_replace(DIRECTORY_SEPARATOR, '\\', $classPath);
-        return $fqcn;
     }
 }

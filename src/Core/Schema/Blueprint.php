@@ -72,6 +72,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new text column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function text(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` TEXT");
@@ -79,6 +85,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new integer (4-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function integer(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` INT");
@@ -86,6 +98,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new unsigned integer (4-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function unsignedInteger(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` INT UNSIGNED");
@@ -93,6 +111,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new tiny integer (1-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function tinyInteger(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` TINYINT");
@@ -100,6 +124,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new unsigned tiny integer (1-byte) column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function unsignedTinyInteger(string $name): ColumnDefinition
     {
         $col = new ColumnDefinition("`$name` TINYINT UNSIGNED");
@@ -107,6 +137,12 @@ class Blueprint
         return $col;
     }
 
+    /**
+     * Create a new timestamp column on the table.
+     *
+     * @param  string  $name
+     * @return \Core\Schema\ColumnDefinition
+     */
     public function timestamp(string $name): ColumnDefinition
     {
         // We create a base definition and then chain the modifiers
@@ -116,49 +152,79 @@ class Blueprint
         return $col->nullable()->default(null);
     }
 
+    /**
+     * Add created_at and updated_at timestamps to the table.
+     *
+     * @return void
+     */
     public function timestamps(): void
     {
         $this->timestamp('created_at');
         $this->timestamp('updated_at');
     }
 
+    /**
+     * Add soft delete timestamps to the table.
+     *
+     * @return void
+     */
     public function softDeletes(): void
     {
         $this->timestamp('deleted_at');
     }
 
+    /**
+     * Get the SQL statement to create the table.
+     *
+     * @return string
+     */
     public function getCreateSql(): string
     {
         $columnsSql = [];
+        $foreignKeys = [];
+
         foreach ($this->columns as $name => $col) {
             $columnsSql[] = $col->getSql();
 
-            // Collect single-column index/unique constraints from the column definition
             if ($col->isUnique) {
                 $this->unique($name);
             }
             if ($col->isIndex) {
                 $this->index($name);
             }
+            if ($foreignKey = $col->getForeignKey()) {
+                $foreignKeys[] = $foreignKey;
+            }
         }
 
         $commandsSql = [];
         foreach ($this->commands as $command) {
-            $cols = implode(', ', array_map(fn ($c) => "`$c`", $command['columns']));
-            $constraintName = $command['name'];
-            $type = strtoupper($command['type']); // INDEX or UNIQUE
+            $columns = implode(', ', array_map(fn ($c) => "`$c`", $command['columns']));
 
-            $commandsSql[] = "{$type} `{$constraintName}` ({$cols})";
+            switch (strtoupper($command['type'])) {
+                case 'PRIMARY':
+                    $commandsSql[] = "PRIMARY KEY ({$columns})";
+                    break;
+
+                case 'UNIQUE':
+                case 'INDEX':
+                    $constraintName = $command['name'];
+                    $type = strtoupper($command['type']);
+                    $commandsSql[] = "{$type} `{$constraintName}` ({$columns})";
+                    break;
+            }
         }
 
-        // Remove duplicates that might arise from both fluent and direct calls
-        $commandsSql = array_unique($commandsSql);
-
-        $sqlParts = array_merge($columnsSql, $commandsSql);
+        $sqlParts = array_merge($columnsSql, $commandsSql, $foreignKeys);
 
         return "CREATE TABLE `{$this->table}` (\n  " . implode(",\n  ", $sqlParts) . "\n)";
     }
 
+    /**
+     * Get the SQL statement to drop the table.
+     *
+     * @return string
+     */
     public function getDropSql(): string
     {
         return "DROP TABLE IF EXISTS `{$this->table}`";
@@ -187,11 +253,26 @@ class Blueprint
     {
         $this->addCommand('index', $columns, $name);
     }
-    public function foreign(string $column, string $references, string $onDelete = 'CASCADE'): void
+
+    /**
+     * Specify the primary key for the table.
+     *
+     * @param  string|array  $columns
+     * @return void
+     */
+    public function primary(string|array $columns): void
     {
-        if (isset($this->columns[$column])) {
-            $this->columns[$column]->setForeignKey($references, $onDelete);
-        }
+        $this->addPrimaryKey((array) $columns);
+    }
+
+    public function foreign(string $column): ColumnDefinition
+    {
+        return $this->columns[$column];
+    }
+
+    public function foreignId(string $name): ColumnDefinition
+    {
+        return $this->unsignedBigInteger($name);
     }
 
     public function getColumns(): array
@@ -285,8 +366,7 @@ class Blueprint
     public function addPrimaryKey(array $columns): void
     {
         // This method can be used to add a primary key constraint.
-        // Implementation can be added as needed.
-        $this->columns['primary_key'] = new ColumnDefinition('PRIMARY KEY (' . implode(', ', array_map(fn ($col) => "`$col`", $columns)) . ')');
+        $this->addCommand('primary', $columns);
     }
 
     public function dropPrimaryKey(): void

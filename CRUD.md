@@ -1,4 +1,4 @@
-# Hướng Dẫn: Xây Dựng CRUD Hoàn Chỉnh Với BaultFrame
+# Hướng Dẫn: Xây Dựng CRUD Hoàn Chỉnh Với BaultPHP
 
 Tài liệu này sẽ hướng dẫn bạn qua từng bước để tạo một module quản lý bài viết (`Post`) hoàn chỉnh, bao gồm các chức năng Tạo, Đọc, Cập nhật và Xóa (CRUD) thông qua API.
 
@@ -107,6 +107,7 @@ Chúng ta sẽ tạo một `PostController` và sử dụng **Attribute-based Ro
 
     use Core\Routing\Attributes\Route;
     use Http\Request;
+    use Core\Events\EventDispatcherInterface;
     use Http\Response;
     use Modules\Post\Infrastructure\Models\Post;
 
@@ -119,7 +120,7 @@ Chúng ta sẽ tạo một `PostController` và sử dụng **Attribute-based Ro
         }
 
         #[Route('/api/posts', method: 'POST')]
-        public function store(Request $request): Response
+        public function store(Request $request, EventDispatcherInterface $dispatcher): Response
         {
             // Logic để tạo bài viết mới
         }
@@ -169,7 +170,7 @@ Cập nhật phương thức `store()`:
 
 ```php
     #[Route('/api/posts', method: 'POST')]
-    public function store(Request $request): Response
+    public function store(Request $request, EventDispatcherInterface $dispatcher): Response
     {
         // Đơn giản, chúng ta sẽ validate trực tiếp ở đây.
         // Trong thực tế, bạn nên tạo một FormRequest riêng.
@@ -179,6 +180,9 @@ Cập nhật phương thức `store()`:
         ]);
 
         $post = Post::create($validated);
+
+        // Bắn ra sự kiện để các hệ thống khác có thể xử lý
+        $dispatcher->dispatch(new \Modules\Post\Domain\Events\PostWasCreated($post));
 
         return response()->json($post, 201); // 201 Created
     }
@@ -273,7 +277,7 @@ curl -X DELETE http://localhost:8080/api/posts/1
 
 ## Tổng kết
 
-Chúc mừng! Bạn đã xây dựng thành công một module CRUD hoàn chỉnh trong BaultFrame. Từ đây, bạn có thể áp dụng các khái niệm nâng cao hơn như:
+Chúc mừng! Bạn đã xây dựng thành công một module CRUD hoàn chỉnh trong BaultPHP. Từ đây, bạn có thể áp dụng các khái niệm nâng cao hơn như:
 
 - Tạo các class `FormRequest` riêng để xử lý validation phức tạp.
 - Tách logic nghiệp vụ ra các lớp `Use Case` trong thư mục `Application` của module.

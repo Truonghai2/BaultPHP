@@ -7,14 +7,18 @@ use Core\Mail\PendingMail;
 interface Mailer
 {
     /**
-     * Bắt đầu quá trình gửi một Mailable instance.
+     * Set the recipient of the email.
+     *
+     * @param object|array|string $users
+     * @return PendingMail
      */
     public function to(object|array|string $users): PendingMail;
 
     /**
-     * Gửi một Mailable instance.
+     * Send a Mailable instance to the specified users.
      *
-     * @internal This is for internal use by PendingMail.
+     * @param Mailable $mailable
+     * @return PendingMail
      */
     public function send(Mailable $mailable): void;
 }

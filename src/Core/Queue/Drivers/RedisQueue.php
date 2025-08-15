@@ -5,6 +5,7 @@ namespace Core\Queue\Drivers;
 use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Queue\Queue;
+use Core\Queue\Jobs\RedisJob;
 use Core\Redis\RedisManager;
 use DateInterval;
 use DateTimeInterface;
@@ -13,15 +14,13 @@ class RedisQueue implements Queue
 {
     protected \Redis $redis;
     protected string $defaultQueue;
+    protected string $connectionName;
 
     public function __construct(protected Application $app, protected array $config)
     {
-        // Lấy ra RedisManager từ container
         $manager = $this->app->make(RedisManager::class);
-        // Lấy ra tên connection từ config của queue, fallback về 'default'
-        $connectionName = $this->config['connection'] ?? 'default';
-        // Lấy instance Redis cho connection cụ thể đó
-        $this->redis = $manager->connection($connectionName);
+        $this->connectionName = $this->config['connection'] ?? 'default';
+        $this->redis = $manager->connection($this->connectionName);
         $this->defaultQueue = $config['queue'] ?? 'default';
     }
 
@@ -44,27 +43,22 @@ class RedisQueue implements Queue
 
     public function pop(?string $queue = null): ?Job
     {
+        $queueName = $this->getQueueName($queue);
         // First, migrate any delayed jobs that are now due.
-        $this->migrateExpiredJobs($this->getQueueName($queue) . ':delayed', $this->getQueueName($queue));
+        $this->migrateExpiredJobs($queueName . ':delayed', $queueName);
 
-        $payload = $this->redis->lPop($this->getQueueName($queue));
+        $payload = $this->redis->lPop($queueName);
 
         if ($payload) {
-            $payloadData = json_decode($payload, true);
-
-            // An toàn hơn: Kiểm tra xem class có tồn tại và có implement Job không
-            $jobClass = $payloadData['job_class'] ?? null;
-            if ($jobClass && class_exists($jobClass) && is_subclass_of($jobClass, Job::class)) {
-                // Tái tạo job từ dữ liệu an toàn (JSON) thay vì unserialize
-                // Giả định job có một constructor hoặc một phương thức tĩnh để tạo từ dữ liệu
-                // Ví dụ: return $jobClass::fromQueue($payloadData['data']);
-                // Ở đây, chúng ta sẽ giả định constructor chấp nhận dữ liệu
-                return new $jobClass($payloadData['data']);
-            }
-
-            // Nếu payload không hợp lệ, ghi log và bỏ qua
-            $this->app->make('log')->error('Invalid job payload received', ['payload' => $payload]);
-            return null;
+            // Instead of unserializing the job directly, we wrap it in a RedisJob instance.
+            // This RedisJob instance will handle the lifecycle of the job (delete, release, fail).
+            return new RedisJob(
+                $this->app,
+                $this->redis,
+                $payload,
+                $this->connectionName,
+                $queueName,
+            );
         }
 
         return null;
@@ -77,14 +71,17 @@ class RedisQueue implements Queue
 
     protected function createPayload(Job $job): string
     {
-        // Thay thế serialize() bằng một cấu trúc JSON an toàn.
-        // Job cần có một phương thức để lấy dữ liệu có thể tuần tự hóa an toàn.
-        // Ví dụ: public function getQueueableData(): array { return ['userId' => $this->userId]; }
-        $data = method_exists($job, 'getQueueableData') ? $job->getQueueableData() : (array) $job;
-
+        // Create a payload string that is compatible with the RedisJob class.
+        // This structure is inspired by Laravel's queue payload.
         return json_encode([
-            'job_class' => get_class($job),
-            'data'      => $data,
+            'uuid' => \Ramsey\Uuid\Uuid::uuid4()->toString(),
+            'displayName' => get_class($job),
+            'job' => 'Core\Queue\CallQueuedHandler@call', // Placeholder for handler
+            'data' => [
+                'commandName' => get_class($job),
+                'command' => serialize($job),
+            ],
+            'attempts' => 0, // Initial attempt count is 0
         ]);
     }
 

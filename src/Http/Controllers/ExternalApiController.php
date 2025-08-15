@@ -1,11 +1,11 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Http\Controllers;
 
 use Core\Contracts\Http\HttpClientInterface;
 use Http\ResponseFactory;
-use Swoole\Coroutine\WaitGroup;
 use Swoole\Coroutine;
+use Swoole\Coroutine\WaitGroup;
 
 class ExternalApiController
 {

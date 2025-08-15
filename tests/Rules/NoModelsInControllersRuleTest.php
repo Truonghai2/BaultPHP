@@ -3,9 +3,9 @@
 namespace Tests\Rules;
 
 use App\Rules\PHPStan\NoModelsInControllersRule;
+use PHPStan\Reflection\ReflectionProvider;
 use PHPStan\Rules\Rule;
 use PHPStan\Testing\RuleTestCase;
-use PHPStan\Reflection\ReflectionProvider;
 
 /**
  * @extends RuleTestCase<NoModelsInControllersRule>
@@ -38,7 +38,7 @@ class NoModelsInControllersRuleTest extends RuleTestCase
                     'Controller không được gọi trực tiếp Model [Data\User]. Hãy sử dụng một Use Case hoặc Service.',
                     12, // Số dòng mà lỗi xảy ra trong file ControllerWithModelCall.php
                 ],
-            ]
+            ],
         );
 
         // 2. Phân tích file hợp lệ

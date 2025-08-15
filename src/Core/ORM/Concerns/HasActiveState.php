@@ -27,7 +27,7 @@ trait HasActiveState
      */
     public function getQualifiedIsActiveColumn(): string
     {
-        return $this->getTable().'.'.$this->getIsActiveColumn();
+        return $this->getTable() . '.' . $this->getIsActiveColumn();
     }
 
     /**

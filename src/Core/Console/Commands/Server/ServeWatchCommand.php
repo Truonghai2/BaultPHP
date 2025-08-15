@@ -5,10 +5,9 @@ namespace Core\Console\Commands\Server;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\FileSystem\FileSystemWatcher;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Process\Process;
 
 class ServeWatchCommand extends BaseCommand
 {
@@ -44,9 +43,9 @@ class ServeWatchCommand extends BaseCommand
                 $serverProcess->stop(10, SIGTERM);
                 $output->writeln('<comment>Server process stopped.</comment>');
             }
-            
-            // Start the serve command as a background process
-            $serverProcess = new Process(['php', 'cli', 'serve', '--host', $host]);
+
+            // Start the serve:start command as a background process
+            $serverProcess = new Process(['php', 'cli', 'serve:start', '--host', $host]);
             $serverProcess->setTimeout(null);
             $serverProcess->setIdleTimeout(null);
             $serverProcess->start();

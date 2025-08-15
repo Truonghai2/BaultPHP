@@ -13,9 +13,9 @@ interface HttpClientInterface
      *
      * @param string $url
      * @param array $options
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return \Core\Http\Response
      */
-    public function get(string $url, array $options = []): \Http\JsonResponse;
+    public function get(string $url, array $options = []): \Core\Http\Response;
 
     /**
      * Send a POST request to the given URL.
@@ -23,7 +23,7 @@ interface HttpClientInterface
      * @param string $url
      * @param array $data
      * @param array $options
-     * @return \Psr\Http\Message\ResponseInterface
+     * @return \Core\Http\Response
      */
-    public function post(string $url, array $data = [], array $options = []): \Http\JsonResponse;
+    public function post(string $url, array $data = [], array $options = []): \Core\Http\Response;
 }

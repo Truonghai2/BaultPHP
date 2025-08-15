@@ -2,30 +2,40 @@
 
 namespace Core\Cache;
 
-use Psr\SimpleCache\CacheInterface;
+use Closure;
+use Core\Contracts\Cache\Store as StoreContract;
 
 /**
- * Class Repository
- * Một lớp bao bọc (wrapper) quanh một implementation của PSR-16 cache,
- * cung cấp các phương thức tiện ích như `remember`.
- * Nó cũng implement CacheInterface, cho phép nó được sử dụng ở bất cứ đâu
- * mong đợi một cache tuân thủ PSR-16.
+ * This class acts as a decorator for a cache store, implementing the Store contract
+ * and providing some convenience methods.
+ *
+ * It's crucial that the methods defined in Psr\SimpleCache\CacheInterface
+ * have signatures that are compatible with the interface. This means not adding
+ * parameter type hints where the original interface does not have them.
  */
-class Repository implements CacheInterface
+class Repository implements StoreContract
 {
     /**
-     * Instance của cache store bên dưới.
+     * The underlying cache store instance.
      *
-     * @var \Psr\SimpleCache\CacheInterface
+     * @var \Core\Contracts\Cache\Store
      */
-    protected CacheInterface $store;
+    protected StoreContract $store;
 
     /**
-     * Tạo một instance cache repository mới.
+     * The default number of seconds to cache items.
+     * Can be null to store forever.
      *
-     * @param  \Psr\SimpleCache\CacheInterface  $store
+     * @var int|null
      */
-    public function __construct(CacheInterface $store)
+    protected ?int $default = 3600; // 1 hour
+
+    /**
+     * Create a new cache repository instance.
+     *
+     * @param \Core\Contracts\Cache\Store $store
+     */
+    public function __construct(StoreContract $store)
     {
         $this->store = $store;
     }
@@ -38,7 +48,7 @@ class Repository implements CacheInterface
      * @param  \Closure  $callback
      * @return mixed
      */
-    public function remember(string $key, $ttl, \Closure $callback)
+    public function remember(string $key, $ttl, Closure $callback)
     {
         // Đầu tiên, thử lấy giá trị từ cache.
         $value = $this->get($key);
@@ -60,7 +70,7 @@ class Repository implements CacheInterface
     /**
      * {@inheritdoc}
      */
-    public function get(string $key, mixed $default = null): mixed
+    public function get($key, $default = null)
     {
         return $this->store->get($key, $default);
     }
@@ -68,15 +78,16 @@ class Repository implements CacheInterface
     /**
      * {@inheritdoc}
      */
-    public function set(string $key, mixed $value, \DateInterval|int|null $ttl = null): bool
+    public function set($key, $value, $ttl = null)
     {
-        return $this->store->set($key, $value, $ttl);
+        $seconds = is_null($ttl) ? $this->default : $ttl;
+        return $this->store->set($key, $value, $seconds);
     }
 
     /**
      * {@inheritdoc}
      */
-    public function delete(string $key): bool
+    public function delete($key)
     {
         return $this->store->delete($key);
     }
@@ -84,27 +95,40 @@ class Repository implements CacheInterface
     /**
      * {@inheritdoc}
      */
-    public function clear(): bool
+    public function clear()
     {
         return $this->store->clear();
     }
 
-    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    /**
+     * {@inheritdoc}
+     */
+    public function getMultiple($keys, $default = null)
     {
         return $this->store->getMultiple($keys, $default);
     }
 
-    public function setMultiple(iterable $values, \DateInterval|int|null $ttl = null): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function setMultiple($values, $ttl = null)
     {
-        return $this->store->setMultiple($values, $ttl);
+        $seconds = is_null($ttl) ? $this->default : $ttl;
+        return $this->store->setMultiple($values, $seconds);
     }
 
-    public function deleteMultiple(iterable $keys): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteMultiple($keys)
     {
         return $this->store->deleteMultiple($keys);
     }
 
-    public function has(string $key): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function has($key)
     {
         return $this->store->has($key);
     }

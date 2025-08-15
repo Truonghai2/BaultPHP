@@ -30,13 +30,13 @@ class FlushUserPermissionCache implements ShouldQueue
             // This is the critical part: if a role's permissions change,
             // we must flush the cache for ALL users who have this role.
 
-            // We assume the Role model has a relationship to get all its users.
-            // If not, you'll need to add it: `public function users() { return $this->belongsToMany(User::class, 'role_assignments'); }`
-            $usersToFlush = $event->role->users()->get();
-
-            foreach ($usersToFlush as $user) {
-                $this->permissionCache->flushForUser($user);
-            }
+            // Using chunkById to process users in batches. This is much more
+            // memory-efficient than loading all users at once with ->get().
+            $event->role->users()->chunkById(200, function ($users) {
+                foreach ($users as $user) {
+                    $this->permissionCache->flushForUser($user);
+                }
+            });
         }
     }
 }

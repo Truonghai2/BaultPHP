@@ -5,8 +5,8 @@ namespace Http\Middleware;
 use Closure;
 use Core\Cache\CacheManager;
 use Core\Module\ModuleSynchronizer;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Illuminate\Support\Facades\Log;
+use Psr\Http\Message\ServerRequestInterface as Request;
 use Throwable;
 
 class SyncModulesMiddleware

@@ -2,7 +2,8 @@
 
 namespace Http;
 
-use Psr\Http\Message\ResponseInterface;
+use Core\Contracts\Http\HttpClientInterface;
+use Core\Http\Response;
 use Swoole\Coroutine\Http\Client;
 
 /**
@@ -52,15 +53,14 @@ class SwooleHttpClient implements HttpClientInterface
 
     private function buildResponse(Client $client): Response
     {
-        $response = new Response();
-        $response->setContent($client->body ?? '');
-        $response->setStatusCode($client->statusCode);
+        $response = new Response($client->body ?? '', $client->statusCode);
 
         if (is_array($client->headers)) {
-            $response->setHeaders($client->headers);
+            foreach ($client->headers as $name => $value) {
+                $response = $response->withHeader($name, $value);
+            }
         }
 
         return $response;
     }
 }
-

@@ -1,0 +1,16 @@
+<?php
+
+namespace {{ namespace }};
+
+use {{ dto_import }};
+
+final class {{ class_name }}
+{
+    public function __construct(/* TODO: Inject dependencies */) {}
+
+    public function handle({{ dto_class }} ${{ dto_variable }})
+    {
+        // TODO: Implement use case logic
+    }
+}
+

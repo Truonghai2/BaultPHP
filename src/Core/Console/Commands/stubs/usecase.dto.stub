@@ -1,0 +1,17 @@
+<?php
+
+namespace {{ namespace }};
+
+final class {{ class_name }}
+{
+    /**
+     * Create a new instance.
+     *
+     * @param // TODO: Add properties here
+     */
+    public function __construct(
+        // public readonly string $someProperty,
+    ) {
+    }
+}
+

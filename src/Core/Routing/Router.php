@@ -2,12 +2,16 @@
 
 namespace Core\Routing;
 
+use App\Exceptions\MethodNotAllowedException;
+use App\Exceptions\NotFoundException;
 use Core\Application;
-use Psr\Http\Message\ServerRequestInterface;
+use Core\Http\Response;
+use Psr\Http\Message\ResponseInterface;
 
 class Router
 {
     protected array $routes = [];
+    protected array $namedRoutes = [];
     protected array $routePatterns = [];
 
     public function __construct(protected Application $app)
@@ -39,24 +43,49 @@ class Router
         return $this->addRoute('DELETE', $uri, $action);
     }
 
-    public function addRoute(string $method, string $uri, callable|array $action): Route
+    public function addRoute(string $method, string $uri, callable|array $action, ?string $name = null): Route
     {
         $route = new Route($method, $uri, $action);
         $this->routes[$method][$uri] = $route;
+        if ($name) {
+            $this->namedRoutes[$name] = $uri;
+        }
         return $route;
     }
 
+    /**
+     * Thêm một route vào bộ sưu tập các route có tên.
+     * Phương thức này được gọi bởi đối tượng Route khi một tên được gán.
+     *
+     * @param string $name
+     * @param string $uri
+     */
+    public function addNamedRoute(string $name, string $uri): void
+    {
+        $this->namedRoutes[$name] = $uri;
+    }
     /**
      * Finds a route that matches the given request.
      *
      * @throws \App\Exceptions\NotFoundException
      * @throws \App\Exceptions\MethodNotAllowedException
      */
-    public function dispatch(\Psr\Http\Message\ServerRequestInterface $request): Route
+    public function dispatch(\Psr\Http\Message\ServerRequestInterface $request): ResponseInterface
+    {
+        $route = $this->findRoute($request);
+
+        $response = $this->process($route);
+
+        return $this->prepareResponse($response);
+    }
+
+    protected function findRoute(\Psr\Http\Message\ServerRequestInterface $request): Route
     {
         $requestMethod = $request->getMethod();
         $requestPath = rtrim($request->getUri()->getPath(), '/');
-        if ($requestPath === '') $requestPath = '/';
+        if ($requestPath === '') {
+            $requestPath = '/';
+        }
 
         foreach ($this->routes[$requestMethod] ?? [] as $uri => $route) {
             $pattern = $this->compileRoutePattern($uri);
@@ -82,10 +111,68 @@ class Router
         throw new NotFoundException('Not Found', 404);
     }
 
+    protected function process(Route $route)
+    {
+        $handler = $route->handler;
+
+        if (is_callable($handler)) {
+            return call_user_func_array($handler, $route->parameters);
+        }
+
+        if (is_array($handler) && count($handler) === 2) {
+            [$class, $method] = $handler;
+            if (class_exists($class) && method_exists($class, $method)) {
+                $controller = $this->app->make($class);
+                // CẢI TIẾN: Sử dụng app()->call() thay vì call_user_func_array().
+                // Việc này cho phép DI Container tự động inject các dependency vào phương thức
+                // của controller (ví dụ: Request, Service,...) cùng với các tham số từ route.
+                return $this->app->call([$controller, $method], $route->parameters);
+            }
+        }
+
+        throw new \RuntimeException('Invalid route handler');
+    }
+
+    protected function prepareResponse($response): ResponseInterface
+    {
+        if ($response instanceof ResponseInterface) {
+            return $response;
+        }
+
+        if (is_array($response) || $response instanceof \JsonSerializable) {
+            return Response::json($response);
+        }
+
+        return new Response((string) $response);
+    }
+
     protected function compileRoutePattern(string $uri): string
     {
         $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $uri);
         return '#^' . $pattern . '$#';
+    }
+
+    /**
+     * Tạo URL từ tên route và các tham số.
+     *
+     * @param string $name Tên của route.
+     * @param array $parameters Mảng các tham số cho route.
+     * @return string URL đã được tạo.
+     * @throws \Exception Nếu không tìm thấy route.
+     */
+    public function url(string $name, array $parameters = []): string
+    {
+        if (!isset($this->namedRoutes[$name])) {
+            throw new \Exception("Route [{$name}] not defined.");
+        }
+
+        $uri = $this->namedRoutes[$name];
+
+        foreach ($parameters as $key => $value) {
+            $uri = str_replace('{' . $key . '}', (string) $value, $uri);
+        }
+
+        return preg_replace('/\/\{(\w+)\?\}/', '', $uri);
     }
 
     /**
@@ -100,6 +187,7 @@ class Router
                     'handler'    => $route->handler,
                     'middleware' => $route->middleware,
                     'bindings'   => $route->bindings,
+                    'name'       => $route->name,
                     'group'      => $route->group ?? null,
                 ];
             }
@@ -119,6 +207,9 @@ class Router
                 $route->middleware = $data['middleware'] ?? [];
                 $route->bindings   = $data['bindings'] ?? [];
                 $route->group      = $data['group'] ?? null;
+                if (!empty($data['name'])) {
+                    $route->name($data['name']);
+                }
                 $this->routes[$method][$uri] = $route;
             }
         }
@@ -154,15 +245,20 @@ class Router
 
     public function listRoutes(): array
     {
-        return array_map(function ($route) {
-            return [
-                'method' => $route->method,
-                'uri'    => $route->uri,
-                'action' => is_array($route->handler)
-                    ? implode('@', $route->handler)
-                    : 'Closure',
-                'middleware' => $route->middleware ?? [],
-            ];
-        }, $this->routes);
+        $routes = [];
+        foreach ($this->routes as $methodGroup) {
+            foreach ($methodGroup as $route) {
+                $routes[] = [
+                    'method' => $route->method,
+                    'uri'    => $route->uri,
+                    'name'   => $route->name,
+                    'action' => is_array($route->handler)
+                        ? implode('@', $route->handler)
+                        : 'Closure',
+                    'middleware' => $route->middleware ?? [],
+                ];
+            }
+        }
+        return $routes;
     }
 }

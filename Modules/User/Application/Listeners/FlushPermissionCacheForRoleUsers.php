@@ -6,7 +6,6 @@ namespace Modules\User\Application\Listeners;
 
 use Modules\User\Domain\Events\RolePermissionsChanged;
 use Modules\User\Domain\Services\PermissionCacheService;
-use Modules\User\Infrastructure\Models\RoleAssignment;
 
 /**
  * Xử lý sự kiện RolePermissionsChanged để xóa cache quyền của TẤT CẢ
@@ -16,17 +15,23 @@ use Modules\User\Infrastructure\Models\RoleAssignment;
  */
 class FlushPermissionCacheForRoleUsers
 {
-    public function __construct(
-        private readonly PermissionCacheService $permissionCache,
-    ) {
+    public function __construct(private readonly PermissionCacheService $permissionCache)
+    {
     }
 
     public function handle(RolePermissionsChanged $event): void
     {
-        $userIds = RoleAssignment::where('role_id', '=', $event->role->id)->distinct()->pluck('user_id');
-
-        foreach ($userIds as $userId) {
-            $this->permissionCache->flushForUserId($userId);
-        }
+        // Using chunkById is highly memory-efficient for roles with many users.
+        // It processes users in batches (e.g., 200 at a time) instead of
+        // loading all of them into memory at once.
+        $event->role->users()->chunkById(
+            200,
+            function ($users) {
+                foreach ($users as $user) {
+                    // Use the service injected via the constructor.
+                    $this->permissionCache->flushForUser($user);
+                }
+            },
+        );
     }
 }

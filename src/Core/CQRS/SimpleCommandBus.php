@@ -4,6 +4,10 @@ namespace Core\CQRS;
 
 use Core\Application;
 
+/**
+ * SimpleCommandBus is a basic implementation of a command bus that maps commands to their handlers.
+ * It allows for registering command-handler pairs and dispatching commands to the appropriate handler.
+ */
 class SimpleCommandBus implements CommandBus
 {
     /**
@@ -11,15 +15,33 @@ class SimpleCommandBus implements CommandBus
      */
     private array $handlers = [];
 
+    /**
+     * SimpleCommandBus constructor.
+     *
+     * @param Application $app The application container to resolve handlers.
+     */
     public function __construct(private readonly Application $app)
     {
     }
 
+    /**
+     * Dispatch the command through the middleware pipeline.
+     *
+     * @param string $commandClass
+     * @param string $handlerClass
+     * @return void
+     */
     public function register(string $commandClass, string $handlerClass): void
     {
         $this->handlers[$commandClass] = $handlerClass;
     }
 
+    /**
+     * Map multiple command-handler pairs.
+     *
+     * @param array $map
+     * @return void
+     */
     public function map(array $map): void
     {
         foreach ($map as $commandClass => $handlerClass) {
@@ -27,6 +49,13 @@ class SimpleCommandBus implements CommandBus
         }
     }
 
+    /**
+     * Dispatch the command to its handler.
+     *
+     * @param Command $command
+     * @return mixed
+     * @throws \InvalidArgumentException If no handler is registered for the command.
+     */
     public function dispatch(Command $command)
     {
         $commandClass = get_class($command);
@@ -37,14 +66,19 @@ class SimpleCommandBus implements CommandBus
         return $handler->handle($command);
     }
 
+    /**
+     * Find the handler for the given command class.
+     *
+     * @param string $commandClass
+     * @return string
+     * @throws \InvalidArgumentException If no handler is registered for the command.
+     */
     private function findHandler(string $commandClass): string
     {
-        // 1. Check for an explicitly registered handler.
         if (isset($this->handlers[$commandClass])) {
             return $this->handlers[$commandClass];
         }
 
-        // 2. If not found, try to resolve by convention (e.g., App\Commands\MyCommand -> App\Commands\MyCommandHandler).
         $handlerClass = $commandClass . 'Handler';
         if (class_exists($handlerClass)) {
             return $handlerClass;

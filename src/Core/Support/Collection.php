@@ -327,7 +327,8 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
      */
     public function implode(string $column, ?string $glue = null): string
     {
-        return $this->pluck($column)->all()->implode($glue ?? '');
+        // The `all()` method returns a plain array, which doesn't have an `implode` method.
+        return implode($glue ?? '', $this->pluck($column)->all());
     }
 
     /**

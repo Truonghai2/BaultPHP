@@ -4,6 +4,10 @@ namespace Core\CQRS;
 
 use Core\Application;
 
+/**
+ * CommandBusWithMiddleware is a command bus that applies middleware to commands before dispatching them.
+ * It allows for additional processing, such as logging or transaction management, around command execution.
+ */
 class CommandBusWithMiddleware implements CommandBus
 {
     /**
@@ -20,6 +24,10 @@ class CommandBusWithMiddleware implements CommandBus
 
     /**
      * Delegate handler registration to the inner bus.
+     *
+     * @param string $commandClass
+     * @param string $handlerClass
+     * @return void
      */
     public function register(string $commandClass, string $handlerClass): void
     {
@@ -28,6 +36,9 @@ class CommandBusWithMiddleware implements CommandBus
 
     /**
      * Delegate handler mapping to the inner bus.
+     *
+     * @param array $map
+     * @return void
      */
     public function map(array $map): void
     {
@@ -36,6 +47,9 @@ class CommandBusWithMiddleware implements CommandBus
 
     /**
      * Dispatch the command through the middleware pipeline.
+     *
+     * @param Command $command
+     * @return void
      */
     public function dispatch(Command $command)
     {
@@ -53,6 +67,11 @@ class CommandBusWithMiddleware implements CommandBus
         return $pipeline($command);
     }
 
+    /**
+     * Create a callable that wraps the next middleware in the pipeline.
+     *
+     * @return callable
+     */
     private function createNext(): callable
     {
         return function (callable $stack, string $pipe) {

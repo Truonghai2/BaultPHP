@@ -60,4 +60,3 @@ class ProviderRepository
         return $discoveredProviders;
     }
 }
-

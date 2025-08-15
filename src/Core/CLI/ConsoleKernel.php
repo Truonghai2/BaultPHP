@@ -3,39 +3,139 @@
 namespace Core\CLI;
 
 use Core\Application;
+use Core\Contracts\Console\Kernel as KernelContract;
+use Core\Contracts\Exceptions\Handler as ExceptionHandler;
+use Core\Support\Facades\Facade;
+use DirectoryIterator;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Console\Application as ConsoleApplication;
+use RecursiveDirectoryIterator;
+use RecursiveIteratorIterator;
+use ReflectionClass;
+use SplFileInfo;
+use Symfony\Component\Console\Application as SymfonyApplication;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-class ConsoleKernel
+/**
+ * The ConsoleKernel is the central place for managing the CLI application.
+ * It is responsible for discovering, registering, and executing commands.
+ */
+class ConsoleKernel implements KernelContract
 {
-    protected array $commands = [];
-    protected ConsoleApplication $cli;
+    /**
+     * The application instance.
+     */
     protected Application $app;
-    protected string $commandSuffix;
+
+    /**
+     * The Symfony Console application instance.
+     */
+    protected SymfonyApplication $console;
+
+    /**
+     * Indicates if the commands have been loaded.
+     */
+    protected bool $commandsLoaded = false;
 
     public function __construct(Application $app)
     {
         $this->app = $app;
-        $this->cli = new ConsoleApplication('BaultFrame Console', '1.0.0');
-        $this->commandSuffix = config('app.command_suffix', 'Command.php');
+        $this->console = new SymfonyApplication('BaultPHP', '1.0.0');
+
+        // QUAN TRỌNG: Đặt application instance cho tất cả các Facade.
+        // Việc này phải được thực hiện trước khi bất kỳ command nào được đăng ký hoặc
+        // khởi tạo, vì chúng có thể sử dụng Facade trong quá trình khởi tạo.
+        // Lỗi "A facade root has not been set" xảy ra do bước này bị thiếu.
+        Facade::setFacadeApplication($this->app);
     }
 
-    protected function loadCommands(): void
+    /**
+     * Handle an incoming console command.
+     */
+    public function handle(InputInterface $input, OutputInterface $output): int
     {
-        $registeredCommands = [];
-        $paths = [];
-        $paths = array_merge($paths, $this->scanCommands($this->app->basePath('src/Core/Console/Commands')));
-        $paths = array_merge($paths, $this->scanCommands($this->app->basePath('app/Console/Commands')));
-        foreach (glob($this->app->basePath('Modules/*'), GLOB_ONLYDIR) as $moduleDir) {
-            $paths = array_merge($paths, $this->scanCommands($moduleDir . '/Console'));
+        try {
+            $this->bootstrap();
+            // We set auto-exit to false to allow the main `cli` script to control the exit status.
+            $this->console->setAutoExit(false);
+
+            return $this->console->run($input, $output);
+        } catch (Throwable $e) {
+            /** @var ExceptionHandler $handler */
+            $handler = $this->app->make(ExceptionHandler::class);
+            try {
+                $handler->report($e);
+            } catch (Throwable $loggingException) {
+                // If logging fails, render the logging exception first for context.
+                $handler->renderForConsole($output, $loggingException);
+            }
+            $handler->renderForConsole($output, $e);
+            return 1; // Return a non-zero exit code for errors.
+        }
+    }
+
+    /**
+     * Terminate the application.
+     */
+    public function terminate(InputInterface $input, int $status): void
+    {
+        // This is a good place to add any final cleanup logic,
+        // such as closing database connections if they aren't managed by destructors.
+    }
+
+    /**
+     * Get the underlying Symfony Console application.
+     */
+    public function getApplication(): SymfonyApplication
+    {
+        return $this->console;
+    }
+
+    /**
+     * Bootstrap the console application.
+     */
+    protected function bootstrap(): void
+    {
+        if ($this->commandsLoaded) {
+            return;
         }
 
-        foreach ($paths as $file) {
-            $class = $this->fqcnFromFile($file);
+        $this->registerCommands();
 
-            if ($class && class_exists($class) && is_subclass_of($class, Command::class)) {
+        $this->commandsLoaded = true;
+    }
+
+    /**
+     * Register all of the commands in the given directory paths.
+     */
+    protected function registerCommands(): void
+    {
+        $paths = $this->getCommandPaths();
+        $logger = $this->app->make(LoggerInterface::class);
+
+        foreach ($paths as $namespace => $path) {
+            if (!is_dir($path)) {
+                continue;
+            }
+
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
+            );
+
+            /** @var SplFileInfo $file */
+            foreach ($iterator as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+
+                $class = $this->getClassFromPath($file, $path, $namespace);
+
+                if (!$this->isInstantiableCommand($class)) {
+                    continue;
+                }
+
                 try {
                     $command = $this->app->make($class);
 
@@ -43,92 +143,64 @@ class ConsoleKernel
                         $command->setCoreApplication($this->app);
                     }
 
-                    if (isset($registeredCommands[$command->getName()])) {
-                        $this->app->make(LoggerInterface::class)->warning("Duplicate command name '{$command->getName()}' from '{$class}'. It will be overridden.");
-                    }
-
-                    $registeredCommands[$command->getName()] = $class;
-
-                    $logger = $this->app->make(LoggerInterface::class);
                     $decoratedCommand = new LoggingCommandDecorator($command, $logger);
-
-                    $this->cli->add($decoratedCommand);
+                    $this->console->add($decoratedCommand);
                 } catch (Throwable $e) {
-                    if ($this->app->bound(LoggerInterface::class)) {
-                        $logger = $this->app->make(LoggerInterface::class);
-                        $logger->error("Không thể khởi tạo console command '{class}'.", [
-                            'class'     => $class,
-                            'exception' => $e,
-                        ]);
-                    }
-                    $this->cli->add(new FailedCommand($class, $e));
+                    $this->console->add(new FailedCommand($class, $e));
+                    $logger->error("Failed to load command '{$class}': {$e->getMessage()}");
                 }
             }
         }
     }
 
     /**
-     * Scan a directory for command files recursively.
+     * Get the paths to the directories containing console commands.
      */
-    private function scanCommands(string $directory): array
+    protected function getCommandPaths(): array
     {
-        if (!is_dir($directory)) {
-            return [];
-        }
-
-        $iterator = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::LEAVES_ONLY,
-        );
-        $files = [];
-        foreach ($iterator as $file) {
-            if ($file->isFile() && $file->getExtension() === 'php' && str_ends_with($file->getFilename(), 'Command.php')) {
-                $files[] = $file->getPathname();
-            }
-        }
-        return array_filter($files, fn ($file) => str_ends_with(basename($file), $this->commandSuffix));
-    }
-
-    /**
-     * Run the console application.
-     */
-    public function handle(): int
-    {
-        // Tải tất cả các command ngay trước khi chạy ứng dụng console.
-        // Logic này giờ chỉ được thực thi trong môi trường CLI.
-        $this->loadCommands();
-
-        return $this->cli->run();
-    }
-
-    /**
-     * Lấy ra Tên Class Đầy Đủ (FQCN) từ đường dẫn file.
-     * Phương thức này sử dụng một map PSR-4 để làm cho logic linh hoạt và dễ bảo trì hơn.
-     */
-    private function fqcnFromFile(string $filePath): ?string
-    {
-        // Define PSR-4 mappings.
-        // Order is important: more specific paths should come first.
-        $psr4Mappings = [
-            'Core\\' => $this->app->basePath('src/Core'),
-            'Modules\\' => $this->app->basePath('Modules'),
-            'App\\' => $this->app->basePath('src'), // Keep the App namespace pointing to src/
+        $paths = [
+            'Core\\Console\\Commands' => $this->app->basePath('src/Core/Console/Commands'),
         ];
 
-        $normalizedPath = str_replace('\\', '/', $filePath);
+        $modulesPath = $this->app->basePath('Modules');
+        if (is_dir($modulesPath)) {
+            foreach (new DirectoryIterator($modulesPath) as $moduleInfo) {
+                if ($moduleInfo->isDir() && !$moduleInfo->isDot()) {
+                    $moduleName = $moduleInfo->getFilename();
+                    $moduleCommandPath = $moduleInfo->getPathname() . '/Console/Commands';
 
-        foreach ($psr4Mappings as $namespace => $path) {
-            $normalizedBasePath = rtrim(str_replace('\\', '/', $path), '/');
-            if (str_starts_with($normalizedPath, $normalizedBasePath)) {
-                // Get the relative class path from the PSR-4 root directory
-                $relativeClassPath = substr($normalizedPath, strlen($normalizedBasePath) + 1);
-                // Remove the .php extension
-                $classPathWithoutExt = substr($relativeClassPath, 0, -4);
-                // Reconstruct the full FQCN
-                return $namespace . str_replace('/', '\\', $classPathWithoutExt);
+                    if (is_dir($moduleCommandPath)) {
+                        $paths['Modules\\' . $moduleName . '\\Console\\Commands'] = $moduleCommandPath;
+                    }
+                }
             }
         }
 
-        return null;
+        return $paths;
+    }
+
+    /**
+     * Derive the fully qualified class name from a file path.
+     */
+    private function getClassFromPath(SplFileInfo $file, string $basePath, string $baseNamespace): string
+    {
+        $relativePath = substr($file->getPathname(), strlen($basePath));
+        $class = $baseNamespace . str_replace(
+            ['/', '.php'],
+            ['\\', ''],
+            $relativePath,
+        );
+
+        return $class;
+    }
+
+    /**
+     * Check if a given class is a valid, instantiable console command.
+     */
+    private function isInstantiableCommand(string $class): bool
+    {
+        return class_exists($class)
+            && is_subclass_of($class, Command::class)
+            && !(new ReflectionClass($class))->isAbstract();
     }
 }

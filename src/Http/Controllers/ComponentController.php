@@ -3,13 +3,14 @@
 namespace Http\Controllers;
 
 use Core\Frontend\Attributes\CallableMethod;
+use Core\Frontend\ChecksumService;
 use Core\Validation\ValidationException;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Http\ResponseFactory;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ComponentController
 {
-    public function __invoke(Request $request, ResponseFactory $responseFactory): \Http\JsonResponse
+    public function __invoke(Request $request, ResponseFactory $responseFactory, ChecksumService $checksumService): \Http\JsonResponse
     {
         $snapshot = json_decode($request->input('snapshot'), true);
         $updates = $request->input('updates');
@@ -30,8 +31,7 @@ class ComponentController
         }
 
         // 1. QUAN TRỌNG: Xác thực checksum của snapshot từ client
-        $expectedChecksum = $this->generateChecksum($componentClass, $snapshot['data']);
-        if (!hash_equals($expectedChecksum, $snapshot['checksum'] ?? '')) {
+        if (!$checksumService->verify($componentClass, $snapshot['data'], $snapshot['checksum'] ?? '')) {
             // Trả về lỗi 419 (CSRF Token Mismatch) hoặc lỗi tương tự để chỉ ra dữ liệu đã bị thay đổi
             return $responseFactory->json(['error' => 'The component snapshot has been tampered with.'], 419);
         }
@@ -47,12 +47,12 @@ class ComponentController
             if ($calls) {
                 $method = $calls['method'];
                 $params = $calls['params'];
-    
+
                 if (method_exists($component, $method)) {
                     // BẢO MẬT: Dùng Reflection để kiểm tra xem phương thức có được đánh dấu bằng Attribute #[CallableMethod] không.
                     $reflectionMethod = new \ReflectionMethod($component, $method);
                     $attributes = $reflectionMethod->getAttributes(CallableMethod::class);
-    
+
                     if (empty($attributes)) {
                         return $responseFactory->json(['error' => 'The method is not callable.'], 403);
                     }
@@ -80,7 +80,7 @@ class ComponentController
             'class' => $componentClass,
             'data' => $newState,
             // QUAN TRỌNG: Thêm checksum để bảo mật, chống tampering
-            'checksum' => $this->generateChecksum($componentClass, $newState),
+            'checksum' => $checksumService->generate($componentClass, $newState),
         ];
 
         return $responseFactory->json([
@@ -88,13 +88,5 @@ class ComponentController
             'html' => $html,
             'dispatches' => $dispatches,
         ]);
-    }
-
-    private function generateChecksum(string $class, array $data): string
-    {
-        // BẢO MẬT: Sắp xếp dữ liệu theo key để đảm bảo chuỗi JSON luôn nhất quán,
-        // tránh việc checksum bị sai một cách ngẫu nhiên.
-        ksort($data);
-        return hash_hmac('sha256', $class . json_encode($data), config('app.key'));
     }
 }

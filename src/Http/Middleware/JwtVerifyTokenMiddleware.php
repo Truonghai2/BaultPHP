@@ -2,9 +2,9 @@
 
 namespace Http\Middleware;
 
-use Http\ResponseFactory;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
+use Http\ResponseFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

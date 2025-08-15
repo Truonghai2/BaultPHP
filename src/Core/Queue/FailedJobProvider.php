@@ -42,7 +42,7 @@ class FailedJobProvider implements FailedJobProviderInterface
             // to the main application logger and return null.
             app('log')->critical(
                 'Failed to log a failed job.',
-                ['exception' => $e, 'original_payload' => $payload]
+                ['exception' => $e, 'original_payload' => $payload],
             );
 
             return null;

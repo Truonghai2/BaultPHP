@@ -4,7 +4,6 @@ namespace Core\Queue;
 
 use Carbon\Carbon;
 use Core\Contracts\Queue\FailedJobProviderInterface;
-use Core\Queue\FailedJob;
 use Core\Support\Collection;
 use Illuminate\Support\Str;
 use Throwable;
@@ -48,7 +47,7 @@ class DatabaseFailedJobProvider implements FailedJobProviderInterface
             if (function_exists('app') && app()->bound('log')) {
                 app('log')->critical(
                     'Could not log a failed job to the database.',
-                    ['exception' => $e, 'original_payload' => $payload]
+                    ['exception' => $e, 'original_payload' => $payload],
                 );
             }
 

@@ -3,8 +3,8 @@
 namespace App\Http\Components;
 
 use App\Rules\NoProfanityRule;
-use Core\Frontend\Component;
 use Core\Frontend\Attributes\CallableMethod;
+use Core\Frontend\Component;
 
 class CreatePostForm extends Component
 {

@@ -23,7 +23,7 @@ class GenerateReportTask implements Task
         // Simulate a long-running, blocking operation like generating a large file.
         sleep(5);
 
-        $reportPath = "/storage/reports/report_{$this->reportType}_{$this->userId}_" . time() . ".pdf";
+        $reportPath = "/storage/reports/report_{$this->reportType}_{$this->userId}_" . time() . '.pdf';
 
         echo "Report generation complete: {$reportPath}\n";
         return $reportPath;

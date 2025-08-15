@@ -6,17 +6,17 @@ use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
-use Core\Session\SessionManager;
+use Symfony\Component\HttpFoundation\Session\Session;
 
 class SessionGuard implements Guard
 {
     protected Application $app;
-    protected SessionManager $session;
+    protected Session $session;
     protected UserProvider $provider;
     protected ?Authenticatable $user = null;
     protected bool $userResolved = false;
 
-    public function __construct(Application $app, SessionManager $session, UserProvider $provider)
+    public function __construct(Application $app, Session $session, UserProvider $provider)
     {
         $this->app = $app;
         $this->session = $session;

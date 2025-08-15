@@ -21,7 +21,7 @@ class ServerStopCommand extends BaseCommand
      */
     public function signature(): string
     {
-        return 'server:stop';
+        return 'serve:stop';
     }
 
     /**

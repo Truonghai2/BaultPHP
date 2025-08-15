@@ -2,7 +2,6 @@
 
 namespace Http\Middleware;
 
-use Closure;
 use Core\Application;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Psr\Http\Message\ResponseInterface;

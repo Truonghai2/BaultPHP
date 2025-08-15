@@ -7,45 +7,54 @@ use ArrayAccess;
 class Config implements ArrayAccess
 {
     protected array $items = [];
+    protected bool $loadedFromCache = false;
+    protected Application $app;
 
-    public function __construct(array $items = [])
+    public function __construct(Application $app)
     {
-        $this->items = $items;
+        $this->app = $app;
+        $cachedConfigPath = $this->app->bootstrapPath('cache/config.php');
+
+        if (file_exists($cachedConfigPath)) {
+            $this->items = require $cachedConfigPath;
+            $this->loadedFromCache = true;
+        }
     }
 
     public function get(string $key, $default = null)
     {
-        // Check if the exact key is already cached (e.g., from a previous set() call)
-        if (array_key_exists($key, $this->items)) {
+        // If not loaded from cache, perform on-demand file loading for the top-level key.
+        if (!$this->loadedFromCache) {
+            $keys = explode('.', $key);
+            $file = $keys[0];
+
+            if (!isset($this->items[$file])) {
+                $path = $this->app->basePath("config/{$file}.php");
+                if (file_exists($path)) {
+                    $this->items[$file] = require $path;
+                }
+            }
+        }
+
+        // Traversal logic works for both cached (all items pre-loaded)
+        // and on-demand (items loaded as needed).
+        if (isset($this->items[$key])) {
             return $this->items[$key];
         }
 
-        // The first segment of a dot-notation key is the config file name.
-        $keys = explode('.', $key);
-        $file = $keys[0];
-
-        // Load the configuration file if it hasn't been loaded yet.
-        if (!isset($this->items[$file])) {
-            $path = base_path("config/{$file}.php");
-            if (file_exists($path)) {
-                $this->items[$file] = require $path;
-            } else {
-                // If the file doesn't exist, we can't find the key.
-                return $default;
-            }
+        if (!str_contains($key, '.')) {
+            return $this->items[$key] ?? $default;
         }
 
-        // Traverse the keys to find the requested value.
-        $value = $this->items;
-        foreach ($keys as $segment) {
-            if (is_array($value) && array_key_exists($segment, $value)) {
-                $value = $value[$segment];
+        $array = $this->items;
+        foreach (explode('.', $key) as $segment) {
+            if (is_array($array) && array_key_exists($segment, $array)) {
+                $array = $array[$segment];
             } else {
                 return $default;
             }
         }
-
-        return $value;
+        return $array;
     }
 
     public function set(string $key, $value): void

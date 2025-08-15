@@ -2,8 +2,8 @@
 
 namespace Http;
 
-use Nyholm\Psr7\Response;
 use InvalidArgumentException;
+use Nyholm\Psr7\Response;
 
 class JsonResponse extends Response
 {
@@ -19,7 +19,7 @@ class JsonResponse extends Response
         $data,
         int $status = 200,
         array $headers = [],
-        int $encodingOptions = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE
+        int $encodingOptions = JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE,
     ) {
         try {
             // Sử dụng JSON_THROW_ON_ERROR để tự động ném exception khi có lỗi

@@ -4,16 +4,14 @@ namespace Core\Queue;
 
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Queue\Queue;
-use Core\Redis\RedisManager;
+use Predis\ClientInterface as RedisClient;
 
 class RedisQueue implements Queue
 {
-    protected \Redis $redis;
     protected string $defaultQueue;
 
-    public function __construct(RedisManager $redisManager, string $defaultQueue, ?string $connection = null)
+    public function __construct(protected RedisClient $redis, string $defaultQueue = 'default')
     {
-        $this->redis = $redisManager->connection($connection);
         $this->defaultQueue = $defaultQueue;
     }
 

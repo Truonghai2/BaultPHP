@@ -1,6 +1,6 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace Http\Controllers;
 
 use Core\Config;
 use Core\Frontend\FileUpload\TemporaryUploadedFile;
@@ -47,7 +47,7 @@ class ComponentUploadController
             $psrUploadedFile->getClientFilename(),
             $psrUploadedFile->getClientMediaType(),
             $psrUploadedFile->getError(),
-            true // test mode
+            true, // test mode
         );
 
         $tempFile = TemporaryUploadedFile::createFromUploadedFile($file);

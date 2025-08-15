@@ -2,37 +2,63 @@
 
 namespace Core\ORM;
 
-use PDO;
+use Core\Application;
+use Core\Database\CoroutineConnectionManager;
+use Core\Database\Swoole\SwoolePdoPool;
 use PDOException;
 
 /**
  * Connection manages database connections using a connection pool.
  * It supports multiple database configurations and handles connection creation.
+ * NOTE: This class acts as a Database Manager and should be registered as a singleton.
  */
 class Connection
 {
     /**
-     * @var array<string, PDO>
+     * The application instance.
+     * @var \Core\Application
      */
-    protected static array $pool = [];
+    protected Application $app;
+
+    /**
+     * The array of active PDO connections.
+     * @var array<string, \PDO>
+     */
+    protected array $connections = [];
+
+    public function __construct(Application $app)
+    {
+        $this->app = $app;
+    }
 
     /**
      * Get a PDO connection instance.
      *
      * @param string|null $name
-     * @return PDO
      * @throws \Exception
      */
-    public static function get(string $name = null, string $type = 'write'): PDO
+    public function connection(string $name = null, string $type = 'write'): \PDO
     {
-        $name ??= config('database.default', 'mysql');
-        $poolKey = "{$name}::{$type}";
+        $configRepo = $this->app->make('config');
+        $name ??= $configRepo->get('database.default', 'mysql');
 
-        if (isset(static::$pool[$poolKey])) {
-            return static::$pool[$poolKey];
+        // === SWOOLE CONNECTION POOL INTEGRATION ===
+        // If the application is running in a Swoole environment and the pool is initialized,
+        // we use the CoroutineConnectionManager to handle the connection lifecycle.
+        // This is crucial for efficient and safe connection management in an async context.
+        if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
+            /** @var CoroutineConnectionManager $manager */
+            $manager = $this->app->make(CoroutineConnectionManager::class);
+            return $manager->get();
         }
 
-        $connections = config('database.connections');
+        $poolKey = "{$name}::{$type}";
+
+        if (isset($this->connections[$poolKey])) {
+            return $this->connections[$poolKey];
+        }
+
+        $connections = $configRepo->get('database.connections');
         $originalConfig = $connections[$name] ?? null;
 
         if (!$originalConfig) {
@@ -59,60 +85,48 @@ class Connection
         $dbname = $config['database'];
 
         try {
-            $dsn = self::makeDsn($config);
+            $dsn = $this->makeDsn($config);
 
             $defaultOptions = [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_PERSISTENT => false,
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_PERSISTENT => false,
             ];
             $options = ($config['options'] ?? []) + $defaultOptions;
 
-            $pdo = new PDO(
+            $pdo = new \PDO(
                 $dsn,
                 $config['username'] ?? null,
                 $config['password'] ?? null,
                 $options,
             );
 
-            static::$pool[$poolKey] = $pdo;
+            $this->connections[$poolKey] = $pdo;
         } catch (PDOException $e) {
-            if (
-                $driver === 'mysql' &&
-                str_contains($e->getMessage(), 'Unknown database')
-            ) {
-                echo "Database `$dbname` không tồn tại.\n";
-                echo 'Bạn có muốn tạo mới không? (y/n): ';
-                $answer = strtolower(trim(fgets(STDIN)));
-
-                if ($answer === 'y') {
-                    // Luôn sử dụng config 'write' để tạo database
-                    $writeConfig = $originalConfig;
-                    if (isset($writeConfig['write'])) {
-                        $typeSpecificConfig = $writeConfig['write'];
-                        unset($writeConfig['read'], $writeConfig['write']);
-                        $writeConfig = array_merge($writeConfig, $typeSpecificConfig);
-                    }
-
-                    self::createDatabase($writeConfig);
-                    return self::get($name, $type); // Gọi lại với type ban đầu
-                }
-
-                throw new \Exception('Quá trình bị huỷ. Cơ sở dữ liệu chưa được tạo.');
+            // In a containerized environment, the application should not interactively
+            // create the database. The database should be provisioned by the
+            // infrastructure (e.g., via docker-compose environment variables).
+            // If the database is not found, we throw a clear, fatal exception.
+            if (str_contains($e->getMessage(), 'Unknown database')) {
+                throw new \RuntimeException(
+                    "Database `{$dbname}` does not exist. Please ensure it is created before starting the application. Check your docker-compose.yml and .env files.",
+                    (int)$e->getCode(),
+                    $e,
+                );
             }
 
             throw $e;
         }
 
-        return static::$pool[$poolKey];
+        return $this->connections[$poolKey];
     }
 
     /**
      * Close all connections in the pool.
      */
-    public static function flush(): void
+    public function flush(): void
     {
-        static::$pool = [];
+        $this->connections = [];
     }
 
     /**
@@ -122,7 +136,7 @@ class Connection
      * @return string
      * @throws \Exception
      */
-    protected static function makeDsn(array $config): string
+    protected function makeDsn(array $config): string
     {
         $driver = $config['driver'];
 
@@ -133,54 +147,11 @@ class Connection
                 $config['host'],
                 $config['port'] ?? ($driver === 'mysql' ? 3306 : 5432),
                 $config['database'],
-                ($driver === 'mysql' ? ';charset=' . ($config['charset'] ?? 'utf8mb4') : '')
+                ($driver === 'mysql' ? ';charset=' . ($config['charset'] ?? 'utf8mb4') : ''),
             ),
             'sqlite' => 'sqlite:' . $config['database'],
             default => throw new \Exception("Unsupported driver [{$driver}]"),
         };
     }
 
-    /**
-     * Create a new database if it does not exist.
-     *
-     * @param array $config
-     * @throws \Exception
-     */
-    protected static function createDatabase(array $config): void
-    {
-        // Đảm bảo rằng chúng ta có cấu hình host, vì nó rất quan trọng để kết nối.
-        if (empty($config['host'])) {
-            throw new \InvalidArgumentException('Database host is not configured for creation.');
-        }
-
-        // Xây dựng DSN mà không chỉ định tên database, vì nó chưa tồn tại.
-        $dsn = sprintf(
-            'mysql:host=%s;port=%s;charset=%s',
-            $config['host'],
-            $config['port'] ?? 3306,
-            $config['charset'] ?? 'utf8mb4'
-        );
-
-        try {
-            $pdo = new PDO(
-                $dsn,
-                $config['username'] ?? null,
-                $config['password'] ?? null,
-                [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-            );
-
-            $dbName = $config['database'];
-            $charset = $config['charset'] ?? 'utf8mb4';
-            $collation = $config['collation'] ?? 'utf8mb4_unicode_ci';
-
-            // Sử dụng prepared statements để tăng cường bảo mật và tránh SQL injection.
-            $stmt = $pdo->prepare("CREATE DATABASE IF NOT EXISTS `" . str_replace("`", "``", $dbName) . "` CHARACTER SET ? COLLATE ?");
-            $stmt->execute([$charset, $collation]);
-
-            echo "Database `{$dbName}` đã được tạo thành công.\n";
-        } catch (PDOException $e) {
-            // Cung cấp thông báo lỗi chi tiết hơn để dễ dàng gỡ lỗi.
-            throw new \RuntimeException("Không thể tạo database: " . $e->getMessage(), (int)$e->getCode(), $e);
-        }
-    }
 }
