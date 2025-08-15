@@ -2,6 +2,9 @@
 
 namespace Core\Contracts\Auth;
 
+/**
+ * Guard is responsible for managing the authentication state of the user.
+ */
 interface Guard
 {
     /**

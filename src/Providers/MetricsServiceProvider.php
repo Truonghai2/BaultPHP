@@ -2,10 +2,11 @@
 
 namespace App\Providers;
 
+use Core\Contracts\Support\DeferrableProvider;
 use Core\Metrics\SwooleMetricsService;
 use Core\Support\ServiceProvider;
 
-class MetricsServiceProvider extends ServiceProvider
+class MetricsServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     public function register(): void
     {
@@ -13,5 +14,14 @@ class MetricsServiceProvider extends ServiceProvider
             return new SwooleMetricsService();
         });
     }
-}
 
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [SwooleMetricsService::class];
+    }
+}

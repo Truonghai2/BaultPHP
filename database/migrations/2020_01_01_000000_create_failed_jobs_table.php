@@ -1,7 +1,5 @@
 <?php
 
-use PDO;
-
 /**
  * Migration to create the failed_jobs table.
  * This table stores information about queued jobs that have failed to process.

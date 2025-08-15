@@ -55,9 +55,21 @@ class Route
     public function name(string $name): self
     {
         $this->name = $name;
+        app(Router::class)->addNamedRoute($name, $this->uri);
         return $this;
     }
 
+    /**
+     * Set the middleware group for the route.
+     *
+     * @param string|null $group
+     * @return $this
+     */
+    public function group(?string $group): self
+    {
+        $this->group = $group;
+        return $this;
+    }
     public function model(string $param, string $class): self
     {
         $this->bindings[$param] = $class;

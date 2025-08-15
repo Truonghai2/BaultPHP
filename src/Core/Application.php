@@ -9,7 +9,7 @@ use Psr\Container\ContainerInterface;
 class Application implements ContainerInterface
 {
     /**
-     * The BaultFrame framework version.
+     * The BaultPHP framework version.
      *
      * @var string
      */
@@ -23,6 +23,9 @@ class Application implements ContainerInterface
     /** @var array<string, array<int, string>> Mảng lưu trữ các tag và các abstract được gán. */
     protected array $tags = [];
 
+    /** @var array The compiled container factories. */
+    protected array $compiledFactories = [];
+
     /** @var static|null The shared instance of the application. */
     protected static ?self $instance = null;
 
@@ -35,7 +38,20 @@ class Application implements ContainerInterface
     /** @var bool Indicates if the application has "booted". */
     protected bool $isBooted = false;
 
+    /** @var bool Indicates if the application has been bootstrapped. */
+    protected bool $hasBeenBootstrapped = false;
+
+    /** @var array Callbacks to run after the application is booted. */
+    protected array $bootedCallbacks = [];
+
+    /** @var array<int, \Core\Support\ServiceProvider> The array of loaded service providers. */
     protected array $serviceProviders = [];
+
+    /** @var array<string, bool> The array of registered service providers. */
+    protected array $registeredProviders = [];
+
+    /** @var array<string, string> The mapping of deferred services to their providers. */
+    protected array $deferredServices = [];
     protected array $resolvingCallbacks = [];
     protected string $basePath;
 
@@ -43,6 +59,7 @@ class Application implements ContainerInterface
     {
         $this->basePath = $basePath;
         $this->registerBaseBindings();
+        $this->loadCompiledContainer();
     }
 
     /**
@@ -113,9 +130,23 @@ class Application implements ContainerInterface
         // Register the configuration service as a core singleton.
         // This is crucial because many parts of the framework, including provider
         // discovery, depend on the config service being available very early.
-        $this->singleton('config', function () {
-            return new \Core\Config();
+        $this->singleton('config', function ($app) {
+            return new \Core\Config($app);
         });
+    }
+
+    /**
+     * Load the compiled container file if it exists.
+     */
+    protected function loadCompiledContainer(): void
+    {
+        $path = $this->bootstrapPath('cache/container.php');
+
+        if (file_exists($path)) {
+            $compiled = require $path;
+            $this->compiledFactories = $compiled['factories'] ?? [];
+            $this->aliases = array_merge($compiled['aliases'] ?? [], $this->aliases);
+        }
     }
 
     public function when(string $concrete): ContextualBindingBuilder
@@ -167,6 +198,18 @@ class Application implements ContainerInterface
     {
         $abstract = $this->getAlias($abstract);
 
+        // If the service is deferred, we'll register its provider first.
+        if (isset($this->deferredServices[$abstract]) && !isset($this->instances[$abstract])) {
+            $this->register($this->deferredServices[$abstract]);
+        }
+
+        // Check for a compiled factory first for maximum performance.
+        // We don't pass parameters to compiled factories as they are pre-resolved.
+        if (empty($parameters) && isset($this->compiledFactories[$abstract])) {
+            // The compiled factory is a closure that takes the app instance.
+            return $this->compiledFactories[$abstract]($this);
+        }
+
         if (isset($this->instances[$abstract])) {
             return $this->instances[$abstract];
         }
@@ -185,11 +228,6 @@ class Application implements ContainerInterface
         } finally {
             // Remove the abstract from the stack once resolution is complete.
             array_pop($this->resolvingStack);
-        }
-
-        // If the resolved object is a FormRequest, automatically trigger its validation.
-        if ($object instanceof \Http\FormRequest) {
-            $object->validateResolved();
         }
 
         // If it's a singleton, store the instance for future requests.
@@ -365,10 +403,82 @@ class Application implements ContainerInterface
 
     public function register(string $providerClass): void
     {
-        $provider = new $providerClass($this);
-        $provider->register();
+        // If the provider is already registered, we can skip it.
+        if ($this->isProviderRegistered($providerClass)) {
+            return;
+        }
 
+        $provider = new $providerClass($this);
+
+        // For deferrable providers, we will only store the services they provide
+        // and register them later when one of their services is requested.
+        if ($provider instanceof \Core\Contracts\Support\DeferrableProvider) {
+            $this->deferProvider($provider);
+        } else {
+            // For regular providers, we register them immediately.
+            $provider->register();
+        }
+
+        // Mark the provider as registered (either fully or deferred).
+        $this->registeredProviders[$providerClass] = true;
+
+        // We always add the provider instance to the list so its `boot` method
+        // can be called later, regardless of whether it was deferred or not.
         $this->serviceProviders[] = $provider;
+    }
+
+    /**
+     * Defer the registration of a service provider.
+     *
+     * @param \Core\Contracts\Support\DeferrableProvider $provider
+     * @return void
+     */
+    protected function deferProvider(\Core\Contracts\Support\DeferrableProvider $provider): void
+    {
+        foreach ($provider->provides() as $service) {
+            $this->deferredServices[$service] = get_class($provider);
+        }
+    }
+
+    protected function isProviderRegistered(string $providerClass): bool
+    {
+        return isset($this->registeredProviders[$providerClass]);
+    }
+
+    /**
+     * Bootstrap the application's service providers.
+     *
+     * This method discovers, registers, and boots all service providers.
+     * It's designed to be called once per worker in a long-running process
+     * like Swoole, to avoid re-bootstrapping on every request.
+     *
+     * @return void
+     */
+    public function bootstrap(): void
+    {
+        if ($this->hasBeenBootstrapped()) {
+            return;
+        }
+
+        // This logic is typically in the AppKernel for single-request lifecycles.
+        // We replicate it here for the Swoole worker context.
+        $cachedProvidersPath = $this->getCachedProvidersPath();
+        if (file_exists($cachedProvidersPath) && !config('app.debug')) {
+            $providers = require $cachedProvidersPath;
+        } else {
+            $providerRepository = new ProviderRepository($this);
+            $providers = $providerRepository->getAllProviders();
+        }
+
+        foreach ($providers as $provider) {
+            $this->register($provider);
+        }
+
+        // After registering all providers, we boot them.
+        $this->boot();
+
+        // Mark the application as bootstrapped.
+        $this->hasBeenBootstrapped = true;
     }
 
     public function boot(): void
@@ -384,6 +494,45 @@ class Application implements ContainerInterface
         }
 
         $this->isBooted = true;
+
+        foreach ($this->bootedCallbacks as $callback) {
+            $this->call($callback);
+        }
+    }
+
+    /**
+     * Register a new "booted" callback.
+     *
+     * @param  \Closure  $callback
+     * @return void
+     */
+    public function booted(\Closure $callback): void
+    {
+        $this->bootedCallbacks[] = $callback;
+
+        if ($this->isBooted()) {
+            $this->call($callback);
+        }
+    }
+
+    /**
+     * Determine if the application has been bootstrapped before.
+     *
+     * @return bool
+     */
+    public function hasBeenBootstrapped(): bool
+    {
+        return $this->hasBeenBootstrapped;
+    }
+
+    /**
+     * Determine if the application has booted.
+     *
+     * @return bool
+     */
+    public function isBooted(): bool
+    {
+        return $this->isBooted;
     }
 
     /**
@@ -400,6 +549,18 @@ class Application implements ContainerInterface
     public function resolved(string $abstract): bool
     {
         return isset($this->instances[$abstract]);
+    }
+
+    /**
+     * Remove a resolved instance from the instance cache.
+     * This is useful in long-running applications to prevent memory leaks.
+     *
+     * @param  string  $abstract
+     * @return void
+     */
+    public function forgetInstance(string $abstract): void
+    {
+        unset($this->instances[$abstract]);
     }
 
     /**
@@ -480,7 +641,7 @@ class Application implements ContainerInterface
      * @param  string  $tag
      * @return array<object>
      */
-    public function getByTag(string $tag): array
+    public function getTagged(string $tag): array
     {
         return isset($this->tags[$tag]) ? array_map([$this, 'make'], $this->tags[$tag]) : [];
     }
@@ -493,5 +654,36 @@ class Application implements ContainerInterface
     public function runningInConsole(): bool
     {
         return in_array(php_sapi_name(), ['cli', 'phpdbg']);
+    }
+
+    /**
+     * Get the current application locale.
+     *
+     * @return string
+     */
+    public function getLocale(): string
+    {
+        // Resolve the translator service from the container and get its locale.
+        return $this->make('translator')->getLocale();
+    }
+
+    /**
+     * Get the application's bindings for compilation.
+     *
+     * @return array
+     */
+    public function getBindingsForCompilation(): array
+    {
+        return $this->bindings;
+    }
+
+    /**
+     * Get the application's aliases for compilation.
+     *
+     * @return array
+     */
+    public function getAliasesForCompilation(): array
+    {
+        return $this->aliases;
     }
 }

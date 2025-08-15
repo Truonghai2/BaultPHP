@@ -1,26 +1,68 @@
 #!/usr/bin/env php
 <?php
 
-// cli is the entry point for all command-line operations.
-// It bootstraps the application and then hands control over
-// to the Console Kernel to handle the incoming commands.
+define('BAULT_START', microtime(true));
 
-// Bootstrap the application via the central bootstrap file.
-// This ensures that the application, including its service container
-// and environment variables, is set up correctly and consistently.
-$app = require __DIR__.'/bootstrap/app.php';
+/*
+|--------------------------------------------------------------------------
+| Register The Auto Loader
+|--------------------------------------------------------------------------
+|
+| Composer provides a convenient, automatically generated class loader for
+| our application. We just need to utilize it! We'll simply require it
+| into the script here so we don't have to worry about manual loading
+| of any of our classes. It's just great.
+|
+*/
 
-// Once the application is bootstrapped, we create an instance of our
-// Console Kernel. The kernel is responsible for discovering, registering,
-// and executing all of the application's command-line commands.
-$consoleKernel = new Core\CLI\ConsoleKernel($app);
+require __DIR__.'/vendor/autoload.php';
 
-// The `handle` method on the kernel processes the command-line arguments
-// (e.g., `serve`, `migrate`) and dispatches the request to the appropriate
-// command. The exit status of the command is returned.
-$status = $consoleKernel->handle();
+/*
+|--------------------------------------------------------------------------
+| Create The Application
+|--------------------------------------------------------------------------
+|
+| The first thing we will do is create a new Bault application instance
+| which serves as the "glue" for all the components of Bault, and is
+| the IoC container for the system binding all of the various parts.
+|
+*/
 
-// Finally, we exit the script with the status code returned by the
-// command. This is important for scripting and CI/CD pipelines,
-// as a non-zero exit code typically indicates that the command failed.
+$app = require_once __DIR__.'/bootstrap/app.php';
+
+/*
+|--------------------------------------------------------------------------
+| Run The Console Application
+|--------------------------------------------------------------------------
+|
+| This is the entry point for all console commands. We'll instantiate
+| the console kernel and call the "handle" method which will run the
+| command and return the exit status code.
+|
+*/
+// Resolve the console kernel from the service container. This allows the kernel
+// to be swapped or decorated easily through service providers, fully decoupling
+// the entry point from the implementation.
+$kernel = $app->make(Core\Contracts\Console\Kernel::class);
+
+$status = $kernel->handle(
+    $input = new Symfony\Component\Console\Input\ArgvInput(),
+    new Symfony\Component\Console\Output\ConsoleOutput()
+);
+
+/*
+|--------------------------------------------------------------------------
+| Terminate The Application
+|--------------------------------------------------------------------------
+|
+| Once the command has finished, we will call the "terminate" method on
+| the kernel. This will allow any final work to be done before the
+| script ends.
+|
+*/
+
+if (method_exists($kernel, 'terminate')) {
+    $kernel->terminate($input, $status);
+}
+
 exit($status);

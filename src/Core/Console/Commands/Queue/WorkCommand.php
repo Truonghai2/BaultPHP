@@ -14,9 +14,8 @@ class WorkCommand extends BaseCommand
     public function __construct(
         protected QueueManager $queueManager,
         protected LoggerInterface $logger,
-        protected QueueWorker $worker
-    )
-    {
+        protected QueueWorker $worker,
+    ) {
         parent::__construct();
     }
 

@@ -5,9 +5,9 @@ namespace Core\ORM;
 use ArrayAccess;
 use Core\Support\Collection;
 use Countable;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use IteratorAggregate;
 use JsonSerializable;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Một Paginator có khả năng nhận biết độ dài, tương tự như của Laravel.

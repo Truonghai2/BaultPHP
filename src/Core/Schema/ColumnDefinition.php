@@ -11,6 +11,9 @@ class ColumnDefinition
     protected bool $isNullable = false;
     public bool $isIndex = false;
     protected ?string $comment = null;
+    protected ?string $foreignTable = null;
+    protected ?string $foreignColumn = null;
+    protected string $onDeleteAction = 'CASCADE';
 
     public function __construct(string $sql)
     {
@@ -103,6 +106,15 @@ class ColumnDefinition
         return $baseSql;
     }
 
+    public function getForeignKey(): ?string
+    {
+        if ($this->foreignTable) {
+            $references = "`{$this->foreignTable}` (`{$this->foreignColumn}`)";
+            return "FOREIGN KEY (`{$this->getName()}`) REFERENCES {$references} ON DELETE {$this->onDeleteAction}";
+        }
+        return null;
+    }
+
     public function setOption(string $key, mixed $value): void
     {
         switch ($key) {
@@ -133,5 +145,24 @@ class ColumnDefinition
     {
         $this->default('CURRENT_TIMESTAMP');
         return $this;
+    }
+
+    public function constrained(string $table, string $column = 'id'): self
+    {
+        $this->foreignTable = $table;
+        $this->foreignColumn = $column;
+        return $this;
+    }
+
+    public function onDelete(string $action): self
+    {
+        $this->onDeleteAction = $action;
+        return $this;
+    }
+
+    protected function getName(): string
+    {
+        preg_match('/`([^`]+)`/', $this->sql, $matches);
+        return $matches[1] ?? '';
     }
 }

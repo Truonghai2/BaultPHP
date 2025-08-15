@@ -4,6 +4,7 @@ namespace Core\Cache;
 
 use Core\Application;
 use Core\Contracts\Cache\Store;
+use Core\Filesystem\Filesystem;
 use InvalidArgumentException;
 
 class CacheManager
@@ -42,13 +43,15 @@ class CacheManager
     /**
      * Tạo một instance của Redis cache driver.
      *
-     * @param  array  $config
-     * @return \Core\Cache\RedisStore
+     * @param array $config
+     * @return Repository
      */
-    protected function createRedisDriver(array $config): Store
+    protected function createRedisDriver(array $config): Repository
     {
-        $redis = $this->app->make('redis');
-        return new RedisStore($redis, $this->app->make('config')->get('cache.prefix', 'bault_cache'));
+        // Lấy kết nối Redis thông qua RedisManager
+        $connection = $this->app->make('redis')->connection($config['connection'] ?? null);
+        $store = new RedisStore($connection, $this->getPrefix($config));
+        return new Repository($store);
     }
 
     /**
@@ -61,7 +64,7 @@ class CacheManager
     {
         // Giả định rằng 'files' đã được bind vào container.
         // Nếu chưa, bạn cần tạo một FilesystemServiceProvider.
-        $filesystem = $this->app->make(\Illuminate\Filesystem\Filesystem::class);
+        $filesystem = $this->app->make(Filesystem::class);
 
         return new FileStore($filesystem, $config['path']);
     }
@@ -98,6 +101,11 @@ class CacheManager
     protected function getConfig($name): array
     {
         return $this->app->make('config')->get("cache.stores.{$name}");
+    }
+
+    protected function getPrefix(array $config): string
+    {
+        return $config['prefix'] ?? $this->app->make('config')->get('cache.prefix', 'bault_cache');
     }
 
     public function __call($method, $parameters)

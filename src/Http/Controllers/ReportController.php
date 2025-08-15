@@ -3,9 +3,8 @@
 namespace Http\Controllers;
 
 use App\Tasks\GenerateReportTask;
-use Psr\Http\Message\ResponseInterface as Response;
-use Http\ResponseFactory;
 use Core\Server\SwooleServer;
+use Http\ResponseFactory;
 
 class ReportController
 {

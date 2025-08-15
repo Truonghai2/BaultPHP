@@ -2,18 +2,26 @@
 
 namespace Core\Frontend;
 
+use Core\Application;
+
 /**
  * Class này xử lý việc render một Component lần đầu tiên.
  */
 class ComponentRenderer
 {
+    public function __construct(
+        private Application $app,
+        private ChecksumService $checksumService,
+    ) {
+    }
+
     /**
      * Render một component và trả về HTML hoàn chỉnh với snapshot.
      */
-    public static function render(string $componentClass, array $attributes = []): string
+    public function render(string $componentClass, array $attributes = []): string
     {
         /** @var Component $component */
-        $component = app($componentClass);
+        $component = $this->app->make($componentClass);
 
         $wireAttributes = [];
 
@@ -29,7 +37,9 @@ class ComponentRenderer
 
         // Gọi phương thức mount nếu nó tồn tại
         // Điều này cho phép component nhận các props đã được gán
-        if (method_exists($component, 'mount')) app()->call([$component, 'mount']);
+        if (method_exists($component, 'mount')) {
+            $this->app->call([$component, 'mount']);
+        }
 
         // Render HTML của component
         $html = $component->render();
@@ -40,7 +50,7 @@ class ComponentRenderer
         $snapshot = [
             'class' => $componentClass,
             'data' => $state,
-            'checksum' => self::generateChecksum($componentClass, $state),
+            'checksum' => $this->checksumService->generate($componentClass, $state),
         ];
 
         $encodedSnapshot = htmlspecialchars(json_encode($snapshot), ENT_QUOTES);
@@ -53,16 +63,5 @@ class ComponentRenderer
 
         // Trả về HTML được bao bọc bởi thẻ div gốc của component
         return "<div {$wireAttributesHtml}>{$html}</div>";
-    }
-
-    /**
-     * Tạo checksum để xác thực state.
-     */
-    private static function generateChecksum(string $class, array $data): string
-    {
-        // BẢO MẬT: Sắp xếp dữ liệu theo key để đảm bảo chuỗi JSON luôn nhất quán,
-        // tránh việc checksum bị sai một cách ngẫu nhiên.
-        ksort($data);
-        return hash_hmac('sha256', $class . json_encode($data), config('app.key'));
     }
 }

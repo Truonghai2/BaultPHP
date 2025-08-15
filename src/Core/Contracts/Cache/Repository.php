@@ -56,4 +56,3 @@ interface Repository
      */
     public function forget(string $key): bool;
 }
-

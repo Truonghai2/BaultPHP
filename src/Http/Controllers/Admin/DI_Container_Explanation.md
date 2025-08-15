@@ -13,7 +13,7 @@ class MyController {
     public function __construct() {
         // Tự tay khởi tạo, rất cứng nhắc và khó thay đổi
         $config = ['key' => 'value'];
-        $this->service = new MyService($config); 
+        $this->service = new MyService($config);
     }
 }
 ```
@@ -31,9 +31,10 @@ class MyController {
 ```
 
 Việc này mang lại lợi ích to lớn:
-*   **Loose Coupling (Giảm sự phụ thuộc):** Các class không cần biết cách tạo ra các phụ thuộc của chúng.
-*   **Dễ dàng cấu hình:** Cấu hình cho các service được tập trung ở một nơi duy nhất.
-*   **Tăng khả năng Test:** Dễ dàng thay thế các service thật bằng các đối tượng giả (mock) khi viết unit test.
+
+- **Loose Coupling (Giảm sự phụ thuộc):** Các class không cần biết cách tạo ra các phụ thuộc của chúng.
+- **Dễ dàng cấu hình:** Cấu hình cho các service được tập trung ở một nơi duy nhất.
+- **Tăng khả năng Test:** Dễ dàng thay thế các service thật bằng các đối tượng giả (mock) khi viết unit test.
 
 ## Cách hoạt động trong BaultPHP
 
@@ -48,7 +49,7 @@ Việc đăng ký được thực hiện bên trong phương thức `register()`
 **Ví dụ: Đăng ký `CentrifugoAPIService` trong `AppServiceProvider.php`**
 
 ```php
-// e:\temp\BaultFrame\src\Providers\AppServiceProvider.php
+// e:\temp\BaultPHP\src\Providers\AppServiceProvider.php
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -73,9 +74,10 @@ class AppServiceProvider extends ServiceProvider
 ```
 
 Trong ví dụ trên:
-*   `$this->app` chính là instance của `Core\Application` (DI Container).
-*   `singleton(CentrifugoAPIService::class, ...)` nói với container rằng: "Khi ai đó yêu cầu một `CentrifugoAPIService`, hãy thực thi hàm closure này. Nhưng chỉ thực thi lần đầu tiên thôi, những lần sau hãy trả về chính instance đã được tạo ra trước đó".
-*   Toàn bộ logic khởi tạo và cấu hình (lấy URL, API key từ `.env`) được gói gọn tại đây.
+
+- `$this->app` chính là instance của `Core\Application` (DI Container).
+- `singleton(CentrifugoAPIService::class, ...)` nói với container rằng: "Khi ai đó yêu cầu một `CentrifugoAPIService`, hãy thực thi hàm closure này. Nhưng chỉ thực thi lần đầu tiên thôi, những lần sau hãy trả về chính instance đã được tạo ra trước đó".
+- Toàn bộ logic khởi tạo và cấu hình (lấy URL, API key từ `.env`) được gói gọn tại đây.
 
 ### 2. Giải quyết Phụ thuộc (Resolving Dependencies)
 
@@ -84,7 +86,7 @@ Trong ví dụ trên:
 **Ví dụ: Inject `CentrifugoAPIService` vào `NotificationController.php`**
 
 ```php
-// e:\temp\BaultFrame\src\Http\Controllers\Admin\NotificationController.php
+// e:\temp\BaultPHP\src\Http\Controllers\Admin\NotificationController.php
 
 class NotificationController
 {
@@ -104,6 +106,7 @@ class NotificationController
 ```
 
 **Luồng hoạt động diễn ra như sau:**
+
 1.  Một request đến route `/api/admin/notifications/user/{id}`.
 2.  Router của BaultPHP xác định rằng nó cần phải tạo một instance của `NotificationController` để xử lý request.
 3.  Trước khi tạo, nó dùng Reflection để "đọc" constructor của `NotificationController`.
@@ -136,7 +139,7 @@ $report2 = $app->make(ReportGenerator::class); // Tạo instance B
 // $report1 và $report2 là hai đối tượng hoàn toàn khác nhau.
 ```
 
-*   **Khi nào dùng `bind`?** Khi bạn cần một đối tượng "sạch" (fresh state) mỗi lần sử dụng. Ví dụ: một class tạo báo cáo, một đối tượng Data Transfer Object (DTO), hoặc bất kỳ class nào có trạng thái nội tại (internal state) mà bạn không muốn chia sẻ giữa các phần khác nhau của ứng dụng.
+- **Khi nào dùng `bind`?** Khi bạn cần một đối tượng "sạch" (fresh state) mỗi lần sử dụng. Ví dụ: một class tạo báo cáo, một đối tượng Data Transfer Object (DTO), hoặc bất kỳ class nào có trạng thái nội tại (internal state) mà bạn không muốn chia sẻ giữa các phần khác nhau của ứng dụng.
 
 #### `singleton` (Shared Binding)
 
@@ -156,14 +159,14 @@ $connection2 = $app->make(DatabaseConnection::class); // Trả về instance A �
 // $connection1 và $connection2 là cùng một đối tượng.
 ```
 
-*   **Khi nào dùng `singleton`?** Đây là trường hợp phổ biến nhất. Dùng cho các service không có trạng thái hoặc có trạng thái cần được chia sẻ toàn cục, và việc khởi tạo chúng tốn kém tài nguyên. Ví dụ: Kết nối CSDL, client gọi API bên ngoài (`CentrifugoAPIService`), service quản lý cache, service quản lý config. Việc này giúp tiết kiệm bộ nhớ và thời gian xử lý.
+- **Khi nào dùng `singleton`?** Đây là trường hợp phổ biến nhất. Dùng cho các service không có trạng thái hoặc có trạng thái cần được chia sẻ toàn cục, và việc khởi tạo chúng tốn kém tài nguyên. Ví dụ: Kết nối CSDL, client gọi API bên ngoài (`CentrifugoAPIService`), service quản lý cache, service quản lý config. Việc này giúp tiết kiệm bộ nhớ và thời gian xử lý.
 
 ---
 
 Hệ thống Dependency Injection của BaultPHP, tuy đơn giản, nhưng là một công cụ cực kỳ hiệu quả. Bằng cách tập trung việc khởi tạo và cấu hình vào các **Service Provider** và tận dụng **Constructor Injection** tự động, nó giúp cho mã nguồn của bạn trở nên:
 
-*   **Sạch sẽ và dễ đọc:** Controller và các lớp nghiệp vụ khác chỉ tập trung vào công việc của chúng.
-*   **Linh hoạt:** Dễ dàng thay đổi cách một service được tạo ra mà không cần sửa code ở nhiều nơi.
-*   **Dễ bảo trì và kiểm thử (test).**
+- **Sạch sẽ và dễ đọc:** Controller và các lớp nghiệp vụ khác chỉ tập trung vào công việc của chúng.
+- **Linh hoạt:** Dễ dàng thay đổi cách một service được tạo ra mà không cần sửa code ở nhiều nơi.
+- **Dễ bảo trì và kiểm thử (test).**
 
 Đây là một khái niệm nền tảng giúp xây dựng các ứng dụng lớn, phức tạp và có khả năng bảo trì cao trong BaultPHP.

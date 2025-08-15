@@ -12,11 +12,10 @@ use Modules\User\Application\Handlers\UpdateUserProfileHandler;
 use Modules\User\Application\Listeners\FlushPermissionCacheForRoleUsers;
 use Modules\User\Application\Listeners\FlushPermissionCacheOnProfileUpdate;
 use Modules\User\Application\Listeners\FlushPermissionCacheOnRoleChange;
-use Modules\User\Application\Listeners\FlushUserPermissionCache;
 use Modules\User\Application\Policies\UserPolicy;
+use Modules\User\Application\UserFinder;
 use Modules\User\Domain\Events\RoleAssignedToUser;
 use Modules\User\Domain\Events\RolePermissionsChanged;
-use Modules\User\Domain\Events\UserDeleted;
 use Modules\User\Domain\Events\UserProfileUpdated;
 use Modules\User\Domain\Services\AccessControlService;
 use Modules\User\Infrastructure\Models\User;
@@ -29,9 +28,6 @@ class UserServiceProvider extends ServiceProvider
      * @var array<class-string, array<int, class-string>>
      */
     protected array $listen = [
-        UserDeleted::class => [
-            FlushUserPermissionCache::class,
-        ],
         UserProfileUpdated::class => [
             FlushPermissionCacheOnProfileUpdate::class,
         ],
@@ -45,9 +41,7 @@ class UserServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        $this->app->singleton(UserFinder::class, function () {
-            return new UserFinder();
-        });
+        $this->app->singleton(UserFinder::class);
     }
 
     public function boot(): void
@@ -55,6 +49,7 @@ class UserServiceProvider extends ServiceProvider
         $this->registerPolicies();
         $this->registerCommandHandlers();
         $this->registerEventListeners();
+        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'user');
     }
 
     private function registerPolicies(): void

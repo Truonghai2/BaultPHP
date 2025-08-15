@@ -45,12 +45,12 @@ class MakeCommandCommand extends BaseCommand
         $className = $name;
         $namespace = 'App\\Console\\Commands';
         $path = app_path("Console/Commands/{$className}.php");
-        $locationDescription = "src/Console/Commands/";
+        $locationDescription = 'src/Console/Commands/';
 
         if ($isCore) {
             $namespace = 'Core\\Console\\Commands';
             $path = base_path("src/Core/Console/Commands/{$className}.php");
-            $locationDescription = "src/Core/Console/Commands/";
+            $locationDescription = 'src/Core/Console/Commands/';
         } elseif ($module) {
             $module = ucfirst($module);
             $modulePath = base_path('Modules/' . $module);
@@ -80,7 +80,7 @@ class MakeCommandCommand extends BaseCommand
         $stub = str_replace(
             ['{{namespace}}', '{{className}}', '{{commandName}}'],
             [$namespace, $className, $fullCommandName],
-            $stub
+            $stub,
         );
 
         file_put_contents($path, $stub);

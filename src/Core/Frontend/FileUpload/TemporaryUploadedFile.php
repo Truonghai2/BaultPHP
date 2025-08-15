@@ -21,7 +21,7 @@ class TemporaryUploadedFile
     {
         $disk = self::getTemporaryDisk();
         $filename = 'bault-tmp-' . bin2hex(random_bytes(10)) . '.' . $file->getClientOriginalExtension();
-        
+
         // Lưu file vào thư mục tạm
         $disk->write($filename, $file->getContent());
 

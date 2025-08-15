@@ -2,8 +2,6 @@
 
 namespace Core;
 
-use Core\Application;
-
 abstract class ServiceProvider
 {
     public function __construct(protected Application $app)

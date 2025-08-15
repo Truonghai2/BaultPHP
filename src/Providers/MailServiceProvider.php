@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Core\Contracts\Mail\Mailer as MailerContract;
+use Core\Contracts\Support\DeferrableProvider;
 use Core\Mail\MailerService;
 use Core\Support\ServiceProvider;
 use Psr\Log\LoggerInterface;
@@ -10,7 +11,7 @@ use Symfony\Component\Mailer\Mailer;
 use Symfony\Component\Mailer\Transport;
 use Symfony\Component\Mailer\Transport\TransportInterface;
 
-class MailServiceProvider extends ServiceProvider
+class MailServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     public function register(): void
     {
@@ -51,5 +52,17 @@ class MailServiceProvider extends ServiceProvider
             'log' => 'log://null',
             default => throw new \InvalidArgumentException("Unsupported mail transport [{$config['transport']}]"),
         };
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * This provider will only be loaded when one of these services is requested from the container.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [MailerContract::class, MailerService::class];
     }
 }

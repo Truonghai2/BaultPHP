@@ -21,7 +21,7 @@ abstract class TestCase extends BaseTestCase
         $_SERVER['DB_CONNECTION'] = 'sqlite';
 
         $app = new Application(
-            $_ENV['APP_BASE_PATH'] ?? realpath(__DIR__.'/../')
+            $_ENV['APP_BASE_PATH'] ?? realpath(__DIR__ . '/../'),
         );
         $kernel = new AppKernel($app);
         return $kernel->getApplication();

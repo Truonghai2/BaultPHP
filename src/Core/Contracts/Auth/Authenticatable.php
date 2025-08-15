@@ -2,6 +2,10 @@
 
 namespace Core\Contracts\Auth;
 
+/**
+ * Authenticatable is an interface that defines the methods required for an object to be considered
+ * as a user in the authentication system.
+ */
 interface Authenticatable
 {
     /**

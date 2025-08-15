@@ -17,7 +17,7 @@ class SendWelcomeEmail
         $user = $event->user;
 
         // Logic gửi email ở đây. Ví dụ:
-        // mail($user->email, 'Welcome to BaultFrame!', "Hello {$user->name}, welcome aboard!");
+        // mail($user->email, 'Welcome to BaultPHP!', "Hello {$user->name}, welcome aboard!");
         error_log("Sending welcome email to {$user->email}");
     }
 }

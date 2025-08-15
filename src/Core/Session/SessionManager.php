@@ -2,39 +2,89 @@
 
 namespace Core\Session;
 
-class SessionManager
+use Core\Application;
+use Core\Contracts\StatefulService;
+use SessionHandlerInterface;
+use Symfony\Component\HttpFoundation\Session\Session;
+use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
+use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
+
+class SessionManager implements StatefulService
 {
-    protected bool $isStarted = false;
+    protected Application $app;
+    protected array $config;
 
-    public function start(): void
+    /**
+     * The current session instance.
+     * This is cached for the duration of a single request.
+     *
+     * @var Session|null
+     */
+    protected ?Session $session = null;
+
+    public function __construct(Application $app)
     {
-        if ($this->isStarted) {
-            return;
+        $this->app = $app;
+        $this->config = $app->make('config')->get('session');
+    }
+
+    /**
+     * Get the session instance for the current request.
+     *
+     * If a session instance does not exist, it will be created.
+     *
+     * @return Session
+     */
+    public function getSession(): Session
+    {
+        if ($this->session === null) {
+            $this->session = $this->buildSession();
         }
 
-        if (session_status() === PHP_SESSION_NONE) {
-            session_start();
-        }
-        $this->isStarted = true;
+        return $this->session;
     }
 
-    public function get(string $key, $default = null)
+    /**
+     * Reset the state of the session manager.
+     *
+     * This is called by the Swoole server after each request to prevent
+     * session state from leaking into the next request. It nullifies the
+     * cached session instance, forcing a new one to be created.
+     */
+    public function resetState(): void
     {
-        return $_SESSION[$key] ?? $default;
+        $this->session = null;
     }
 
-    public function set(string $key, $value): void
+    protected function buildSession(): Session
     {
-        $_SESSION[$key] = $value;
+        $handler = $this->createDriver($this->config['driver'] ?? 'file');
+        $storage = new NativeSessionStorage([], $handler);
+
+        return new Session($storage);
     }
 
-    public function forget(string $key): void
+    protected function createDriver(string $driver): SessionHandlerInterface
     {
-        unset($_SESSION[$key]);
+        return match ($driver) {
+            'database' => $this->createDatabaseDriver(),
+            default => $this->createFileDriver(),
+        };
     }
 
-    public function regenerate(): void
+    protected function createFileDriver(): SessionHandlerInterface
     {
-        session_regenerate_id(true);
+        return new NativeFileSessionHandler(
+            $this->config['files'] ?? storage_path('framework/sessions'),
+        );
+    }
+
+    protected function createDatabaseDriver(): SessionHandlerInterface
+    {
+        return new DatabaseSessionHandler(
+            $this->app,
+            $this->config['table'] ?? 'sessions',
+            $this->config['lifetime'] ?? 120,
+        );
     }
 }

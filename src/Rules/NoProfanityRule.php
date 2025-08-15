@@ -18,7 +18,9 @@ class NoProfanityRule implements Rule
             return false;
         }
 
-        $forbiddenWords = ['badword', 'curse', 'profane'];
+        // Lấy danh sách từ file config để dễ quản lý
+        $forbiddenWords = config('profanity.words', []);
+
         str_ireplace($forbiddenWords, '***', $value, $count);
         return $count === 0;
     }

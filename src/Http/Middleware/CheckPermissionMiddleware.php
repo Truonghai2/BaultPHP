@@ -3,7 +3,6 @@
 namespace Http\Middleware;
 
 use App\Exceptions\ForbiddenException;
-use Closure;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

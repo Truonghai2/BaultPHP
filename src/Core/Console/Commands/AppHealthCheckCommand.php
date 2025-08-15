@@ -4,19 +4,15 @@ namespace Core\Console\Commands;
 
 use Core\Console\Contracts\BaseCommand;
 use Core\WebSocket\CentrifugoAPIService;
-use PDO;
 use Throwable;
 
 class AppHealthCheckCommand extends BaseCommand
 {
     /**
-     * Constructor cho phép inject các dependency.
-     * DI Container sẽ tự động cung cấp các instance của PDO và CentrifugoAPIService.
+     * Create a new command instance.
      */
-    public function __construct(
-        private ?PDO $pdo,
-        private ?CentrifugoAPIService $centrifugo,
-    ) {
+    public function __construct()
+    {
         parent::__construct();
     }
 
@@ -53,28 +49,32 @@ class AppHealthCheckCommand extends BaseCommand
 
     private function checkDatabaseConnection(): void
     {
-        if (!$this->pdo) {
-            $this->line('[<fg=yellow>SKIP</>] Database service (PDO) is not configured or could not be resolved.');
-            return;
-        }
-
         try {
-            $this->pdo->query('SELECT 1');
+            // Resolve PDO safely inside the method to avoid boot-time errors
+            // if the database isn't ready or configured.
+            /** @var \PDO $pdo */
+            $pdo = $this->app->make(\PDO::class);
+            $pdo->query('SELECT 1');
             $this->line('[<fg=green>OK</>] Database connection is healthy.');
         } catch (Throwable $e) {
+            // This will catch both resolution errors and connection errors.
             $this->line('[<fg=red>FAIL</>] Database connection failed: ' . $e->getMessage());
         }
     }
 
     private function checkCentrifugoConnection(): void
     {
-        if (!$this->centrifugo) {
-            $this->line('[<fg=yellow>SKIP</>] Centrifugo service is not configured.');
-            return;
+        try {
+            // Resolve CentrifugoAPIService safely inside the method. This prevents the
+            // "API key not configured" error from halting the entire console application
+            // when just listing commands.
+            /** @var CentrifugoAPIService $centrifugo */
+            $centrifugo = $this->app->make(CentrifugoAPIService::class);
+            $isHealthy = $centrifugo->healthCheck();
+            $status = $isHealthy ? '[<fg=green>OK</>]' : '[<fg=red>FAIL</>]';
+            $this->line("{$status} Centrifugo API connection is " . ($isHealthy ? 'healthy.' : 'unhealthy.'));
+        } catch (Throwable $e) {
+            $this->line('[<fg=yellow>SKIP</>] Centrifugo service check failed: ' . $e->getMessage());
         }
-
-        $isHealthy = $this->centrifugo->healthCheck();
-        $status = $isHealthy ? '[<fg=green>OK</>]' : '[<fg=red>FAIL</>]';
-        $this->line("{$status} Centrifugo API connection is " . ($isHealthy ? 'healthy.' : 'unhealthy.'));
     }
 }

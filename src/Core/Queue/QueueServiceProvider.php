@@ -7,8 +7,8 @@ use Core\Console\Commands\Queue\QueueFlushCommand;
 use Core\Console\Commands\Queue\QueueForgetCommand;
 use Core\Console\Commands\Queue\QueueRetryCommand;
 use Core\Console\Commands\Queue\WorkCommand;
-use Core\Redis\RedisManager;
 use Core\Contracts\Queue\FailedJobProviderInterface;
+use Core\Queue\Drivers\RedisQueue as RedisQueueDriver;
 use Core\Support\ServiceProvider;
 
 /**
@@ -41,14 +41,7 @@ class QueueServiceProvider extends ServiceProvider
         $this->registerManager();
         $this->registerWorker();
         $this->registerFailedJobServices();
-
-        // Register the SwooleQueue driver specifically, as it's a core part of the async offering.
-        $this->app->singleton(SwooleQueue::class, function ($app) {
-            // This assumes the app is running within a Swoole server context.
-            // An exception will be thrown if SwooleServer is not bound.
-            return new SwooleQueue($app);
-        });
-
+        $this->registerConnectors(); // Moved from boot to register
         $this->registerCommands();
     }
 
@@ -59,7 +52,7 @@ class QueueServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        $this->registerConnectors();
+        // No longer needed here as it's moved to register()
     }
 
     /**
@@ -67,7 +60,9 @@ class QueueServiceProvider extends ServiceProvider
      */
     protected function registerManager(): void
     {
-        $this->app->singleton('queue', fn($app) => new QueueManager($app));
+        $this->app->singleton('queue', function (\Core\Application $app) {
+            return new QueueManager($app);
+        });
         $this->app->alias('queue', QueueManager::class);
     }
 
@@ -86,7 +81,7 @@ class QueueServiceProvider extends ServiceProvider
     {
         $this->app->singleton(
             FailedJobProviderInterface::class,
-            DatabaseFailedJobProvider::class
+            DatabaseFailedJobProvider::class,
         );
     }
 
@@ -98,20 +93,20 @@ class QueueServiceProvider extends ServiceProvider
         /** @var QueueManager $manager */
         $manager = $this->app->make('queue');
 
-        $manager->addConnector('sync', fn() => new SyncQueue());
+        $manager->addConnector('sync', fn () => new SyncQueue());
 
         $manager->addConnector('redis', function ($config) {
-            return new RedisQueue(
-                $this->app->make(RedisManager::class),
-                $config['queue'] ?? 'default',
-                $config['connection'] ?? null,
-            );
+            // This assumes you have a RedisManager or similar service to get a connection.
+            // We will now make this registration "Swoole-aware".
+            // The RedisQueueDriver is now responsible for resolving its own Redis connection
+            // from the RedisManager, making the service provider cleaner.
+            return new RedisQueueDriver($this->app, $config);
         });
 
         $manager->addConnector('swoole', function () {
             // The connector's job is to return an instance of the Queue driver.
             // The SwooleQueue itself is registered as a singleton in the `register` method.
-            return $this->app->make(SwooleQueue::class);
+            return new SwooleQueue($this->app);
         });
     }
 

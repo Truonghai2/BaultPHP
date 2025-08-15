@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use Core\Events\EventDispatcherInterface;
 use Core\Events\Dispatcher;
+use Core\Events\EventDispatcherInterface;
 use Core\Events\ModuleChanged;
 use Core\Listeners\ClearRelatedCacheOnModuleChange;
 use Core\Support\ServiceProvider;

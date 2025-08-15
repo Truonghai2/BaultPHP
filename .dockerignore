@@ -1,9 +1,23 @@
+# Git
 .git
+.gitignore
+
+# Node
+node_modules
+
+# Docker & Readme
+Dockerfile
+docker-compose.yml
+*.md
+
+# Local environment & IDE
+.env
+.env.example
 .idea
 .vscode
-vendor
-node_modules
-.env
-storage/logs/*
-storage/framework/cache/data/*
-bootstrap/cache/*.php
+
+# Framework specific cache/storage (managed by volumes or inside container)
+/storage
+/bootstrap/cache
+/public/build
+/vendor

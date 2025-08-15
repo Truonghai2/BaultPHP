@@ -16,7 +16,7 @@ class ModuleRegistry
     public function sync(): void
     {
         $modules = glob($this->path . '/*', GLOB_ONLYDIR);
-        $pdo = Connection::get();
+        $pdo = app(Connection::class)->connection();
 
         foreach ($modules as $dir) {
             $name = basename($dir);

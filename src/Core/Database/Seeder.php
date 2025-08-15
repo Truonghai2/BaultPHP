@@ -4,6 +4,10 @@ namespace Core\Database;
 
 use Core\Application;
 
+/**
+ * Seeder is an abstract class that provides a base for database seeders.
+ * It allows for the execution of seeders and setting the application container.
+ */
 abstract class Seeder
 {
     /**
@@ -39,6 +43,12 @@ abstract class Seeder
         return $this;
     }
 
+    /**
+     * Set the application container for the seeder.
+     *
+     * @param Application $container
+     * @return $this
+     */
     public function setContainer(Application $container): static
     {
         $this->container = $container;

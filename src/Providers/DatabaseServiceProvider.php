@@ -5,7 +5,6 @@ namespace App\Providers;
 use Core\ORM\Connection;
 use Core\ORM\MigrationManager;
 use Core\Support\ServiceProvider;
-use PDO;
 
 class DatabaseServiceProvider extends ServiceProvider
 {
@@ -18,41 +17,29 @@ class DatabaseServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Đăng ký PDO instance như một singleton.
-        // Logic này nên được tập trung ở đây thay vì trong một phương thức static.
-        // Điều này giúp DI container quản lý hoàn toàn vòng đời của PDO.
-        $this->app->singleton(PDO::class, function ($app) {
-            // Lấy ra đối tượng config từ container
-            $config = $app->make('config');
+        // Register the Connection manager as a singleton.
+        $this->app->singleton(Connection::class, function ($app) {
+            return new Connection($app);
+        });
 
-            // Lấy tên kết nối mặc định (ví dụ: 'mysql') từ file config/database.php
-            $connectionName = $config->get('database.default', 'mysql');
+        // Đăng ký kết nối GHI (write) mặc định bằng cách ủy quyền cho Connection manager.
+        // Điều này tập trung hóa logic kết nối, bao gồm cả việc xử lý connection pool
+        // trong môi trường Swoole, đảm bảo tính nhất quán trên toàn ứng dụng.
+        $this->app->singleton(\PDO::class, function ($app) {
+            // Tham số thứ hai 'write' là mặc định trong Connection::get() nhưng được ghi rõ ở đây.
+            return $app->make(Connection::class)->connection(null, 'write');
+        });
 
-            // Lấy toàn bộ cấu hình cho kết nối mặc định đó
-            $connectionConfig = $config->get("database.connections.{$connectionName}");
+        // Đăng ký kết nối ĐỌC (read).
+        // Connection::get() đã chứa logic để tự động fallback về kết nối 'write'
+        // nếu một read replica riêng biệt không được cấu hình.
+        $this->app->singleton('pdo.read', function ($app) {
+            return $app->make(Connection::class)->connection(null, 'read');
+        });
 
-            if (!$connectionConfig) {
-                throw new \InvalidArgumentException("Database connection [{$connectionName}] is not configured.");
-            }
-
-            // Lấy host từ cấu hình 'write' nếu có, nếu không thì lấy host chung.
-            $host = $connectionConfig['write']['host'] ?? $connectionConfig['host'];
-
-            // Tạo chuỗi DSN (Data Source Name)
-            $dsn = sprintf(
-                '%s:host=%s;port=%s;dbname=%s;charset=%s',
-                $connectionConfig['driver'],
-                $host,
-                $connectionConfig['port'],
-                $connectionConfig['database'],
-                $connectionConfig['charset']
-            );
-
-            try {
-                return new PDO($dsn, $connectionConfig['username'], $connectionConfig['password'], $connectionConfig['options'] ?? []);
-            } catch (\PDOException $e) {
-                throw new \RuntimeException("Could not connect to the database [{$connectionName}]. Please check your configuration. Error: " . $e->getMessage(), (int)$e->getCode(), $e);
-            }
+        // Register the Schema utility so it can be injected.
+        $this->app->singleton(\Core\Schema\Schema::class, function ($app) {
+            return new \Core\Schema\Schema($app->make(\PDO::class));
         });
 
         // The MigrationManager now automatically detects the default migration path.
@@ -61,9 +48,10 @@ class DatabaseServiceProvider extends ServiceProvider
         $this->app->singleton(MigrationManager::class, function ($app) {
             // Bây giờ chúng ta có thể resolve PDO trực tiếp từ container.
             $config = $app->make('config');
-            $pdo = $app->make(PDO::class);
+            $pdo = $app->make(\PDO::class);
+            $schema = $app->make(\Core\Schema\Schema::class);
             $table = $config->get('database.migrations.table', 'migrations');
-            return new MigrationManager($pdo, $table);
+            return new MigrationManager($pdo, $schema, $table);
         });
     }
 }

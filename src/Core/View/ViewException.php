@@ -5,26 +5,24 @@ namespace Core\View;
 use Exception;
 use Throwable;
 
+/**
+ * Class ViewException
+ *
+ * Một exception tùy chỉnh được ném ra khi có lỗi trong quá trình render view.
+ * Nó chứa thông tin về đường dẫn và dòng lỗi trong file template gốc,
+ * giúp việc debug dễ dàng hơn rất nhiều.
+ *
+ * @package Core\View
+ */
 class ViewException extends Exception
 {
-    /**
-     * @var string The path to the original view file.
-     */
-    protected string $viewPath;
-
-    /**
-     * @var int The line number in the original view file.
-     */
-    protected int $viewLine;
-
-    public function __construct(string $message, string $viewPath, int $viewLine, Throwable $previous)
-    {
-        $this->viewPath = $viewPath;
-        $this->viewLine = $viewLine;
-
-        // Construct a more informative message
-        $finalMessage = sprintf('%s in %s (line %d)', $message, $viewPath, $viewLine);
-
+    public function __construct(
+        string $message,
+        private string $viewPath,
+        private int $viewLine,
+        Throwable $previous,
+    ) {
+        $finalMessage = sprintf('%s in view %s (line %d)', $message, $viewPath, $viewLine);
         parent::__construct($finalMessage, 0, $previous);
     }
 

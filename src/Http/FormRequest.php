@@ -123,7 +123,7 @@ abstract class FormRequest
         return array_merge(
             $routeParams,
             $this->request->getQueryParams(),
-            (array) $this->request->getParsedBody()
+            (array) $this->request->getParsedBody(),
         );
     }
 

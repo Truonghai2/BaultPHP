@@ -12,9 +12,9 @@ class SyncQueue implements Queue
         // Với sync driver, job được thực thi ngay lập tức.
         try {
             $job->handle();
-        } catch (\Throwable $e) {
-            // Cần có một cơ chế xử lý lỗi ở đây, ví dụ: log lỗi.
-            app('log')->error('Sync job failed', ['exception' => $e]);
+        } catch (\Throwable $e) { // Bắt lỗi kiểu Throwable để bao quát cả Error và Exception
+            // Re-throw the exception so the developer is immediately aware of the failure.
+            throw $e;
         }
     }
 

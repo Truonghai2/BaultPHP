@@ -5,12 +5,13 @@ namespace Core\Auth;
 use Core\Application;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
+use Core\Contracts\StatefulService;
 use InvalidArgumentException;
 
 /**
  * @mixin \Core\Contracts\Auth\Guard
  */
-class AuthManager
+class AuthManager implements StatefulService
 {
     protected Application $app;
     protected array $guards = [];
@@ -37,7 +38,7 @@ class AuthManager
 
         if ($config['driver'] === 'session') {
             $provider = $this->createUserProvider($config['provider'] ?? null);
-            return new SessionGuard($this->app, $this->app->make(\Core\Session\SessionManager::class), $provider);
+            return new SessionGuard($this->app, $this->app->make('session'), $provider);
         }
         if ($config['driver'] === 'jwt') {
             $provider = $this->createUserProvider($config['provider'] ?? null);
@@ -72,14 +73,14 @@ class AuthManager
         return $this->app->make('config')->get('auth.defaults.guard', 'web');
     }
 
-    public function reset(): void
+    /**
+     * Reset the state of the manager by clearing all resolved guard instances.
+     * This is crucial in long-running applications like Swoole to prevent
+     * user state from leaking between requests.
+     */
+    public function resetState(): void
     {
-        // Reset all resolved guards
-        foreach ($this->guards as $guard) {
-            if (method_exists($guard, 'reset')) {
-                $guard->reset();
-            }
-        }
+        $this->guards = [];
     }
 
     public function __call(string $method, array $arguments)

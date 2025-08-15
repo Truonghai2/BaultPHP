@@ -4,22 +4,22 @@
 
 ## Triết lý cốt lõi
 
-*   **Modular là trên hết**: Mọi thứ trong BaultPHP đều có thể được tổ chức thành các **Module** độc lập. Mỗi module có cấu trúc thư mục riêng, service provider, routes, và migrations, cho phép các nhóm phát triển song song và tái sử dụng code hiệu quả.
-*   **Hiệu năng cao**: Framework được xây dựng trên nền tảng **Swoole**, một PHP extension cho phép lập trình bất đồng bộ, hiệu năng cao, giúp xử lý hàng ngàn kết nối đồng thời với độ trễ thấp.
-*   **Developer-friendly**: Cung cấp bộ công cụ dòng lệnh (CLI) mạnh mẽ để tự động hóa các tác vụ lặp đi lặp lại như tạo module, controller, use case, v.v., giúp lập trình viên tập trung vào logic nghiệp vụ.
-*   **Tự chủ và Tối giản**: Thay vì phụ thuộc vào các thư viện lớn, BaultPHP tự xây dựng các thành phần cốt lõi như ORM, Routing, và Authentication. Điều này mang lại sự kiểm soát tối đa và một codebase gọn nhẹ, dễ hiểu.
+- **Modular là trên hết**: Mọi thứ trong BaultPHP đều có thể được tổ chức thành các **Module** độc lập. Mỗi module có cấu trúc thư mục riêng, service provider, routes, và migrations, cho phép các nhóm phát triển song song và tái sử dụng code hiệu quả.
+- **Hiệu năng cao**: Framework được xây dựng trên nền tảng **Swoole**, một PHP extension cho phép lập trình bất đồng bộ, hiệu năng cao, giúp xử lý hàng ngàn kết nối đồng thời với độ trễ thấp.
+- **Developer-friendly**: Cung cấp bộ công cụ dòng lệnh (CLI) mạnh mẽ để tự động hóa các tác vụ lặp đi lặp lại như tạo module, controller, use case, v.v., giúp lập trình viên tập trung vào logic nghiệp vụ.
+- **Tự chủ và Tối giản**: Thay vì phụ thuộc vào các thư viện lớn, BaultPHP tự xây dựng các thành phần cốt lõi như ORM, Routing, và Authentication. Điều này mang lại sự kiểm soát tối đa và một codebase gọn nhẹ, dễ hiểu.
 
 ## Các tính năng nổi bật
 
-*   **Kiến trúc Modular theo DDD**: Dễ dàng tạo và quản lý các module với cấu trúc chuẩn Domain-Driven Design thông qua câu lệnh `ddd:make-module`.
-*   **Hệ thống Routing linh hoạt**: Hỗ trợ cả **File-based Routing** (truyền thống) và **Attribute-based Routing** (hiện đại), tự động quét và đăng ký route từ các controller trong module.
-*   **Dependency Injection Container**: Một DI Container đơn giản nhưng mạnh mẽ để quản lý các dependency trong toàn bộ ứng dụng.
-*   **ORM tùy biến**: Một lớp ORM (Object-Relational Mapping) được xây dựng riêng, hỗ trợ các thao tác cơ bản với cơ sở dữ liệu, soft deletes, và query builder.
-*   **Hệ thống Migration mạnh mẽ**: Quản lý schema cơ sở dữ liệu cho từng module, hỗ trợ chạy, rollback theo từng batch.
-*   **Xác thực (Authentication) đa cơ chế**: Hỗ trợ nhiều "guard" khác nhau, bao gồm `SessionGuard` cho web truyền thống và `JwtGuard` cho các API stateless.
-*   **Tích hợp Swoole**: Sẵn sàng cho môi trường production hiệu năng cao với server được quản lý qua các lệnh `server:start`, `server:stop`, và `server:reload`.
-*   **Bộ công cụ CLI tiện lợi**: Bao gồm các lệnh `serve`, `route:cache`, `config:cache`, và rất nhiều lệnh `make:*`, `ddd:*` để tăng tốc phát triển.
-*   **Xử lý lỗi tập trung**: `ExceptionHandler` trung tâm với sự hỗ trợ của `Whoops` cho môi trường debug, giúp việc gỡ lỗi trở nên trực quan.
+- **Kiến trúc Modular theo DDD**: Dễ dàng tạo và quản lý các module với cấu trúc chuẩn Domain-Driven Design thông qua câu lệnh `ddd:make-module`.
+- **Hệ thống Routing linh hoạt**: Hỗ trợ cả **File-based Routing** (truyền thống) và **Attribute-based Routing** (hiện đại), tự động quét và đăng ký route từ các controller trong module.
+- **Dependency Injection Container**: Một DI Container đơn giản nhưng mạnh mẽ để quản lý các dependency trong toàn bộ ứng dụng.
+- **ORM tùy biến**: Một lớp ORM (Object-Relational Mapping) được xây dựng riêng, hỗ trợ các thao tác cơ bản với cơ sở dữ liệu, soft deletes, và query builder.
+- **Hệ thống Migration mạnh mẽ**: Quản lý schema cơ sở dữ liệu cho từng module, hỗ trợ chạy, rollback theo từng batch.
+- **Xác thực (Authentication) đa cơ chế**: Hỗ trợ nhiều "guard" khác nhau, bao gồm `SessionGuard` cho web truyền thống và `JwtGuard` cho các API stateless.
+- **Tích hợp Swoole**: Sẵn sàng cho môi trường production hiệu năng cao với server được quản lý qua các lệnh `serve:start` (để chạy server) và `serve:watch` (để phát triển với hot-reload).
+- **Bộ công cụ CLI tiện lợi**: Bao gồm các lệnh `route:cache`, `config:cache`, và rất nhiều lệnh `make:*`, `ddd:*` để tăng tốc phát triển.
+- **Xử lý lỗi tập trung**: `ExceptionHandler` trung tâm với sự hỗ trợ của `Whoops` cho môi trường debug, giúp việc gỡ lỗi trở nên trực quan.
 
 ## Kiến trúc tổng quan
 
@@ -51,7 +51,8 @@ BaultPHP hỗ trợ 2 cách định nghĩa route:
 
 Định nghĩa route trực tiếp trên phương thức của controller. Tự động được quét và đăng ký khi ứng dụng khởi động.
 
-*File: `Modules/User/Http/Controllers/UserController.php`*
+_File: `Modules/User/Http/Controllers/UserController.php`_
+
 ```php
 <?php
 
@@ -75,7 +76,8 @@ class UserController
 
 Định nghĩa route trong các file PHP, tương tự như Laravel.
 
-*File: `routes/web.php`*
+_File: `routes/web.php`_
+
 ```php
 <?php
 
@@ -92,7 +94,8 @@ return function (Router $router) {
 
 Framework cung cấp một ORM đơn giản để làm việc với CSDL.
 
-*File: `Modules/User/Infrastructure/Models/User.php`*
+_File: `Modules/User/Infrastructure/Models/User.php`_
+
 ```php
 <?php
 
@@ -109,6 +112,7 @@ class User extends Model implements Authenticatable
 ```
 
 **Cách sử dụng:**
+
 ```php
 // Tìm user theo ID
 $user = User::find(1);
@@ -183,8 +187,11 @@ php cli db:seed --class=UserSeeder
 BaultPHP cung cấp một bộ lệnh CLI phong phú để hỗ trợ phát triển.
 
 ```bash
-# Chạy server phát triển local
-php cli serve
+# Chạy server Swoole (dùng cho cả development và production trong Docker)
+php cli serve:start
+
+# Chạy server với chế độ theo dõi file thay đổi (hot-reload)
+php cli serve:watch
 
 # Tạo một module mới với cấu trúc DDD
 php cli ddd:make-module Product

@@ -4,9 +4,9 @@ namespace Http\Controllers\Admin;
 
 use Core\Routing\Attributes\Route;
 use Core\WebSocket\CentrifugoAPIService;
-use Psr\Http\Message\ServerRequestInterface as Request;
 use Http\ResponseFactory;
 use Modules\User\Infrastructure\Models\User;
+use Psr\Http\Message\ServerRequestInterface as Request;
 
 #[Route('/api/admin/notifications')]
 class NotificationController
@@ -70,4 +70,3 @@ class NotificationController
         return $responseFactory->json(['message' => 'Failed to send broadcast notification.'], 500);
     }
 }
-

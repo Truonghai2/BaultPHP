@@ -3,9 +3,8 @@
 namespace Core\Redis;
 
 use Core\Application;
-use InvalidArgumentException;
+use Core\Database\Swoole\SwooleRedisPool;
 use RedisException;
-use Spiral\RoadRunner\Console\Configuration\Section\Redis;
 
 /**
  * Class RedisManager
@@ -28,7 +27,7 @@ class RedisManager
 
     /**
      * The active Redis connections.
-     * @var array<string, Redis>
+     * @var array<string, \Redis>
      */
     protected array $connections = [];
 
@@ -42,10 +41,17 @@ class RedisManager
      * Lấy một instance kết nối Redis.
      *
      * @param string|null $name Tên của kết nối. Nếu là null, sẽ sử dụng kết nối mặc định.
-     * @return Redis
+     * @return \Redis
      */
-    public function connection(?string $name = null): Redis
+    public function connection(?string $name = null): \Redis
     {
+        // Tối ưu hóa cho Swoole: Trong môi trường coroutine, việc giữ một kết nối
+        // lâu dài là nguy hiểm. Bắt buộc phải sử dụng connection pool.
+        $isSwooleCoroutine = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+        if ($isSwooleCoroutine && class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
+            throw new RedisException('In a Swoole coroutine, you must use getFromPool() and putToPool() to manage Redis connections safely.');
+        }
+
         $name = $name ?: $this->getDefaultConnection();
 
         // Nếu kết nối đã được tạo, trả về nó.
@@ -58,39 +64,76 @@ class RedisManager
     }
 
     /**
+     * Lấy một kết nối từ pool trong môi trường Swoole.
+     *
+     * @return \Redis
+     * @throws RedisException
+     */
+    public function getFromPool(): \Redis
+    {
+        if (class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
+            return SwooleRedisPool::get();
+        }
+
+        // Fallback to a regular connection if not in a Swoole pool environment.
+        return $this->connection();
+    }
+
+    /**
+     * Trả một kết nối về lại pool trong môi trường Swoole.
+     * @param \Redis $connection
+     */
+    public function putToPool(\Redis $connection): void
+    {
+        if (class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
+            SwooleRedisPool::put($connection);
+        }
+    }
+
+    /**
      * Tạo một kết nối Redis mới.
      *
      * @param string $name
-     * @return Redis
+     * @return \Redis
      * @throws RedisException
      */
-    protected function resolve(string $name): Redis
+    protected function resolve(string $name): \Redis
     {
+        if (!class_exists('Redis')) {
+            throw new RedisException('The phpredis extension is not installed or enabled. Please install it to use Redis features.');
+        }
+
         $config = $this->getConfig($name);
 
-        $redis = new Redis();
+        try {
+            $redis = new \Redis();
+            $redis->connect(
+                $config['host'],
+                $config['port'],
+                $this->config['options']['timeout'] ?? 0.0,
+            );
 
-        $redis->connect(
-            $config['host'],
-            $config['port'],
-            $this->config['options']['timeout'] ?? 0.0,
-        );
+            if (!empty($config['password'])) {
+                $redis->auth($config['password']);
+            }
 
-        if (!empty($config['password'])) {
-            $redis->auth($config['password']);
+            if (isset($config['database'])) {
+                $redis->select((int) $config['database']);
+            }
+        } catch (\RedisException $e) {
+            throw new RedisException(
+                "Could not connect to Redis connection [{$name}] at {$config['host']}:{$config['port']}. Please check your network configuration and credentials. Original error: " . $e->getMessage(),
+                $e->getCode(),
+                $e,
+            );
         }
-
-        if (isset($config['database'])) {
-            $redis->select((int) $config['database']);
-        }
-
         return $redis;
     }
 
     protected function getConfig(string $name): array
     {
         if (!isset($this->config['connections'][$name])) {
-            throw new InvalidArgumentException("Redis connection [{$name}] not configured.");
+            throw new \InvalidArgumentException("Redis connection [{$name}] not configured.");
         }
 
         return $this->config['connections'][$name];
@@ -103,6 +146,18 @@ class RedisManager
 
     public function __call(string $method, array $parameters)
     {
+        // Tối ưu hóa cho Swoole: Lấy kết nối từ pool, thực thi, rồi trả về.
+        // Điều này làm cho việc gọi các lệnh Redis đơn lẻ trở nên an toàn trong coroutine.
+        $isSwooleCoroutine = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+        if ($isSwooleCoroutine && class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
+            $redis = $this->getFromPool();
+            try {
+                return $redis->{$method}(...$parameters);
+            } finally {
+                $this->putToPool($redis);
+            }
+        }
+
         return $this->connection()->{$method}(...$parameters);
     }
 }

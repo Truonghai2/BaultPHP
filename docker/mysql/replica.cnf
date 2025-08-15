@@ -1,0 +1,19 @@
+# /docker/mysql/replica.cnf
+# This configuration is for the read replica.
+
+[mysqld]
+# A unique server ID is required for replication.
+# The primary is likely 1, so this should be 2 or higher.
+server-id = 2
+
+# Enable read-only mode to prevent accidental writes to the replica.
+read_only = 1
+
+# Explicitly define relay log names to prevent issues on container restart.
+# The path should be within the data directory (/var/lib/mysql).
+relay-log = replica-relay-bin
+relay-log-index = replica-relay-bin.index
+
+# Enable GTID (Global Transaction Identifier) mode for robust replication.
+gtid_mode = ON
+enforce_gtid_consistency = ON

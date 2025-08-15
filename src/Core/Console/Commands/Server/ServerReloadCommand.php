@@ -21,7 +21,7 @@ class ServerReloadCommand extends BaseCommand
      */
     public function signature(): string
     {
-        return 'server:reload';
+        return 'serve:reload';
     }
 
     /**

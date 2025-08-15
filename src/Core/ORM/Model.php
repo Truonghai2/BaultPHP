@@ -491,9 +491,10 @@ abstract class Model
 
     protected static function boot(): void
     {
-        // Áp dụng một global scope cho tất cả các model.
-        // Mọi model kế thừa từ lớp này sẽ tự động chỉ truy vấn các bản ghi có is_active = 1.
-        static::addGlobalScope(new \Core\ORM\Scopes\ActiveScope());
+        // This method is a hook for models to register their own boot logic.
+        // The ActiveScope is now applied via the HasActiveState trait's boot method,
+        // which is the correct approach. Applying it here forces it on all models,
+        // causing errors for models that don't have an 'is_active' state.
     }
 
     protected function bootTraits(): void

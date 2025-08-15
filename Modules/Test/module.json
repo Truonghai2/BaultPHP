@@ -1,0 +1,6 @@
+{
+  "name": "Test",
+  "enabled": true,
+  "version": "1.0.0",
+  "providers": ["Modules\\Test\\Providers\\TestServiceProvider"]
+}

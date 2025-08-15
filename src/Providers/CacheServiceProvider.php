@@ -2,7 +2,8 @@
 
 namespace App\Providers;
 
-use Core\Cache\CacheManager;
+use App\Cache\AppCacheManager;
+use Core\Cache\CacheManager; // Giữ lại để alias
 use Core\Support\ServiceProvider;
 use Psr\SimpleCache\CacheInterface;
 
@@ -13,7 +14,7 @@ class CacheServiceProvider extends ServiceProvider
         // 1. Đăng ký CacheManager như một singleton. Nó là nhà máy (factory)
         // cho tất cả các cache store.
         $this->app->singleton('cache', function ($app) {
-            return new CacheManager($app);
+            return new AppCacheManager($app);
         });
 
         // 2. Tạo alias để có thể inject Core\Cache\CacheManager bằng type-hint nếu cần.

@@ -6,19 +6,17 @@ use App\Exceptions\Handler as ExceptionHandler;
 use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\NotFoundException;
 use Core\Application;
+use Core\Contracts\Http\Kernel as KernelContract;
 use Core\Http\FormRequest;
 use Core\Routing\Route;
 use Core\Routing\Router;
-use JsonSerializable;
 use Laminas\Stratigility\MiddlewarePipe;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionMethod;
 use ReflectionParameter;
 use Throwable;
-use LogicException;
 
 class Kernel implements KernelContract
 {
@@ -31,6 +29,7 @@ class Kernel implements KernelContract
      * @var array
      */
     protected array $middleware = [
+        \Http\Middleware\AttachRequestIdToLogs::class,
         \Http\Middleware\HttpMetricsMiddleware::class,
         \Http\Middleware\TrimStrings::class,
         \Http\Middleware\ConvertEmptyStringsToNull::class,
@@ -54,10 +53,12 @@ class Kernel implements KernelContract
      */
     protected array $middlewareGroups = [
         'web' => [
+            \Http\Middleware\EncryptCookies::class,
             \Http\Middleware\SubstituteBindings::class,
-            // \App\Http\Middleware\EncryptCookies::class, // Bỏ comment nếu bạn cần mã hóa cookie
             \Http\Middleware\StartSession::class,
-            \Http\Middleware\VerifyCsrfToken::class,
+            \Http\Middleware\ShareErrorsFromSession::class,
+            // \Http\Middleware\VerifyCsrfToken::class,
+            \Http\Middleware\AddQueuedCookiesToResponse::class,
         ],
         'api' => [
             \Http\Middleware\JwtVerifyTokenMiddleware::class,
@@ -76,8 +77,17 @@ class Kernel implements KernelContract
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         try {
-            $route = $this->router->dispatch($request);
+            // The router can return a Route object or a Response object directly
+            // (e.g., for CORS pre-flight OPTIONS requests).
+            $routeOrResponse = $this->router->dispatch($request);
 
+            // If the router returns a response, we return it immediately,
+            // bypassing the rest of the middleware stack.
+            if ($routeOrResponse instanceof ResponseInterface) {
+                return $routeOrResponse;
+            }
+
+            $route = $routeOrResponse;
             // Attach the route to the request so that middleware can access it
             $request = $request->withAttribute('route', $route);
 
@@ -102,12 +112,13 @@ class Kernel implements KernelContract
             }
 
             // 4. Create the final handler that executes the controller
-            $finalHandler = new class($this->app, $route, $this) implements RequestHandlerInterface {
+            $finalHandler = new class ($this->app, $route, $this) implements RequestHandlerInterface {
                 public function __construct(
                     private Application $app,
                     private \Core\Routing\Route $route,
-                    private Kernel $kernel // Inject the Kernel instance
-                ) {}
+                    private Kernel $kernel, // Inject the Kernel instance
+                ) {
+                }
 
                 public function handle(ServerRequestInterface $request): ResponseInterface
                 {
@@ -133,10 +144,7 @@ class Kernel implements KernelContract
             // 5. Process the request through the middleware pipeline
             $response = $pipe->process($request, $finalHandler);
 
-            
-
             return $response;
-
         } catch (NotFoundException | MethodNotAllowedException $e) {
             return $this->renderException($request, $e);
         } catch (Throwable $e) {
@@ -175,7 +183,6 @@ class Kernel implements KernelContract
         $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
         // Debugging: Dump the parameter and request to see what's going on
-        
 
         // 1. Resolve FormRequest: create, set request, and validate
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
@@ -221,7 +228,7 @@ class Kernel implements KernelContract
     {
         $handler = $this->app->make(ExceptionHandler::class);
         $handler->report($e);
-        return $handler->renderForHttp($request, $e);
+        return $handler->render($request, $e);
     }
 
     public function terminate(ServerRequestInterface $request, ResponseInterface $response): void

@@ -109,7 +109,7 @@ namespace {$namespace};
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Http\Message\ResponseInterface as Response;
 
-class {$controllerName}
+class {$controllerName} extends Controller
 {
     //
 }

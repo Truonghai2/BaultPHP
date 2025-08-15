@@ -33,7 +33,7 @@ class SwooleMetricsService
         $this->metrics->column('full_key', Table::TYPE_STRING, $this->keyLength);
         $this->metrics->column('value', Table::TYPE_FLOAT);
         // Thêm cột 'type' để phân biệt khi xuất dữ liệu
-        $this->metrics->column('metric_name', Table::TYPE_STRING, 128); 
+        $this->metrics->column('metric_name', Table::TYPE_STRING, 128);
         $this->metrics->create();
     }
 
@@ -80,7 +80,7 @@ class SwooleMetricsService
             error_log("SwooleMetricsService: Bảng metrics đã đầy. Không thể thêm gauge '{$name}'.");
             return;
         }
-        
+
         $this->metrics->set($hashedKey, [
             'full_key' => $fullKey,
             'value' => $value,

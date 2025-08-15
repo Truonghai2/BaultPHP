@@ -1,5 +1,6 @@
 <?php
 
+use Core\Application;
 use Http\ResponseFactory;
 use Symfony\Component\VarDumper\VarDumper;
 
@@ -9,20 +10,20 @@ function service(string $contract): object
 }
 
 if (!function_exists('app')) {
-    function app(string $key = null)
+    /**
+     * Get the available container instance.
+     *
+     * @param  string|null  $abstract
+     * @param  array   $parameters
+     * @return mixed|\Core\Application
+     */
+    function app(string $abstract = null, array $parameters = [])
     {
-        $instance = \Core\Application::getInstance();
-
-        if (is_null($instance)) {
-            throw new \RuntimeException('Application instance has not been set. Please bootstrap the application first.');
+        if (is_null($abstract)) {
+            return Application::getInstance();
         }
 
-        if (is_null($key)) {
-            return $instance;
-        }
-
-        // Use the 'make' method to resolve from the container
-        return $instance->make($key);
+        return Application::getInstance()->make($abstract, $parameters);
     }
 }
 
@@ -242,28 +243,6 @@ if (!function_exists('class_basename')) {
     }
 }
 
-if (!function_exists('view')) {
-    /**
-     * Get the evaluated view contents for the given view, or the view factory.
-     *
-     * @param  string|null  $view
-     * @param  array   $data
-     * @param  array   $mergeData
-     * @return \Core\View\Contracts\Factory|string
-     */
-    function view(?string $view = null, array $data = [], array $mergeData = [])
-    {
-        /** @var \Core\View\Contracts\Factory $factory */
-        $factory = app('view');
-
-        if (is_null($view)) {
-            return $factory;
-        }
-
-        return $factory->make($view, $data, $mergeData);
-    }
-}
-
 use Psr\Http\Message\ResponseInterface;
 
 if (!function_exists('response')) {
@@ -288,60 +267,43 @@ if (!function_exists('response')) {
     }
 }
 
+use Core\Facades\Translate;
+use Core\Support\Vite;
+
 if (!function_exists('__')) {
-    /**
-     * Translate the given message.
-     *
-     * @param  string|null  $key
-     * @param  array  $replace
-     * @param  string|null  $locale
-     * @return string|array|null
-     */
+
     function __(?string $key = null, array $replace = [], ?string $locale = null)
     {
-        return app('translator')->get($key, $replace, $locale);
+        if (is_null($key)) {
+            return null;
+        }
+
+        return Translate::get($key, $replace, $locale);
     }
 }
-
 
 if (!function_exists('public_path')) {
     function public_path(string $path = ''): string
     {
         return base_path('public' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
     }
-        
+
 }
 
-
 if (!function_exists('vite')) {
-    function vite(string|array $entrypoints): string
+    /**
+     * Get the Vite assets for the application.
+     *
+     * @param  string|string[]  $entrypoints
+     * @return \Illuminate\Support\HtmlString
+     */
+    function vite(string|array $entrypoints): \Illuminate\Support\HtmlString
     {
-        $hotFile = public_path('hot');
-        $manifestPath = public_path('build/manifest.json');
-        $output = '';
-
-        if (file_exists($hotFile)) {
-            // Môi trường Development (HMR)
-            $host = file_get_contents($hotFile);
-            $output .= "<script type=\"module\" src=\"{$host}/@vite/client\"></script>";
-            foreach ((array) $entrypoints as $entry) {
-                $output .= "<script type=\"module\" src=\"{$host}/{$entry}\"></script>";
-            }
-        } elseif (file_exists($manifestPath)) {
-            // Môi trường Production
-            $manifest = json_decode(file_get_contents($manifestPath), true);
-            foreach ((array) $entrypoints as $entry) {
-                if (isset($manifest[$entry])) {
-                    $output .= "<script type=\"module\" src=\"/build/{$manifest[$entry]['file']}\"></script>";
-                    if (!empty($manifest[$entry]['css'])) {
-                        foreach ($manifest[$entry]['css'] as $css) {
-                            $output .= "<link rel=\"stylesheet\" href=\"/build/{$css}\">";
-                        }
-                    }
-                }
-            }
+        // We resolve it as a singleton to avoid reading the manifest file multiple times.
+        if (!app()->bound(Vite::class)) {
+            app()->singleton(Vite::class);
         }
-        return $output;
+        return app(Vite::class)($entrypoints);
     }
 }
 
@@ -376,5 +338,148 @@ if (!function_exists('esc')) {
             'attr' => $escaper->escapeHtmlAttr($value),
             default => $escaper->escapeHtml($value),
         };
+    }
+}
+
+use Core\Contracts\View\Factory as ViewFactoryContract;
+use Core\Routing\UrlGenerator;
+
+if (! function_exists('view')) {
+    /**
+     * Lấy một instance của view factory hoặc tạo một view.
+     *
+     * Hàm này cung cấp một lối tắt tiện lợi để truy cập vào hệ thống view của framework.
+     * - Gọi `view()` không có tham số sẽ trả về chính View Factory.
+     * - Gọi `view('welcome', ['data'])` sẽ tạo và trả về một đối tượng View.
+     *
+     * @param  string|null  $view Tên của view (ví dụ: 'welcome' hoặc 'pages.about').
+     * @param  array  $data Dữ liệu để truyền cho view.
+     * @return \Core\Contracts\View\Factory|\Core\Contracts\View\View
+     */
+    function view(string $view = null, array $data = [])
+    {
+        $factory = app(ViewFactoryContract::class);
+
+        if (is_null($view)) {
+            return $factory;
+        }
+
+        return $factory->make($view, $data);
+    }
+}
+
+if (!function_exists('asset')) {
+    /**
+     * Generate a URL for an asset.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    function asset(string $path): string
+    {
+        $baseUrl = rtrim(config('app.url', '/'), '/');
+
+        $path = ltrim($path, '/');
+
+        return "{$baseUrl}/{$path}";
+    }
+}
+
+if (!function_exists('route')) {
+    /**
+     * Generate the URL for a given named route.
+     *
+     * @param  string  $name
+     * @param  array   $parameters
+     * @return string
+     */
+    function route(string $name, array $parameters = []): string
+    {
+        return app(\Core\Routing\Router::class)->url($name, $parameters);
+    }
+}
+
+if (!function_exists('url')) {
+    /**
+     * Generate a fully qualified URL to the given path.
+     *
+     * @param  string  $path
+     * @return string
+     */
+    function url(string $path): string
+    {
+        return UrlGenerator::to($path);
+    }
+}
+
+if (!function_exists('old')) {
+    /**
+     * Retrieve an old input value from the session flash data.
+     * This is useful for repopulating forms after a validation error.
+     *
+     * @param  string  $key
+     * @param  mixed   $default
+     * @return mixed
+     */
+    function old(string $key, $default = null)
+    {
+        // This helper function retrieves input from the previous request that was "flashed"
+        // to the session. The controller that processes the form submission is
+        // responsible for flashing the input upon validation failure.
+
+        if (!app()->has('session')) {
+            return $default;
+        }
+
+        // Assumes old input is flashed to the session under the key '_old_input'.
+        $oldInput = app('session')->get('_old_input', []);
+
+        return $oldInput[$key] ?? $default;
+    }
+}
+
+if (!function_exists('cookie')) {
+    /**
+     * Create/queue a cookie or retrieve the cookie manager.
+     *
+     * This helper provides a convenient interface to the CookieManager.
+     * - cookie(): returns the CookieManager instance.
+     * - cookie('name'): gets the value of the 'name' cookie from the current request.
+     * - cookie('name', 'value', 10): queues a cookie to be sent with the response.
+     *
+     * @param  string|null  $name
+     * @param  string|null  $value
+     * @param  int  $minutes
+     * @param  string|null  $path
+     * @param  string|null  $domain
+     * @param  bool|null  $secure
+     * @param  bool  $httpOnly
+     * @param  bool  $raw
+     * @param  string|null  $sameSite
+     * @return \Core\Cookie\CookieManager|mixed|void
+     */
+    function cookie(
+        ?string $name = null,
+        ?string $value = null,
+        int $minutes = 0,
+        ?string $path = null,
+        ?string $domain = null,
+        ?bool $secure = null,
+        bool $httpOnly = true,
+        bool $raw = false,
+        ?string $sameSite = null,
+    ) {
+        /** @var \Core\Cookie\CookieManager $cookieManager */
+        $cookieManager = app(\Core\Cookie\CookieManager::class);
+
+        if (is_null($name)) {
+            return $cookieManager;
+        }
+
+        if (is_null($value)) {
+            return $cookieManager->get($name);
+        }
+
+        $cookieManager->queue($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite);
     }
 }

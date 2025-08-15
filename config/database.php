@@ -3,12 +3,11 @@
 return [
     /*
     |--------------------------------------------------------------------------
-    | Tên Kết Nối Cơ Sở Dữ Liệu Mặc Định
+    | Default Database Connection Name
     |--------------------------------------------------------------------------
     |
-    | Tại đây, bạn có thể chỉ định kết nối CSDL nào sẽ được sử dụng làm
-    | kết nối mặc định. Giá trị này sẽ được đọc từ biến DB_CONNECTION
-    | trong file .env của bạn.
+    | Here you may specify which of the database connections below you wish
+    | to use as your default connection for all database work.
     |
     */
 
@@ -16,71 +15,59 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Các Kết Nối Cơ Sở Dữ Liệu
+    | Database Connections
     |--------------------------------------------------------------------------
     |
-    | Đây là nơi định nghĩa tất cả các kết nối CSDL cho ứng dụng của bạn.
-    | BaultPHP hỗ trợ nhiều loại CSDL khác nhau, và bạn có thể thêm
-    | các cấu hình cho chúng tại đây.
+    | Here are each of the database connections setup for your application.
     |
     */
 
     'connections' => [
 
         'mysql' => [
-            'write' => [
-                'host' => env('DB_HOST', '127.0.0.1'), // Primary DB
-            ],
+            'driver' => 'mysql',
+            // Use a read/write split to distribute database load.
+            // In development, the read host will safely fall back to the main DB_HOST.
             'read' => [
-                'host' => env('DB_HOST', '127.0.0.1'), // Replica DB
+                // Use the read replica host if defined, otherwise fall back to the main write host.
+                'host' => env('DB_READ_HOST', env('DB_HOST')),
             ],
-            'driver'    => 'mysql',
-            'port'      => env('DB_PORT', '3306'),
-            'database'  => env('DB_DATABASE', 'bault'),
-            'username'  => env('DB_USERNAME', 'root'),
-            'password'  => env('DB_PASSWORD', ''),
-            'charset' => 'utf8mb4',
-            'options' => [
-                PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES   => false,
+            'write' => [
+                'host' => env('DB_HOST', '127.0.0.1'),
             ],
-        ],
-
-        'pgsql' => [
-            'driver' => 'pgsql',
-            'host' => env('DB_HOST', '127.0.0.1'),
-            'port' => env('DB_PORT', '5432'),
+            // This option, if supported by the framework, ensures that after a write
+            // operation, subsequent read operations in the same request cycle
+            // use the write connection to avoid issues with replication lag.
+            'sticky'    => true,
+            'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'bault'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
-            'charset' => 'utf8',
-            'schema' => 'public',
-        ],
-
-        'sqlite' => [
-            'driver' => 'sqlite',
-            // Đối với SQLite dựa trên file:
-            // 'database' => env('DB_DATABASE', database_path('database.sqlite')),
-            // Đối với SQLite trong bộ nhớ (lý tưởng cho testing):
-            'database' => ':memory:',
+            'unix_socket' => env('DB_SOCKET', ''),
+            'charset' => 'utf8mb4',
+            'collation' => 'utf8mb4_unicode_ci',
             'prefix' => '',
-            'foreign_key_constraints' => env('DB_FOREIGN_KEYS', true),
+            'strict' => true,
+            'engine' => null,
         ],
 
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Cấu hình Migration
+    | Redis Databases
     |--------------------------------------------------------------------------
-    |
-    | Bạn có thể thay đổi tên bảng được sử dụng để lưu trữ lịch sử migration.
-    |
     */
-    'migrations' => [
-        'enabled' => true,
-        'table' => 'migrations',
-        'paths' => [],
+
+    'redis' => [
+        'client' => 'predis',
+
+        'default' => [
+            'host' => env('REDIS_HOST', '127.0.0.1'),
+            'password' => env('REDIS_PASSWORD', null),
+            'port' => env('REDIS_PORT', '6379'),
+            'database' => env('REDIS_DB', '0'),
+        ],
     ],
+
 ];

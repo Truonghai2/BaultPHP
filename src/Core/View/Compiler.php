@@ -2,56 +2,74 @@
 
 namespace Core\View;
 
-/**
- * Class Compiler
- *
- * Compiles template syntax into plain PHP.
- */
+use Core\Filesystem\Filesystem;
+
 class Compiler
 {
-    /**
-     * @var array Holds the content of verbatim blocks.
-     */
-    protected array $verbatimBlocks = [];
-
-    /**
-     * @var array Holds the custom directive handlers.
-     */
+    protected array $sectionStack = [];
+    public const PARENT_PLACEHOLDER = '@__PARENT__@';
+    protected array $componentStack = [];
+    protected array $componentAliases = [];
     protected array $customDirectives = [];
 
-    /**
-     * @var string The content of the original template being compiled.
-     */
-    private string $originalContent = '';
+    public function __construct(
+        protected Filesystem $files,
+        protected string $cachePath,
+    ) {
+        if (!$this->files->isDirectory($this->cachePath)) {
+            $this->files->makeDirectory($this->cachePath, 0755, true);
+        }
+    }
 
-    /**
-     * Compile the given template content into PHP.
-     */
-    public function compile(string $value, string $path): string
+    public function getCompiledPath(string $path): string
     {
-        $this->originalContent = $value;
+        return $this->cachePath . '/' . sha1($path) . '.php';
+    }
 
-        // First, we store and remove all verbatim blocks so they are not
-        // processed by other compilers.
-        $value = $this->storeVerbatimBlocks($value);
-        
+    public function isExpired(string $path): bool
+    {
+        $compiled = $this->getCompiledPath($path);
+        if (!$this->files->exists($compiled)) {
+            return true;
+        }
+        return $this->files->lastModified($path) >= $this->files->lastModified($compiled);
+    }
+
+    public function compile(string $path): void
+    {
+        $value = $this->files->get($path);
+
         $value = $this->compileComments($value);
-        $value = $this->compileEchos($value);
-        $value = $this->compileCustomDirectives($value);
-        $value = $this->compileStatements($value); // Thêm bước mới
+        $value = $this->compileVerbatim($value);
+
+        $value = $this->compileIncludes($value);
+        $value = $this->compileStacks($value);
+        $value = $this->compileComponents($value);
+
+        $value = $this->compileExtends($value);
+
+        $value = $this->compileSections($value);
+        $value = $this->compileYield($value);
+        $value = $this->compileShow($value);
+        $value = $this->compileParent($value);
+
+        $value = $this->compileRawPhp($value);
+        $value = $this->compilePhp($value);
         $value = $this->compileControlStructures($value);
+        $value = $this->compileExtraDirectives($value);
 
-        // Finally, we restore the verbatim blocks to their original content.
-        $value = $this->restoreVerbatimBlocks($value);
+        $value = $this->compileEchos($value);
+        $value = $this->compileFormsAndHelpers($value);
 
-        return "<?php /* Source: {$path} */ ?>\n" . $value;
+        $compiledPath = $this->getCompiledPath($path);
+        $this->files->put($compiledPath, $value);
     }
 
     /**
-     * Register a custom directive handler.
+     * Register a custom Blade directive.
      *
-     * @param string $name The name of the directive (e.g., 'datetime').
-     * @param callable $handler The callback that will compile the directive.
+     * @param string $name
+     * @param callable $handler
      */
     public function directive(string $name, callable $handler): void
     {
@@ -59,285 +77,284 @@ class Compiler
     }
 
     /**
-     * Register a custom conditional directive (an "if" block).
-     * This will automatically create a pair of directives: @name and @endname.
-     *
-     * @param string $name The name of the directive.
-     * @param callable $handler A callback that returns the PHP condition.
+     * Compile Blade comments.
      */
-    public function if(string $name, callable $handler): void
+    protected function compileComments(string $value): string
     {
-        // Register the opening directive, e.g., @role('admin')
-        $this->directive($name, function ($expression) use ($handler) {
-            $condition = call_user_func($handler, $expression);
-            return "<?php if ({$condition}): ?>";
-        });
-
-        // Register the closing directive, e.g., @endrole
-        $this->directive('end' . $name, function () {
-            return "<?php endif; ?>";
-        });
+        // Chuẩn Blade: {{-- comment --}}
+        return preg_replace('/\{\{--.*?--\}\}/s', '', $value);
     }
 
     /**
-     * Store the content of verbatim blocks and replace them with placeholders.
+     * Compile Blade echo statements.
      */
-    protected function storeVerbatimBlocks(string $value): string
+    protected function compileEchos(string $value): string
     {
-        $this->verbatimBlocks = []; // Reset for each compilation
+        // Triple braces {{{ }}} → escape but not convert HTML entities
+        $value = preg_replace('/\{\{\{\s*(.*?)\s*\}\}\}/s', '<?php echo e($1, false); ?>', $value);
 
+        // Double braces {{ }} → escape HTML entities
+        $value = preg_replace('/\{\{\s*(.*?)\s*\}\}/s', '<?php echo e($1); ?>', $value);
+
+        // Raw echo {!! !!}
+        $value = preg_replace('/\{!!\s*(.*?)\s*!!\}/s', '<?php echo $1; ?>', $value);
+
+        return $value;
+    }
+
+    /**
+     * Compile Blade PHP statements.
+     */
+    protected function compilePhp(string $value): string
+    {
+        // @php ... @endphp
+        $value = preg_replace_callback('/@php(.*?)@endphp/s', function ($matches) {
+            return '<?php' . ($matches[1] ?? '') . '?>';
+        }, $value);
+
+        // @php($var = 1)
+        return preg_replace('/@php\s*\((.*?)\)/', '<?php $1; ?>', $value);
+    }
+
+    /**
+     * Compile Blade control structures.
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function compileControlStructures(string $value): string
+    {
+        $patterns = [
+            '/@if\s*\((.*)\)/' => '<?php if ($1): ?>',
+            '/@elseif\s*\((.*)\)/' => '<?php elseif ($1): ?>',
+            '/@else/' => '<?php else: ?>',
+            '/@endif/' => '<?php endif; ?>',
+
+            '/@foreach\s*\((.*)\)/' => '<?php foreach($1): ?>',
+            '/@endforeach/' => '<?php endforeach; ?>',
+
+            '/@forelse\s*\((.*)\)/' => '<?php foreach($1): ?>',
+            '/@empty/' => '<?php endforeach; if (empty($1)): ?>',
+            '/@endforelse/' => '<?php endif; ?>',
+
+            '/@for\s*\((.*)\)/' => '<?php for ($1): ?>',
+            '/@endfor/' => '<?php endfor; ?>',
+
+            '/@while\s*\((.*)\)/' => '<?php while ($1): ?>',
+            '/@endwhile/' => '<?php endwhile; ?>',
+
+            '/@isset\s*\((.*)\)/' => '<?php if (isset($1)): ?>',
+            '/@endisset/' => '<?php endif; ?>',
+
+            '/@empty\s*\((.*)\)/' => '<?php if (empty($1)): ?>',
+            '/@endempty/' => '<?php endif; ?>',
+
+            '/@error\s*\((.*)\)/' => '<?php if (isset($errors) && $errors->has($1)): $message = $errors->first($1); ?>',
+            '/@enderror/' => '<?php endif; ?>',
+        ];
+
+        return preg_replace(array_keys($patterns), array_values($patterns), $value);
+    }
+
+    /**
+     * Compile Blade raw PHP statements.
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function compileRawPhp(string $value): string
+    {
+        $value = preg_replace('/@json\((.*)\)/s', '<?php echo json_encode($1, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>', $value);
+        return $value;
+    }
+
+    /**
+     * Compile Blade verbatim statements.
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function compileVerbatim(string $value): string
+    {
         return preg_replace_callback('/@verbatim(.*?)@endverbatim/s', function ($matches) {
-            $placeholder = '@__verbatim__' . count($this->verbatimBlocks) . '__@';
-            $this->verbatimBlocks[$placeholder] = $matches[1];
-            return $placeholder;
+            return $matches[1];
         }, $value);
     }
 
     /**
-     * Compile comments like {{-- This is a comment --}}.
+     * Compile Blade include statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileComments(string $value): string
+    protected function compileIncludes(string $value): string
     {
-        return preg_replace('/\{\{--(.+?)(--\}\})?\s*\}\}/s', '', $value);
-    }
+        $value = preg_replace('/@include\s*\((.*)\)/', '<?php echo $__env->make($1)->render(); ?>', $value);
 
-    /**
-     * Compile echos, like {{ $variable }} and {!! $variable !!}.
-     */
-    protected function compileEchos(string $value): string
-    {
-        // We use preg_replace_callback to get the offset and calculate the line number.
-        $callback = function ($matches) {
-            $line = $this->getLineNumberFromOffset($matches[0][1]);
-            $whitespace = empty($matches[1][0]) ? '' : $matches[1][0];
-            $type = $matches[2][0];
-            $content = $matches[3][0];
+        // includeIf
+        $value = preg_replace('/@includeIf\s*\((.*)\)/', '<?php if(view()->exists($1)) echo $__env->make($1)->render(); ?>', $value);
 
-            $php = match ($type) {
-                '{!!' => "echo {$content};",
-                '{{' => "echo esc({$content});",
-            };
-            return "{$whitespace}<?php /* line {$line} */ {$php} ?>";
-        };
+        // includeWhen
+        $value = preg_replace('/@includeWhen\s*\((.*),(.*)\)/', '<?php if($1) echo $__env->make($2)->render(); ?>', $value);
 
-        $value = preg_replace_callback('/(\s*)(\{!!|\{\{)\s*(.+?)\s*(--\}\}|!!\}|\}\})/s', $callback, $value, -1, $count, PREG_OFFSET_CAPTURE);
+        // includeUnless
+        $value = preg_replace('/@includeUnless\s*\((.*),(.*)\)/', '<?php if(!$1) echo $__env->make($2)->render(); ?>', $value);
 
         return $value;
     }
 
     /**
-     * Compile custom directives.
+     * Compile Blade component statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileCustomDirectives(string $value): string
-    { return $value; } // This is now handled by compileStatements
-
-    /**
-     * Compile Blade statements that start with "@".
-     * This is a more robust method that handles nested parentheses.
-     */
-    protected function compileStatements(string $value): string
+    protected function compileComponents(string $value): string
     {
-        // The regex is designed to find directives and the start of their expressions.
-        // It doesn't try to match the entire expression, which is the key.
-        $value = preg_replace_callback(
-            '/\B@(@?\w+)([ \t]*)(\( ( [\S\s]*? ) \))?/x',
-            function ($match) {
-                return $this->compileStatement($match);
-            },
-            $value
-        );
-
-        // Compile @json($variable)
-        $value = preg_replace('/@json\(\s*(.+?)\s*\)/s', '<?php echo json_encode($1, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT); ?>', $value);
+        $value = preg_replace('/@component\s*\((.*)\)/', '<?php $__env->startComponent($1); ?>', $value);
+        $value = str_replace('@endcomponent', '<?php echo $__env->renderComponent(); ?>', $value);
+        $value = preg_replace('/@slot\s*\(\s*\'(.*?)\'\s*\)/', '<?php $__env->slot(\'$1\'); ?>', $value);
+        $value = str_replace('@endslot', '<?php $__env->endSlot(); ?>', $value);
         return $value;
     }
 
     /**
-     * Compile a single Blade @ statement.
+     * Compile Blade stack statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileStatement(array $match): string
+    protected function compileStacks(string $value): string
     {
-        $line = $this->getLineNumberFromOffset($match[0][1]);
-        $prefix = "<?php /* line {$line} */ ";
-        // $match[0] is the full matched string, e.g., "@if (isset($user))"
-        // $match[1] is the directive name, e.g., "if"
-        // $match[2] is the whitespace after the directive
-        // $match[3] is the expression with parentheses, e.g., "(isset($user))"
-        // $match[4] is the expression without parentheses, e.g., "isset($user)"
-
-        $directive = $match[1];
-        $expression = $match[3] ?? null;
-
-        // Create the method name to call, e.g., "compileIf", "compileForeach"
-        $method = 'compile' . ucfirst($directive);
-
-        if (method_exists($this, $method)) {
-            // If a dedicated compiler method exists, call it.
-            // We pass the expression *with* parentheses.
-            return $prefix . substr($this->{$method}($expression), 5); // remove <?php
-        }
-
-        // If no specific method, check for custom directives
-        if (isset($this->customDirectives[$directive])) {
-            $expressionValue = isset($match[4]) ? trim($match[4]) : null;
-            return $prefix . substr(call_user_func($this->customDirectives[$directive], $expressionValue), 5);
-        }
-
-        // If it's a directive we don't have a special method for, return it as is.
-        // It will be handled by compileControlStructures for simple cases like @else, @endif.
-        return $match[0][0];
-    }
-
-    /**
-     * Strip the parentheses from the given expression.
-     */
-    public function stripParentheses(?string $expression): string
-    {
-        if ($expression === null) {
-            return '';
-        }
-
-        if (str_starts_with($expression, '(') && str_ends_with($expression, ')')) {
-            return substr($expression, 1, -1);
-        }
-
-        return $expression;
-    }
-
-    /**
-     * Compile control structures like @if, @foreach, etc.
-     */
-    protected function compileControlStructures(string $value): string
-    {
-        // Most directives with expressions are now handled by compileStatements.
-        // We only need to handle simple, parameter-less directives here.
-
-        $value = preg_replace('/@else/', '<?php else: ?>', $value);
-        $value = preg_replace('/@endif/', '<?php endif; ?>', $value);
-
-        $value = preg_replace('/@empty/', '<?php endforeach; if ($__empty): ?>', $value);
-        $value = preg_replace('/@endforelse/', '<?php endif; ?>', $value);
-
-        $value = preg_replace('/@endforeach/', '<?php endforeach; ?>', $value);
-
-        $value = preg_replace('/@endfor/', '<?php endfor; ?>', $value);
-
-        $value = preg_replace('/@endwhile/', '<?php endwhile; ?>', $value);
-
-        $value = preg_replace('/@endisset/', '<?php endif; ?>', $value);
-        $value = preg_replace('/@endempty/', '<?php endif; ?>', $value);
-
-        $value = preg_replace('/@break/', '<?php break; ?>', $value);
-        $value = preg_replace('/@default/', '<?php default: ?>', $value);
-        $value = preg_replace('/@endswitch/', '<?php endswitch; ?>', $value);
-
-        // @php ... @endphp
-        $value = preg_replace('/@php/', '<?php ', $value);
-        $value = preg_replace('/@endphp/', ' ?>', $value);
-
-        // @csrf => render input hidden
-        $value = preg_replace('/@csrf/', '<?php echo \Core\Security\CSRF::tokenInput(); ?>', $value);
-
-        $value = preg_replace('/@endsection/', '<?php $this->endSection(); ?>', $value);
-
-        // Directives with expressions are now handled by compile<DirectiveName> methods
-        // to ensure correct parsing of complex expressions.
-        // The simple replacements for closing tags can remain here.
-
-        // Optionals: @auth, @guest
-        $value = preg_replace('/@auth/', '<?php if(auth()->check()): ?>', $value);
-        $value = preg_replace('/@endauth/', '<?php endif; ?>', $value);
-        $value = preg_replace('/@guest/', '<?php if(!auth()->check()): ?>', $value);
-        $value = preg_replace('/@endguest/', '<?php endif; ?>', $value);
-
+        $value = preg_replace('/@push\s*\(\s*\'(.*?)\'\s*\)/', '<?php $__env->startPush(\'$1\'); ?>', $value);
+        $value = str_replace('@endpush', '<?php $__env->stopPush(); ?>', $value);
+        $value = preg_replace('/@stack\s*\(\s*\'(.*?)\'\s*\)/', '<?php echo $__env->yieldPushContent(\'$1\'); ?>', $value);
         return $value;
     }
 
     /**
-     * Compile the @if statements into valid PHP.
+     * Compile Blade extends statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileIf(?string $expression): string
+    protected function compileExtends(string $value): string
     {
-        return '<?php if' . $expression . ': ?>';
+        // Compiles the @extends directive into a PHP call on the ViewFactory instance ($__env).
+        return preg_replace('/@extends\s*\((.*)\)/', '<?php $__env->extend($1); ?>', $value);
     }
 
     /**
-     * Compile the @elseif statements into valid PHP.
+     * Compile Blade section statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileElseif(?string $expression): string
+    protected function compileSections(string $value): string
     {
-        return '<?php elseif' . $expression . ': ?>';
+        $value = preg_replace_callback('/@section\s*\(\s*\'(.*?)\'\s*(?:,\s*(.*?))?\s*\)/s', function ($matches) {
+            $name = $matches[1];
+            if (isset($matches[2])) {
+                $content = $matches[2];
+                return '<?php $__env->startSection(\'' . $name . '\', ' . $content . '); ?>';
+            } else {
+                $this->sectionStack[] = $name;
+                return '<?php $__env->startSection(\'' . $name . '\'); ?>';
+            }
+        }, $value);
+
+        $value = preg_replace('/@endsection/', '<?php $__env->stopSection(); ?>', $value);
+        return $value;
     }
 
     /**
-     * Compile the @foreach statements into valid PHP.
+     * Compile Blade yield statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileForeach(?string $expression): string
+    protected function compileYield(string $value): string
     {
-        return '<?php foreach' . $expression . ': ?>';
+        return preg_replace('/@yield\s*\(\s*\'(.*?)\'(?:\s*,\s*(.*?))?\s*\)/s', '<?php echo $__env->yieldContent(\'$1\', $2); ?>', $value);
     }
 
     /**
-     * Compile the @forelse statements into valid PHP.
+     * Compile Blade show statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileForelse(?string $expression): string
+    protected function compileShow(string $value): string
     {
-        return '<?php $__empty = true; foreach' . $expression . ': $__empty = false; ?>';
+        return str_replace('@show', '<?php $__env->stopSection(); echo $__env->yieldSection(); ?>', $value);
     }
 
     /**
-     * Compile the @for statements into valid PHP.
+     * Compile Blade parent statements.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileFor(?string $expression): string
+    protected function compileParent(string $value): string
     {
-        return '<?php for' . $expression . ': ?>';
+        return str_replace('@parent', static::PARENT_PLACEHOLDER, $value);
     }
 
     /**
-     * Compile the @while statements into valid PHP.
+     * Compile Blade forms and helpers.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileWhile(?string $expression): string
+    protected function compileFormsAndHelpers(string $value): string
     {
-        return '<?php while' . $expression . ': ?>';
+        $value = str_replace('@csrf', '<?php echo csrf_field(); ?>', $value);
+        $value = preg_replace('/@method\(\s*\'(.*?)\'\s*\)/', '<input type="hidden" name="_method" value="<?php echo htmlspecialchars(\'$1\', ENT_QUOTES); ?>">', $value);
+        $value = preg_replace('/@vite\((.*?)\)/', '<?php echo vite($1); ?>', $value);
+        return $value;
     }
 
     /**
-     * Compile the @include statements into valid PHP.
+     * Compile Blade extra directives.
+     *
+     * @param string $value
+     * @return string
      */
-    protected function compileInclude(?string $expression): string
+    protected function compileExtraDirectives(string $value): string
     {
-        return '<?php echo $this->make' . $expression . '; ?>';
-    }
+        // @auth / @endauth
+        $value = str_replace('@auth', '<?php if(auth()->check()): ?>', $value);
+        $value = str_replace('@endauth', '<?php endif; ?>', $value);
 
-    /**
-     * Compile the @yield statements into valid PHP.
-     */
-    protected function compileYield(?string $expression): string
-    {
-        return '<?php echo $this->yieldSection' . $expression . '; ?>';
-    }
+        // @guest / @endguest
+        $value = str_replace('@guest', '<?php if(auth()->guest()): ?>', $value);
+        $value = str_replace('@endguest', '<?php endif; ?>', $value);
 
-    /**
-     * Compile the @section statements into valid PHP.
-     */
-    protected function compileSection(?string $expression): string
-    {
-        return '<?php $this->startSection' . $expression . '; ?>';
-    }
+        // @once / @endonce
+        $value = preg_replace('/@once/', '<?php if (! $__env->hasRenderedOnce($once = Str::random())): $__env->markAsRenderedOnce($once); ?>', $value);
+        $value = str_replace('@endonce', '<?php endif; ?>', $value);
 
-    /**
-     * Compile the @extends statements into valid PHP.
-     */
-    protected function compileExtends(?string $expression): string
-    {
-        return '<?php $this->extend' . $expression . '; ?>';
-    }
+        // @switch / @case / @break / @default / @endswitch
+        $value = preg_replace('/@switch\s*\((.*)\)/', '<?php switch($1):', $value);
+        $value = preg_replace('/@case\s*\((.*)\)/', 'case $1:', $value);
+        $value = str_replace('@break', '<?php break; ?>', $value);
+        $value = str_replace('@default', 'default:', $value);
+        $value = str_replace('@endswitch', '<?php endswitch; ?>', $value);
 
-    /**
-     * Restore the verbatim blocks.
-     */
-    protected function restoreVerbatimBlocks(string $value): string
-    {
-        return str_replace(array_keys($this->verbatimBlocks), array_values($this->verbatimBlocks), $value);
+        // @dump / @dd
+        $value = preg_replace('/@dump\s*\((.*)\)/', '<?php dump($1); ?>', $value);
+        $value = preg_replace('/@dd\s*\((.*)\)/', '<?php dd($1); ?>', $value);
+
+        // Compile custom directives
+        foreach ($this->customDirectives as $name => $handler) {
+            // Pattern to match @directive(expression) or @directive
+            $pattern = '/@' . preg_quote($name, '/') . '(?:\s*\((.*?)\))?/';
+            $value = preg_replace_callback($pattern, function ($matches) use ($handler) {
+                // Pass the expression inside the parentheses (or null if not present) to the handler
+                return $handler($matches[1] ?? null);
+            }, $value);
+        }
+
+        return $value;
     }
 }

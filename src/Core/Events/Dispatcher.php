@@ -13,15 +13,34 @@ use Core\Queue\QueueManager;
  */
 class Dispatcher implements EventDispatcherInterface
 {
+    /**
+     * @var array<string, array<string|callable>>
+     * An associative array where the key is the event name or class,
+     * and the value is an array of listener classes or callables.
+     */
     protected array $listeners = [];
+
+    /**
+     * @var QueueManager
+     * The queue manager instance for handling queued events.
+     */
     protected QueueManager $queue;
 
+    /**
+     * Dispatcher constructor.
+     *
+     * @param Application $app The application container to resolve listeners.
+     */
     public function __construct(protected Application $app)
     {
     }
 
     /**
      * Register an event listener.
+     *
+     * @param string $event The event name or class.
+     * @param string|callable $listener The listener class or callable.
+     * @return void
      */
     public function listen(string $event, string|callable $listener): void
     {
@@ -51,10 +70,8 @@ class Dispatcher implements EventDispatcherInterface
         $listener = $this->app->make($listenerClass);
 
         if ($listener instanceof ShouldQueue) {
-            // If the listener should be queued, push it to the queue manager.
             $this->app->make('queue')->push($listener, $event);
         } else {
-            // Otherwise, handle it synchronously.
             $listener->handle($event);
         }
     }

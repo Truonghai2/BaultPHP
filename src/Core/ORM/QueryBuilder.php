@@ -5,7 +5,6 @@ namespace Core\ORM;
 use Core\ORM\Exceptions\ModelNotFoundException;
 use Core\Support\Collection;
 use Psr\Http\Message\ServerRequestInterface as Request;
-use PDO;
 
 class QueryBuilder
 {
@@ -330,8 +329,23 @@ class QueryBuilder
 
         $bindings = array_merge($whereBindings, $limitBindings);
         $stmt = $this->getConnection('read')->prepare($sql);
-        $stmt->execute($bindings);
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $i = 1;
+        foreach ($bindings as $value) {
+            if (is_int($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
+            } elseif (is_bool($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
+            } elseif (is_null($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
+            }
+            $i++;
+        }
+
+        $stmt->execute();
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         $models = array_map([$this, 'hydrate'], $results);
 
@@ -405,7 +419,22 @@ class QueryBuilder
         $sql .= $whereClause;
 
         $stmt = $this->getConnection('read')->prepare($sql);
-        $stmt->execute($bindings);
+
+        $i = 1;
+        foreach ($bindings as $value) {
+            if (is_int($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
+            } elseif (is_bool($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
+            } elseif (is_null($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
+            }
+            $i++;
+        }
+
+        $stmt->execute();
 
         return (int) $stmt->fetchColumn();
     }
@@ -465,7 +494,23 @@ class QueryBuilder
         $sql = "UPDATE {$this->table} SET {$setClause}" . $whereClause;
 
         $stmt = $this->getConnection('write')->prepare($sql);
-        return $stmt->execute(array_merge($bindings, $whereBindings));
+
+        $i = 1;
+        $allBindings = array_merge($bindings, $whereBindings);
+        foreach ($allBindings as $value) {
+            if (is_int($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
+            } elseif (is_bool($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
+            } elseif (is_null($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
+            }
+            $i++;
+        }
+
+        return $stmt->execute();
     }
 
     public function delete(): bool
@@ -479,7 +524,22 @@ class QueryBuilder
         $sql = "DELETE FROM {$this->table}" . $whereClause;
 
         $stmt = $this->getConnection('write')->prepare($sql);
-        return $stmt->execute($bindings);
+
+        $i = 1;
+        foreach ($bindings as $value) {
+            if (is_int($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
+            } elseif (is_bool($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
+            } elseif (is_null($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
+            }
+            $i++;
+        }
+
+        return $stmt->execute();
     }
 
     protected function buildWhereClause(): array
@@ -705,9 +765,9 @@ class QueryBuilder
 
     /**
      * @deprecated Use getConnection('write') instead. This method is for backward compatibility.
-     * @return PDO
+     * @return \PDO
      */
-    public function getPdo(): PDO
+    public function getPdo(): \PDO
     {
         return $this->getConnection('write');
     }
@@ -715,9 +775,9 @@ class QueryBuilder
     /**
      * Get the PDO connection instance for a specific type.
      */
-    protected function getConnection(string $type): PDO
+    protected function getConnection(string $type): \PDO
     {
-        return Connection::get(null, $type);
+        return app(Connection::class)->connection(null, $type);
     }
 
     /**
@@ -749,9 +809,24 @@ class QueryBuilder
         $bindings = array_merge($whereBindings, $limitBindings);
 
         $stmt = $this->getConnection('read')->prepare($sql);
-        $stmt->execute($bindings);
 
-        $results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+        $i = 1;
+        foreach ($bindings as $value) {
+            if (is_int($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
+            } elseif (is_bool($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
+            } elseif (is_null($value)) {
+                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
+            } else {
+                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
+            }
+            $i++;
+        }
+
+        $stmt->execute();
+
+        $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
         return array_column($results, $column, $key);
     }
