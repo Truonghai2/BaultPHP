@@ -22,7 +22,6 @@ class SwoolePsr7Bridge
     public function __construct()
     {
         $this->psr17Factory = new Psr17Factory();
-        // Khởi tạo factory một lần và tái sử dụng để tối ưu hiệu năng.
         $this->serverRequestFactory = new ServerRequestFactory(
             $this->psr17Factory,
             $this->psr17Factory,
@@ -41,6 +40,11 @@ class SwoolePsr7Bridge
 
     public function toSwooleResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
+        // Prevent "headers already sent" warning
+        if (!$swooleResponse->isWritable()) {
+            return;
+        }
+
         // Set status code and reason phrase
         $swooleResponse->status($response->getStatusCode(), $response->getReasonPhrase());
 
@@ -50,8 +54,12 @@ class SwoolePsr7Bridge
             if (strtolower($name) === 'connection') {
                 continue;
             }
+
+            // FIX: Ensure $values is always an array to prevent fatal error on the next line.
+            $values = \is_array($values) ? $values : [$values];
             foreach ($values as $value) {
-                $swooleResponse->header($name, $value);
+                // Cast to string for robustness.
+                $swooleResponse->header((string) $name, (string) $value);
             }
         }
 
@@ -64,12 +72,19 @@ class SwoolePsr7Bridge
         $file = $body->getMetadata('uri');
         if (is_string($file) && is_file($file)) {
             $swooleResponse->sendfile($file);
+
             return;
+        }
+
+        // Rewind the stream before reading its content to ensure we send the full body,
+        // even if it has been read before.
+        if ($body->isSeekable()) {
+            $body->rewind();
         }
 
         // Phương án dự phòng cho các response body thông thường, không phải file.
         // Lệnh này sẽ đọc toàn bộ body vào bộ nhớ trước khi gửi đi.
         // Nó an toàn cho các body rỗng và phù hợp cho các response HTML/JSON điển hình.
-        $swooleResponse->end((string) $body);
+        $swooleResponse->end($body->getContents());
     }
 }

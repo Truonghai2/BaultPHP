@@ -374,7 +374,6 @@ class Application implements ContainerInterface
     protected function getReflector(string $class): \ReflectionClass
     {
         if (!isset($this->reflectionCache[$class])) {
-            // Check for both classes and interfaces before attempting to reflect.
             if (!class_exists($class) && !interface_exists($class)) {
                 throw new NotFoundException("Class or interface [{$class}] not found.");
             }

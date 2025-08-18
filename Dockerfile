@@ -26,7 +26,7 @@ RUN --mount=type=cache,target=/root/.composer/cache \
 
 # --- Stage 2: Build image ứng dụng chính ---
 # Bắt đầu từ image Swoole chính thức.
-FROM phpswoole/swoole:5.1.1-php8.2
+FROM phpswoole/swoole:5.1.3-php8.2
  
 # Thiết lập các biến môi trường để dễ quản lý
 ENV APP_USER=appuser \
@@ -48,10 +48,10 @@ RUN buildDeps=" \
         libtool \
         make \
         g++ \
-        python3 \
         unzip \
     " && \
     apt-get update && apt-get install -y --no-install-recommends $buildDeps \
+        python3 \
         libzip-dev \
         libpng-dev \
         libjpeg-dev \
@@ -65,8 +65,7 @@ RUN buildDeps=" \
     && docker-php-ext-enable redis apcu \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pcntl bcmath sockets \
-    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps && apt-get clean && rm -rf /var/lib/apt/lists/*
  
 # [QUAN TRỌNG] Sử dụng tài nguyên từ framework:
 # Sao chép các file cấu hình tùy chỉnh vào image.
@@ -111,4 +110,7 @@ HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
 # Thiết lập entrypoint để chạy script của chúng ta.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 # CMD mặc định sẽ được truyền vào entrypoint.
-CMD ["/usr/bin/supervisord", "-n", "-c", "/etc/supervisor/app.conf"]
+# Chạy supervisord. Nó sẽ tự động đọc file cấu hình chính /etc/supervisord.conf,
+# file này sẽ bao gồm tất cả các file .conf trong /etc/supervisor/conf.d/,
+# bao gồm cả app.conf của chúng ta.
+CMD ["/usr/bin/supervisord", "-n"]

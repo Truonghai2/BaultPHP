@@ -13,7 +13,7 @@
     <div class="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40">
         <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
             <div class="flex items-center gap-x-4">
-                <img class="h-12" src="{{ asset('images/logo/BaultPHP-logo.png') }}" alt="BaultPHP">
+                <img class="h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
                 <div class="rounded-full px-3 py-1 text-sm leading-6 text-gray-300 ring-1 ring-gray-700/10">
                     Just Released <a href="#" class="font-semibold text-indigo-400">v1.0.0 <span aria-hidden="true">&rarr;</span></a>
                 </div>

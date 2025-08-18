@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Core\Filesystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\Translation\FileLoader;
 use Illuminate\Translation\Translator;
@@ -11,12 +12,15 @@ class TranslationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('translator', function ($app) {
-            // Sử dụng FileLoader và Filesystem của Core framework
+            // Sử dụng Core\Filesystem\Filesystem của chúng ta theo yêu cầu.
+            // Điều quan trọng là class này phải có phương thức `getRequire()`,
+            // mà chúng ta đã thêm vào để đảm bảo tương thích với trình tải bản dịch.
             $loader = new FileLoader(
-                $app->make(\Core\Filesystem\Filesystem::class),
+                $app->make(Filesystem::class),
                 $app->basePath('lang'),
             );
-            $translator = new Translator($loader, 'en'); // Default locale for registration
+
+            $translator = new Translator($loader, config('app.locale'));
 
             return $translator;
         });

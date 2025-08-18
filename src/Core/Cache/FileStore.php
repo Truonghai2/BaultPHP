@@ -3,7 +3,9 @@
 namespace Core\Cache;
 
 use Core\Contracts\Cache\Store;
-use Illuminate\Filesystem\Filesystem;
+use Core\Filesystem\Filesystem;
+use DateInterval;
+use DateTimeInterface;
 
 class FileStore implements Store
 {
@@ -16,32 +18,44 @@ class FileStore implements Store
         $this->directory = $directory;
     }
 
-    public function get($key)
+    /**
+     * {@inheritdoc}
+     */
+    public function get(string $key, mixed $default = null): mixed
     {
         $path = $this->path($key);
 
         if (!$this->files->exists($path)) {
-            return null;
+            return $default;
         }
 
         try {
-            $contents = $this->files->get($path, true);
+            $contents = $this->files->get($path);
             $data = unserialize($contents);
 
             if (time() >= $data['expire']) {
-                $this->forget($key);
-                return null;
+                $this->delete($key);
+                return $default;
             }
 
             return $data['value'];
-        } catch (\Exception $e) {
-            $this->forget($key);
-            return null;
+        } catch (\Throwable) {
+            $this->delete($key);
+            return $default;
         }
     }
 
-    public function put($key, $value, $seconds)
+    /**
+     * {@inheritdoc}
+     */
+    public function set(string $key, mixed $value, DateInterval|int|null $ttl = null): bool
     {
+        $seconds = $this->getSeconds($ttl);
+
+        if ($seconds <= 0) {
+            return $this->delete($key);
+        }
+
         $path = $this->path($key);
         $this->ensureCacheDirectoryExists($path);
 
@@ -50,10 +64,14 @@ class FileStore implements Store
             'expire' => time() + $seconds,
         ]);
 
+        // The third argument `true` enables file locking for safe concurrent writes.
         return $this->files->put($path, $contents, true) !== false;
     }
 
-    public function forget($key)
+    /**
+     * {@inheritdoc}
+     */
+    public function delete(string $key): bool
     {
         $path = $this->path($key);
 
@@ -61,12 +79,66 @@ class FileStore implements Store
             return $this->files->delete($path);
         }
 
+        // PSR-16 specifies that deleting a non-existent key should return true.
         return true;
     }
 
-    public function flush()
+    /**
+     * {@inheritdoc}
+     */
+    public function clear(): bool
     {
+        // The second argument `true` preserves the top-level directory.
         return $this->files->deleteDirectory($this->directory, true);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    {
+        $results = [];
+        foreach ($keys as $key) {
+            $results[$key] = $this->get($key, $default);
+        }
+        return $results;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function setMultiple(iterable $values, DateInterval|int|null $ttl = null): bool
+    {
+        $success = true;
+        foreach ($values as $key => $value) {
+            if (!$this->set($key, $value, $ttl)) {
+                $success = false;
+            }
+        }
+        return $success;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteMultiple(iterable $keys): bool
+    {
+        $success = true;
+        foreach ($keys as $key) {
+            if (!$this->delete($key)) {
+                $success = false;
+            }
+        }
+        return $success;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function has(string $key): bool
+    {
+        $marker = new \stdClass();
+        return $this->get($key, $marker) !== $marker;
     }
 
     /**
@@ -94,7 +166,29 @@ class FileStore implements Store
         $directory = dirname($path);
 
         if (!$this->files->isDirectory($directory)) {
+            // The last `true` is the `force` flag.
             $this->files->makeDirectory($directory, 0777, true, true);
         }
+    }
+
+    /**
+     * Get the number of seconds for the given TTL.
+     *
+     * @param  \DateInterval|int|null  $ttl
+     * @return int
+     */
+    protected function getSeconds(DateInterval|int|null $ttl): int
+    {
+        if ($ttl instanceof DateInterval) {
+            return (new \DateTime('now'))->add($ttl)->getTimestamp() - time();
+        }
+
+        if ($ttl instanceof DateTimeInterface) {
+            return $ttl->getTimestamp() - time();
+        }
+
+        return is_null($ttl)
+            ? 315360000 // A very large value (10 years), effectively "forever".
+            : (int) $ttl;
     }
 }

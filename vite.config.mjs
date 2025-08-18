@@ -75,6 +75,12 @@ export default defineConfig(({ mode }) => {
         server: {
             host: '0.0.0.0', // Lắng nghe trên tất cả các network interface, hữu ích cho Docker
             port: 5173,
+            hmr: {
+                // Chỉ định host mà trình duyệt của bạn sẽ sử dụng để kết nối
+                // với server HMR của Vite. Đây là 'localhost' vì bạn
+                // truy cập từ máy của mình.
+                host: 'localhost',
+            }
         }
     };
 });

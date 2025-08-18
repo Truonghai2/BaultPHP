@@ -1,4 +1,3 @@
-import "../css/app.css";
 import { initializeBault } from "./bault.js";
 
 // Đây là file JavaScript chính của bạn.

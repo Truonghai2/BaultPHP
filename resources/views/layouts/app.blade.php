@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo/BaultPHP-icon.png') }}">
 
     {{-- Tích hợp Vite.js --}}
-    @vite('resources/js/app.js')
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     {{-- Dành cho các style cụ thể của từng trang (nếu cần) --}}
     @stack('styles')
@@ -19,11 +19,6 @@
         - This script runs before the browser renders the body.
         - Vite then injects the styles, and by the time the body is visible, it's styled.
     --}}
-    <style>.no-js body { display: none; }</style>
-    <script>(function(){document.documentElement.classList.remove('no-js');})();</script>
-    <noscript>
-        <style>body { display: block !important; }</style>
-    </noscript>
 </head>
 <body class="h-full bg-gray-900 text-gray-100 antialiased">
     <div class="min-h-full">
@@ -34,18 +29,21 @@
                         {{-- Logo với hiệu ứng glow --}}
                         <div class="relative">
                             <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                            <img class="relative h-8 w-auto lg:h-10 xl:h-12" src="{{ asset('images/logo/BaultPHP-logo.png') }}" alt="BaultPHP">
+                            <img class="relative h-8 w-auto lg:h-10 xl:h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
                         </div>
                     </a>
                 </div>
 
                 {{-- Desktop Navigation --}}
                 <div class="hidden lg:flex lg:gap-x-12 items-center">
+                    <a href="{{ route('home') }}" class="text-sm font-semibold leading-6 text-white hover:text-indigo-400 transition-colors">
+                        {{ __('home.home') }}
+                    </a>
                     <a href="{{ route('about') }}" class="text-sm font-semibold leading-6 text-white hover:text-indigo-400 transition-colors">
-                        Features
+                        {{ __('home.features') }}
                     </a>
                     <a href="#docs" class="text-sm font-semibold leading-6 text-white hover:text-indigo-400 transition-colors">
-                        Documentation
+                        {{ __('home.documentation') }}
                     </a>
                     <a href="https://github.com/Truonghai2/BaultPHP" target="_blank" 
                        class="flex items-center gap-x-2 text-sm font-semibold leading-6 text-white hover:text-indigo-400 transition-colors">

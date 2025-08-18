@@ -16,7 +16,10 @@ PID=$(lsof -t -i:$PORT)
 # Kiểm tra xem biến PID có nội dung hay không
 if [ -n "$PID" ]; then
   echo "Tìm thấy tiến trình cũ đang chạy trên cổng $PORT với PID: $PID. Đang dừng..."
-  kill -9 "$PID"
+  # Gửi tín hiệu SIGTERM (15) để yêu cầu tiến trình tắt một cách an toàn.
+  # Đây là tín hiệu mặc định của lệnh `kill`.
+  # `kill -9` (SIGKILL) là một lựa chọn cuối cùng vì nó không cho phép ứng dụng dọn dẹp.
+  kill "$PID"
   sleep 1 # Chờ 1 giây để đảm bảo tiến trình đã được tắt hoàn toàn
   echo "Đã dừng tiến trình cũ."
 else

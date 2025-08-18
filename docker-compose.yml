@@ -32,7 +32,7 @@ services:
       - DB_HOST=db
       - DB_READ_HOST=db_read 
       - APP_ENV=${APP_ENV:-local}
-      - APP_DEBUG=true 
+      - APP_DEBUG=${APP_DEBUG:-true}
       - NGINX_HOST_PORT=88
       - PMA_HOST_PORT=8080
       - VITE_HOST_PORT=5173
@@ -45,7 +45,7 @@ services:
       - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
       - CENTRIFUGO_API_URL=http://centrifugo:8000/api
       - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
-      - VITE_DEV_URL=http://localhost:5173
+      - VITE_DEV_URL=http://localhost:${NGINX_HOST_PORT:-88}
 
   # Nginx làm Reverse Proxy
   nginx:
