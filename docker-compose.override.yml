@@ -3,6 +3,9 @@
 
 services:
   app:
+    # Đảm bảo container vite được khởi động trước container app
+    depends_on:
+      - vite
     # Mount source code vào container để hot-reload khi code thay đổi.
     # :cached giúp cải thiện hiệu năng file sync trên macOS và Windows.
     volumes:

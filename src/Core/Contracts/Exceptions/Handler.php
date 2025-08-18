@@ -3,19 +3,23 @@
 namespace Core\Contracts\Exceptions;
 
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Message\ServerRequestInterface as Request;
+use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-/**
- * Handler is responsible for handling exceptions in the application.
- * It provides methods to report, render, and log exceptions.
- */
 interface Handler
 {
     /**
+     * Bootstrap the exception handler.
+     *
+     * @return void
+     */
+    public function bootstrap(): void;
+
+    /**
      * Report or log an exception.
      *
-     * @param  \Throwable  $e
+     * @param \Throwable $e
      * @return void
      */
     public function report(Throwable $e): void;
@@ -23,14 +27,18 @@ interface Handler
     /**
      * Render an exception into an HTTP response.
      *
-     * @param  \Psr\Http\Message\ServerRequestInterface  $request
-     * @param  \Throwable  $e
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @param \Throwable $e
      * @return \Psr\Http\Message\ResponseInterface
      */
-    public function render(ServerRequestInterface $request, Throwable $e): ResponseInterface;
+    public function render(Request $request, Throwable $e): ResponseInterface;
 
     /**
      * Render an exception to the console.
+     *
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param \Throwable $e
+     * @return void
      */
-    public function renderForConsole($output, Throwable $e): void;
+    public function renderForConsole(OutputInterface $output, Throwable $e): void;
 }

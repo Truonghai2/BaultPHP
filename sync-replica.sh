@@ -23,7 +23,7 @@ echo "Dumping database from 'bault_db'..."
 # Dump CSDL từ container 'db' và pipe trực tiếp vào container 'db_read'
 # Sử dụng --single-transaction để không khóa bảng (chỉ hoạt động với InnoDB).
 # Chỉ dump CSDL của ứng dụng (--databases), không dùng --all-databases để tránh các vấn đề với replication.
-docker exec bault_db mysqldump --databases "$DB_DATABASE" --single-transaction -u root -p"$DB_PASSWORD" | docker exec -i bault_db_read mysql -u root -p"$DB_PASSWORD"
+docker exec bault_db mysqldump --databases "$DB_DATABASE" --single-transaction --routines --triggers --no-tablespaces -u root -p"$DB_PASSWORD" | docker exec -i bault_db_read mysql -u root -p"$DB_PASSWORD"
 
 echo "✅ Replica 'bault_db_read' has been successfully synchronized with the primary database."
 echo

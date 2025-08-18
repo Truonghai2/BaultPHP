@@ -2,14 +2,14 @@
 
 namespace Core\Filesystem;
 
+use Core\Filesystem\Exceptions\FileNotFoundException;
+use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use RuntimeException;
 
 /**
  * A simple filesystem utility class.
- * This class provides a convenient, object-oriented wrapper around common
- * PHP filesystem functions, making them easier to use and test.
+ * This class is being built out to support the framework's needs.
  */
 class Filesystem
 {
@@ -25,93 +25,6 @@ class Filesystem
     }
 
     /**
-     * Get the contents of a file.
-     *
-     * @param string $path
-     * @return string
-     *
-     * @throws \RuntimeException If the file does not exist or cannot be read.
-     */
-    public function get(string $path): string
-    {
-        if (!$this->isFile($path)) {
-            throw new RuntimeException("File does not exist at path {$path}.");
-        }
-
-        $contents = @file_get_contents($path);
-
-        if ($contents === false) {
-            throw new RuntimeException("Could not get contents of file at path {$path}.");
-        }
-
-        return $contents;
-    }
-
-    /**
-     * Write the contents to a file.
-     *
-     * @param  string  $path
-     * @param  string  $contents
-     * @param  bool  $lock
-     * @return int|false
-     */
-    public function put(string $path, string $contents, bool $lock = false): int|false
-    {
-        $this->ensureDirectoryExists(dirname($path));
-
-        return file_put_contents($path, $contents, $lock ? LOCK_EX : 0);
-    }
-
-    /**
-     * Get the file's last modification time.
-     *
-     * @param  string  $path
-     * @return int|false
-     */
-    public function lastModified(string $path): int|false
-    {
-        return @filemtime($path);
-    }
-
-    /**
-     * Delete the file at a given path.
-     *
-     * @param string|string[] $paths
-     * @return bool
-     */
-    public function delete(string|array $paths): bool
-    {
-        $paths = is_array($paths) ? $paths : func_get_args();
-        $success = true;
-
-        foreach ($paths as $path) {
-            if (@unlink($path)) {
-                clearstatcache(true, $path);
-            } else {
-                $success = false;
-            }
-        }
-
-        return $success;
-    }
-
-    /**
-     * Move a directory from one location to another.
-     *
-     * @param string $from
-     * @param string $to
-     * @return bool
-     */
-    public function moveDirectory(string $from, string $to): bool
-    {
-        if (!$this->isDirectory($from)) {
-            return false;
-        }
-
-        return rename($from, $to);
-    }
-
-    /**
      * Determine if the given path is a file.
      *
      * @param  string  $file
@@ -123,14 +36,67 @@ class Filesystem
     }
 
     /**
-     * Determine if the given path is a directory.
+     * Get the contents of a file.
      *
-     * @param  string  $directory
+     * @param  string  $path
+     * @return string
+     *
+     * @throws \Core\Filesystem\Exceptions\FileNotFoundException
+     */
+    public function get(string $path): string
+    {
+        if ($this->isFile($path)) {
+            return file_get_contents($path);
+        }
+
+        throw new FileNotFoundException("File does not exist at path {$path}.");
+    }
+
+    /**
+     * Get the returned value of a file.
+     *
+     * This method is required by the Illuminate\Translation\FileLoader.
+     *
+     * @param  string  $path
+     * @return mixed
+     *
+     * @throws \Core\Filesystem\Exceptions\FileNotFoundException
+     */
+    public function getRequire(string $path): mixed
+    {
+        if ($this->isFile($path)) {
+            return require $path;
+        }
+
+        throw new FileNotFoundException("File does not exist at path {$path}.");
+    }
+
+    /**
+     * Delete the file at a given path.
+     *
+     * @param  string  $path
      * @return bool
      */
-    public function isDirectory(string $directory): bool
+    public function delete(string $path): bool
     {
-        return is_dir($directory);
+        return @unlink($path);
+    }
+
+    /**
+     * Ghi nội dung vào một file.
+     *
+     * Phương thức này sẽ tự động tạo thư mục cho file nếu nó chưa tồn tại.
+     *
+     * @param  string  $path Đường dẫn đến file.
+     * @param  string|resource  $contents Nội dung cần ghi.
+     * @param  bool  $lock Có khóa file trong khi ghi hay không.
+     * @return int|false Số byte đã được ghi vào file, hoặc `false` nếu thất bại.
+     */
+    public function put(string $path, mixed $contents, bool $lock = false): int|false
+    {
+        $this->ensureDirectoryExists(dirname($path));
+
+        return file_put_contents($path, $contents, $lock ? LOCK_EX : 0);
     }
 
     /**
@@ -152,19 +118,42 @@ class Filesystem
     }
 
     /**
-     * Ensure a directory exists before writing a file.
+     * Ensure a directory exists.
      *
      * @param  string  $path
      * @param  int  $mode
+     * @param  bool  $recursive
      * @return void
      */
-    public function ensureDirectoryExists(string $path, int $mode = 0755): void
+    public function ensureDirectoryExists(string $path, int $mode = 0755, bool $recursive = true): void
     {
-        if (!$this->isDirectory($path)) {
-            // Use `makeDirectory` with `recursive` and `force` to ensure the
-            // entire path is created safely.
-            $this->makeDirectory($path, $mode, true, true);
+        if (! $this->exists($path)) {
+            $this->makeDirectory($path, $mode, $recursive);
         }
+    }
+
+    /**
+     * Determine if the given path is a directory.
+     *
+     * @param  string  $directory
+     * @return bool
+     */
+    public function isDirectory(string $directory): bool
+    {
+        return is_dir($directory);
+    }
+
+    /**
+     * Get the file's last modification time.
+     *
+     * @param  string  $path
+     * @return int|false The Unix timestamp of the last modification, or false on failure.
+     */
+    public function lastModified(string $path): int|false
+    {
+        // The @ operator suppresses warnings if the file does not exist,
+        // which is a safe way to handle this in the context of the view compiler.
+        return @filemtime($path);
     }
 
     /**
@@ -175,23 +164,36 @@ class Filesystem
      */
     public function allFiles(string $directory): array
     {
-        if (!$this->isDirectory($directory)) {
-            return [];
+        return iterator_to_array(
+            new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS)),
+        );
+    }
+
+    /**
+     * Recursively delete a directory.
+     *
+     * The directory itself may be optionally preserved.
+     *
+     * @param  string  $directory
+     * @param  bool  $preserve
+     * @return bool
+     */
+    public function deleteDirectory(string $directory, bool $preserve = false): bool
+    {
+        if (! $this->isDirectory($directory)) {
+            return false;
         }
 
-        $files = [];
-        $iterator = new RecursiveIteratorIterator(
-            new RecursiveDirectoryIterator($directory, RecursiveDirectoryIterator::SKIP_DOTS),
-            RecursiveIteratorIterator::SELF_FIRST,
-        );
+        $items = new FilesystemIterator($directory, FilesystemIterator::SKIP_DOTS);
 
-        /** @var \SplFileInfo $file */
-        foreach ($iterator as $file) {
-            if ($file->isFile()) {
-                $files[] = $file;
+        foreach ($items as $item) {
+            if ($item->isDir() && ! $item->isLink()) {
+                $this->deleteDirectory($item->getPathname());
+            } else {
+                $this->delete($item->getPathname());
             }
         }
 
-        return $files;
+        return $preserve ?: rmdir($directory);
     }
 }

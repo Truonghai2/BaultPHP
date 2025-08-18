@@ -12,8 +12,13 @@ return [
     'url' => env('APP_URL', 'http://localhost:9501'),
     'asset_url' => env('ASSET_URL', null),
 
+    // This URL is used by the `vite()` helper to generate the correct URLs
+    // for your assets when running in development mode with a dev server.
+    // It should point to the Vite container from the perspective of the PHP container.
+    'vite_dev_url' => env('VITE_DEV_URL', 'http://localhost:5173'),
+
     'timezone' => 'Asia/Ho_Chi_Minh',
-    'locale' => 'vi',
+    'locale' => 'en',
     'fallback_locale' => 'en',
 
     'key' => env('APP_KEY'),
@@ -33,6 +38,7 @@ return [
         \App\Providers\LoggingServiceProvider::class,
         \App\Providers\MailServiceProvider::class,
         \App\Providers\ServerServiceProvider::class,
+        \App\Providers\SessionServiceProvider::class,
         \Core\Queue\QueueServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,
     ],

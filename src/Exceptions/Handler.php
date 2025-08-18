@@ -8,10 +8,9 @@ use Core\Validation\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\Console\Formatter\OutputFormatter;
+use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
-use Whoops\Handler\JsonResponseHandler;
-use Whoops\Handler\PrettyPageHandler;
-use Whoops\Run as WhoopsRun;
 
 class Handler implements HandlerContract
 {
@@ -77,7 +76,7 @@ class Handler implements HandlerContract
 
         // Nếu đang ở chế độ debug, luôn hiển thị trang lỗi chi tiết của Whoops.
         if (config('app.debug', false)) {
-            return $this->renderExceptionWithWhoops($request, $e);
+            return $this->renderExceptionForDebug($request, $e);
         }
 
         // Nếu không ở chế độ debug, render các trang lỗi tùy chỉnh.
@@ -92,6 +91,80 @@ class Handler implements HandlerContract
         // Nếu không, trả về một trang lỗi 500 chung nếu có, hoặc một chuỗi mặc định.
         $fallbackContent = $this->view->exists('errors.500') ? $this->view->make('errors.500', ['exception' => $e])->render() : 'Sorry, something went wrong.';
         return response($fallbackContent, $statusCode);
+    }
+
+    /**
+     * Render một trang lỗi chi tiết cho môi trường debug.
+     *
+     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @param \Throwable $e
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    protected function renderExceptionForDebug(Request $request, Throwable $e): ResponseInterface
+    {
+        $statusCode = $this->getStatusCode($e);
+        $data = $this->getDebugData($request, $e);
+        $content = view('errors.debug', $data);
+        return response($content, $statusCode);
+    }
+
+    /**
+     *
+     *
+     * @param Request $request
+     * @param Throwable $e
+     * @return array
+     */
+    protected function getDebugData(Request $request, Throwable $e): array
+    {
+        // Nếu exception là ViewException, nó sẽ chứa đường dẫn và dòng lỗi của file view gốc,
+        // giúp chúng ta hiển thị đúng đoạn code snippet từ file .blade.php thay vì file đã biên dịch.
+        $file = $e instanceof \Core\View\ViewException ? $e->getViewPath() : $e->getFile();
+        $line = $e instanceof \Core\View\ViewException ? $e->getViewLine() : $e->getLine();
+        return [
+            'exception' => $e,
+            'request' => [
+                'method' => $request->getMethod(),
+                'uri' => (string) $request->getUri(),
+                'headers' => $request->getHeaders(),
+                'query' => $request->getQueryParams(),
+                'body' => $request->getParsedBody(),
+            ],
+            'codeSnippet' => $this->getCodeSnippet($file, $line),
+        ];
+    }
+
+    /**
+     * Lấy một đoạn code từ file nơi lỗi xảy ra.
+     *
+     * @param string $path Đường dẫn đến file
+     * @param int $errorLine Dòng bị lỗi
+     * @param int $contextLines Số dòng ngữ cảnh xung quanh dòng lỗi
+     * @return array|null
+     */
+    protected function getCodeSnippet(string $path, int $errorLine, int $contextLines = 10): ?array
+    {
+        if (!file_exists($path) || !is_readable($path)) {
+            return null;
+        }
+
+        $lines = file($path, FILE_IGNORE_NEW_LINES);
+        $totalLines = count($lines);
+        $startLine = max(1, $errorLine - $contextLines);
+        $endLine = min($totalLines, $errorLine + $contextLines);
+
+        $snippet = [];
+        for ($i = $startLine - 1; $i < $endLine; $i++) {
+            if (!isset($lines[$i])) {
+                continue;
+            }
+            $snippet[] = [
+                'number' => $i + 1,
+                'content' => htmlspecialchars($lines[$i], ENT_QUOTES, 'UTF-8'),
+            ];
+        }
+
+        return $snippet;
     }
 
     protected function shouldReturnJson(Request $request, Throwable $e): bool
@@ -151,87 +224,19 @@ class Handler implements HandlerContract
         return 500;
     }
 
-    protected function renderExceptionWithWhoops(Request $request, Throwable $e): ResponseInterface
-    {
-        $whoops = new WhoopsRun();
-
-        // Prevent Whoops from sending output and exiting directly.
-        // This allows us to capture the output and wrap it in a proper PSR-7 response.
-        $whoops->writeToOutput(false);
-        $whoops->allowQuit(false);
-
-        if ($this->shouldReturnJson($request, $e)) {
-            $whoops->pushHandler(new JsonResponseHandler());
-        } else {
-            $prettyPageHandler = new PrettyPageHandler();
-
-            // Cho phép mở file trực tiếp từ trang lỗi Whoops vào editor của bạn.
-            // Thêm các bảng dữ liệu tùy chỉnh để cung cấp thêm ngữ cảnh gỡ lỗi.
-            $this->addDebugInfoToHandler($prettyPageHandler, $request);
-
-            // Cấu hình editor để mở file trực tiếp từ trang lỗi.
-            // Ví dụ: EDITOR=vscode trong file .env
-            // Bạn có thể cấu hình editor trong file .env (ví dụ: EDITOR=vscode)
-            // và nó sẽ được đọc thông qua config('app.editor').
-            // Các giá trị hợp lệ: "phpstorm", "vscode", "sublime", "atom", "emacs", "textmate", "macvim"
-            if ($editor = config('app.editor')) {
-                $prettyPageHandler->setEditor($editor);
-            }
-            $whoops->pushHandler($prettyPageHandler);
-        }
-
-        $html = $whoops->handleException($e);
-
-        return response($html, $this->getStatusCode($e));
-    }
-
-    public function renderForConsole($output, Throwable $e): void
-    {
-        (new WhoopsRun())->pushHandler(new \Whoops\Handler\PlainTextHandler())->handleException($e);
-    }
-
     /**
-     * Add custom debug information to the Whoops page handler.
+     * Render an exception for the console.
      *
-     * @param \Whoops\Handler\PrettyPageHandler $handler
-     * @param \Psr\Http\Message\ServerRequestInterface $request
+     * @param \Symfony\Component\Console\Output\OutputInterface $output
+     * @param \Throwable $e
      */
-    protected function addDebugInfoToHandler(PrettyPageHandler $handler, Request $request): void
+    public function renderForConsole(OutputInterface $output, Throwable $e): void
     {
-        // Thêm thông tin chi tiết về Request
-        $handler->addDataTable('Request Info', [
-            'URI' => $request->getUri()->__toString(),
-            'Method' => $request->getMethod(),
-            'Headers' => $request->getHeaders(),
-            'Server Params' => $request->getServerParams(),
-            'Body' => (string) $request->getBody(),
-        ]);
-
-        // Thêm thông tin về Session
-        try {
-            if (app()->has('session') && app('session')->isStarted()) {
-                $handler->addDataTable('Session Data', app('session')->all());
-            }
-        } catch (Throwable) {
-            // Bỏ qua nếu service session không được cấu hình hoặc có lỗi
-        }
-
-        // Thêm thông tin về người dùng đã xác thực
-        try {
-            if (app()->has(\Core\Auth\AuthManager::class)) {
-                /** @var \Core\Auth\AuthManager $auth */
-                $auth = app(\Core\Auth\AuthManager::class);
-                if ($auth->check()) {
-                    $user = $auth->user();
-                    $handler->addDataTable('Authenticated User', [
-                        'ID' => $user->getAuthIdentifier(),
-                        'Class' => get_class($user),
-                        'Attributes' => method_exists($user, 'toArray') ? $user->toArray() : 'N/A',
-                    ]);
-                }
-            }
-        } catch (Throwable) {
-            // Bỏ qua nếu service auth không được cấu hình hoặc có lỗi
-        }
+        $output->writeln('<error>[' . OutputFormatter::escape(get_class($e)) . ']</error>');
+        $output->writeln('<error>Message: ' . OutputFormatter::escape($e->getMessage()) . '</error>');
+        $output->writeln('<comment>In ' . OutputFormatter::escape($e->getFile()) . ' on line ' . $e->getLine() . '</comment>');
+        $output->writeln('');
+        $output->writeln('<comment>Stack trace:</comment>');
+        $output->writeln(OutputFormatter::escape($e->getTraceAsString()));
     }
 }
