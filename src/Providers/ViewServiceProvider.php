@@ -19,6 +19,11 @@ class ViewServiceProvider extends ServiceProvider
         $this->registerFactory();
     }
 
+    public function boot(): void
+    {
+        $this->registerBladeDirectives();
+    }
+
     /**
      * Đăng ký View Compiler vào container.
      */
@@ -45,5 +50,28 @@ class ViewServiceProvider extends ServiceProvider
         });
 
         $this->app->alias(ViewFactoryContract::class, 'view');
+    }
+
+    protected function registerBladeDirectives(): void
+    {
+        /** @var \Core\View\Compiler $compiler */
+        $compiler = $this->app->make(Compiler::class);
+
+        $compiler->directive('can', function ($expression) {
+            return "<?php if (auth()->check() && auth()->user()->can{$expression}): ?>";
+        });
+
+        $compiler->directive('cannot', function ($expression) {
+            return "<?php if (auth()->check() && !auth()->user()->can{$expression}): ?>";
+        });
+
+        // @elsecan('permission', $context)
+        $compiler->directive('elsecan', function ($expression) {
+            return "<?php elseif (auth()->check() && auth()->user()->can{$expression}): ?>";
+        });
+
+        $compiler->directive('endcan', function () {
+            return '<?php endif; ?>';
+        });
     }
 }

@@ -33,7 +33,9 @@ return [
         ],
 
         'api' => [
-            'driver' => 'jwt',
+            // The 'token' driver is a placeholder.
+            // API authentication is handled by the OAuthGuardMiddleware, which uses league/oauth2-server.
+            'driver' => 'token',
             'provider' => 'users',
         ],
     ],

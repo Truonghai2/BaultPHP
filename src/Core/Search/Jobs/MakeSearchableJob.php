@@ -2,36 +2,45 @@
 
 namespace Core\Search\Jobs;
 
-use Core\Contracts\Queue\Job;
+use Core\Contracts\Queue\ShouldQueue;
+use Core\ORM\Model;
 use MeiliSearch\Client;
+use Psr\Log\LoggerInterface;
 
-class MakeSearchableJob implements Job
+class MakeSearchableJob implements ShouldQueue
 {
     /**
-     * Create a new job instance.
-     *
-     * @param string $searchableClass The class name of the model to index.
-     * @param mixed $searchableId The ID of the model to index.
+     * @param class-string<Model> $modelClass
+     * @param int|string $modelId
      */
     public function __construct(
-        public string $searchableClass,
-        public mixed $searchableId,
+        private string $modelClass,
+        private int|string $modelId,
     ) {
     }
 
-    /**
-     * Execute the job.
-     *
-     * @param \MeiliSearch\Client $client
-     * @return void
-     */
-    public function handle(Client $client): void
+    public function handle(Client $meilisearch, LoggerInterface $logger): void
     {
-        $model = ($this->searchableClass)::find($this->searchableId);
+        /** @var \Core\Search\Searchable|Model|null $model */
+        $model = $this->modelClass::find($this->modelId);
 
-        // Đảm bảo model tồn tại và có các phương thức cần thiết từ trait Searchable
-        if ($model && method_exists($model, 'getSearchIndexName') && method_exists($model, 'toSearchableArray')) {
-            $client->index($model->getSearchIndexName())->addDocuments([$model->toSearchableArray()]);
+        if (!$model) {
+            $logger->warning('Searchable model not found, skipping indexing.', [
+                'model' => $this->modelClass,
+                'id' => $this->modelId,
+            ]);
+            return;
         }
+
+        $indexName = $model::getSearchIndexName();
+        $data = $model->toSearchableArray();
+
+        // Meilisearch yêu cầu phải có primary key.
+        $primaryKey = $model->getKeyName();
+        if (!isset($data[$primaryKey])) {
+            $data[$primaryKey] = $model->getKey();
+        }
+
+        $meilisearch->index($indexName)->addDocuments([$data], $primaryKey);
     }
 }

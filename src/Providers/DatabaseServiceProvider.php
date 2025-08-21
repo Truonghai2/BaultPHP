@@ -17,21 +17,23 @@ class DatabaseServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register the Connection manager as a singleton.
-        $this->app->singleton(Connection::class, function ($app) {
-            return new Connection($app);
-        });
+        // Đăng ký ORM Connection manager như một singleton.
+        // Class này sẽ chịu trách nhiệm quản lý các kết nối CSDL,
+        // bao gồm cả việc sử dụng connection pool trong môi trường Swoole.
+        $this->app->singleton(Connection::class);
 
         // Đăng ký kết nối GHI (write) mặc định bằng cách ủy quyền cho Connection manager.
-        // Điều này tập trung hóa logic kết nối, bao gồm cả việc xử lý connection pool
-        // trong môi trường Swoole, đảm bảo tính nhất quán trên toàn ứng dụng.
+        // Bất cứ khi nào có yêu cầu cho một instance \PDO, container sẽ nhờ Connection
+        // class để cung cấp kết nối 'write' mặc định.
+        // Connection class sẽ tự quyết định lấy kết nối từ pool (Swoole) hay tạo mới (CLI).
         $this->app->singleton(\PDO::class, function ($app) {
-            // Tham số thứ hai 'write' là mặc định trong Connection::get() nhưng được ghi rõ ở đây.
+            // Tham số thứ hai 'write' là mặc định trong Connection::connection()
+            // nhưng được ghi rõ ở đây để tường minh.
             return $app->make(Connection::class)->connection(null, 'write');
         });
 
         // Đăng ký kết nối ĐỌC (read).
-        // Connection::get() đã chứa logic để tự động fallback về kết nối 'write'
+        // Connection::connection() đã chứa logic để tự động fallback về kết nối 'write'
         // nếu một read replica riêng biệt không được cấu hình.
         $this->app->singleton('pdo.read', function ($app) {
             return $app->make(Connection::class)->connection(null, 'read');

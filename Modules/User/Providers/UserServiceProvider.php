@@ -2,85 +2,31 @@
 
 namespace Modules\User\Providers;
 
-use Core\CQRS\CommandBus;
+use Core\BaseServiceProvider;
 use Core\Events\EventDispatcherInterface;
-use Core\Support\ServiceProvider;
-use Modules\User\Application\Commands\DeleteUserCommand;
-use Modules\User\Application\Commands\UpdateUserProfileCommand;
-use Modules\User\Application\Handlers\DeleteUserHandler;
-use Modules\User\Application\Handlers\UpdateUserProfileHandler;
-use Modules\User\Application\Listeners\FlushPermissionCacheForRoleUsers;
-use Modules\User\Application\Listeners\FlushPermissionCacheOnProfileUpdate;
-use Modules\User\Application\Listeners\FlushPermissionCacheOnRoleChange;
-use Modules\User\Application\Policies\UserPolicy;
-use Modules\User\Application\UserFinder;
-use Modules\User\Domain\Events\RoleAssignedToUser;
-use Modules\User\Domain\Events\RolePermissionsChanged;
-use Modules\User\Domain\Events\UserProfileUpdated;
-use Modules\User\Domain\Services\AccessControlService;
-use Modules\User\Infrastructure\Models\User;
+use Modules\User\Application\Listeners\SendWelcomeEmail;
+use Modules\User\Domain\Events\UserWasCreated;
 
-class UserServiceProvider extends ServiceProvider
+class UserServiceProvider extends BaseServiceProvider
 {
     /**
-     * The event to listener mappings for the module.
-     *
-     * @var array<class-string, array<int, class-string>>
+     * Bootstrap any application services.
      */
-    protected array $listen = [
-        UserProfileUpdated::class => [
-            FlushPermissionCacheOnProfileUpdate::class,
-        ],
-        RoleAssignedToUser::class => [
-            FlushPermissionCacheOnRoleChange::class,
-        ],
-        RolePermissionsChanged::class => [
-            FlushPermissionCacheForRoleUsers::class,
-        ],
-    ];
-
-    public function register(): void
-    {
-        $this->app->singleton(UserFinder::class);
-    }
-
     public function boot(): void
     {
-        $this->registerPolicies();
-        $this->registerCommandHandlers();
+        $this->loadModuleViews('user');
         $this->registerEventListeners();
-        $this->loadViewsFrom(__DIR__ . '/../resources/views', 'user');
-    }
-
-    private function registerPolicies(): void
-    {
-        /** @var AccessControlService $accessControlService */
-        $accessControlService = $this->app->make(AccessControlService::class);
-        // Đăng ký UserPolicy cho model User
-        $accessControlService->policy(User::class, UserPolicy::class);
     }
 
     /**
-     * Register all the command handlers for this module.
+     * Register the module's event listeners.
      */
-    private function registerCommandHandlers(): void
+    protected function registerEventListeners(): void
     {
-        /** @var CommandBus $commandBus */
-        $commandBus = $this->app->make(CommandBus::class);
+        /** @var EventDispatcherInterface $dispatcher */
+        $dispatcher = $this->app->make(EventDispatcherInterface::class);
 
-        $commandBus->register(UpdateUserProfileCommand::class, UpdateUserProfileHandler::class);
-        $commandBus->register(DeleteUserCommand::class, DeleteUserHandler::class);
-    }
-
-    private function registerEventListeners(): void
-    {
-        /** @var EventDispatcherInterface $events */
-        $events = $this->app->make(EventDispatcherInterface::class);
-
-        foreach ($this->listen as $event => $listeners) {
-            foreach ($listeners as $listener) {
-                $events->listen($event, $listener);
-            }
-        }
+        // Map the UserWasCreated event to its listener.
+        $dispatcher->listen(UserWasCreated::class, SendWelcomeEmail::class);
     }
 }

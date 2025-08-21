@@ -1,8 +1,8 @@
 <?php
 
-namespace App\Http\Middleware;
+namespace Http\Middleware;
 
-use Core\Contracts\Session\SessionInterface;
+use Core\Security\CsrfManager;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
@@ -19,7 +19,7 @@ class VerifyCsrfToken implements MiddlewareInterface
         // Ví dụ: 'api/webhooks/*'
     ];
 
-    public function __construct(protected SessionInterface $session)
+    public function __construct(protected CsrfManager $csrfManager)
     {
     }
 
@@ -29,9 +29,10 @@ class VerifyCsrfToken implements MiddlewareInterface
             return $handler->handle($request);
         }
 
-        $token = $this->getTokenFromRequest($request);
+        $tokenValue = $this->getTokenFromRequest($request);
 
-        if (!is_string($this->session->token()) || !is_string($token) || !hash_equals($this->session->token(), $token)) {
+        // Sử dụng Core CsrfManager để kiểm tra token.
+        if (!$this->csrfManager->isTokenValid('_token', $tokenValue)) {
             // Ném ra một exception, ExceptionHandler sẽ xử lý và trả về response 419
             throw new \App\Exceptions\TokenMismatchException('CSRF token mismatch.');
         }

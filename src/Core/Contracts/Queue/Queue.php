@@ -10,7 +10,7 @@ interface Queue
     /**
      * Push a new job onto the queue.
      */
-    public function push(Job $job, ?string $queue = null): void;
+    public function push(Job $job, $data = '', ?string $queue = null): void;
 
     /**
      * Push a new job onto the queue after a delay.

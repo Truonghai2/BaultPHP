@@ -28,6 +28,11 @@ class RouteServiceProvider extends ServiceProvider
         // Điều này giúp DI container biết cách khởi tạo nó và làm cho dependency rõ ràng hơn.
         $this->app->singleton(RouteRegistrar::class);
 
+        // Register the Redirector for creating redirect responses.
+        $this->app->singleton(\Core\Http\Redirector::class, function ($app) {
+            return new \Core\Http\Redirector($app);
+        });
+
         $this->registerCommands();
     }
 

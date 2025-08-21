@@ -94,4 +94,17 @@ class BaseServiceProvider extends ServiceProvider
         // Cập nhật lại config với danh sách đường dẫn mới, loại bỏ các giá trị trùng lặp
         $config->set('database.migrations.paths', array_unique($paths));
     }
+
+    /**
+     * Register the module's views using a conventional directory structure.
+     * This helper assumes views are located in `resources/views` within the module.
+     *
+     * @param string $namespace The namespace for the module's views.
+     * @return void
+     */
+    protected function loadModuleViews(string $namespace): void
+    {
+        $path = $this->getModulePath() . '/resources/views';
+        $this->loadViewsFrom($path, $namespace);
+    }
 }

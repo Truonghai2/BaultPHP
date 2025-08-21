@@ -101,6 +101,30 @@ $app->register(\App\Providers\ConsoleServiceProvider::class);
 
 /*
 |--------------------------------------------------------------------------
+| Register Module Service Providers
+|--------------------------------------------------------------------------
+|
+| This will automatically scan the Modules directory and register the
+| main service provider for each module, following the convention:
+| Modules/{ModuleName}/Providers/{ModuleName}ServiceProvider.php
+| This allows modules to be truly plug-and-play.
+|
+*/
+$modulesPath = $app->basePath('Modules');
+if (is_dir($modulesPath)) {
+    foreach (new DirectoryIterator($modulesPath) as $moduleInfo) {
+        if ($moduleInfo->isDir() && !$moduleInfo->isDot()) {
+            $moduleName = $moduleInfo->getFilename();
+            $providerClass = "Modules\\{$moduleName}\\Providers\\{$moduleName}ServiceProvider";
+            if (class_exists($providerClass)) {
+                $app->register($providerClass);
+            }
+        }
+    }
+}
+
+/*
+|--------------------------------------------------------------------------
 | Register Application Service Provider
 |--------------------------------------------------------------------------
 |

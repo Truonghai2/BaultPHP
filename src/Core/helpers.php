@@ -2,7 +2,6 @@
 
 use Core\Application;
 use Http\ResponseFactory;
-use Symfony\Component\VarDumper\VarDumper;
 
 function service(string $contract): object
 {
@@ -57,16 +56,6 @@ if (!function_exists('storage_path')) {
     {
         $dir = base_path('storage');
         return $path ? $dir . DIRECTORY_SEPARATOR . $path : $dir;
-    }
-}
-
-if (!function_exists('log_message')) {
-    function log_message(string $level, string $message, array $context = [])
-    {
-        $logFile = storage_path('logs/app.log');
-        $timestamp = date('Y-m-d H:i:s');
-        $logMessage = "[$timestamp] [$level]: $message " . (empty($context) ? '' : json_encode($context)) . "\n";
-        file_put_contents($logFile, $logMessage, FILE_APPEND);
     }
 }
 
@@ -146,13 +135,7 @@ if (!function_exists('resource_path')) {
 if (!function_exists('dd')) {
     function dd(...$vars): void
     {
-        foreach ($vars as $var) {
-            if (class_exists(VarDumper::class)) {
-                VarDumper::dump($var);
-            } else {
-                var_dump($var);
-            }
-        }
+        (new \Core\Support\Dumper())->dump(...$vars);
         die(1);
     }
 }
@@ -294,16 +277,23 @@ if (!function_exists('vite')) {
     /**
      * Get the Vite assets for the application.
      *
-     * @param  string|string[]  $entrypoints
-     * @return \Illuminate\Support\HtmlString
+     * @param string|string[] $entrypoints
+     * @return \Core\Support\HtmlString
      */
-    function vite(string|array $entrypoints): \Illuminate\Support\HtmlString
+    function vite(string|array $entrypoints): \Core\Support\HtmlString
     {
         // We resolve it as a singleton to avoid reading the manifest file multiple times.
         if (!app()->bound(Vite::class)) {
             app()->singleton(Vite::class);
         }
-        return app(Vite::class)($entrypoints);
+
+        // The underlying Vite class might return an Illuminate\Support\HtmlString.
+        // We ensure the return value conforms to the Core\Support\HtmlString contract
+        // defined in this helper's signature.
+        $htmlContent = app(Vite::class)($entrypoints);
+
+        // Cast to string and wrap in our framework's HtmlString class.
+        return new \Core\Support\HtmlString((string) $htmlContent);
     }
 }
 
@@ -321,23 +311,14 @@ if (!function_exists('esc')) {
      */
     function esc(?string $value, string $context = 'html'): string
     {
-        if ($value === null) {
-            return '';
+        // Sử dụng một instance tĩnh của Core Escaper để tăng hiệu năng,
+        // tránh việc phải khởi tạo lại đối tượng trên mỗi lần gọi.
+        static $coreEscaper;
+        if (!$coreEscaper) {
+            $coreEscaper = new \Core\Support\Escaper();
         }
 
-        static $escaper;
-        if (!$escaper) {
-            // Using 'utf-8' is crucial for security and proper character handling.
-            $escaper = new Escaper('utf-8');
-        }
-
-        return match ($context) {
-            'js' => $escaper->escapeJs($value),
-            'css' => $escaper->escapeCss($value),
-            'url' => $escaper->escapeUrl($value),
-            'attr' => $escaper->escapeHtmlAttr($value),
-            default => $escaper->escapeHtml($value),
-        };
+        return $coreEscaper->escape($value, $context);
     }
 }
 
@@ -423,18 +404,71 @@ if (!function_exists('old')) {
      */
     function old(string $key, $default = null)
     {
-        // This helper function retrieves input from the previous request that was "flashed"
-        // to the session. The controller that processes the form submission is
-        // responsible for flashing the input upon validation failure.
-
         if (!app()->has('session')) {
             return $default;
         }
 
-        // Assumes old input is flashed to the session under the key '_old_input'.
-        $oldInput = app('session')->get('_old_input', []);
+        /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
+        $session = app('session');
+
+        // Retrieve the flashed input array from the FlashBag.
+        // The `get()` method returns an array of messages for the type. Since we use
+        // `set()`, there will be only one message, which is our array of old input.
+        // We use `[0] ?? []` to safely get it or an empty array if it doesn't exist.
+        $oldInput = $session->getFlashBag()->get('_old_input')[0] ?? [];
 
         return $oldInput[$key] ?? $default;
+    }
+}
+
+if (!function_exists('csrf_token')) {
+    /**
+     * Get the CSRF token value.
+     *
+     * This function retrieves the current CSRF token from the session. The token
+     * is managed by the session store and is used to protect against CSRF attacks.
+     *
+     * @return string The CSRF token.
+     * @throws \RuntimeException if the session is not available.
+     */
+    function csrf_token(): string
+    {
+        // Luôn sử dụng CsrfManager của Core để lấy token.
+        // Điều này giúp trừu tượng hóa implementation bên dưới (Symfony).
+        return app(\Core\Security\CsrfManager::class)->getTokenValue('_token');
+    }
+}
+
+if (!function_exists('csrf_field')) {
+    /**
+     * Generate a CSRF token form field.
+     *
+     * @return \Core\Support\HtmlString
+     */
+    function csrf_field(): \Core\Support\HtmlString
+    {
+        return new \Core\Support\HtmlString('<input type="hidden" name="_token" value="' . csrf_token() . '" autocomplete="off">');
+    }
+}
+
+if (!function_exists('redirect')) {
+    /**
+     * Get an instance of the redirector or create a redirect response.
+     *
+     * - `redirect()`: Returns the Redirector instance.
+     * - `redirect('/home')`: Creates a RedirectResponse to '/home'.
+     * - `redirect()->back()`: Creates a RedirectResponse to the previous URL.
+     *
+     * @param  string|null  $to
+     * @param  int     $status
+     * @param  array   $headers
+     * @return \Core\Http\Redirector|\Core\Http\RedirectResponse
+     */
+    function redirect(string $to = null, int $status = 302, array $headers = [])
+    {
+        $redirector = app(\Core\Http\Redirector::class);
+
+        return $to ? $redirector->to($to, $status, $headers) : $redirector;
     }
 }
 

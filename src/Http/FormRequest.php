@@ -5,10 +5,13 @@ namespace Http;
 use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
+use Core\Contracts\Session\Session;
+use Core\Exceptions\HttpResponseException;
 use Core\Exceptions\ValidationException;
+use Core\Http\Redirector;
 use Core\Validation\Factory as ValidationFactory;
 use Core\Validation\Validator;
-use Psr\Http\Message\ServerRequestInterface as Request;
+use Psr\Http\Message\ServerRequestInterface;
 
 abstract class FormRequest
 {
@@ -16,6 +19,10 @@ abstract class FormRequest
     protected ServerRequestInterface $request;
     protected ?Validator $validator = null;
     protected ?Authenticatable $user;
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $cachedParsedBody = null;
 
     /**
      * FormRequest được tạo thông qua container, cho phép inject các dependency.
@@ -36,7 +43,7 @@ abstract class FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return false; // Mặc định là false để buộc lập trình viên phải định nghĩa quyền.
     }
 
     /**
@@ -58,7 +65,11 @@ abstract class FormRequest
      */
     public function user(): ?Authenticatable
     {
-        return $this->request->getAttribute('user') ?? $this->app->make('auth')->user();
+        if (!isset($this->user)) {
+            $this->user = $this->app->make(\Core\Auth\AuthManager::class)->user();
+        }
+
+        return $this->user;
     }
 
     /**
@@ -66,6 +77,14 @@ abstract class FormRequest
      */
     public function validateResolved(): void
     {
+        // If the request property hasn't been set by the Kernel (for whatever reason),
+        // we resolve it from the container here. This makes the FormRequest more robust
+        // and solves the "accessed before initialization" error when validation is
+        // triggered from within the controller via `validated()`.
+        if (!isset($this->request)) {
+            $this->setRequest($this->app->make(ServerRequestInterface::class));
+        }
+
         if (!$this->authorize()) {
             throw new AuthorizationException('This action is unauthorized.', 403);
         }
@@ -93,7 +112,53 @@ abstract class FormRequest
 
     protected function failedValidation(Validator $validator): void
     {
-        throw new ValidationException($validator);
+        $exception = new ValidationException($validator);
+
+        // For API requests (identified by expecting JSON), we still throw the
+        // standard validation exception. The global exception handler is
+        // responsible for formatting this into a 422 JSON response.
+        if ($this->expectsJson()) {
+            throw $exception;
+        }
+
+        // For traditional web requests, we create a redirect response
+        // with the validation errors and old input flashed to the session.
+        // This is then wrapped in an HttpResponseException to stop execution
+        // and immediately send the redirect.
+        throw new HttpResponseException(
+            $this->redirectBackWithErrors($validator),
+        );
+    }
+
+    /**
+     * Create a redirect response with validation errors.
+     *
+     * @param  \Core\Validation\Validator $validator
+     * @return \Psr\Http\Message\ResponseInterface
+     */
+    protected function redirectBackWithErrors(Validator $validator)
+    {
+        /** @var Redirector $redirector */
+        $redirector = $this->app->make(Redirector::class);
+
+        return $redirector->back()
+            ->withErrors($validator->errors())
+            ->withInput($this->getParsedBody());
+    }
+
+    /**
+     * Determine if the request expects a JSON response.
+     *
+     * @return bool
+     */
+    protected function expectsJson(): bool
+    {
+        // A simple check based on the Accept header.
+        // A more robust implementation might check for X-Requested-With header as well.
+        if (!isset($this->request)) {
+            return false;
+        }
+        return str_contains($this->request->getHeaderLine('Accept'), 'application/json');
     }
 
     protected function getValidatorInstance(): Validator
@@ -123,8 +188,27 @@ abstract class FormRequest
         return array_merge(
             $routeParams,
             $this->request->getQueryParams(),
-            (array) $this->request->getParsedBody(),
+            $this->getParsedBody(),
         );
+    }
+
+    /**
+     * Get the parsed body from the request, caching it for subsequent calls.
+     * This prevents issues with consuming the request stream more than once.
+     *
+     * @return array<string, mixed>
+     */
+    public function getParsedBody(): array
+    {
+
+        if (!isset($this->request)) {
+            $this->setRequest($this->app->make(ServerRequestInterface::class));
+        }
+        if (is_null($this->cachedParsedBody)) {
+            $this->cachedParsedBody = (array) $this->request->getParsedBody();
+        }
+
+        return $this->cachedParsedBody;
     }
 
     public function messages(): array

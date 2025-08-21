@@ -53,8 +53,11 @@ class SessionGuard implements Guard
         return $this->session->get($this->getName());
     }
 
-    public function login(Authenticatable $user): void
+    public function login(Authenticatable $user, bool $remember = false): void
     {
+        // TODO: Implement "remember me" functionality.
+        // This would typically involve setting a long-lived cookie with a remember token.
+        // For now, we just log the user in for the current session.
         $this->session->set($this->getName(), $user->getAuthIdentifier());
         $this->session->regenerate(); // Chống session fixation attacks
         $this->setUser($user);
@@ -62,18 +65,20 @@ class SessionGuard implements Guard
 
     public function logout(): void
     {
-        $this->session->forget($this->getName());
-        $this->session->regenerate();
         $this->user = null;
         $this->userResolved = false;
+
+        $this->session->forget($this->getName());
+        // Invalidate the session to clear all data and regenerate the session ID.
+        $this->session->invalidate();
     }
 
-    public function attempt(array $credentials = []): bool
+    public function attempt(array $credentials = [], bool $remember = false): bool
     {
         $user = $this->provider->retrieveByCredentials($credentials);
 
         if ($this->hasValidCredentials($user, $credentials)) {
-            $this->login($user);
+            $this->login($user, $remember);
             return true;
         }
 

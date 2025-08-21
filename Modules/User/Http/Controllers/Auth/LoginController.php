@@ -6,10 +6,11 @@ use Core\Auth\AuthManager;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Core\Support\MessageBag;
+use Core\Support\Facades\Log;
+use Modules\User\Application\Commands\LoginUserCommand;
+use Modules\User\Application\Handlers\LoginUserHandler;
+use Modules\User\Http\Requests\LoginRequest;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 #[Route(prefix: '/auth', name: 'auth.')]
 class LoginController extends Controller
@@ -21,48 +22,45 @@ class LoginController extends Controller
     }
 
     /**
-     * login
-     *
-     * @param ServerRequestInterface $request
-     * @param AuthManager $auth
-     * @param SessionInterface $session
-     * @return ResponseInterface
+     * Handle a login request to the application.
      */
     #[Route(method: 'POST', uri: '/login', name: 'login')]
-    public function login(ServerRequestInterface $request, AuthManager $auth, SessionInterface $session): ResponseInterface
+    public function login(LoginRequest $request, LoginUserHandler $handler): ResponseInterface
     {
-        $data = $request->getParsedBody();
-        $credentials = [
-            'email' => $data['email'] ?? null,
-            'password' => $data['password'] ?? null,
-        ];
-        $remember = isset($data['remember']);
+        // By type-hinting LoginRequest, validation has already passed.
+        $validatedData = $request->validated();
+        $parsedBody = $request->getParsedBody();
 
-        if ($auth->guard('web')->attempt($credentials, $remember)) {
-            $session->regenerate();
+        $remember = !empty($parsedBody['remember']);
+        $oauthRedirectUrl = $parsedBody['redirect'] ?? null;
 
-            return redirect()->intended(route('home'));
+        Log::info('Login attempt', [
+            'email' => $validatedData['email'],
+            'remember' => $remember,
+            'redirect' => $oauthRedirectUrl,
+        ]);
+
+        $command = new LoginUserCommand($validatedData['email'], $validatedData['password'], $remember);
+
+        if ($handler->handle($command)) {
+            return redirect()->intended($oauthRedirectUrl ?? route('home'));
         }
 
-        // Thay vì dùng withErrors() và withInput(), chúng ta flash trực tiếp vào session.
-        // View engine sẽ tự động lấy các giá trị này ra.
-        $errors = new MessageBag(['email' => 'Thông tin đăng nhập không chính xác.']);
-        $session->flash('errors', $errors);
-        $session->flash('_old_input', $request->getParsedBody());
+        Log::warning('Login failed', ['email' => $validatedData['email']]);
 
-        return redirect()->back();
+        return redirect()->back()
+            ->withErrors(['email' => 'Thông tin đăng nhập không chính xác.'])
+            ->withInput($request->getParsedBody());
     }
 
     /**
-     * Xử lý yêu cầu đăng xuất.
+     * Log the user out of the application.
      */
     #[Route(method: 'POST', uri: '/logout', name: 'logout')]
-    public function logout(AuthManager $auth, SessionInterface $session): ResponseInterface
+    public function logout(AuthManager $auth): ResponseInterface
     {
+        // All logout logic (clearing user, invalidating session) is now encapsulated in the guard.
         $auth->guard('web')->logout();
-
-        $session->invalidate();
-        $session->regenerateToken(); // Tạo lại CSRF token sau khi đăng xuất
 
         return redirect('/');
     }

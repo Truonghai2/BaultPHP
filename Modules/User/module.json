@@ -1,9 +1,11 @@
 {
-    "name": "User",
-    "version": "1.0.0",
-    "enabled": true,
-    "providers": [
-        "Modules\\User\\Providers\\UserServiceProvider",
-        "Modules\\User\\Providers\\ConsoleServiceProvider"
-    ]
+  "name": "User",
+  "alias": "user",
+  "version": "1.0.0",
+  "enabled": true,
+  "providers": [
+    "Modules\\User\\Providers\\UserServiceProvider",
+    "Modules\\User\\Providers\\ConsoleServiceProvider"
+  ],
+  "file": []
 }

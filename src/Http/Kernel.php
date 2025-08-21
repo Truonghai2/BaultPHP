@@ -7,6 +7,7 @@ use App\Exceptions\MethodNotAllowedException;
 use App\Exceptions\NotFoundException;
 use Core\Application;
 use Core\Contracts\Http\Kernel as KernelContract;
+use Core\Exceptions\HttpResponseException;
 use Core\Http\FormRequest;
 use Core\Routing\Route;
 use Core\Routing\Router;
@@ -29,8 +30,10 @@ class Kernel implements KernelContract
      * @var array
      */
     protected array $middleware = [
+        \Http\Middleware\EnsureAdminUserExists::class,
         \Http\Middleware\AttachRequestIdToLogs::class,
         \Http\Middleware\HttpMetricsMiddleware::class,
+        \Http\Middleware\LogRequestMiddleware::class,
         \Http\Middleware\TrimStrings::class,
         \Http\Middleware\ConvertEmptyStringsToNull::class,
         \Http\Middleware\SetLocaleMiddleware::class,
@@ -57,7 +60,7 @@ class Kernel implements KernelContract
             \Http\Middleware\SubstituteBindings::class,
             \Http\Middleware\StartSession::class,
             \Http\Middleware\ShareErrorsFromSession::class,
-            // \Http\Middleware\VerifyCsrfToken::class,
+            \Http\Middleware\VerifyCsrfToken::class,
             \Http\Middleware\AddQueuedCookiesToResponse::class,
         ],
         'api' => [
@@ -145,6 +148,8 @@ class Kernel implements KernelContract
             $response = $pipe->process($request, $finalHandler);
 
             return $response;
+        } catch (HttpResponseException $e) {
+            return $e->getResponse();
         } catch (NotFoundException | MethodNotAllowedException $e) {
             return $this->renderException($request, $e);
         } catch (Throwable $e) {

@@ -5,6 +5,8 @@ namespace App\Providers;
 use Core\Console\Commands\Swoole\StartSwooleCommand;
 use Core\Server\SwooleServer;
 use Core\Support\ServiceProvider;
+use Laminas\Diactoros\ServerRequest;
+use Psr\Http\Message\RequestInterface;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\RPC\Codec\JsonCodec;
 use Spiral\Goridge\RPC\CodecInterface;
@@ -27,6 +29,11 @@ class ServerServiceProvider extends ServiceProvider
         // This tells the RPC service how to serialize and deserialize messages.
         // We can use a simple class binding here as JsonCodec has no complex dependencies.
         $this->app->singleton(CodecInterface::class, JsonCodec::class);
+
+        // Bind Psr\Http\Message\RequestInterface to Laminas\Diactoros\ServerRequest
+        $this->app->singleton(RequestInterface::class, function ($app) {
+            return new ServerRequest();
+        });
 
         // Đăng ký SwooleServer như một singleton
         $this->app->singleton(SwooleServer::class, function ($app) {

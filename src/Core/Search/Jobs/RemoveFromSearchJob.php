@@ -2,31 +2,22 @@
 
 namespace Core\Search\Jobs;
 
-use Core\Contracts\Queue\Job;
+use Core\Contracts\Queue\ShouldQueue;
 use MeiliSearch\Client;
+use Psr\Log\LoggerInterface;
 
-class RemoveFromSearchJob implements Job
+class RemoveFromSearchJob implements ShouldQueue
 {
-    /**
-     * Create a new job instance.
-     *
-     * @param string $indexName The name of the Meilisearch index.
-     * @param mixed $documentId The ID of the document to remove.
-     */
     public function __construct(
-        public string $indexName,
-        public mixed $documentId,
+        private string $indexName,
+        private int|string $documentId,
     ) {
     }
 
-    /**
-     * Execute the job.
-     *
-     * @param \MeiliSearch\Client $client
-     * @return void
-     */
-    public function handle(Client $client): void
+    public function handle(Client $meilisearch, LoggerInterface $logger): void
     {
-        $client->index($this->indexName)->deleteDocument($this->documentId);
+        $meilisearch->index($this->indexName)->deleteDocument($this->documentId);
+
+        $logger->info('Document removed from Meilisearch index.', ['index' => $this->indexName, 'id' => $this->documentId]);
     }
 }

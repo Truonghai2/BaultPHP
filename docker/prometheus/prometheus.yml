@@ -1,0 +1,10 @@
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'bault-app'
+    # BaultPHP đã có sẵn HttpMetricsMiddleware để cung cấp endpoint /metrics
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['app:9501'] # 'app' là tên service trong docker-compose
+

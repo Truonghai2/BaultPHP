@@ -9,8 +9,6 @@ use Core\Cache\CacheManager;
 use Core\ORM\Model;
 use Modules\User\Domain\Attributes\ParentContext;
 use Modules\User\Infrastructure\Models\Context;
-use Modules\User\Infrastructure\Models\Permission;
-use Modules\User\Infrastructure\Models\Role;
 use Modules\User\Infrastructure\Models\RoleAssignment;
 use Modules\User\Infrastructure\Models\User;
 
@@ -34,11 +32,6 @@ class AccessControlService
      * Format: [className => ?ReflectionMethod]
      */
     private static array $reflectionCache = [];
-
-    /**
-     * A callback that is run before all other authorization checks.
-     */
-    protected static ?\Closure $beforeCallback = null;
 
     /**
      * The registered model-to-policy mappings.
@@ -81,34 +74,27 @@ class AccessControlService
      */
     public function check(User $user, string $permissionName, $context = null): bool
     {
-        // Cấp 0: Chạy "before" callback nếu có, cho phép ghi đè toàn bộ.
-        if (static::$beforeCallback) {
-            $result = call_user_func(static::$beforeCallback, $user, $permissionName, $context);
-            if (!is_null($result)) {
-                return $result;
-            }
-        }
-
-        // Cấp 0.5: Kiểm tra Policy trước. Nếu policy trả về kết quả, sử dụng nó.
+        // Cấp 1: Kiểm tra Policy trước. Nếu policy trả về kết quả, sử dụng nó.
         $policyResult = $this->callPolicyMethod($user, $permissionName, $context);
         if (!is_null($policyResult)) {
             return $policyResult;
         }
 
-        // Cấp 1: Kiểm tra xem toàn bộ quyền của user đã được load vào cache chưa.
+        // Cấp 2: Kiểm tra xem người dùng có phải là Super Admin không.
+        // Đây là bước kiểm tra nhanh nhất và có quyền cao nhất.
+        if ($this->isSuperAdmin($user)) {
+            return true;
+        }
+
+        // Cấp 3: Kiểm tra xem toàn bộ quyền của user đã được load vào cache chưa.
         if (!isset($this->permissionCache[$user->id])) {
             $this->loadAndCacheUserPermissions($user);
         }
 
-        // Cấp 2: Kiểm tra trạng thái superuser đã được cache. Đây là bước kiểm tra nhanh nhất.
-        if ($this->permissionCache[$user->id]['is_super'] ?? false) {
-            return true;
-        }
-
-        // Cấp 3: Nếu không phải superuser, tiếp tục kiểm tra quyền cụ thể.
+        // Cấp 4: Nếu không phải superuser, tiếp tục kiểm tra quyền cụ thể.
         $context = $this->resolveContext($context);
 
-        // Cấp 4: Kiểm tra quyền dựa trên dữ liệu đã được cache.
+        // Cấp 5: Kiểm tra quyền dựa trên dữ liệu đã được cache.
         // Logic này sẽ duyệt từ context hiện tại lên các context cha.
         $contextIds = $this->getContextHierarchyIds($context);
 
@@ -121,6 +107,24 @@ class AccessControlService
         }
 
         return false;
+    }
+
+    /**
+     * Checks if a user has the 'super-admin' role in the system context.
+     * This check is highly optimized to use the request-level cache.
+     *
+     * @param User $user
+     * @return bool
+     */
+    public function isSuperAdmin(User $user): bool
+    {
+        if (!isset($this->permissionCache[$user->id])) {
+            $this->loadAndCacheUserPermissions($user);
+        }
+
+        // System context ID is always 1.
+        return isset($this->permissionCache[$user->id]['contexts'][1]['roles'])
+            && in_array('super-admin', $this->permissionCache[$user->id]['contexts'][1]['roles'], true);
     }
 
     /**
@@ -170,7 +174,7 @@ class AccessControlService
         $classToAuthorize = is_object($context) ? get_class($context) : $context;
 
         if (!is_string($classToAuthorize) || !class_exists($classToAuthorize) || !is_subclass_of($classToAuthorize, Model::class)) {
-            return null; // Not a policy-related check for a valid model.
+            return null;
         }
 
         $policyClass = $this->policies[$classToAuthorize] ?? null;
@@ -185,35 +189,28 @@ class AccessControlService
 
         $policyInstance = $this->app->make($policyClass);
 
-        // Check for a "before" method on the policy which can intercept the check.
         if (method_exists($policyInstance, 'before')) {
-            // The 'before' method receives the user and the ability being checked.
             $beforeResult = $this->app->call([$policyInstance, 'before'], [$user, $permission]);
             if (!is_null($beforeResult)) {
                 return $beforeResult;
             }
         }
 
-        // If the policy has the method, call it.
         if (method_exists($policyInstance, $methodName)) {
             $result = null;
-            // For actions like 'update', 'delete', the context is a model instance.
             if (is_object($context)) {
                 $result = $this->app->call([$policyInstance, $methodName], [$user, $context]);
             } else {
-                // For actions like 'create', the context is a class string.
                 $result = $this->app->call([$policyInstance, $methodName], [$user]);
             }
 
             if ($result instanceof Response) {
                 if (!$result->allowed()) {
-                    // Ném exception trực tiếp từ đây với thông báo tùy chỉnh.
                     throw new AuthorizationException($result->message() ?? 'This action is unauthorized.', 403);
                 }
-                return true; // Nếu được phép, trả về true
+                return true;
             }
 
-            // Nếu policy trả về boolean, trả về giá trị đó
             return (bool) $result;
         }
 
@@ -383,17 +380,9 @@ class AccessControlService
             }
         }
 
-        // Sau khi xây dựng map quyền, kiểm tra xem người dùng có quyền superuser không.
-        // Chúng ta kiểm tra trên dữ liệu vừa lấy được để tránh truy vấn CSDL lần nữa.
-        $superPermission = config('auth.super_admin_permission', 'system.manage-all');
-        // Context ID 1 is the system (root) context.
-        if (isset($permissionsByContext[1]['permissions'][$superPermission])) {
-            $isSuperUser = true;
-        }
-
         // Xây dựng cấu trúc cache hoàn chỉnh
         $this->permissionCache[$user->id] = [
-            'is_super' => $isSuperUser,
+            // 'is_super' flag is no longer needed, we check the role directly.
             'contexts' => $permissionsByContext,
         ];
 
@@ -402,19 +391,5 @@ class AccessControlService
             // Cache trong 1 giờ (3600 giây)
             $this->cache->store()->put($cacheKey, json_encode($this->permissionCache[$user->id]), 3600);
         }
-    }
-
-    /**
-     * Register a callback to be executed before all authorization checks.
-     *
-     * The callback will receive the user, the permission name, and the original context.
-     * `function (User $user, string $permission, mixed $context): ?bool`
-     *
-     * @param  \Closure  $callback
-     * @return void
-     */
-    public static function before(\Closure $callback): void
-    {
-        static::$beforeCallback = $callback;
     }
 }

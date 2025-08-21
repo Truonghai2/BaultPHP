@@ -4,12 +4,14 @@ namespace App\Exceptions;
 
 use Core\Contracts\Exceptions\Handler as HandlerContract;
 use Core\Contracts\View\Factory as ViewFactory;
+use Core\Http\Response;
 use Core\Validation\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Throwable;
 
 class Handler implements HandlerContract
@@ -70,6 +72,10 @@ class Handler implements HandlerContract
      */
     public function render(Request $request, Throwable $e): ResponseInterface
     {
+        if ($e instanceof ValidationException && !$this->shouldReturnJson($request, $e)) {
+            return $this->handleValidationException($request, $e);
+        }
+
         if ($this->shouldReturnJson($request, $e)) {
             return $this->prepareJsonResponse($request, $e);
         }
@@ -222,6 +228,23 @@ class Handler implements HandlerContract
         }
 
         return 500;
+    }
+
+    /**
+     * Handle ValidationException for non-JSON requests by redirecting back with errors.
+     */
+    protected function handleValidationException(Request $request, ValidationException $e): ResponseInterface
+    {
+        $this->logger->info('handleValidationException called.', ['referer' => $request->getHeaderLine('Referer')]);
+
+        /** @var SessionInterface $session */
+        $session = app(SessionInterface::class);
+
+        $session->flash('errors', $e->errors());
+        $session->flash('_old_input', $request->getParsedBody());
+
+        // Use Core\Http\Response::redirect() for redirecting
+        return Response::redirect('/login');
     }
 
     /**

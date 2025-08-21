@@ -29,6 +29,7 @@ return [
     'providers' => [
         \App\Providers\AppServiceProvider::class,
         \App\Providers\ViewServiceProvider::class,
+        \App\Providers\AuthServiceProvider::class,
         \App\Providers\RouteServiceProvider::class,
         \App\Providers\ConsoleServiceProvider::class,
         \App\Providers\DatabaseServiceProvider::class,
@@ -40,6 +41,7 @@ return [
         \App\Providers\ServerServiceProvider::class,
         \App\Providers\SessionServiceProvider::class,
         \Core\Queue\QueueServiceProvider::class,
+        \App\Providers\MeilisearchServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,
     ],
 

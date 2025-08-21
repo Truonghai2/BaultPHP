@@ -32,9 +32,9 @@ Tất cả dữ liệu được trao đổi qua định dạng **JSON**.
 
 ---
 
-## 2. Xác Thực (Authentication)
+## 2. Xác thực với OAuth2 (Authentication)
 
-Các endpoint API được bảo vệ sử dụng **JSON Web Tokens (JWT)**. Luồng xác thực diễn ra như sau:
+Hệ thống sử dụng **OAuth2** với luồng
 
 1.  **Đăng nhập**: Frontend gửi `email` và `password` của người dùng đến một endpoint đăng nhập, ví dụ `POST /api/login`.
 2.  **Nhận Token**: Nếu thông tin đăng nhập chính xác, backend sẽ trả về một JWT.

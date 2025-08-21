@@ -73,7 +73,7 @@
             margin: 20px auto; 
             background: var(--card-bg);
             backdrop-filter: blur(20px);
-            border: 1px solid var(--border-gray);
+            /* border: 1px solid var(--border-gray); */
             border-radius: 20px; 
             box-shadow: 0 20px 40px rgba(0,0,0,0.3);
             overflow: hidden;
