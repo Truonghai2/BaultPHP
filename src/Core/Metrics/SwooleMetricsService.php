@@ -32,7 +32,6 @@ class SwooleMetricsService
         $this->metrics = new Table($this->tableSize);
         $this->metrics->column('full_key', Table::TYPE_STRING, $this->keyLength);
         $this->metrics->column('value', Table::TYPE_FLOAT);
-        // Thêm cột 'type' để phân biệt khi xuất dữ liệu
         $this->metrics->column('metric_name', Table::TYPE_STRING, 128);
         $this->metrics->create();
     }
@@ -53,13 +52,13 @@ class SwooleMetricsService
         $fullKey = $this->generateKey($name, $labels);
         $hashedKey = $this->getHashedKey($fullKey);
 
-        // Thao tác incr là atomic. Nếu key không tồn tại, nó sẽ trả về false.
-        if ($this->metrics->incr($hashedKey, 'value', $value) === false) {
-            if (($this->metrics->count() >= $this->metrics->size)) {
-                error_log("SwooleMetricsService: Bảng metrics đã đầy. Không thể thêm metric '{$name}'.");
+        $currentValue = $this->metrics->incr($hashedKey, 'value', $value);
+
+        if ($currentValue === false) {
+            if (($this->metrics->count() >= $this->metrics->size) && !$this->metrics->exist($hashedKey)) {
+                error_log("SwooleMetricsService: Metrics table is full. Cannot add new metric '{$name}'.");
                 return;
             }
-            // Đặt giá trị ban đầu nếu key chưa tồn tại.
             $this->metrics->set($hashedKey, [
                 'full_key' => $fullKey,
                 'value' => $value,
@@ -95,20 +94,16 @@ class SwooleMetricsService
     {
         $buckets = $this->histogramBuckets[$name] ?? self::DEFAULT_DURATION_BUCKETS;
 
-        // Tăng giá trị cho các bucket phù hợp
         foreach ($buckets as $bucket) {
             if ($value <= $bucket) {
                 $this->increment($name . '_bucket', array_merge($labels, ['le' => (string)$bucket]));
             }
         }
 
-        // Thêm bucket cho +Inf
         $this->increment($name . '_bucket', array_merge($labels, ['le' => '+Inf']));
 
-        // Tăng tổng
         $this->increment($name . '_sum', $labels, $value);
 
-        // Tăng số lượng
         $this->increment($name . '_count', $labels);
     }
 
@@ -120,7 +115,6 @@ class SwooleMetricsService
     {
         $groupedMetrics = [];
 
-        // Nhóm các metrics theo tên
         foreach ($this->metrics as $row) {
             $metricName = $row['metric_name'];
             if (!isset($groupedMetrics[$metricName])) {
@@ -141,10 +135,9 @@ class SwooleMetricsService
             }
 
             foreach ($metrics as $metric) {
-                // Xuất full_key, không phải hashed key
                 $output[] = sprintf('%s %s', $metric['full_key'], $metric['value']);
             }
-            $output[] = ''; // Thêm dòng trống giữa các group
+            $output[] = '';
         }
 
         return implode("\n", $output);

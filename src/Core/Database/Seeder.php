@@ -3,6 +3,7 @@
 namespace Core\Database;
 
 use Core\Application;
+use Core\Console\Contracts\BaseCommand;
 
 /**
  * Seeder is an abstract class that provides a base for database seeders.
@@ -16,6 +17,13 @@ abstract class Seeder
      * @var \Core\Application
      */
     protected Application $container;
+
+    /**
+     * The console command instance.
+     *
+     * @var \Core\Console\Contracts\BaseCommand|null
+     */
+    protected ?BaseCommand $command = null;
 
     /**
      * Run the database seeds.
@@ -35,8 +43,12 @@ abstract class Seeder
         $classes = is_array($class) ? $class : [$class];
 
         foreach ($classes as $seederClass) {
+            /** @var Seeder $seeder */
             $seeder = $this->container->make($seederClass);
             $seeder->setContainer($this->container);
+            if ($this->command) {
+                $seeder->setCommand($this->command);
+            }
             $seeder->run();
         }
 
@@ -52,6 +64,18 @@ abstract class Seeder
     public function setContainer(Application $container): static
     {
         $this->container = $container;
+        return $this;
+    }
+
+    /**
+     * Set the console command instance.
+     *
+     * @param \Core\Console\Contracts\BaseCommand $command
+     * @return $this
+     */
+    public function setCommand(BaseCommand $command): static
+    {
+        $this->command = $command;
         return $this;
     }
 }

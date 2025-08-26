@@ -21,6 +21,8 @@ return [
     'slug' => 'Trường :attribute không phải là một slug hợp lệ.',
     'no_profanity' => 'Trường :attribute chứa các từ ngữ không cho phép.',
 
+    'Invalid credentials.' => 'Thông tin đăng nhập không chính xác.',
+
     /*
     |--------------------------------------------------------------------------
     | Các Dòng Ngôn Ngữ Validation Tùy Chỉnh

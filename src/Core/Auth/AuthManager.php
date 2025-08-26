@@ -40,10 +40,6 @@ class AuthManager implements StatefulService
             $provider = $this->createUserProvider($config['provider'] ?? null);
             return new SessionGuard($this->app, $this->app->make('session'), $provider);
         }
-        if ($config['driver'] === 'jwt') {
-            $provider = $this->createUserProvider($config['provider'] ?? null);
-            return new JwtGuard($this->app->make(\Psr\Http\Message\ServerRequestInterface::class), $provider);
-        }
 
         throw new InvalidArgumentException("Auth driver [{$config['driver']}] for guard [{$name}] is not supported.");
     }

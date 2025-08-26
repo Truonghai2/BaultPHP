@@ -47,7 +47,6 @@ class ProviderRepository
         foreach ($moduleJsonPaths as $path) {
             $meta = json_decode(file_get_contents($path), true);
 
-            // Only load providers if the module is explicitly enabled in its manifest.
             if (!empty($meta['enabled']) && $meta['enabled'] === true) {
                 foreach ($meta['providers'] ?? [] as $provider) {
                     if (class_exists($provider)) {

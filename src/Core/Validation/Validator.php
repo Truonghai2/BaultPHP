@@ -70,6 +70,27 @@ class Validator
         }
     }
 
+    protected function validateRequired(string $attribute, mixed $value): void
+    {
+        if (is_null($value) || (is_string($value) && trim($value) === '')) {
+            $this->addError($attribute, 'required', $this->messages['required'] ?? 'The :attribute field is required.');
+        }
+    }
+
+    protected function validateEmail(string $attribute, mixed $value): void
+    {
+        if (!is_null($value) && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+            $this->addError($attribute, 'email', $this->messages['email'] ?? 'The :attribute must be a valid email address.');
+        }
+    }
+
+    protected function validateString(string $attribute, mixed $value): void
+    {
+        if (!is_null($value) && !is_string($value)) {
+            $this->addError($attribute, 'string', $this->messages['string'] ?? 'The :attribute must be a string.');
+        }
+    }
+
     protected function validateExtension(string $attribute, mixed $value, string $ruleName, array $parameters): void
     {
         $extensionData = $this->extensions[$ruleName];

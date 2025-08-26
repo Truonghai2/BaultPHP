@@ -5,6 +5,7 @@ namespace Core\ORM;
 use Core\ORM\Exceptions\ModelNotFoundException;
 use Core\Support\Collection;
 use Psr\Http\Message\ServerRequestInterface as Request;
+use Swoole\Database\PDOProxy;
 
 class QueryBuilder
 {
@@ -46,7 +47,6 @@ class QueryBuilder
         $model = $this->getModel();
         $selectableColumns = $model->getSelectableColumns();
 
-        // If a selectable whitelist is defined, validate every column.
         if (!empty($selectableColumns)) {
             foreach ($columns as $column) {
                 if (!in_array($column, $selectableColumns)) {
@@ -67,7 +67,6 @@ class QueryBuilder
 
     public function leftJoin(string $table, string $first, string $operator, string $second): self
     {
-        // Simply call the main join method with the type 'LEFT'
         $this->join($table, $first, $operator, $second, 'LEFT');
         return $this;
     }
@@ -118,14 +117,10 @@ class QueryBuilder
 
     public function where($column, string $operator = null, $value = null): self
     {
-        // If the column is a Closure, it's a nested where clause, so we don't validate the column name.
-        // This part of the logic needs to be implemented if you support where(Closure).
-        // For now, we focus on string-based columns.
         if (is_string($column)) {
             $model = $this->getModel();
             $filterableColumns = $model->getFilterableColumns();
 
-            // If a filterable whitelist is defined, validate the column.
             if (!empty($filterableColumns) && !in_array($column, $filterableColumns)) {
                 throw new \InvalidArgumentException(sprintf('Column [%s] is not filterable on model [%s].', $column, get_class($model)));
             }
@@ -136,7 +131,6 @@ class QueryBuilder
             $operator = '=';
         }
 
-        // If the value is null, we will automatically use the 'IS' or 'IS NOT' operator.
         if (is_null($value)) {
             $operator = in_array(strtoupper($operator), ['!=', '<>']) ? 'IS NOT NULL' : 'IS NULL';
         }
@@ -155,6 +149,18 @@ class QueryBuilder
     public function whereIn(string $column, array $values): self
     {
         return $this->where($column, 'IN', $values);
+    }
+
+    /**
+     * Add a "where not in" clause to the query.
+     *
+     * @param  string  $column
+     * @param  array  $values
+     * @return $this
+     */
+    public function whereNotIn(string $column, array $values): self
+    {
+        return $this->where($column, 'NOT IN', $values);
     }
 
     /**
@@ -222,8 +228,6 @@ class QueryBuilder
         $model = $this->getModel();
         $sortableColumns = $model->getSortableColumns();
 
-        // Nếu danh sách sortable được định nghĩa và cột không có trong đó, hãy ném ra một ngoại lệ.
-        // Điều này ngăn chặn SQL injection qua tên cột.
         if (!empty($sortableColumns) && !in_array($column, $sortableColumns)) {
             throw new \InvalidArgumentException(sprintf('Column [%s] is not sortable on model [%s].', $column, get_class($model)));
         }
@@ -279,12 +283,8 @@ class QueryBuilder
 
     public function first(): ?Model
     {
-        // By cloning the query and using limit(1)->get(), we reuse the existing
-        // query building and eager loading logic, reducing code duplication
-        // and ensuring consistent behavior.
         $models = (clone $this)->limit(1)->get();
 
-        // Sử dụng phương thức first() của Collection để code dễ đọc hơn.
         return $models->first();
     }
 
@@ -365,16 +365,12 @@ class QueryBuilder
      */
     public function paginate(int $perPage = 15, string $pageName = 'page', ?int $page = null): Paginator
     {
-        // Determine the current page number from the request if not provided.
         $page = $page ?: (int) app(Request::class)->query($pageName, 1);
 
-        // Clone the query builder to get the total count without affecting the main query's limit/offset.
         $total = (clone $this)->count();
 
-        // Get the results for the current page.
         $results = $this->forPage($page, $perPage)->get();
 
-        // Create and return the paginator instance.
         return new Paginator($results, $total, $perPage, $page, [
             'path' => app(ServerRequestInterface::class)->getUri()->getPath(),
             'pageName' => $pageName,
@@ -398,7 +394,6 @@ class QueryBuilder
         $model = $this->getModel();
         $groupableColumns = $model->getGroupableColumns();
 
-        // If a groupable whitelist is defined, validate every column.
         if (!empty($groupableColumns)) {
             foreach ($columns as $column) {
                 if (!in_array($column, $groupableColumns)) {
@@ -441,9 +436,7 @@ class QueryBuilder
 
     public function exists(): bool
     {
-        // Re-use the `first()` method logic but just check for existence.
-        // This is more efficient than `count() > 0` as it can stop at the first record.
-        $query = clone $this; // Clone to not affect the original query object
+        $query = clone $this;
         $query->select((new $this->modelClass())->getKeyName());
 
         return (bool) $query->first();
@@ -473,6 +466,54 @@ class QueryBuilder
 
         $id = $pdo->lastInsertId();
         return $id ? (int)$id : null;
+    }
+
+    /**
+     * Insert new records into the database.
+     *
+     * @param  array  $values An array of arrays for multiple records, or a single array for one record.
+     * @return bool
+     */
+    public function insert(array $values): bool
+    {
+        if (empty($values)) {
+            return true;
+        }
+
+        if (! is_array(reset($values))) {
+            $values = [$values];
+        }
+
+        $columns = implode(', ', array_keys(reset($values)));
+
+        $bindings = [];
+        $placeholders = [];
+
+        foreach ($values as $record) {
+            $rowPlaceholders = [];
+            foreach ($record as $value) {
+                if ($value instanceof RawExpression) {
+                    $rowPlaceholders[] = $value->getValue();
+                } else {
+                    $rowPlaceholders[] = '?';
+                    $bindings[] = $value;
+                }
+            }
+            $placeholders[] = '(' . implode(', ', $rowPlaceholders) . ')';
+        }
+
+        $sql = "INSERT INTO {$this->table} ({$columns}) VALUES " . implode(', ', $placeholders);
+
+        $stmt = $this->getConnection('write')->prepare($sql);
+
+        $i = 1;
+        foreach ($bindings as $value) {
+            $type = is_int($value) ? \PDO::PARAM_INT : (is_bool($value) ? \PDO::PARAM_BOOL : (is_null($value) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
+            $stmt->bindValue($i, $value, $type);
+            $i++;
+        }
+
+        return $stmt->execute();
     }
 
     public function update(array $attributes): bool
@@ -555,37 +596,29 @@ class QueryBuilder
         foreach ($this->wheres as $where) {
             $operator = strtoupper(trim($where['operator']));
 
-            // Handle IS NULL and IS NOT NULL which don't have bindings
             if ($operator === 'IS NULL' || $operator === 'IS NOT NULL') {
                 $conditions[] = "{$where['column']} {$operator}";
-                continue; // Move to the next where clause
+                continue;
             }
 
-            // Handle IN and NOT IN
             if ($operator === 'IN' || $operator === 'NOT IN') {
                 if (!is_array($where['value'])) {
                     throw new \InvalidArgumentException("The value for an '{$operator}' clause must be an array.");
                 }
                 if (empty($where['value'])) {
-                    // Handle cases like `WHERE id IN ()` which is invalid SQL.
-                    // `WHERE 1=0` for `IN` and `WHERE 1=1` for `NOT IN` are safe fallbacks.
                     $conditions[] = ($operator === 'NOT IN') ? '1=1' : '1=0';
                     continue;
                 }
                 $placeholders = implode(', ', array_fill(0, count($where['value']), '?'));
                 $conditions[] = "{$where['column']} {$operator} ({$placeholders})";
                 $bindings = array_merge($bindings, array_values($where['value']));
-            }
-            // Handle BETWEEN and NOT BETWEEN
-            elseif ($operator === 'BETWEEN' || $operator === 'NOT BETWEEN') {
+            } elseif ($operator === 'BETWEEN' || $operator === 'NOT BETWEEN') {
                 if (!is_array($where['value']) || count($where['value']) !== 2) {
                     throw new \InvalidArgumentException("The value for a '{$operator}' clause must be an array with two elements.");
                 }
                 $conditions[] = "{$where['column']} {$operator} ? AND ?";
                 $bindings = array_merge($bindings, array_values($where['value']));
-            }
-            // Handle standard operators (including LIKE)
-            else {
+            } else {
                 if ($where['value'] instanceof RawExpression) {
                     $conditions[] = "{$where['column']} {$where['operator']} " . $where['value']->getValue();
                 } else {
@@ -646,20 +679,13 @@ class QueryBuilder
         }
 
         if (!is_null($this->offset)) {
-            // LIMIT must be present for OFFSET to work in most SQL dialects
             if (is_null($this->limit)) {
-                // Set a very large number for limit if only offset is used
                 $sql .= ' LIMIT ?';
-                $bindings[] = 18446744073709551615; // Max value for BIGINT UNSIGNED
+                $bindings[] = 18446744073709551615;
             }
             $sql .= ' OFFSET ?';
             $bindings[] = $this->offset;
         }
-
-        // PDO requires integer bindings for LIMIT/OFFSET to be treated as integers, not strings.
-        // However, `execute` with an array of values generally handles this correctly.
-        // If issues arise, a manual `bindValue` loop with `PDO::PARAM_INT` would be needed.
-        // For now, this is simpler and usually sufficient.
 
         return [$sql, $bindings];
     }
@@ -695,25 +721,19 @@ class QueryBuilder
                 continue;
             }
 
-            // Get an instance of the relation from the first model to perform logic
             /** @var \Core\ORM\Relations\Relation $relation */
             $relation = $models[0]->{$relationName}();
 
-            // Apply user-defined constraints from the 'with' closure
             if (is_callable($relationData['constraints'])) {
                 $relationData['constraints']($relation->getQuery());
             }
 
-            // Add constraints to load all related child models
             $relation->addEagerConstraints($models);
 
-            // Execute the query to get all child models
             $results = $relation->get();
 
-            // Match the child models to their respective parent models
             $relation->match($models, $results, $relationName);
 
-            // If there are nested relationships, load them recursively
             if (!empty($relationData['nested'])) {
                 $relatedModels = [];
                 foreach ($models as $model) {
@@ -736,8 +756,6 @@ class QueryBuilder
         $parsed = [];
 
         foreach ($relations as $name => $constraints) {
-            // If the key is numeric, it means the value is the relation name
-            // and there are no constraints. e.g., ['posts', 'tags']
             if (is_numeric($name)) {
                 $name = $constraints;
                 $constraints = null;
@@ -746,13 +764,11 @@ class QueryBuilder
             $segments = explode('.', $name);
             $container = &$parsed;
 
-            // Traverse the segments to build the nested structure
             foreach ($segments as $i => $segment) {
                 if (!isset($container[$segment])) {
                     $container[$segment] = ['nested' => [], 'constraints' => null];
                 }
 
-                // The constraints apply to the last segment
                 if ($i === count($segments) - 1 && is_callable($constraints)) {
                     $container[$segment]['constraints'] = $constraints;
                 }
@@ -765,9 +781,9 @@ class QueryBuilder
 
     /**
      * @deprecated Use getConnection('write') instead. This method is for backward compatibility.
-     * @return \PDO
+     * @return \PDO|PDOProxy
      */
-    public function getPdo(): \PDO
+    public function getPdo(): \PDO|PDOProxy
     {
         return $this->getConnection('write');
     }
@@ -775,7 +791,7 @@ class QueryBuilder
     /**
      * Get the PDO connection instance for a specific type.
      */
-    protected function getConnection(string $type): \PDO
+    protected function getConnection(string $type): \PDO|PDOProxy
     {
         return app(Connection::class)->connection(null, $type);
     }

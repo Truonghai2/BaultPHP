@@ -18,12 +18,6 @@ class HealthCheckController
         $this->responseFactory = $responseFactory;
     }
 
-    /**
-     * Handle the health check request.
-     *
-     * This endpoint is crucial for monitoring and automated systems (like load balancers
-     * or container orchestrators) to verify the application's operational status.
-     */
     #[Route('/api/health', method: 'GET')]
     public function __invoke(): ResponseInterface
     {

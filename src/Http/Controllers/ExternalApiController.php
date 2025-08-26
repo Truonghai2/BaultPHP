@@ -13,15 +13,11 @@ class ExternalApiController
     {
     }
 
-    /**
-     * Fetches data from two external APIs concurrently.
-     */
     public function fetch(ResponseFactory $responseFactory): \Http\JsonResponse
     {
         $results = [];
         $wg = new WaitGroup();
 
-        // Start two coroutines to fetch data concurrently
         $wg->add(2);
 
         Coroutine::create(function () use (&$results, $wg) {
@@ -34,7 +30,7 @@ class ExternalApiController
             $wg->done();
         });
 
-        $wg->wait(); // Wait for both requests to complete
+        $wg->wait();
 
         return $responseFactory->json($results);
     }

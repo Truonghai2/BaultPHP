@@ -51,7 +51,6 @@ class BaseServiceProvider extends ServiceProvider
         }
 
         $reflector = new \ReflectionClass(static::class);
-        // Assumes the provider is in `Modules/{ModuleName}/Providers/`
         return $this->modulePath = dirname($reflector->getFileName(), 2);
     }
 
@@ -81,17 +80,22 @@ class BaseServiceProvider extends ServiceProvider
      */
     protected function loadMigrationsFrom(string $path): void
     {
-        // Thay vì resolve 'migrator', chúng ta sẽ đăng ký đường dẫn vào config
-        // để MigrationManager có thể tìm thấy khi lệnh ddd:migrate được chạy.
         $config = $this->app->make('config');
-
-        // Lấy danh sách các đường dẫn migration đã có từ file config
         $paths = $config->get('database.migrations.paths', []);
-
-        // Thêm đường dẫn mới của module vào danh sách
         $paths[] = $path;
-
-        // Cập nhật lại config với danh sách đường dẫn mới, loại bỏ các giá trị trùng lặp
         $config->set('database.migrations.paths', array_unique($paths));
+    }
+
+    /**
+     * Register the module's views using a conventional directory structure.
+     * This helper assumes views are located in `resources/views` within the module.
+     *
+     * @param string $namespace The namespace for the module's views.
+     * @return void
+     */
+    protected function loadModuleViews(string $namespace): void
+    {
+        $path = $this->getModulePath() . '/resources/views';
+        $this->loadViewsFrom($path, $namespace);
     }
 }

@@ -2,13 +2,16 @@
 
 namespace App\Providers;
 
-use Core\Console\Commands\Swoole\StartSwooleCommand;
 use Core\Server\SwooleServer;
 use Core\Support\ServiceProvider;
+use Laminas\Diactoros\ServerRequestFactory;
+use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ServerRequestInterface;
 use Spiral\Goridge\RelayInterface;
 use Spiral\Goridge\RPC\Codec\JsonCodec;
 use Spiral\Goridge\RPC\CodecInterface;
 use Spiral\Goridge\StreamRelay;
+use Swoole\Http\Request as SwooleRequest;
 
 class ServerServiceProvider extends ServiceProvider
 {
@@ -28,20 +31,22 @@ class ServerServiceProvider extends ServiceProvider
         // We can use a simple class binding here as JsonCodec has no complex dependencies.
         $this->app->singleton(CodecInterface::class, JsonCodec::class);
 
-        // Đăng ký SwooleServer như một singleton
+        $this->app->bind(ServerRequestInterface::class, function ($app) {
+            if ($app->has(SwooleRequest::class)) {
+                $swooleRequest = $app->get(SwooleRequest::class);
+                $bridge = new \Core\Server\SwoolePsr7Bridge();
+                return $bridge->toPsr7Request($swooleRequest);
+            }
+
+            return ServerRequestFactory::fromGlobals();
+        });
+
+        $this->app->bind(RequestInterface::class, function ($app) {
+            return $app->make(ServerRequestInterface::class);
+        });
+
         $this->app->singleton(SwooleServer::class, function ($app) {
             return new SwooleServer($app);
         });
-
-        // $this->registerCommands();
     }
-
-    // protected function registerCommands(): void
-    // {
-    //     if ($this->app->runningInConsole()) {
-    //         $this->app->singleton(StartSwooleCommand::class);
-    //         // Tag lệnh để Console Application có thể tìm thấy
-    //         $this->app->tag(StartSwooleCommand::class, 'console.command');
-    //     }
-    // }
 }

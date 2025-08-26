@@ -15,6 +15,6 @@ class WelcomeEmail extends Mailable implements ShouldQueue
     public function build(): static
     {
         return $this->subject("Welcome to BaultPHP, {$this->user->name}!")
-                    ->view('user::emails.welcome', ['user' => $this->user]);
+                    ->view('user::emails.welcome');
     }
 }

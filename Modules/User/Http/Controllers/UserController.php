@@ -11,7 +11,6 @@ use Modules\User\Application\Commands\UpdateUserProfileCommand;
 use Modules\User\Application\UserFinder;
 use Modules\User\Http\Requests\UpdateUserRequest;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 
 #[Route('/api/users')]
 class UserController
@@ -42,11 +41,10 @@ class UserController
      * COMMAND: Cập nhật thông tin user. Sử dụng UseCase tập trung vào việc ghi.
      */
     #[Route('/{id}', method: 'PUT')]
-    public function update($id, ServerRequestInterface $request): ResponseInterface
+    public function update($id, UpdateUserRequest $request): ResponseInterface
     {
-        // By using a FormRequest, validation is handled automatically.
-        // We assume the framework makes route parameters available to the request object.
-        $validatedData = (new UpdateUserRequest($request, ['id' => (int)$id]))->validated();
+        // Validation is now handled automatically by injecting the UpdateUserRequest.
+        $validatedData = $request->validated();
 
         $command = new UpdateUserProfileCommand((int)$id, $validatedData['name'] ?? null, $validatedData['email'] ?? null, $validatedData['password'] ?? null);
 

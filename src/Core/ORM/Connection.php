@@ -34,10 +34,12 @@ class Connection
     /**
      * Get a PDO connection instance.
      *
-     * @param string|null $name
+     * @param string|null $name The connection name.
+     * @param string      $type The connection type ('read' or 'write').
+     * @return \PDO|\Swoole\Database\PDOProxy
      * @throws \Exception
      */
-    public function connection(string $name = null, string $type = 'write'): \PDO
+    public function connection(string $name = null, string $type = 'write'): mixed
     {
         $configRepo = $this->app->make('config');
         $name ??= $configRepo->get('database.default', 'mysql');

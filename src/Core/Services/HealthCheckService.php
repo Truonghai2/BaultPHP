@@ -2,7 +2,6 @@
 
 namespace Core\Services;
 
-use Ackintosh\Ganesha;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
 use Swoole\Coroutine;
@@ -129,41 +128,27 @@ class HealthCheckService
         $details = [];
         $overallStatus = 'UP';
 
-        // Check Database Circuit Breaker
         $dbBreaker = SwoolePdoPool::getCircuitBreaker();
         if ($dbBreaker) {
-            $state = $dbBreaker->getState();
-            $details['database'] = ['state' => $state];
-            if ($state === Ganesha::OPEN) {
+            if (!$dbBreaker->isAvailable(SwoolePdoPool::getServiceName())) {
+                $details['database'] = ['state' => 'OPEN', 'status' => 'DOWN'];
                 $details['database']['status'] = 'DOWN';
                 $overallStatus = 'DOWN';
-            } elseif ($state === Ganesha::HALF_OPEN) {
-                $details['database']['status'] = 'DEGRADED';
-                if ($overallStatus !== 'DOWN') {
-                    $overallStatus = 'DEGRADED';
-                }
             } else {
-                $details['database']['status'] = 'UP';
+                $details['database'] = ['state' => 'CLOSED_OR_HALF_OPEN', 'status' => 'UP'];
             }
         } else {
             $details['database'] = ['status' => 'NOT_CONFIGURED'];
         }
 
-        // Check Redis Circuit Breaker
         $redisBreaker = SwooleRedisPool::getCircuitBreaker();
         if ($redisBreaker) {
-            $state = $redisBreaker->getState();
-            $details['redis'] = ['state' => $state];
-            if ($state === Ganesha::OPEN) {
+            if (!$redisBreaker->isAvailable(SwooleRedisPool::getServiceName())) {
+                $details['redis'] = ['state' => 'OPEN', 'status' => 'DOWN'];
                 $details['redis']['status'] = 'DOWN';
                 $overallStatus = 'DOWN';
-            } elseif ($state === Ganesha::HALF_OPEN) {
-                $details['redis']['status'] = 'DEGRADED';
-                if ($overallStatus !== 'DOWN') {
-                    $overallStatus = 'DEGRADED';
-                }
             } else {
-                $details['redis']['status'] = 'UP';
+                $details['redis'] = ['state' => 'CLOSED_OR_HALF_OPEN', 'status' => 'UP'];
             }
         } else {
             $details['redis'] = ['status' => 'NOT_CONFIGURED'];

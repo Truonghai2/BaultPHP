@@ -2,21 +2,23 @@
 
 namespace Core\Queue;
 
+use Core\BaseServiceProvider;
 use Core\Console\Commands\Queue\QueueFailedCommand;
 use Core\Console\Commands\Queue\QueueFlushCommand;
 use Core\Console\Commands\Queue\QueueForgetCommand;
 use Core\Console\Commands\Queue\QueueRetryCommand;
 use Core\Console\Commands\Queue\WorkCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
+use Core\Queue\Drivers\RabbitMQQueue;
 use Core\Queue\Drivers\RedisQueue as RedisQueueDriver;
-use Core\Support\ServiceProvider;
+use PhpAmqpLib\Connection\AMQPStreamConnection;
 
 /**
  * Class QueueServiceProvider
  *
  * Registers all queue related services into the container.
  */
-class QueueServiceProvider extends ServiceProvider
+class QueueServiceProvider extends BaseServiceProvider
 {
     /**
      * All of the console commands that should be registered.
@@ -101,6 +103,21 @@ class QueueServiceProvider extends ServiceProvider
             // The RedisQueueDriver is now responsible for resolving its own Redis connection
             // from the RedisManager, making the service provider cleaner.
             return new RedisQueueDriver($this->app, $config);
+        });
+
+        $manager->addConnector('rabbitmq', function ($config) {
+            $connection = new AMQPStreamConnection(
+                $config['host'],
+                $config['port'],
+                $config['user'],
+                $config['password'],
+                $config['vhost'] ?? '/',
+            );
+
+            $defaultQueue = $config['queue'] ?? 'default';
+            $exchangeOptions = $config['options']['exchange'] ?? [];
+
+            return new RabbitMQQueue($connection, $defaultQueue, $exchangeOptions);
         });
 
         $manager->addConnector('swoole', function () {

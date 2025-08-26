@@ -15,7 +15,7 @@
 
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form class="space-y-6" action="{{ route('auth.login') }}" method="POST">
-            {{-- CSRF token would go here if implemented in the future --}}
+            @csrf
 
             <div>
                 <label for="email" class="block text-sm font-medium leading-6 text-white">Email address</label>
@@ -24,9 +24,9 @@
                            class="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6"
                            value="{{ old('email') }}">
                 </div>
-                @if(isset($errors) && $errors->has('email'))
-                    <p class="mt-2 text-sm text-red-400">{{ $errors->first('email') }}</p>
-                @endif
+                @error('email')
+                    <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
+                @enderror
             </div>
 
             <div>
@@ -40,6 +40,9 @@
                     <input id="password" name="password" type="password" autocomplete="current-password" required
                            class="block w-full rounded-md border-0 bg-white/5 py-1.5 text-white shadow-sm ring-1 ring-inset ring-white/10 focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6">
                 </div>
+                @error('password')
+                    <p class="mt-2 text-sm text-red-400">{{ $message }}</p>
+                @enderror
             </div>
 
             <div class="flex items-center">

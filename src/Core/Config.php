@@ -8,6 +8,7 @@ class Config implements ArrayAccess
 {
     protected array $items = [];
     protected bool $loadedFromCache = false;
+    protected bool $allFilesLoaded = false;
     protected Application $app;
 
     public function __construct(Application $app)
@@ -19,6 +20,30 @@ class Config implements ArrayAccess
             $this->items = require $cachedConfigPath;
             $this->loadedFromCache = true;
         }
+    }
+
+    /**
+     * Lấy tất cả các mục cấu hình.
+     * Nếu chưa được tải từ cache, nó sẽ chủ động tải tất cả các file config.
+     */
+    public function all(): array
+    {
+        if (!$this->loadedFromCache && !$this->allFilesLoaded) {
+            $configPath = $this->app->basePath('config');
+            if (is_dir($configPath)) {
+                foreach (new \DirectoryIterator($configPath) as $file) {
+                    if ($file->isFile() && $file->getExtension() === 'php') {
+                        $key = $file->getBasename('.php');
+                        if (!isset($this->items[$key])) {
+                            $this->items[$key] = require $file->getRealPath();
+                        }
+                    }
+                }
+            }
+            $this->allFilesLoaded = true;
+        }
+
+        return $this->items;
     }
 
     public function get(string $key, $default = null)

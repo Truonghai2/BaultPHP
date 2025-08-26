@@ -51,11 +51,12 @@ echo "Database is up - continuing..."
 echo "Running database migrations as $APP_USER user..."
 gosu $APP_USER php /app/cli ddd:migrate --force
 
+gosu $APP_USER php /app/cli db:seed
+
 # 6. Execute the main command passed from the Dockerfile (CMD).
 # The `exec "$@"` command replaces the current shell process with the command
 # passed as arguments to the script (the CMD from the Dockerfile). This is important because
 # it allows the main application (e.g., supervisord) to become PID 1 inside the container,
-# which means it can correctly receive signals like SIGTERM for graceful shutdown.
 echo "Starting main process: $@"
 
 exec "$@"

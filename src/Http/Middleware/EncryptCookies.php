@@ -12,11 +12,6 @@ class EncryptCookies implements MiddlewareInterface
 {
     protected Encrypter $encrypter;
 
-    /**
-     * The names of the cookies that should not be encrypted.
-     *
-     * @var array<int, string>
-     */
     protected array $except = [];
 
     public function __construct(Encrypter $encrypter)

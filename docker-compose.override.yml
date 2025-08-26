@@ -6,31 +6,18 @@ services:
     # Đảm bảo container vite được khởi động trước container app
     depends_on:
       - vite
-    # Mount source code vào container để hot-reload khi code thay đổi.
-    # :cached giúp cải thiện hiệu năng file sync trên macOS và Windows.
     volumes:
       - .:/app:cached
-      # Kỹ thuật "volume shadowing": Dòng này bảo Docker "Hãy giữ lại thư mục /app/vendor
-      # đã được build trong image, đừng ghi đè nó bằng thư mục vendor (nếu có) từ host".
-      # Điều này đảm bảo các dependency trong container luôn đúng với composer.lock.
       - /app/vendor
 
   nginx:
     ports:
-      # Ánh xạ port 80 của host vào port 80 của container.
-      # Đổi cổng host thành 88 để tránh xung đột.
       - "${NGINX_HOST_PORT:-88}:80"
-    volumes:
-      # Mount thư mục public để Nginx có thể serve các file tĩnh (CSS, JS, images) trực tiếp.
-      - ./public:/app/public:cached
 
   vite:
     ports:
-      # Ánh xạ port của Vite ra ngoài host để truy cập từ trình duyệt.
       - "${VITE_HOST_PORT:-5173}:5173"
     volumes:
-      # Mount source code, nhưng sử dụng một volume riêng cho node_modules
-      # để tránh các vấn đề về quyền và hiệu năng giữa host và container.
       - .:/app:cached
       - bault-node-modules:/app/node_modules
 
@@ -43,6 +30,5 @@ services:
       - "${PMA_HOST_PORT:-8080}:80"
 
 volumes:
-  # Định nghĩa volume cho node_modules để nó được quản lý bởi Docker.
   bault-node-modules:
     driver: local

@@ -32,9 +32,9 @@ Tất cả dữ liệu được trao đổi qua định dạng **JSON**.
 
 ---
 
-## 2. Xác Thực (Authentication)
+## 2. Xác thực với OAuth2 (Authentication)
 
-Các endpoint API được bảo vệ sử dụng **JSON Web Tokens (JWT)**. Luồng xác thực diễn ra như sau:
+Hệ thống sử dụng **OAuth2** với luồng
 
 1.  **Đăng nhập**: Frontend gửi `email` và `password` của người dùng đến một endpoint đăng nhập, ví dụ `POST /api/login`.
 2.  **Nhận Token**: Nếu thông tin đăng nhập chính xác, backend sẽ trả về một JWT.
@@ -62,13 +62,13 @@ Nếu token không hợp lệ hoặc thiếu, backend sẽ trả về lỗi `401
 
 Dưới đây là các ví dụ sử dụng `fetch` API của JavaScript để thực hiện các thao tác CRUD với module `Post`.
 
-Giả sử backend đang chạy tại `http://localhost:8080`.
+Giả sử backend đang chạy tại `http://localhost:88` (theo cấu hình Nginx trong docker-compose).
 
 ### Lấy Danh Sách Bài Viết
 
 ```javascript
-async function getPosts() {
-  const response = await fetch("http://localhost:8080/api/posts");
+async function getPosts(baseUrl = "http://localhost:88") {
+  const response = await fetch(`${baseUrl}/api/posts`);
   if (!response.ok) {
     throw new Error("Failed to fetch posts");
   }
@@ -81,8 +81,13 @@ async function getPosts() {
 ### Tạo Bài Viết Mới
 
 ```javascript
-async function createPost(title, content, token) {
-  const response = await fetch("http://localhost:8080/api/posts", {
+async function createPost(
+  title,
+  content,
+  token,
+  baseUrl = "http://localhost:88",
+) {
+  const response = await fetch(`${baseUrl}/api/posts`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -104,8 +109,14 @@ async function createPost(title, content, token) {
 ### Cập Nhật Bài Viết
 
 ```javascript
-async function updatePost(postId, title, content, token) {
-  const response = await fetch(`http://localhost:8080/api/posts/${postId}`, {
+async function updatePost(
+  postId,
+  title,
+  content,
+  token,
+  baseUrl = "http://localhost:88",
+) {
+  const response = await fetch(`${baseUrl}/api/posts/${postId}`, {
     method: "PUT",
     headers: {
       "Content-Type": "application/json",
@@ -126,8 +137,8 @@ async function updatePost(postId, title, content, token) {
 ### Xóa Bài Viết
 
 ```javascript
-async function deletePost(postId, token) {
-  const response = await fetch(`http://localhost:8080/api/posts/${postId}`, {
+async function deletePost(postId, token, baseUrl = "http://localhost:88") {
+  const response = await fetch(`${baseUrl}/api/posts/${postId}`, {
     method: "DELETE",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -146,7 +157,7 @@ async function deletePost(postId, token) {
 
 ## 4. Xử Lý CORS (Cross-Origin Resource Sharing)
 
-Khi phát triển, frontend của bạn (ví dụ: `http://localhost:5173`) và backend (`http://localhost:8080`) thường chạy trên hai "origin" khác nhau (do khác cổng). Trình duyệt sẽ chặn các request từ frontend đến backend vì lý do bảo mật, gây ra lỗi **CORS**.
+Khi phát triển, frontend của bạn (ví dụ: `http://localhost:5173`) và backend (`http://localhost:88`) thường chạy trên hai "origin" khác nhau (do khác cổng). Trình duyệt sẽ chặn các request từ frontend đến backend vì lý do bảo mật, gây ra lỗi **CORS**.
 
 Để khắc phục, backend BaultPHP cần được cấu hình để cho phép các request từ origin của frontend. Điều này thường được thực hiện bằng cách thêm một **Middleware** trong BaultPHP để tự động thêm các HTTP header cần thiết vào mỗi response.
 

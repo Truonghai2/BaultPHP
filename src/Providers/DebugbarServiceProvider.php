@@ -58,6 +58,12 @@ class DebugbarServiceProvider extends ServiceProvider
             // Tên 'default' là tùy ý, bạn có thể đặt tên theo connection.
             $pdoCollector->addConnection($traceablePdo, 'default');
 
+            // *** BaultFrame System-Wide SQL Logging ***
+            // Create our custom query logger and attach it as a second collector.
+            // This allows us to log all SQL queries without interfering with the debugbar.
+            $queryLogger = $app->make(\App\Logging\QueryLoggerCollector::class);
+            $traceablePdo->addCollector($queryLogger);
+
             return $traceablePdo;
         });
 

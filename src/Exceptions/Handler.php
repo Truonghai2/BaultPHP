@@ -4,6 +4,7 @@ namespace App\Exceptions;
 
 use Core\Contracts\Exceptions\Handler as HandlerContract;
 use Core\Contracts\View\Factory as ViewFactory;
+use Core\Http\Response;
 use Core\Validation\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -70,6 +71,10 @@ class Handler implements HandlerContract
      */
     public function render(Request $request, Throwable $e): ResponseInterface
     {
+        if ($e instanceof ValidationException && !$this->shouldReturnJson($request, $e)) {
+            return $this->handleValidationException($request, $e);
+        }
+
         if ($this->shouldReturnJson($request, $e)) {
             return $this->prepareJsonResponse($request, $e);
         }
@@ -222,6 +227,14 @@ class Handler implements HandlerContract
         }
 
         return 500;
+    }
+
+    /**
+     * Handle ValidationException for non-JSON requests by redirecting back with errors.
+     */
+    protected function handleValidationException(Request $request, ValidationException $e): ResponseInterface
+    {
+        return $this->prepareJsonResponse($request, $e);
     }
 
     /**

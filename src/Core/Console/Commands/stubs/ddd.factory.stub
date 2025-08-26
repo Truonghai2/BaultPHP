@@ -1,0 +1,28 @@
+<?php
+
+namespace Database\Factories;
+
+use {{ modelNamespace }};
+
+class {{ class }}
+{
+    /**
+     * The name of the factory's corresponding model.
+     *
+     * @var string
+     */
+    protected static string $model = {{ modelClass }}::class;
+
+    /**
+     * Define the model's default state.
+     *
+     * @return array<string, mixed>
+     */
+    public static function definition(): array
+    {
+        return [
+            // 'name' => 'John Doe',
+            // 'email' => 'john.doe@example.com',
+        ];
+    }
+}

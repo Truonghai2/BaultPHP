@@ -8,13 +8,8 @@ use Http\ResponseFactory;
 
 class ReportController
 {
-    /**
-     * Dispatch a task to generate a report.
-     * This endpoint will return immediately while the task runs in the background.
-     */
     public function generate(SwooleServer $server, ResponseFactory $responseFactory): \Http\JsonResponse
     {
-        // In a real app, you'd get the user ID from the authenticated user.
         $userId = 123;
         $reportType = 'monthly_sales';
 

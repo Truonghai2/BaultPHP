@@ -6,6 +6,7 @@ use Core\Database\Swoole\SwoolePdoPool;
 use PDO;
 use Psr\Log\LoggerInterface;
 use Swoole\Coroutine;
+use Swoole\Database\PDOProxy;
 
 /**
  * Manages the lifecycle of a PDO connection within a single coroutine.
@@ -32,9 +33,9 @@ class CoroutineConnectionManager
      * Otherwise, a new connection is fetched from the pool, and its release is
      * deferred until the coroutine exits.
      *
-     * @return PDO
+     * @return PDO|PDOProxy
      */
-    public function get(): PDO
+    public function get(): PDO|PDOProxy
     {
         $cid = Coroutine::getCid();
         $context = Coroutine::getContext($cid);
@@ -64,7 +65,7 @@ class CoroutineConnectionManager
     /**
      * Release a PDO connection back to the pool.
      */
-    public function release(PDO $connection, int $cid): void
+    public function release(PDO|PDOProxy $connection, int $cid): void
     {
         SwoolePdoPool::put($connection);
         $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'pool_stats' => SwoolePdoPool::stats()]);

@@ -5,20 +5,33 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Welcome') - {{ config('app.name', 'BaultPHP') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo/BaultPHP-icon.png') }}">
+    <link rel="manifest" href="{{ asset('manifest.json') }}">
 
-    {{-- Tích hợp Vite.js --}}
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    {{-- Dành cho các style cụ thể của từng trang (nếu cần) --}}
-    @stack('styles')
+    @yield('styles')
+    
+    <style>
+        body {
+            opacity: 0;
+            transition: opacity 0.2s ease-in;
+        }
+        .js body {
+            opacity: 1;
+        }
+    </style>
 
-    {{--
-        Anti-FOUC (Flash of Unstyled Content) solution for Vite's development mode.
-        - The body is hidden by default via the `.no-js` class.
-        - A tiny, inline script removes the `.no-js` class immediately.
-        - This script runs before the browser renders the body.
-        - Vite then injects the styles, and by the time the body is visible, it's styled.
-    --}}
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </head>
 <body class="h-full bg-gray-900 text-gray-100 antialiased">
     <div class="min-h-full">
@@ -26,9 +39,8 @@
             <nav class="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
                 <div class="flex lg:flex-1 items-center">
                     <a href="{{ route('home') }}" class="flex items-center group hover:opacity-90 transition-opacity">
-                        {{-- Logo với hiệu ứng glow --}}
                         <div class="relative">
-                            <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                            {{-- <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div> --}}
                             <img class="relative h-8 w-auto lg:h-10 xl:h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
                         </div>
                     </a>
@@ -65,6 +77,7 @@
                     @endguest
                     @auth
                         <form action="{{ route('auth.logout') }}" method="POST">
+                            @csrf
                             <button type="submit" class="group relative inline-flex items-center gap-x-2 rounded-full px-4 py-2 text-sm font-semibold text-white ring-1 ring-gray-700 hover:ring-gray-600 transition-all duration-200">
                                 <span>Log out</span>
                             </button>
@@ -72,9 +85,9 @@
                     @endauth
                 </div>
 
-                {{-- Mobile Menu Button (Hiển thị trên mobile) --}}
+                {{-- Mobile Menu Button --}}
                 <div class="flex lg:hidden">
-                    <button type="button" class="inline-flex items-center justify-center rounded-md p-2.5 text-gray-400 hover:text-white transition-colors">
+                    <button id="mobile-menu-button" type="button" class="inline-flex items-center justify-center rounded-md p-2.5 text-gray-400 hover:text-white transition-colors">
                         <span class="sr-only">Open main menu</span>
                         <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
@@ -95,10 +108,19 @@
         </footer>
     </div>
 
-    {{--
-    Sử dụng @stack để các view con có thể đẩy script của riêng mình vào đây.
-    Điều này giúp quản lý JavaScript theo từng trang một cách gọn gàng.
-    --}}
+    @include('debug.bar')
+    <script>
+        document.documentElement.classList.replace('no-js','js');
+        // fade-in body
+        document.addEventListener("DOMContentLoaded", () => {
+            document.body.style.opacity = 1;
+        });
+
+        // toggle mobile menu (simple demo)
+        document.getElementById("mobile-menu-button")?.addEventListener("click", () => {
+            alert("TODO: mở menu mobile ở đây!");
+        });
+    </script>
     @stack('scripts')
 </body>
 </html>

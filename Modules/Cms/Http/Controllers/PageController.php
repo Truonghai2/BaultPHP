@@ -34,7 +34,7 @@ class PageController
 
         if (!$user) {
             // This case should ideally be handled by an authentication middleware.
-            return new Response('Unauthorized', 401);
+            return response('Unauthorized', 401);
         }
 
         // Check if the user is authorized to update this page. The `can` method
@@ -48,6 +48,6 @@ class PageController
         $editorComponent->mount(['page' => $page]);
         $html = $editorComponent->render();
 
-        return new Response($html);
+        return response($html);
     }
 }

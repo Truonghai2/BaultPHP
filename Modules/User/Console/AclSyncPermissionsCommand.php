@@ -3,8 +3,8 @@
 namespace Modules\User\Console;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Support\Collection;
 use Modules\User\Infrastructure\Models\Permission;
+use Modules\User\Infrastructure\Models\Role;
 use Throwable;
 
 class AclSyncPermissionsCommand extends BaseCommand
@@ -23,22 +23,25 @@ class AclSyncPermissionsCommand extends BaseCommand
     {
         $this->io->title('Synchronizing Permissions from Files to Database');
 
-        // 1. Thu thập dữ liệu
-        $filePermissions = $this->getFilePermissions();
-        $dbPermissions = Permission::all()->keyBy('name');
-        $this->io->info(count($filePermissions) . ' permissions found in module files.');
-        $this->io->info($dbPermissions->count() . ' permissions found in the database.');
+        try {
+            $filePermissions = $this->getFilePermissions();
+            $dbPermissions = Permission::all()->keyBy('name');
+            $this->io->info(count($filePermissions) . ' permissions found in module files.');
+            $this->io->info($dbPermissions->count() . ' permissions found in the database.');
 
-        // 2. Tính toán sự khác biệt
-        $filePermissionNames = array_keys($filePermissions);
-        $dbPermissionNames = $dbPermissions->keys()->all();
-        $toAddNames = array_diff($filePermissionNames, $dbPermissionNames);
-        $toRemoveNames = array_diff($dbPermissionNames, $filePermissionNames);
-        $toCheckNames = array_intersect($filePermissionNames, $dbPermissionNames);
+            $filePermissionNames = array_keys($filePermissions);
+            $dbPermissionNames = $dbPermissions->keys()->all();
+            $toAddNames = array_diff($filePermissionNames, $dbPermissionNames);
+            $toRemoveNames = array_diff($dbPermissionNames, $filePermissionNames);
+            $toCheckNames = array_intersect($filePermissionNames, $dbPermissionNames);
 
-        // 3. Thực hiện đồng bộ và báo cáo kết quả
-        $changes = $this->performSync($toAddNames, $toCheckNames, $toRemoveNames, $filePermissions, $dbPermissions);
-        $this->reportChanges($changes);
+            $changes = $this->performSync($toAddNames, $toCheckNames, $toRemoveNames, $filePermissions, $dbPermissions);
+            $this->syncSuperAdminRole();
+            $this->reportChanges($changes);
+        } catch (Throwable $e) {
+            $this->io->error("An error occurred during permission synchronization: {$e->getMessage()}");
+            return 1;
+        }
 
         return 0;
     }
@@ -65,7 +68,7 @@ class AclSyncPermissionsCommand extends BaseCommand
         return $permissions;
     }
 
-    private function performSync(array $toAdd, array $toCheck, array $toRemove, array $filePerms, Collection $dbPerms): array
+    private function performSync(array $toAdd, array $toCheck, array $toRemove, array $filePerms, \Core\Support\Collection $dbPerms): array
     {
         $addedCount = $this->syncAdded($toAdd, $filePerms);
         $updatedCount = $this->syncUpdated($toCheck, $filePerms, $dbPerms);
@@ -93,7 +96,7 @@ class AclSyncPermissionsCommand extends BaseCommand
         return count($names);
     }
 
-    private function syncUpdated(array $names, array $filePerms, Collection $dbPerms): int
+    private function syncUpdated(array $names, array $filePerms, \Core\Support\Collection $dbPerms): int
     {
         if (empty($names)) {
             return 0;
@@ -134,7 +137,25 @@ class AclSyncPermissionsCommand extends BaseCommand
         foreach ($names as $name) {
             $this->io->writeln("  - <fg=red>Removed:</> {$name}");
         }
-        return 1;
+        return $numRemoved;
+    }
+
+    /**
+     * Ensures the super-admin role has all currently defined permissions.
+     */
+    private function syncSuperAdminRole(): void
+    {
+        $this->io->section('Syncing super-admin role permissions:');
+        /** @var Role|null $superAdminRole */
+        $superAdminRole = Role::where('name', 'super-admin')->first();
+
+        if ($superAdminRole) {
+            $allPermissionIds = Permission::all()->pluck('id')->all();
+            $superAdminRole->permissions()->sync($allPermissionIds);
+            $this->io->writeln(sprintf('  - <fg=cyan>Synced %d permissions to super-admin role.</>', count($allPermissionIds)));
+        } else {
+            $this->io->warning('  - Could not find "super-admin" role. Please run database seeders.');
+        }
     }
 
     private function reportChanges(array $changes): void

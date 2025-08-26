@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'file'),
+    'driver' => env('SESSION_DRIVER', 'database'),
 
     /*
     |--------------------------------------------------------------------------
@@ -27,10 +27,21 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Session Database Table
+    |--------------------------------------------------------------------------
+    |
+    | Khi sử dụng driver "database", đây là tên bảng sẽ được sử dụng
+    | để lưu trữ thông tin session.
+    |
+    */
+    'table' => 'sessions',
+
+    /*
+    |--------------------------------------------------------------------------
     | Redis Session Connection
     |--------------------------------------------------------------------------
     |
-    | Tên của Redis connection (từ config/database.php) sẽ được sử dụng.
+    | Tên của Redis connection (từ config/redis.php) sẽ được sử dụng nếu bạn chọn driver là "redis".
     |
     */
 

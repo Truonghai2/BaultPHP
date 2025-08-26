@@ -26,6 +26,7 @@ return [
             'encryption' => env('MAIL_ENCRYPTION', 'tls'),
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
+            'timeout' => null,
         ],
         'log' => [
             'transport' => 'log',
@@ -33,6 +34,15 @@ return [
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Global "From" Address
+    |--------------------------------------------------------------------------
+    |
+    | Here you may specify a global "From" address for all outgoing emails.
+    | This will be used if no other "From" address is set on the email.
+    |
+    */
     'from' => [
         'address' => env('MAIL_FROM_ADDRESS', 'hello@bault.dev'),
         'name' => env('MAIL_FROM_NAME', 'BaultPHP'),

@@ -66,6 +66,7 @@ $app->register(\App\Providers\CacheServiceProvider::class);
 |
 */
 $app->register(\App\Providers\ViewServiceProvider::class);
+$app->register(\App\Providers\HashServiceProvider::class);
 $app->register(\App\Providers\SessionServiceProvider::class);
 $app->register(\App\Providers\TranslationServiceProvider::class);
 $app->register(\App\Providers\ValidationServiceProvider::class);
@@ -98,6 +99,30 @@ $app->register(\App\Providers\ServerServiceProvider::class);
 */
 $app->register(\App\Providers\RouteServiceProvider::class);
 $app->register(\App\Providers\ConsoleServiceProvider::class);
+
+/*
+|--------------------------------------------------------------------------
+| Register Module Service Providers
+|--------------------------------------------------------------------------
+|
+| This will automatically scan the Modules directory and register the
+| main service provider for each module, following the convention:
+| Modules/{ModuleName}/Providers/{ModuleName}ServiceProvider.php
+| This allows modules to be truly plug-and-play.
+|
+*/
+$modulesPath = $app->basePath('Modules');
+if (is_dir($modulesPath)) {
+    foreach (new DirectoryIterator($modulesPath) as $moduleInfo) {
+        if ($moduleInfo->isDir() && !$moduleInfo->isDot()) {
+            $moduleName = $moduleInfo->getFilename();
+            $providerClass = "Modules\\{$moduleName}\\Providers\\{$moduleName}ServiceProvider";
+            if (class_exists($providerClass)) {
+                $app->register($providerClass);
+            }
+        }
+    }
+}
 
 /*
 |--------------------------------------------------------------------------

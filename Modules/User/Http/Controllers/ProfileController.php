@@ -2,9 +2,11 @@
 
 namespace Modules\User\Http\Controllers;
 
+use Core\Auth\AuthManager;
 use Core\Contracts\View\Factory as ViewFactory;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
+use Modules\User\Http\Requests\UpdateAvatarRequest;
 use Psr\Http\Message\ResponseInterface;
 
 class ProfileController
@@ -17,7 +19,7 @@ class ProfileController
     protected ViewFactory $view;
 
     // Framework sẽ tự động "tiêm" (inject) ViewFactory vào đây khi khởi tạo controller.
-    public function __construct(ViewFactory $view)
+    public function __construct(ViewFactory $view, private AuthManager $auth)
     {
         $this->view = $view;
     }
@@ -52,5 +54,35 @@ class ProfileController
             'name' => $user->name,
             'email' => $user->email,
         ];
+    }
+
+    /**
+     * Xử lý việc upload và cập nhật avatar cho người dùng.
+     */
+    #[Route('/profile/avatar', method: 'POST', group: 'web')]
+    public function updateAvatar(UpdateAvatarRequest $request): ResponseInterface
+    {
+        /** @var \Psr\Http\Message\UploadedFileInterface $uploadedFile */
+        $uploadedFile = $request->file('avatar');
+
+        $newFilename = sprintf(
+            '%s.%s',
+            bin2hex(random_bytes(16)),
+            pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION),
+        );
+
+        $storagePath = storage_path('app/public/avatars');
+        if (!is_dir($storagePath)) {
+            mkdir($storagePath, 0755, true);
+        }
+        $targetPath = $storagePath . DIRECTORY_SEPARATOR . $newFilename;
+
+        $uploadedFile->moveTo($targetPath);
+
+        $user = $this->auth->user();
+        $user->avatar_path = 'avatars/' . $newFilename;
+        $user->save();
+
+        return redirect()->back()->with('success', 'Avatar đã được cập nhật thành công!');
     }
 }

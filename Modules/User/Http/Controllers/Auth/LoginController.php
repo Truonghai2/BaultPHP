@@ -2,16 +2,17 @@
 
 namespace Modules\User\Http\Controllers\Auth;
 
-use Core\Auth\AuthManager;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Core\Support\MessageBag;
+use Modules\User\Application\Commands\LoginUserCommand;
+use Modules\User\Application\Handlers\LoginUserHandler;
+use Modules\User\Application\Handlers\LogoutUserHandler;
+use Modules\User\Http\Requests\LoginRequest;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
-#[Route(prefix: '/auth', name: 'auth.')]
+#[Route(prefix: '/auth', name: 'auth.', group: 'web')]
 class LoginController extends Controller
 {
     #[Route(method: 'GET', uri: '/login', name: 'login.view')]
@@ -21,48 +22,42 @@ class LoginController extends Controller
     }
 
     /**
-     * login
-     *
-     * @param ServerRequestInterface $request
-     * @param AuthManager $auth
-     * @param SessionInterface $session
-     * @return ResponseInterface
+     * Handle a login request to the application.
      */
-    #[Route(method: 'POST', uri: '/login', name: 'login')]
-    public function login(ServerRequestInterface $request, AuthManager $auth, SessionInterface $session): ResponseInterface
+    #[Route(
+        method: 'POST',
+        uri: '/login',
+        name: 'login',
+        middleware: ['throttle:5,1'],
+    )]
+    public function login(LoginRequest $request, LoginUserHandler $handler, SessionInterface $session): ResponseInterface
     {
-        $data = $request->getParsedBody();
-        $credentials = [
-            'email' => $data['email'] ?? null,
-            'password' => $data['password'] ?? null,
-        ];
-        $remember = isset($data['remember']);
+        $data = $request->validated();
+        $remember = !empty($request->getParsedBody()['remember'] ?? false);
 
-        if ($auth->guard('web')->attempt($credentials, $remember)) {
-            $session->regenerate();
+        $command = new LoginUserCommand($data['email'], $data['password'], $remember);
 
+        $user = $handler->handle($command);
+
+        if ($user) {
             return redirect()->intended(route('home'));
         }
 
-        // Thay vì dùng withErrors() và withInput(), chúng ta flash trực tiếp vào session.
-        // View engine sẽ tự động lấy các giá trị này ra.
-        $errors = new MessageBag(['email' => 'Thông tin đăng nhập không chính xác.']);
-        $session->flash('errors', $errors);
-        $session->flash('_old_input', $request->getParsedBody());
+        $input = $request->getParsedBody();
+        unset($input['password']);
 
-        return redirect()->back();
+        return redirect()->back()
+            ->withErrors(['email' => __('Invalid credentials.')])
+            ->withInput($input);
     }
 
     /**
-     * Xử lý yêu cầu đăng xuất.
+     * Log the user out of the application.
      */
     #[Route(method: 'POST', uri: '/logout', name: 'logout')]
-    public function logout(AuthManager $auth, SessionInterface $session): ResponseInterface
+    public function logout(LogoutUserHandler $handler): ResponseInterface
     {
-        $auth->guard('web')->logout();
-
-        $session->invalidate();
-        $session->regenerateToken(); // Tạo lại CSRF token sau khi đăng xuất
+        $handler->handle();
 
         return redirect('/');
     }

@@ -2,12 +2,15 @@
 
 namespace Modules\User\Domain\Events;
 
-use Modules\User\Domain\Entities\User as UserEntity;
+use Core\Events\DomainEvent;
+use Modules\User\Infrastructure\Models\User;
 
-class UserWasCreated
+/**
+ * Dispatched after a user has been successfully created.
+ */
+class UserWasCreated implements DomainEvent
 {
-    public function __construct(
-        public readonly UserEntity $user,
-    ) {
+    public function __construct(public readonly User $user)
+    {
     }
 }
