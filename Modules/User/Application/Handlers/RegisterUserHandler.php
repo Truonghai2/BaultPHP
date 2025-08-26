@@ -3,6 +3,7 @@
 namespace Modules\User\Application\Handlers;
 
 use Core\Events\EventDispatcherInterface;
+use Core\Support\Facades\Hash;
 use Modules\User\Application\Commands\RegisterUserCommand;
 use Modules\User\Domain\Events\UserWasCreated;
 use Modules\User\Infrastructure\Models\User;
@@ -26,7 +27,7 @@ class RegisterUserHandler
         $user = User::create([
             'name' => $command->name,
             'email' => $command->email,
-            'password' => password_hash($command->password, PASSWORD_DEFAULT),
+            'password' => Hash::make($command->password),
         ]);
 
         $this->dispatcher->dispatch(new UserWasCreated($user));

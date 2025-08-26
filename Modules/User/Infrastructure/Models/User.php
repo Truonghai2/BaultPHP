@@ -21,6 +21,8 @@ class User extends Model implements Authenticatable
 
     protected array $fillable = ['name', 'email', 'password'];
 
+    protected array $hidden = ['password', 'remember_token'];
+
     public function getAuthIdentifier()
     {
         return $this->getKey();
@@ -36,10 +38,20 @@ class User extends Model implements Authenticatable
         return $this->password;
     }
 
-    // public function posts(): HasMany
-    // {
-    //     return $this->hasMany(Post::class);
-    // }
+    public function getRememberToken(): ?string
+    {
+        return $this->{$this->getRememberTokenName()};
+    }
+
+    public function setRememberToken($value): void
+    {
+        $this->{$this->getRememberTokenName()} = $value;
+    }
+
+    public function getRememberTokenName(): string
+    {
+        return 'remember_token';
+    }
 
     /**
      * A user has many role assignments in different contexts.

@@ -4,6 +4,7 @@ namespace Core\ORM\Relations;
 
 use Core\ORM\Model;
 use Core\ORM\QueryBuilder;
+use Core\Support\Collection;
 
 class BelongsToMany extends Relation
 {
@@ -159,11 +160,15 @@ class BelongsToMany extends Relation
     /**
      * Sync the intermediate tables with a list of IDs.
      *
-     * @param array $ids
+     * @param \Core\Support\Collection|array $ids
      * @return array
      */
-    public function sync(array $ids): array
+    public function sync($ids): array
     {
+        if ($ids instanceof Collection) {
+            $ids = $ids->all();
+        }
+
         $changes = [
             'attached' => [],
             'detached' => [],

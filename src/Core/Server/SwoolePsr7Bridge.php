@@ -35,10 +35,26 @@ class SwoolePsr7Bridge
 
     public function toPsr7Request(SwooleRequest $swooleRequest): ServerRequestInterface
     {
-        // The factory correctly sets the protocol version from the Swoole request,
-        // so an explicit call to `withProtocolVersion()` is not needed.
-        // Tái sử dụng factory đã được khởi tạo trong constructor.
-        return $this->serverRequestFactory->create($swooleRequest);
+        $psr7Request = $this->serverRequestFactory->create($swooleRequest);
+
+        // Manually parse the request body if it's not already parsed.
+        if (null === $psr7Request->getParsedBody()) {
+            $contentType = strtolower($swooleRequest->header['content-type'] ?? '');
+            $rawContent = $swooleRequest->getContent();
+
+            if (str_contains($contentType, 'application/json') && !empty($rawContent)) {
+                $body = json_decode($rawContent, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $psr7Request = $psr7Request->withParsedBody($body);
+                }
+            } elseif (str_contains($contentType, 'application/x-www-form-urlencoded') && !empty($rawContent)) {
+                $body = [];
+                parse_str($rawContent, $body);
+                $psr7Request = $psr7Request->withParsedBody($body);
+            }
+        }
+
+        return $psr7Request;
     }
 
     public function toSwooleResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void

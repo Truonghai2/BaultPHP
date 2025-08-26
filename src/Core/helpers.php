@@ -1,7 +1,10 @@
 <?php
 
 use Core\Application;
+use Core\Debug\SwooleDumpException;
 use Http\ResponseFactory;
+use Symfony\Component\VarDumper\Cloner\VarCloner;
+use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
 function service(string $contract): object
 {
@@ -133,10 +136,23 @@ if (!function_exists('resource_path')) {
 }
 
 if (!function_exists('dd')) {
+    /**
+    * Dumps the given variables and ends the execution of the current request gracefully.
+    *
+    * @param  mixed  ...$vars
+    * @return void
+    *
+    * @throws \Core\Debug\SwooleDumpException
+    */
     function dd(...$vars): void
     {
-        (new \Core\Support\Dumper())->dump(...$vars);
-        die(1);
+        $dumper = new HtmlDumper();
+        $cloner = new VarCloner();
+
+        $output = fopen('php://memory', 'r+b');
+        $dumper->dump($cloner->cloneVar($vars), $output);
+
+        throw new SwooleDumpException(stream_get_contents($output, -1, 0));
     }
 }
 
@@ -155,8 +171,6 @@ if (!function_exists('class_uses_recursive')) {
 
         $results = [];
 
-        // We use array_reverse to ensure parent traits are included before child traits.
-        // This is important for trait method overriding.
         foreach (array_reverse(class_parents($class)) + [$class => $class] as $c) {
             $results += trait_uses_recursive($c);
         }
@@ -282,17 +296,12 @@ if (!function_exists('vite')) {
      */
     function vite(string|array $entrypoints): \Core\Support\HtmlString
     {
-        // We resolve it as a singleton to avoid reading the manifest file multiple times.
         if (!app()->bound(Vite::class)) {
             app()->singleton(Vite::class);
         }
 
-        // The underlying Vite class might return an Illuminate\Support\HtmlString.
-        // We ensure the return value conforms to the Core\Support\HtmlString contract
-        // defined in this helper's signature.
         $htmlContent = app(Vite::class)($entrypoints);
 
-        // Cast to string and wrap in our framework's HtmlString class.
         return new \Core\Support\HtmlString((string) $htmlContent);
     }
 }
@@ -311,8 +320,6 @@ if (!function_exists('esc')) {
      */
     function esc(?string $value, string $context = 'html'): string
     {
-        // Sử dụng một instance tĩnh của Core Escaper để tăng hiệu năng,
-        // tránh việc phải khởi tạo lại đối tượng trên mỗi lần gọi.
         static $coreEscaper;
         if (!$coreEscaper) {
             $coreEscaper = new \Core\Support\Escaper();
@@ -411,10 +418,6 @@ if (!function_exists('old')) {
         /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
         $session = app('session');
 
-        // Retrieve the flashed input array from the FlashBag.
-        // The `get()` method returns an array of messages for the type. Since we use
-        // `set()`, there will be only one message, which is our array of old input.
-        // We use `[0] ?? []` to safely get it or an empty array if it doesn't exist.
         $oldInput = $session->getFlashBag()->get('_old_input')[0] ?? [];
 
         return $oldInput[$key] ?? $default;
@@ -433,8 +436,6 @@ if (!function_exists('csrf_token')) {
      */
     function csrf_token(): string
     {
-        // Luôn sử dụng CsrfManager của Core để lấy token.
-        // Điều này giúp trừu tượng hóa implementation bên dưới (Symfony).
         return app(\Core\Security\CsrfManager::class)->getTokenValue('_token');
     }
 }
@@ -515,5 +516,55 @@ if (!function_exists('cookie')) {
         }
 
         $cookieManager->queue($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite);
+    }
+}
+
+use Core\Exceptions\DumpException;
+
+if (!function_exists('sdd')) {
+    /**
+     * Dumps the passed variables and ends the script for the current request
+     * in a way that is safe for a Swoole environment.
+     *
+     * "Swoole Dump and Die"
+     *
+     * @param  mixed  ...$vars
+     * @return void
+     * @throws DumpException
+     */
+    function sdd(...$vars): void
+    {
+        $responseFactory = new ResponseFactory();
+
+        ob_start();
+
+        $cloner = new VarCloner();
+        $dumper = new HtmlDumper();
+
+        // Custom styling for better readability on dark backgrounds
+        $dumper->setStyles([
+            'default' => 'background-color:#18171B; color:#FF8400; line-height:1.2em; font:14px Menlo, Monaco, Consolas, monospace; word-wrap: break-word; white-space: pre-wrap; position:relative; z-index:99999; word-break: break-all',
+            'num' => 'font-weight:bold; color:#1299DA',
+            'const' => 'font-weight:bold',
+            'str' => 'font-weight:bold; color:#56DB3A',
+            'note' => 'color:#1299DA',
+            'ref' => 'color:#A0A0A0',
+            'public' => 'color:#FFFFFF',
+            'protected' => 'color:#FFFFFF',
+            'private' => 'color:#FFFFFF',
+            'meta' => 'color:#B729D9',
+            'key' => 'color:#56DB3A',
+            'index' => 'color:#1299DA',
+        ]);
+
+        foreach ($vars as $var) {
+            $dumper->dump($cloner->cloneVar($var));
+        }
+
+        $output = ob_get_clean();
+
+        $response = $responseFactory->make($output, 200);
+
+        throw new DumpException($response);
     }
 }

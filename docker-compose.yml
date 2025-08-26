@@ -4,14 +4,16 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - APP_ENV=${APP_ENV:-local}
     image: bault-php-app:latest
     container_name: bault_app
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - .:/app # Giữ nguyên
-      - ./storage:/app/storage # Thay đổi ở đây
-      - ./bootstrap/cache:/app/bootstrap/cache # Và ở đây
+      - .:/app
+    ports:
+      - "9501:9501"
     networks:
       - bault-network
     depends_on:
@@ -57,7 +59,7 @@ services:
       - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
       - CENTRIFUGO_API_URL=http://centrifugo:8000/api
       - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
-      - VITE_DEV_URL=http://localhost:${NGINX_HOST_PORT:-88}
+      - VITE_DEV_URL=http://localhost:${NGINX_HOST_PORT:-5173}
 
   # Nginx làm Reverse Proxy
   nginx:
@@ -71,6 +73,8 @@ services:
       - ./docker/nginx/security_headers.conf:/etc/nginx/conf.d/security_headers.conf
     networks:
       - bault-network
+    ports:
+      - "${NGINX_HOST_PORT:-88}:80"
     depends_on:
       app:
         condition: service_healthy
@@ -97,58 +101,36 @@ services:
     networks:
       - bault-network
     healthcheck:
-      # Provide credentials for the healthcheck to succeed. Use a default value
-      # for the password to match the environment configuration and prevent errors.
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-secret}"]
       timeout: 20s
       retries: 10
-    # Use a custom entrypoint to fix config file permissions before starting MySQL.
-    # The default command 'mysqld' is passed to our script, which then calls the original entrypoint.
     entrypoint: ["/usr/local/bin/primary-entrypoint.sh"]
-    # Explicitly define the command to be passed to the entrypoint.
-    # This makes the configuration more robust and avoids issues where the default CMD from the image might not be passed correctly.
-    # Use mysql_native_password for broader compatibility, especially in scripted environments
-    # within Docker where caching_sha2_password can sometimes cause issues.
     command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
 
-  # Service Database Read Replica
   db_read:
     image: mysql:8.0
     container_name: bault_db_read
     restart: unless-stopped
-    # Replica depends on the primary. The `service_healthy` condition ensures
-    # that this container will only start after the 'db' container's
-    # healthcheck has passed, preventing connection errors on startup.
     depends_on:
       db:
         condition: service_healthy
     environment:
-      # Các biến này cần thiết cho entrypoint script để kết nối với primary
       MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-replica_user}
       MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:-replica_secret}
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
     volumes:
       - bault-db-read-data:/var/lib/mysql
-      # Mount file cấu hình riêng cho replica
       - ./docker/mysql/replica.cnf:/etc/mysql/conf.d/replica.cnf
-      # Mount entrypoint script tùy chỉnh
       - ./docker/mysql/replica-entrypoint.sh:/usr/local/bin/replica-entrypoint.sh
     networks:
       - bault-network
-    # Explicitly define the command. This will be passed as arguments ("$@")
-    # to our custom entrypoint script.
-    # Use mysql_native_password for broader compatibility.
     command: ["mysqld", "--default-authentication-plugin=mysql_native_password"]
-    # Ghi đè entrypoint mặc định để chạy script cấu hình replication
     entrypoint: ["/usr/local/bin/replica-entrypoint.sh"]
     healthcheck:
-      # Provide credentials for the healthcheck to succeed. Use a default value
-      # for the password to match the environment configuration and prevent errors.
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-secret}"]
       timeout: 20s
       retries: 10
 
-  # Service Redis
   redis:
     image: redis:7-alpine
     container_name: bault_redis
@@ -161,35 +143,32 @@ services:
       timeout: 5s
       retries: 5
   
-  # Service Centrifugo (Real-time messaging server)
   centrifugo:
     image: centrifugo/centrifugo:v5
     container_name: bault_centrifugo
     restart: unless-stopped
-    # Gán service này vào một profile để chỉ khởi động khi cần
-    profiles:
-      - tools
+    # profiles:
+    #   - tools
     networks:
       - bault-network
     environment:
-      # Sử dụng các biến từ file .env để cấu hình Centrifugo
       - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
       - CENTRIFUGO_ADMIN_PASSWORD=${CENTRIFUGO_ADMIN_PASSWORD}
       - CENTRIFUGO_ADMIN_SECRET=${CENTRIFUGO_ADMIN_SECRET}
-      - CENTRIFUGO_ALLOWED_ORIGINS=* # Cho phép tất cả các origin trong môi trường dev
+      - CENTRIFUGO_ALLOWED_ORIGINS=*
       - CENTRIFUGO_LOG_LEVEL=debug
 
-  # Service chạy Vite Dev Server
   vite:
     build:
       context: .
       dockerfile: docker/vite/Dockerfile
     container_name: bault_vite
     command: npm run dev -- --host
-    # Gán service này vào một profile để chỉ khởi động khi cần
     # profiles:
     #   - tools
     working_dir: /app
+    volumes:
+      - .:/app
     networks:
       - bault-network
 
@@ -197,7 +176,6 @@ services:
     image: phpmyadmin/phpmyadmin
     container_name: bault_phpmyadmin
     restart: unless-stopped
-    # Gán service này vào một profile để chỉ khởi động khi cần
     # profiles:
     #   - tools
     networks:
@@ -216,7 +194,6 @@ services:
     container_name: bault_meilisearch
     restart: unless-stopped
     environment:
-      # Thay đổi MEILI_MASTER_KEY trong file .env cho môi trường production
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-aMasterKey}
       - MEILI_ENV=development
     ports:
@@ -240,7 +217,6 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-user}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-secret}
     ports:
-      # Port cho giao diện quản lý
       - "${RABBITMQ_MANAGEMENT_HOST_PORT:-15672}:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq

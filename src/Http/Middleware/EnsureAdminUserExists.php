@@ -59,18 +59,12 @@ class EnsureAdminUserExists implements MiddlewareInterface
      */
     protected function isExceptedRoute(ServerRequestInterface $request): bool
     {
-        $path = trim($request->getUri()->getPath(), '/');
+        $path = $request->getUri()->getPath();
 
         foreach ($this->except as $except) {
-            $except = trim($except, '/');
+            $pattern = '/' . ltrim($except, '/');
 
-            // Check for exact match
-            if ($path === $except) {
-                return true;
-            }
-
-            // Check for wildcard match
-            if (str_ends_with($except, '/*') && str_starts_with($path, rtrim($except, '/*'))) {
+            if (fnmatch($pattern, $path, FNM_PATHNAME)) {
                 return true;
             }
         }

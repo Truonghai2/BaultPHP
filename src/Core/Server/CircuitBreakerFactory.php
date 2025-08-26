@@ -3,6 +3,7 @@
 namespace Core\Server;
 
 use Ackintosh\Ganesha\Builder;
+use Ackintosh\Ganesha\Storage\Adapter\Apcu;
 use Ackintosh\Ganesha\Storage\Adapter\Redis as RedisAdapter;
 use Core\Application;
 use InvalidArgumentException;
@@ -22,7 +23,6 @@ class CircuitBreakerFactory
      */
     public static function create(array $config, Application $app): \Ackintosh\Ganesha
     {
-        // Generate a unique key for the service based on its config to cache it.
         $serviceName = md5(json_encode($config));
         if (isset(self::$instances[$serviceName])) {
             return self::$instances[$serviceName];
@@ -33,6 +33,7 @@ class CircuitBreakerFactory
 
         $adapter = match ($storageType) {
             'redis' => self::createRedisAdapter($app),
+            'apcu' => self::createApcuAdapter(),
             default => throw new InvalidArgumentException("Unsupported circuit breaker storage: {$storageType}. Only 'redis' is supported."),
         };
 
@@ -79,8 +80,22 @@ class CircuitBreakerFactory
     private static function createRedisAdapter(Application $app): RedisAdapter
     {
         try {
-            $redisClient = $app->make('redis')->connection('default');
-            return new RedisAdapter($redisClient);
+            $config = $app->make('config')->get('database.redis.default', []);
+
+            $redis = new \Redis();
+            $redis->connect(
+                $config['host'] ?? '127.0.0.1',
+                $config['port'] ?? 6379,
+                1.0,
+            );
+
+            if (!empty($config['password'])) {
+                $redis->auth($config['password']);
+            }
+
+            $redis->select($config['database'] ?? 0);
+
+            return new RedisAdapter($redis);
         } catch (\Throwable $e) {
             throw new RuntimeException(
                 'Failed to create Redis adapter for Ganesha. Ensure the Redis service is bound correctly in the container.',
@@ -88,5 +103,15 @@ class CircuitBreakerFactory
                 $e,
             );
         }
+    }
+
+    /**
+     * Creates an APCu adapter for Ganesha.
+     *
+     * @throws RuntimeException If the APCu extension is not loaded.
+     */
+    private static function createApcuAdapter(): Apcu
+    {
+        return new Apcu();
     }
 }

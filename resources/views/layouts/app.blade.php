@@ -40,7 +40,7 @@
                 <div class="flex lg:flex-1 items-center">
                     <a href="{{ route('home') }}" class="flex items-center group hover:opacity-90 transition-opacity">
                         <div class="relative">
-                            <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                            {{-- <div class="absolute -inset-2 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-lg blur opacity-20 group-hover:opacity-40 transition duration-500"></div> --}}
                             <img class="relative h-8 w-auto lg:h-10 xl:h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
                         </div>
                     </a>
@@ -108,7 +108,7 @@
         </footer>
     </div>
 
-    {{-- Scripts --}}
+    @include('debug.bar')
     <script>
         document.documentElement.classList.replace('no-js','js');
         // fade-in body

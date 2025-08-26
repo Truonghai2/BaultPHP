@@ -6,7 +6,7 @@ use Core\Exceptions\ContainerException;
 use Core\Exceptions\NotFoundException;
 use Psr\Container\ContainerInterface;
 
-class Application implements ContainerInterface
+class Application implements ContainerInterface, \ArrayAccess
 {
     /**
      * The BaultPHP framework version.
@@ -19,6 +19,9 @@ class Application implements ContainerInterface
     protected array $instances = [];
     protected array $aliases = [];
     protected array $contextual = [];
+
+    /** @var array<string, array<int, \Closure>> The registered extenders for services. */
+    protected array $extenders = [];
 
     /** @var array<string, array<int, string>> Mảng lưu trữ các tag và các abstract được gán. */
     protected array $tags = [];
@@ -127,9 +130,6 @@ class Application implements ContainerInterface
         $this->instance('app', $this);
         $this->instance(Application::class, $this);
 
-        // Register the configuration service as a core singleton.
-        // This is crucial because many parts of the framework, including provider
-        // discovery, depend on the config service being available very early.
         $this->singleton('config', function ($app) {
             return new \Core\Config($app);
         });
@@ -175,8 +175,30 @@ class Application implements ContainerInterface
 
     public function singleton(string $abstract, mixed $concrete = null): void
     {
-        // If no concrete implementation is provided, we'll assume the abstract is the concrete.
         $this->bind($abstract, $concrete ?? $abstract, true);
+    }
+
+    /**
+     * "Extend" an abstract type in the container.
+     *
+     * This allows for decorating or modifying a service after it has been resolved.
+     *
+     * @param  string  $abstract
+     * @param  \Closure  $closure
+     * @return void
+     */
+    public function extend(string $abstract, \Closure $closure): void
+    {
+        $abstract = $this->getAlias($abstract);
+
+        if (isset($this->instances[$abstract])) {
+            // If the instance is already resolved, we apply the extension immediately.
+            $this->instances[$abstract] = $closure($this->instances[$abstract], $this);
+            return;
+        }
+
+        // Otherwise, store the extender to be applied when it's resolved.
+        $this->extenders[$abstract][] = $closure;
     }
 
     /**
@@ -198,15 +220,11 @@ class Application implements ContainerInterface
     {
         $abstract = $this->getAlias($abstract);
 
-        // If the service is deferred, we'll register its provider first.
         if (isset($this->deferredServices[$abstract]) && !isset($this->instances[$abstract])) {
             $this->register($this->deferredServices[$abstract]);
         }
 
-        // Check for a compiled factory first for maximum performance.
-        // We don't pass parameters to compiled factories as they are pre-resolved.
         if (empty($parameters) && isset($this->compiledFactories[$abstract])) {
-            // The compiled factory is a closure that takes the app instance.
             return $this->compiledFactories[$abstract]($this);
         }
 
@@ -214,28 +232,30 @@ class Application implements ContainerInterface
             return $this->instances[$abstract];
         }
 
-        // Detect circular dependencies.
         if (in_array($abstract, $this->resolvingStack)) {
             $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
             throw new ContainerException("Circular dependency detected while resolving: [{$path}]");
         }
 
-        // Add the abstract to the resolving stack to detect circular dependencies.
         $this->resolvingStack[] = $abstract;
 
         try {
             $object = $this->build($abstract, $parameters);
         } finally {
-            // Remove the abstract from the stack once resolution is complete.
             array_pop($this->resolvingStack);
         }
 
-        // If it's a singleton, store the instance for future requests.
+        // Apply extenders to the resolved instance.
+        if (isset($this->extenders[$abstract])) {
+            foreach ($this->extenders[$abstract] as $extender) {
+                $object = $extender($object, $this);
+            }
+        }
+
         if (isset($this->bindings[$abstract]['singleton']) && $this->bindings[$abstract]['singleton']) {
             $this->instances[$abstract] = $object;
         }
 
-        // Fire "after resolving" callbacks.
         if (isset($this->resolvingCallbacks[$abstract])) {
             foreach ($this->resolvingCallbacks[$abstract] as $callback) {
                 $callback($object, $this);
@@ -287,19 +307,16 @@ class Application implements ContainerInterface
         foreach ($dependencies as $dependency) {
             $type = $dependency->getType();
 
-            // Nếu tham số có kiểu và không phải là kiểu built-in, resolve nó từ container.
             if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
                 $results[] = $this->resolveClassParameter($dependency);
                 continue;
             }
 
-            // Nếu tham số không có kiểu hoặc là kiểu built-in, kiểm tra xem có giá trị mặc định không.
             if ($dependency->isDefaultValueAvailable()) {
                 $results[] = $dependency->getDefaultValue();
                 continue;
             }
 
-            // Nếu không có giá trị mặc định và không thể resolve, đây là một lỗi.
             $context = end($this->resolvingStack);
             $paramName = $dependency->getName();
             $message = "Cannot resolve parameter `{$paramName}`";
@@ -324,13 +341,11 @@ class Application implements ContainerInterface
         $type = $parameter->getType()->getName();
         $context = end($this->resolvingStack);
 
-        // Check for a contextual binding.
         if (isset($this->contextual[$context][$type])) {
             $implementation = $this->contextual[$context][$type];
             return is_callable($implementation) ? $implementation($this) : $this->make($implementation);
         }
 
-        // Fallback to normal resolution.
         return $this->make($type);
     }
 
@@ -345,8 +360,6 @@ class Application implements ContainerInterface
 
         if (is_array($callback)) {
             [$class, $method] = $callback;
-            // Nếu phần tử đầu tiên đã là một đối tượng, hãy sử dụng nó.
-            // Ngược lại, resolve nó từ container.
             $instance = is_object($class) ? $class : $this->make($class);
             $callback = [$instance, $method];
         }
@@ -354,7 +367,7 @@ class Application implements ContainerInterface
         $reflector = $this->getFunctionReflector($callback);
         $dependencies = [];
         foreach ($reflector->getParameters() as $parameter) {
-            $paramName = $parameter->getName(); // This line is correct
+            $paramName = $parameter->getName();
             $type = $parameter->getType();
             $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
@@ -387,7 +400,6 @@ class Application implements ContainerInterface
         if (is_array($callback)) {
             $key = get_class($callback[0]) . '@' . $callback[1];
         } else {
-            // Using spl_object_hash for closures is a decent way to cache them for a single request.
             $key = spl_object_hash($callback);
         }
 
@@ -402,27 +414,20 @@ class Application implements ContainerInterface
 
     public function register(string $providerClass): void
     {
-        // If the provider is already registered, we can skip it.
         if ($this->isProviderRegistered($providerClass)) {
             return;
         }
 
         $provider = new $providerClass($this);
 
-        // For deferrable providers, we will only store the services they provide
-        // and register them later when one of their services is requested.
         if ($provider instanceof \Core\Contracts\Support\DeferrableProvider) {
             $this->deferProvider($provider);
         } else {
-            // For regular providers, we register them immediately.
             $provider->register();
         }
 
-        // Mark the provider as registered (either fully or deferred).
         $this->registeredProviders[$providerClass] = true;
 
-        // We always add the provider instance to the list so its `boot` method
-        // can be called later, regardless of whether it was deferred or not.
         $this->serviceProviders[] = $provider;
     }
 
@@ -459,8 +464,6 @@ class Application implements ContainerInterface
             return;
         }
 
-        // This logic is typically in the AppKernel for single-request lifecycles.
-        // We replicate it here for the Swoole worker context.
         $cachedProvidersPath = $this->getCachedProvidersPath();
         if (file_exists($cachedProvidersPath) && !config('app.debug')) {
             $providers = require $cachedProvidersPath;
@@ -473,10 +476,8 @@ class Application implements ContainerInterface
             $this->register($provider);
         }
 
-        // After registering all providers, we boot them.
         $this->boot();
 
-        // Mark the application as bootstrapped.
         $this->hasBeenBootstrapped = true;
     }
 
@@ -635,6 +636,17 @@ class Application implements ContainerInterface
     }
 
     /**
+     * Get the class names of all bindings tagged with a given tag.
+     *
+     * @param  string  $tag
+     * @return array<string>
+     */
+    public function getTaggedClasses(string $tag): array
+    {
+        return $this->tags[$tag] ?? [];
+    }
+
+    /**
      * Resolve tất cả các binding đã được gán một tag nhất định.
      *
      * @param  string  $tag
@@ -662,7 +674,6 @@ class Application implements ContainerInterface
      */
     public function getLocale(): string
     {
-        // Resolve the translator service from the container and get its locale.
         return $this->make('translator')->getLocale();
     }
 
@@ -684,5 +695,54 @@ class Application implements ContainerInterface
     public function getAliasesForCompilation(): array
     {
         return $this->aliases;
+    }
+
+    /**
+     * Determine if a given offset exists.
+     * Required by the ArrayAccess interface.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    public function offsetExists($key): bool
+    {
+        return $this->bound($key);
+    }
+
+    /**
+     * Get the value for a given offset.
+     * Required by the ArrayAccess interface.
+     *
+     * @param  string  $key
+     * @return mixed
+     */
+    public function offsetGet($key): mixed
+    {
+        return $this->make($key);
+    }
+
+    /**
+     * Set the value for a given offset.
+     * Required by the ArrayAccess interface.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return void
+     */
+    public function offsetSet($key, $value): void
+    {
+        $this->instance($key, $value);
+    }
+
+    /**
+     * Unset the value for a given offset.
+     * Required by the ArrayAccess interface.
+     *
+     * @param  string  $key
+     * @return void
+     */
+    public function offsetUnset($key): void
+    {
+        unset($this->bindings[$key], $this->instances[$key], $this->aliases[$key]);
     }
 }

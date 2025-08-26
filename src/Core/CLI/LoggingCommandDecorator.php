@@ -74,15 +74,12 @@ class LoggingCommandDecorator extends Command
         ]);
 
         try {
-            // Ủy quyền việc thực thi thực sự cho instance command được bao bọc.
             $exitCode = $this->command->run($input, $output);
 
             $this->logger->info("Command '{$commandName}' finished successfully with exit code: {$exitCode}.");
 
             return $exitCode;
         } catch (Throwable $e) {
-            // Ghi log bất kỳ exception nào xảy ra trong quá trình thực thi của command.
-            // Thêm file và line để dễ dàng xác định vị trí lỗi.
             $this->logger->error("Command '{$commandName}' failed with an exception.", [
                 'exception' => get_class($e),
                 'file'      => $e->getFile(),
@@ -90,8 +87,6 @@ class LoggingCommandDecorator extends Command
                 'message'   => $e->getMessage(),
             ]);
 
-            // Ném lại exception để trình xử lý lỗi chính của Symfony
-            // có thể tiếp tục xử lý và hiển thị ra console như mong đợi.
             throw $e;
         }
     }

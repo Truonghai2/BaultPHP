@@ -110,6 +110,27 @@ class AccessControlService
     }
 
     /**
+     * Cho phép một người dùng tạm thời đóng vai trò super admin trong request hiện tại.
+     * Hữu ích cho các kịch bản testing hoặc development. Nó bỏ qua các kiểm tra CSDL
+     * bằng cách trực tiếp điền vào cache phân quyền trong bộ nhớ.
+     *
+     * @param User $user Người dùng để cấp quyền super admin.
+     */
+    public function actAsSuperAdmin(User $user): void
+    {
+        $this->permissionCache[$user->id] = [
+            'contexts' => [
+                1 => [
+                    'roles' => [
+                        0 => 'super-admin',
+                    ],
+                    'permissions' => [],
+                ],
+            ],
+        ];
+    }
+
+    /**
      * Checks if a user has the 'super-admin' role in the system context.
      * This check is highly optimized to use the request-level cache.
      *

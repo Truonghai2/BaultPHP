@@ -17,10 +17,8 @@ class RoleSeeder extends Seeder
      */
     public function run(): void
     {
-        // Bước 1: Đồng bộ hóa quyền từ file định nghĩa và dọn dẹp các quyền cũ.
         $definedPermissions = $this->syncPermissions();
 
-        // Bước 2: Tạo/tìm các vai trò cốt lõi.
         $superAdminRole = Role::firstOrCreate(
             ['name' => 'super-admin'],
             [
@@ -37,11 +35,8 @@ class RoleSeeder extends Seeder
             ],
         );
 
-        // Bước 3: Gán quyền cho các vai trò.
-        // Super Admin sẽ nhận TẤT CẢ các quyền hiện có.
         $superAdminRole->permissions()->sync($definedPermissions->pluck('id'));
 
-        // Admin sẽ nhận một tập hợp các quyền cụ thể.
         $adminPermissionNames = [
             'users:view',
             'users:create',
@@ -68,7 +63,6 @@ class RoleSeeder extends Seeder
             Permission::updateOrCreate(['name' => $name], $details);
         }
 
-        // Dọn dẹp các quyền có trong CSDL nhưng không còn trong file định nghĩa.
         Permission::whereNotIn('name', $permissionNames)->delete();
 
         return Permission::whereIn('name', $permissionNames)->get();

@@ -11,7 +11,6 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 use Throwable;
 
 class Handler implements HandlerContract
@@ -235,16 +234,7 @@ class Handler implements HandlerContract
      */
     protected function handleValidationException(Request $request, ValidationException $e): ResponseInterface
     {
-        $this->logger->info('handleValidationException called.', ['referer' => $request->getHeaderLine('Referer')]);
-
-        /** @var SessionInterface $session */
-        $session = app(SessionInterface::class);
-
-        $session->flash('errors', $e->errors());
-        $session->flash('_old_input', $request->getParsedBody());
-
-        // Use Core\Http\Response::redirect() for redirecting
-        return Response::redirect('/login');
+        return $this->prepareJsonResponse($request, $e);
     }
 
     /**

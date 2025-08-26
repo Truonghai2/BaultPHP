@@ -1,0 +1,31 @@
+<?php
+
+declare(strict_types=1);
+
+namespace {{ namespace }};
+
+use {{ model_namespace }};
+
+/**
+ * Interface for the {{ model }} repository.
+ * Defines the contract for data access operations related to {{ model }} entities.
+ */
+interface {{ class }}
+{
+    /**
+     * Find an entity by its ID.
+     *
+     * @param int $id
+     * @return {{ model }}|null
+     */
+    // public function find(int $id): ?{{ model }};
+
+    /**
+     * Create a new entity.
+     *
+     * @param array<string, mixed> $data
+     * @return {{ model }}
+     */
+    // public function create(array $data): {{ model }};
+}
+

@@ -2,17 +2,17 @@
 
 namespace Modules\User\Http\Controllers\Auth;
 
-use Core\Auth\AuthManager;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Core\Support\Facades\Log;
 use Modules\User\Application\Commands\LoginUserCommand;
 use Modules\User\Application\Handlers\LoginUserHandler;
+use Modules\User\Application\Handlers\LogoutUserHandler;
 use Modules\User\Http\Requests\LoginRequest;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
-#[Route(prefix: '/auth', name: 'auth.')]
+#[Route(prefix: '/auth', name: 'auth.', group: 'web')]
 class LoginController extends Controller
 {
     #[Route(method: 'GET', uri: '/login', name: 'login.view')]
@@ -24,43 +24,40 @@ class LoginController extends Controller
     /**
      * Handle a login request to the application.
      */
-    #[Route(method: 'POST', uri: '/login', name: 'login')]
-    public function login(LoginRequest $request, LoginUserHandler $handler): ResponseInterface
+    #[Route(
+        method: 'POST',
+        uri: '/login',
+        name: 'login',
+        middleware: ['throttle:5,1'],
+    )]
+    public function login(LoginRequest $request, LoginUserHandler $handler, SessionInterface $session): ResponseInterface
     {
-        // By type-hinting LoginRequest, validation has already passed.
-        $validatedData = $request->validated();
-        $parsedBody = $request->getParsedBody();
+        $data = $request->validated();
+        $remember = !empty($request->getParsedBody()['remember'] ?? false);
 
-        $remember = !empty($parsedBody['remember']);
-        $oauthRedirectUrl = $parsedBody['redirect'] ?? null;
+        $command = new LoginUserCommand($data['email'], $data['password'], $remember);
 
-        Log::info('Login attempt', [
-            'email' => $validatedData['email'],
-            'remember' => $remember,
-            'redirect' => $oauthRedirectUrl,
-        ]);
+        $user = $handler->handle($command);
 
-        $command = new LoginUserCommand($validatedData['email'], $validatedData['password'], $remember);
-
-        if ($handler->handle($command)) {
-            return redirect()->intended($oauthRedirectUrl ?? route('home'));
+        if ($user) {
+            return redirect()->intended(route('home'));
         }
 
-        Log::warning('Login failed', ['email' => $validatedData['email']]);
+        $input = $request->getParsedBody();
+        unset($input['password']);
 
         return redirect()->back()
-            ->withErrors(['email' => 'Thông tin đăng nhập không chính xác.'])
-            ->withInput($request->getParsedBody());
+            ->withErrors(['email' => __('Invalid credentials.')])
+            ->withInput($input);
     }
 
     /**
      * Log the user out of the application.
      */
     #[Route(method: 'POST', uri: '/logout', name: 'logout')]
-    public function logout(AuthManager $auth): ResponseInterface
+    public function logout(LogoutUserHandler $handler): ResponseInterface
     {
-        // All logout logic (clearing user, invalidating session) is now encapsulated in the guard.
-        $auth->guard('web')->logout();
+        $handler->handle();
 
         return redirect('/');
     }

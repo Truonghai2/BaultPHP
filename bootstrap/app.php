@@ -66,6 +66,7 @@ $app->register(\App\Providers\CacheServiceProvider::class);
 |
 */
 $app->register(\App\Providers\ViewServiceProvider::class);
+$app->register(\App\Providers\HashServiceProvider::class);
 $app->register(\App\Providers\SessionServiceProvider::class);
 $app->register(\App\Providers\TranslationServiceProvider::class);
 $app->register(\App\Providers\ValidationServiceProvider::class);

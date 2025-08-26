@@ -29,6 +29,8 @@ return [
     'providers' => [
         \App\Providers\AppServiceProvider::class,
         \App\Providers\ViewServiceProvider::class,
+        \App\Providers\EncryptionServiceProvider::class,
+        \App\Providers\HashServiceProvider::class,
         \App\Providers\AuthServiceProvider::class,
         \App\Providers\RouteServiceProvider::class,
         \App\Providers\ConsoleServiceProvider::class,
@@ -52,6 +54,7 @@ return [
         'Config'  => Illuminate\Support\Facades\Config::class,
         'Log'     => Core\Support\Facades\Log::class,
         'Gate'    => Core\Support\Facades\Gate::class,
+        'Hash'    => Core\Support\Facades\Hash::class,
         'Queue'   => Core\Support\Facades\Queue::class,
         'Mail'    => Core\Support\Facades\Mail::class,
     ],

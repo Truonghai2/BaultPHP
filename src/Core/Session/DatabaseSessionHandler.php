@@ -64,7 +64,15 @@ class DatabaseSessionHandler implements SessionHandlerInterface
             ];
 
             // Sử dụng cú pháp "upsert" (update or insert) để hiệu quả
-            $sql = "REPLACE INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id) VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)";
+            // Cải tiến: Sử dụng INSERT ... ON DUPLICATE KEY UPDATE thay vì REPLACE.
+            // Lệnh này hiệu quả hơn và ít phá hủy hơn (không thực hiện DELETE + INSERT),
+            // giúp giữ lại các giá trị không thay đổi và tránh kích hoạt trigger DELETE không mong muốn.
+            // Lưu ý: Cú pháp này dành riêng cho MySQL/MariaDB.
+            $sql = "INSERT INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id)
+                    VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)
+                    ON DUPLICATE KEY UPDATE
+                    payload = VALUES(payload), last_activity = VALUES(last_activity),
+                    ip_address = VALUES(ip_address), user_agent = VALUES(user_agent), user_id = VALUES(user_id)";
 
             $stmt = $pdo->prepare($sql);
 
@@ -101,9 +109,9 @@ class DatabaseSessionHandler implements SessionHandlerInterface
     /**
      * Get a database connection from the pool or create a new one.
      *
-     * @return PDO
+     * @return \PDO|\Swoole\Database\PDOProxy
      */
-    protected function getConnection(): PDO
+    protected function getConnection(): mixed
     {
         // The check must be performed here, inside the method, not in the constructor.
         // This ensures we check the context for every session operation, not just once at worker startup.

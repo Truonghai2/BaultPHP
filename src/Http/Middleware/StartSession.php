@@ -7,9 +7,13 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
+/**
+ * Middleware này chịu trách nhiệm khởi động session từ request đến.
+ * Nó đọc session ID từ cookie và gọi session->start().
+ * Việc lưu session sẽ được xử lý bởi một middleware khác (TerminateSession).
+ */
 class StartSession implements MiddlewareInterface
 {
     public function __construct(protected Application $app)
@@ -19,22 +23,15 @@ class StartSession implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         /** @var SessionInterface $session */
-        $session = $this->app->get('session');
-        $session->start();
+        $session = $this->app->make('session');
 
-        // This is the crucial part: we need to attach the session to the request
-        // so that other parts of the application can access it.
-        if ($request instanceof Request) {
-            $request->setSession($session);
+        $cookies = $request->getCookieParams();
+        if (isset($cookies[$session->getName()])) {
+            $session->setId($cookies[$session->getName()]);
         }
 
-        $response = $handler->handle($request);
+        $session->start();
 
-        // The session is saved automatically when the session object is destructed.
-        // Explicitly calling save() can be problematic in some cases, especially with async requests.
-        // We'll rely on the default behavior for now.
-        // $session->save();
-
-        return $response;
+        return $handler->handle($request);
     }
 }

@@ -38,12 +38,12 @@ class OAuth2ServiceProvider extends BaseServiceProvider
                 $config->get('oauth2.encryption_key'),
             );
 
-            // 1. Authorization Code Grant (for 3rd-party apps)
             $authCodeGrant = new AuthCodeGrant(
                 $app->make(AuthCodeRepository::class),
                 $app->make(RefreshTokenRepository::class),
                 new DateInterval($config->get('oauth2.auth_code_ttl')),
             );
+            $authCodeGrant->enablePkce();
 
             $authCodeGrant->setRefreshTokenTTL(new DateInterval($config->get('oauth2.refresh_token_ttl')));
 

@@ -1,79 +1,106 @@
 <?php
 
-namespace Http\Controllers\Admin;
+namespace Core\Services;
 
-use Core\Module\ModuleManager;
-use Core\Routing\Attributes\Route;
-use Core\Support\Facades\Log;
-use Psr\Http\Message\ServerRequestInterface as Request;
-use Spiral\Goridge\RPC\RPC;
+use Core\Exceptions\Module\ModuleNotFoundException;
+use Core\Filesystem\Filesystem;
+use Core\ORM\Connection;
+use PDO;
 
-// Add a Route attribute to the class to define a common prefix for all routes within.
-// Apply the 'can' middleware with the 'admin.modules.manage' permission.
-#[Route(prefix: '/api/admin/modules', middleware: ['can:admin.modules.manage'])]
-class ModuleController
+/**
+ * Handles business logic for managing modules.
+ */
+class ModuleService
 {
-    public function __construct(private ModuleManager $moduleManager, private ?RPC $rpc)
-    {
+    protected string $modulesPath;
+    protected PDO $pdo;
+
+    public function __construct(
+        protected Filesystem $fs,
+        Connection $connection,
+    ) {
+        $this->modulesPath = base_path('Modules');
+        $this->pdo = $connection->connection();
     }
 
     /**
-     * Get a list of all modules.
-     */
-    #[Route('', method: 'GET')]
-    public function index(Request $request): \Http\JsonResponse
-    {
-        $modules = $this->moduleManager->getAllModules();
-
-        $syncResult = $request->getAttribute('sync_result');
-
-        return response()->json([
-            'modules' => $modules,
-            'sync_result' => $syncResult,
-        ]);
-    }
-
-    /**
-     * Enable a module.
-     */
-    #[Route('/{moduleName}/enable', method: 'POST')]
-    public function enable(string $moduleName): \Http\JsonResponse
-    {
-        return $this->setModuleStatus($moduleName, 'enable');
-    }
-
-    /**
-     * Disable a module.
-     */
-    #[Route('/{moduleName}/disable', method: 'POST')]
-    public function disable(string $moduleName): \Http\JsonResponse
-    {
-        return $this->setModuleStatus($moduleName, 'disable');
-    }
-
-    /**
-     * Helper method to handle enabling or disabling a module.
-     * This reduces code duplication between the enable() and disable() methods.
+     * Get a list of all modules from the filesystem and database.
      *
-     * @param string $moduleName The name of the module to act upon.
-     * @param string $action The action to perform ('enable' or 'disable').
-     * @return \Http\JsonResponse
+     * @return array
      */
-    private function setModuleStatus(string $moduleName, string $action): \Http\JsonResponse
+    public function getModules(): array
     {
-        $pastTenseAction = $action . 'd'; // "enabled" or "disabled"
+        $directories = $this->fs->directories($this->modulesPath);
+        $installedModules = [];
 
         try {
-            $this->moduleManager->{$action}($moduleName);
-            $this->rpc?->call('resetter.reset', [
-                env('RPC_SECRET_TOKEN'),
-                ['http', 'centrifuge'], // Reset web and websocket workers
-                "Module '{$moduleName}' was {$pastTenseAction}.",
-            ]);
-            return response()->json(['message' => "Module '{$moduleName}' {$pastTenseAction} successfully."]);
-        } catch (\Exception $e) {
-            Log::error("Failed to {$action} module '{$moduleName}': " . $e->getMessage(), ['exception' => $e]);
-            return response()->json(['message' => $e->getMessage()], 500);
+            $stmt = $this->pdo->query('SELECT name, enabled, version, description FROM modules');
+            $dbModules = $stmt ? $stmt->fetchAll(PDO::FETCH_KEY_PAIR | PDO::FETCH_GROUP) : [];
+        } catch (\PDOException $e) {
+            $dbModules = [];
         }
+
+        foreach ($directories as $dir) {
+            $name = basename($dir);
+            $jsonPath = $dir . '/module.json';
+
+            if (!$this->fs->exists($jsonPath) || !($meta = json_decode($this->fs->get($jsonPath), true))) {
+                continue;
+            }
+
+            $installedModules[] = [
+                'name' => $name,
+                'version' => $dbModules[$name][0]['version'] ?? $meta['version'] ?? '1.0.0',
+                'description' => $dbModules[$name][0]['description'] ?? $meta['description'] ?? 'No description provided.',
+                'enabled' => isset($dbModules[$name]) ? (bool) $dbModules[$name][0]['enabled'] : ($meta['enabled'] ?? false),
+            ];
+        }
+
+        return $installedModules;
+    }
+
+    /**
+     * Toggles the enabled/disabled status of a module.
+     *
+     * @param string $moduleName
+     * @return bool The new status of the module.
+     * @throws ModuleNotFoundException
+     */
+    public function toggleStatus(string $moduleName): bool
+    {
+        $stmt = $this->pdo->prepare('SELECT enabled FROM modules WHERE name = ?');
+        $stmt->execute([$moduleName]);
+        $result = $stmt->fetchColumn();
+
+        if ($result === false) {
+            throw new ModuleNotFoundException("Module '{$moduleName}' not found in the database.");
+        }
+
+        $currentStatus = (bool) $result;
+        $newStatus = !$currentStatus;
+
+        $stmt = $this->pdo->prepare('UPDATE modules SET enabled = ? WHERE name = ?');
+        $stmt->execute([$newStatus ? 1 : 0, $moduleName]);
+
+        return $newStatus;
+    }
+
+    /**
+     * Deletes a module completely.
+     *
+     * @throws ModuleNotFoundException
+     */
+    public function deleteModule(string $moduleName): void
+    {
+        $dir = $this->modulesPath . '/' . $moduleName;
+
+        if (!$this->fs->isDirectory($dir)) {
+            throw new ModuleNotFoundException("Module directory '{$moduleName}' does not exist.");
+        }
+
+        $stmt = $this->pdo->prepare('DELETE FROM modules WHERE name = ?');
+        $stmt->execute([$moduleName]);
+
+        $this->fs->deleteDirectory($dir);
     }
 }

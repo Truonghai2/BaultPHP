@@ -5,6 +5,7 @@ namespace App\Providers;
 use Core\CLI\ConsoleKernel;
 use Core\Console\Commands\Cache\ConfigCacheCommand;
 use Core\Console\Commands\Cache\ConfigClearCommand;
+use Core\Console\Commands\Database\DbSeedCommand;
 use Core\Console\Commands\Database\MigrateModulesCommand;
 use Core\Console\Commands\OptimizeCommand;
 use Core\Console\Commands\OptimizeCompileCommand;
@@ -45,6 +46,7 @@ class ConsoleServiceProvider extends ServiceProvider
                 ConfigClearCommand::class,
                 OptimizeCompileCommand::class,
                 OptimizeCommand::class,
+                DbSeedCommand::class,
                 MigrateModulesCommand::class,
             ];
             foreach ($commands as $command) {

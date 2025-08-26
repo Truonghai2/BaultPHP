@@ -5,7 +5,6 @@ namespace Http;
 use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
-use Core\Contracts\Session\Session;
 use Core\Exceptions\HttpResponseException;
 use Core\Exceptions\ValidationException;
 use Core\Http\Redirector;
@@ -16,7 +15,7 @@ use Psr\Http\Message\ServerRequestInterface;
 abstract class FormRequest
 {
     protected Application $app;
-    protected ServerRequestInterface $request;
+    protected ?ServerRequestInterface $request = null;
     protected ?Validator $validator = null;
     protected ?Authenticatable $user;
     /**
@@ -43,7 +42,7 @@ abstract class FormRequest
      */
     public function authorize(): bool
     {
-        return false; // Mặc định là false để buộc lập trình viên phải định nghĩa quyền.
+        return false;
     }
 
     /**
@@ -77,10 +76,6 @@ abstract class FormRequest
      */
     public function validateResolved(): void
     {
-        // If the request property hasn't been set by the Kernel (for whatever reason),
-        // we resolve it from the container here. This makes the FormRequest more robust
-        // and solves the "accessed before initialization" error when validation is
-        // triggered from within the controller via `validated()`.
         if (!isset($this->request)) {
             $this->setRequest($this->app->make(ServerRequestInterface::class));
         }
@@ -110,21 +105,39 @@ abstract class FormRequest
         return $this->validator->validated();
     }
 
+    /**
+     * Retrieve a validated uploaded file from the request.
+     *
+     * @param string $key The key for the uploaded file.
+     * @return \Psr\Http\Message\UploadedFileInterface|null
+     */
+    public function file(string $key): ?\Psr\Http\Message\UploadedFileInterface
+    {
+        $validated = $this->validated();
+        $file = $validated[$key] ?? null;
+
+        return $file instanceof \Psr\Http\Message\UploadedFileInterface ? $file : null;
+    }
+
+    /**
+     * Check if a validated uploaded file exists on the request.
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function hasFile(string $key): bool
+    {
+        return null !== $this->file($key);
+    }
+
     protected function failedValidation(Validator $validator): void
     {
         $exception = new ValidationException($validator);
 
-        // For API requests (identified by expecting JSON), we still throw the
-        // standard validation exception. The global exception handler is
-        // responsible for formatting this into a 422 JSON response.
         if ($this->expectsJson()) {
             throw $exception;
         }
 
-        // For traditional web requests, we create a redirect response
-        // with the validation errors and old input flashed to the session.
-        // This is then wrapped in an HttpResponseException to stop execution
-        // and immediately send the redirect.
         throw new HttpResponseException(
             $this->redirectBackWithErrors($validator),
         );
@@ -153,8 +166,6 @@ abstract class FormRequest
      */
     protected function expectsJson(): bool
     {
-        // A simple check based on the Accept header.
-        // A more robust implementation might check for X-Requested-With header as well.
         if (!isset($this->request)) {
             return false;
         }
@@ -189,6 +200,7 @@ abstract class FormRequest
             $routeParams,
             $this->request->getQueryParams(),
             $this->getParsedBody(),
+            $this->request->getUploadedFiles(),
         );
     }
 
@@ -200,10 +212,10 @@ abstract class FormRequest
      */
     public function getParsedBody(): array
     {
-
         if (!isset($this->request)) {
             $this->setRequest($this->app->make(ServerRequestInterface::class));
         }
+
         if (is_null($this->cachedParsedBody)) {
             $this->cachedParsedBody = (array) $this->request->getParsedBody();
         }
@@ -222,6 +234,10 @@ abstract class FormRequest
      */
     public function __call(string $method, array $args)
     {
+        if (!isset($this->request)) {
+            $this->setRequest($this->app->make(ServerRequestInterface::class));
+        }
+
         return $this->request->$method(...$args);
     }
 
@@ -230,6 +246,23 @@ abstract class FormRequest
      */
     public function __get(string $key)
     {
+        if (!isset($this->request)) {
+            $this->setRequest($this->app->make(ServerRequestInterface::class));
+        }
+
         return $this->request->$key;
+    }
+
+    public function all(): array
+    {
+        if (!isset($this->request)) {
+            $this->setRequest($this->app->make(ServerRequestInterface::class));
+        }
+
+        return array_merge(
+            $this->request->getQueryParams(),
+            $this->getParsedBody(),
+            $this->request->getUploadedFiles(),
+        );
     }
 }

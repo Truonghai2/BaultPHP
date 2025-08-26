@@ -8,28 +8,16 @@ services:
       - vite
     volumes:
       - .:/app:cached
-      # THÊM LẠI: Các volume này bị thiếu, khiến log và view không được ghi ra host.
-      - ./storage:/app/storage:cached
-      - ./bootstrap/cache:/app/bootstrap/cache:cached
-      # Kỹ thuật "volume shadowing": Dòng này bảo Docker "Hãy giữ lại thư mục /app/vendor
-      # đã được build trong image, đừng ghi đè nó bằng thư mục vendor (nếu có) từ host".
-      # Điều này đảm bảo các dependency trong container luôn đúng với composer.lock.
       - /app/vendor
 
   nginx:
-    # Giữ lại ports, vì nó chỉ được định nghĩa ở đây cho môi trường dev.
     ports:
       - "${NGINX_HOST_PORT:-88}:80"
-    # XÓA BỎ: Section `volumes` ở đây đang ghi đè và làm mất các volume cần thiết
-    # (như file config và thư mục code) đã được định nghĩa trong file docker-compose.yml chính.
 
   vite:
     ports:
-      # Ánh xạ port của Vite ra ngoài host để truy cập từ trình duyệt.
       - "${VITE_HOST_PORT:-5173}:5173"
     volumes:
-      # Mount source code, nhưng sử dụng một volume riêng cho node_modules
-      # để tránh các vấn đề về quyền và hiệu năng giữa host và container.
       - .:/app:cached
       - bault-node-modules:/app/node_modules
 
@@ -42,6 +30,5 @@ services:
       - "${PMA_HOST_PORT:-8080}:80"
 
 volumes:
-  # Định nghĩa volume cho node_modules để nó được quản lý bởi Docker.
   bault-node-modules:
     driver: local

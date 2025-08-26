@@ -6,8 +6,10 @@ use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\StatefulService;
 use Core\Contracts\Task\Task;
+use Core\Debug\DebugManager;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Queue\DelayedJobScheduler;
+use Core\Redis\RedisManager;
 use Core\Server\Development\FileWatcher;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -16,7 +18,6 @@ use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Server as SwooleHttpServer;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
-use Symfony\Component\HttpFoundation\Request as SymfonyRequest;
 use Throwable;
 
 class SwooleServer
@@ -41,15 +42,10 @@ class SwooleServer
 
     public function __construct(Application $app)
     {
-        // Không thể log ở đây vì logger chưa được bootstrap.
         $this->app = $app;
 
-        // Lấy cấu hình do người dùng định nghĩa từ file config.
         $this->config = config('server.swoole', []);
 
-        // Trong môi trường container (như Docker), server phải lắng nghe trên '0.0.0.0'
-        // để có thể nhận kết nối từ các container khác (ví dụ: Nginx reverse proxy).
-        // Lắng nghe trên '127.0.0.1' sẽ chỉ chấp nhận kết nối từ bên trong chính container đó.
         $host = $this->config['host'] ?? '0.0.0.0';
         $port = $this->config['port'] ?? 9501;
 
@@ -86,45 +82,28 @@ class SwooleServer
         $isProduction = config('app.env', 'production') === 'production';
 
         return [
-            // --- Cấu hình Worker ---
-            // Mặc định: 1x số lõi CPU cho dev, 2x cho prod (tối ưu cho I/O-bound).
-            // Có thể ghi đè qua config/server.php và .env.
             'worker_num' => swoole_cpu_num() * ($isProduction ? 2 : 1),
-            'task_worker_num' => swoole_cpu_num(), // Giữ mặc định, có thể tùy chỉnh.
+            'task_worker_num' => swoole_cpu_num(),
             'task_enable_coroutine' => true,
 
-            // --- Cấu hình cho Production ---
             'pid_file' => storage_path('logs/swoole.pid'),
             'log_file' => storage_path('logs/swoole.log'),
-            // Mặc định: INFO cho dev, WARNING cho prod để giảm I/O.
             'log_level' => $isProduction ? SWOOLE_LOG_WARNING : SWOOLE_LOG_INFO,
 
-            // --- Tối ưu hóa hiệu năng & độ ổn định ---
-            // Khởi động lại worker sau một số lượng request nhất định để giải phóng bộ nhớ.
-            // 10000 là một con số an toàn cho production.
             'max_request' => 10000,
-            // Thời gian chờ tối đa (giây) cho các worker hoàn thành request đang xử lý
-            // trước khi bị buộc dừng trong quá trình graceful shutdown.
-            // Đây là chìa khóa cho việc tắt server an toàn.
             'max_wait_time' => 30,
             'task_max_request' => 10000,
             'max_connection' => 10000,
 
-            // Bật các giao thức TCP để cải thiện hiệu năng mạng.
             'open_tcp_nodelay' => true,
 
-            // Bật HTTP/2 nếu proxy hỗ trợ.
             'open_http2_protocol' => true,
 
-            // Kích thước bộ đệm đầu ra. Tăng giá trị này giúp cải thiện hiệu năng
-            // khi gửi các response lớn. (32MB)
             'buffer_output_size' => 32 * 1024 * 1024,
 
-            // Tối ưu hóa việc upload file lớn.
             'http_parse_post' => true,
             'upload_tmp_dir' => storage_path('app/uploads'),
 
-            // Mặc định không bật hot-reload
             'watch' => [],
         ];
     }
@@ -136,24 +115,14 @@ class SwooleServer
      */
     private function prepareServerSettings(): array
     {
-        // Bắt đầu với cấu hình mặc định, an toàn.
         $settings = $this->getDefaultSettings();
 
-        // Ghi đè bằng cấu hình của người dùng từ config/server.php.
-        // array_replace_recursive tốt hơn array_merge cho các mảng config đa cấp.
         $settings = array_replace_recursive($settings, $this->config);
 
-        // Luôn bật hot-reload nếu môi trường là 'local' và có cấu hình 'watch'.
-        // Điều này đảm bảo `serve:start` cũng có hot-reload khi phát triển.
-        // Sử dụng config('app.env') thay vì env() trực tiếp để tận dụng caching config.
-        // Hàm config() sẽ fallback về env() nếu giá trị chưa được cache.
         $currentEnv = config('app.env', 'production');
         $isDevelopmentEnv = in_array($currentEnv, ['local', 'development'], true);
         $watchConfigExists = !empty($settings['watch']['directories']) && is_array($settings['watch']['directories']);
 
-        // Khi chạy trong container hoặc thông qua `php cli serve`,
-        // server phải luôn chạy ở foreground. Docker/process manager sẽ quản lý việc chạy nền.
-        // Ghi đè bất kỳ cấu hình `daemonize` nào từ người dùng để đảm bảo hành vi đúng.
         $settings['daemonize'] = false;
 
         return $settings;
@@ -193,7 +162,6 @@ class SwooleServer
     public function onStart(SwooleHttpServer $server): void
     {
         $this->getLogger()->info('Swoole HTTP server is started', ['url' => "http://{$server->host}:{$server->port}"]);
-        // Start the file watcher if it's enabled.
         $this->fileWatcher?->start();
     }
 
@@ -208,41 +176,34 @@ class SwooleServer
 
     public function onWorkerExit(SwooleHttpServer $server, int $workerId): void
     {
-        // This event is triggered when a worker process exits unexpectedly.
         $this->getLogger()->warning("Swoole Worker #{$workerId} exited unexpectedly.", ['worker_id' => $workerId]);
     }
 
     public function handleRequest(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse): void
     {
-        // The "Sandbox" Pattern: Execute request handling in a try-finally block
-        // to ensure state is always cleaned up, preventing memory leaks between requests.
         $startTime = microtime(true);
-        $requestId = bin2hex(random_bytes(4)); // Tạo ID duy nhất cho request để dễ trace
+        $requestId = bin2hex(random_bytes(4));
         try {
-            // Bind the request ID to the container so it can be accessed by services like the logger.
             $this->app->instance('request_id', $requestId);
+
+            $this->app->instance(SwooleRequest::class, $swooleRequest);
+
+            /** @var DebugManager $debugManager */
+            if ($this->app->bound(DebugManager::class)) {
+                $this->app->make(DebugManager::class)->enable();
+            }
 
             if ($this->isDebug) {
                 $this->getLogger()->debug("Request [{$requestId}] received.", ['method' => $swooleRequest->getMethod(), 'uri' => $swooleRequest->server['request_uri']]);
             }
 
-            // CẢI TIẾN: Chuyển đổi request bên trong try-catch để bắt lỗi parsing.
             $psr7Request = $this->transformRequest($swooleRequest);
 
-            // Convert PSR-7 request to Symfony Request
-            $symfonyRequest = $this->httpFoundationFactory->createRequest($psr7Request);
-
-            // Bind the current PSR-7 request instance to the container.
-            // This allows any service resolved during this request's lifecycle
-            // to receive the correct request object via dependency injection.
-            // This is crucial for long-running applications like Swoole.
             $this->app->instance(ServerRequestInterface::class, $psr7Request);
-            $this->app->instance(SymfonyRequest::class, $symfonyRequest);
 
             try {
                 $response = $this->kernel->handle($psr7Request);
             } catch (ServiceUnavailableException $e) {
-                // Handle the specific case where a service is down (circuit is open)
                 $response = $this->exceptionHandler->render($psr7Request, $e);
                 $this->getLogger()->warning("Request [{$requestId}]: Service unavailable, circuit breaker is likely open.", ['exception' => $e->getMessage()]);
             } catch (Throwable $e) {
@@ -259,7 +220,35 @@ class SwooleServer
                 $service->resetState();
             }
 
+            if ($this->app->bound(DebugManager::class)) {
+                /** @var DebugManager $debugManager */
+                $debugManager = $this->app->make(DebugManager::class);
+                if ($debugManager->isEnabled() && isset($response) && str_contains($response->getHeaderLine('Content-Type'), 'text/html')) {
+                    try {
+                        $configService = $this->app->make('config');
+
+                        if (method_exists($configService, 'all')) {
+                            $debugManager->recordConfig($configService->all());
+                        }
+
+                        $debugManager->recordRequestInfo([
+                            'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
+                            'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
+                        ]);
+
+                        $debugData = $debugManager->getData();
+                        /** @var RedisManager $redisManager */
+                        $redisManager = $this->app->make(RedisManager::class);
+                        $key = 'debug:requests:' . $requestId;
+                        $redisManager->setex($key, config('debug.expiration', 3600), json_encode($debugData));
+                    } catch (Throwable $e) {
+                        $this->getLogger()->error('Failed to save debug data to Redis.', ['exception' => $e]);
+                    }
+                }
+            }
+
             $this->app->forgetInstance(ServerRequestInterface::class);
+            $this->app->forgetInstance(SwooleRequest::class);
             $this->app->forgetInstance('request_id');
 
             if (++$this->requestCount % 1000 === 0) {
@@ -292,7 +281,6 @@ class SwooleServer
         );
 
         try {
-            // Unserialize the task object.
             $task = unserialize($data);
 
             if ($task instanceof Task) {
@@ -318,8 +306,6 @@ class SwooleServer
     {
         $logContext = ['task_id' => $taskId, 'worker_id' => $server->worker_id];
 
-        // You can process the result from the task worker here.
-        // For example, log the result or notify a user via WebSocket.
         if (is_array($data) && isset($data['error'])) {
             $this->getLogger()->warning(
                 "Task #{$taskId} completed with an error: {$data['message']}",
@@ -337,36 +323,35 @@ class SwooleServer
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
         try {
-            // Reset OPCache if available to ensure fresh code on reload
             if (function_exists('opcache_reset')) {
                 opcache_reset();
             }
 
-            // Bootstrap the application for each worker to ensure a clean state.
             $this->app->bootstrap();
 
-            // Cache debug status for performance.
             $this->isDebug = $this->app->make('config')->get('app.debug', false);
 
-            // Resolve core components from the container for this worker.
             $this->kernel = $this->app->make(\Core\Contracts\Http\Kernel::class);
             $this->exceptionHandler = $this->app->make(ExceptionHandler::class);
 
-            // IMPORTANT: Initialize the ConnectionPoolManager AFTER bootstrapping.
-            // This ensures that services like 'config' and 'log' are available.
-            $this->poolManager = new ConnectionPoolManager($this->app, $this->getLogger(), $this->config);
+            $configPath = base_path('config/server.php');
+            if (!file_exists($configPath)) {
+                $this->getLogger()->error('Server config file not found, pools will not be initialized.', ['path' => $configPath]);
+                $workerSwooleConfig = [];
+            } else {
+                $workerSwooleConfig = (require $configPath)['swoole'] ?? [];
+            }
+
+            $this->poolManager = new ConnectionPoolManager($this->app, $this->getLogger(), $workerSwooleConfig);
             $this->poolManager->initializePools($server->taskworker);
 
-            // Log worker start event.
             $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
             $this->getLogger()->info(
                 "Swoole {$workerType} started successfully",
                 ['worker_id' => $workerId, 'pid' => getmypid()],
             );
 
-            // Start the delayed job scheduler only on the first HTTP worker.
             if (!$server->taskworker && $workerId === 0) {
-                // Disable scheduler if file watcher is active to prevent conflicts.
                 if ($this->fileWatcher !== null) {
                     $this->getLogger()->info('Delayed job scheduler is disabled because file watcher is active.');
                     return;
@@ -380,13 +365,18 @@ class SwooleServer
                 }
             }
         } catch (Throwable $e) {
-            // If a worker fails to start, log the fatal error and exit the worker.
-            // This prevents the master process from endlessly respawning a broken worker.
+            try {
+                $this->getLogger()->critical(
+                    "Worker #{$workerId} failed to start: " . $e->getMessage(),
+                    ['exception' => $e, 'file' => $e->getFile(), 'line' => $e->getLine()],
+                );
+            } catch (Throwable $logError) {
+                error_log('Worker start failure: ' . $e->getMessage() . "\n" . $e->getTraceAsString());
+                error_log('Logging service also failed: ' . $logError->getMessage());
+            }
+
             if (isset($this->exceptionHandler)) {
                 $this->exceptionHandler->report($e);
-            } else {
-                // Fallback if logger itself failed
-                error_log('Worker failed to start: ' . $e->getMessage() . PHP_EOL . $e->getTraceAsString());
             }
             $server->stop($workerId);
         }
@@ -414,12 +404,18 @@ class SwooleServer
 
     protected function transformResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
+        // Thêm debug header nếu debug được bật
+        if ($this->app->bound(DebugManager::class) && $this->app->make(DebugManager::class)->isEnabled()) {
+            $requestId = $this->app->make('request_id');
+            $response = $response->withHeader('X-Debug-ID', $requestId);
+        }
+
         $this->psr7Bridge->toSwooleResponse($response, $swooleResponse);
     }
 
     /**
      * Log an incoming request and its response to the terminal in development.
-     *
+
      * @param ServerRequestInterface $request
      * @param ResponseInterface $response
      * @param float $startTime

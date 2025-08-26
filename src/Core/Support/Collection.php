@@ -308,6 +308,25 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
+     * Filter items by a given key value pair.
+     *
+     * @param  string  $key
+     * @param  mixed  $values
+     * @param  bool  $strict
+     * @return static
+     */
+    public function whereIn(string $key, $values, bool $strict = false): static
+    {
+        $values = $this->getArrayableItems($values);
+
+        return $this->filter(function ($item) use ($key, $values, $strict) {
+            $itemValue = is_object($item) ? ($item->{$key} ?? null) : ($item[$key] ?? null);
+
+            return in_array($itemValue, $values, $strict);
+        });
+    }
+
+    /**
      * Kiểm tra xem một item có tồn tại trong collection bằng key không.
      *
      * @param  mixed  $key

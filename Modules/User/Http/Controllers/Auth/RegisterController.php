@@ -10,6 +10,7 @@ use Modules\User\Application\Commands\RegisterUserCommand;
 use Modules\User\Application\Handlers\RegisterUserHandler;
 use Modules\User\Http\Requests\RegisterRequest;
 use Psr\Http\Message\ResponseInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 #[Route(prefix: '/auth', name: 'auth.')]
 class RegisterController extends Controller
@@ -24,7 +25,7 @@ class RegisterController extends Controller
      * Handle a registration request for the application.
      */
     #[Route(method: 'POST', uri: '/register', name: 'register')]
-    public function register(RegisterRequest $request, RegisterUserHandler $handler, AuthManager $auth): ResponseInterface
+    public function register(RegisterRequest $request, RegisterUserHandler $handler, AuthManager $auth, SessionInterface $session): ResponseInterface
     {
         $data = $request->validated();
 
@@ -33,6 +34,8 @@ class RegisterController extends Controller
         $user = $handler->handle($command);
 
         $auth->guard('web')->login($user);
+
+        $session->migrate(true);
 
         return redirect(route('home'));
     }

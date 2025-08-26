@@ -13,8 +13,12 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Gọi các seeder khác từ đây.
-        // $this->call(UserSeeder::class);
-        $this->call(OAuthClientSeeder::class);
+        $this->command?->info('Running main database seeder...');
+
+        $this->call([
+            RoleSeeder::class, // Chạy seeder này trước để đảm bảo các Role tồn tại
+            UserSeeder::class,
+            OAuthClientSeeder::class,
+        ]);
     }
 }

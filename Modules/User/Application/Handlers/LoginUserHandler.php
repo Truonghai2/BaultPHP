@@ -1,28 +1,35 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\User\Application\Handlers;
 
 use Core\Auth\AuthManager;
 use Modules\User\Application\Commands\LoginUserCommand;
+use Modules\User\Infrastructure\Models\User;
 
-/**
- * Handles the logic for the LoginUserCommand.
- */
 class LoginUserHandler
 {
-    public function __construct(private AuthManager $auth)
-    {
+    public function __construct(
+        private readonly AuthManager $auth,
+    ) {
     }
 
     /**
-     * Attempts to authenticate a user based on the provided command.
-     *
-     * @return bool True if authentication is successful, false otherwise.
+     * @return User|null The authenticated user on success, null on failure.
      */
-    public function handle(LoginUserCommand $command): bool
+    public function handle(LoginUserCommand $command): ?User
     {
-        $credentials = ['email' => $command->email, 'password' => $command->password];
+        $credentials = [
+            'email' => $command->email,
+            'password' => $command->password,
+        ];
 
-        return $this->auth->guard('web')->attempt($credentials, $command->remember);
+        if ($this->auth->guard('web')->attempt($credentials, $command->remember)) {
+            /** @var User|null */
+            return $this->auth->guard('web')->user();
+        }
+
+        return null;
     }
 }

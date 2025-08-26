@@ -1,10 +1,9 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\User\Application\Commands;
 
-/**
- * A Data Transfer Object (DTO) representing the command to log a user in.
- */
 class LoginUserCommand
 {
     public function __construct(

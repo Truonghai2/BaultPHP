@@ -102,6 +102,8 @@ class ConsoleKernel implements KernelContract
             return;
         }
 
+        $this->app->boot();
+
         $this->registerCommands();
 
         $this->commandsLoaded = true;
