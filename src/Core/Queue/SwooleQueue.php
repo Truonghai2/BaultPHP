@@ -23,7 +23,7 @@ class SwooleQueue implements Queue
             throw new RuntimeException('The Swoole queue driver can only be used when running within the Swoole server.');
         }
         $this->server = $this->app->make(SwooleServer::class);
-        $this->redisManager = $this->app->make(RedisManager::class);
+        $this->redisManager = $this->app->make('redis');
     }
 
     /**

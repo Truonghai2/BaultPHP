@@ -2,10 +2,13 @@
 
 namespace Modules\User\Infrastructure\Repositories\OAuth;
 
+use Core\Support\Facades\Gate;
 use League\OAuth2\Server\Entities\ClientEntityInterface;
+use League\OAuth2\Server\Entities\ScopeEntityInterface;
 use League\OAuth2\Server\Repositories\ScopeRepositoryInterface;
 use Modules\User\Domain\Entities\OAuth\ScopeEntity;
 use Modules\User\Infrastructure\Models\OAuth\Scope as ScopeModel;
+use Modules\User\Infrastructure\Models\User;
 
 class ScopeRepository implements ScopeRepositoryInterface
 {
@@ -24,9 +27,9 @@ class ScopeRepository implements ScopeRepositoryInterface
         $scopeEntity = new ScopeEntity();
         $scopeEntity->setIdentifier($scope->id);
 
-        // Thêm mô tả vào ScopeEntity để có thể hiển thị trên màn hình cấp phép.
-        // Giả sử ScopeEntity của bạn có phương thức setDescription().
-        // $scopeEntity->setDescription($scope->description);
+        if (method_exists($scopeEntity, 'setDescription') && isset($scope->description)) {
+            $scopeEntity->setDescription($scope->description);
+        }
 
         return $scopeEntity;
     }
@@ -40,9 +43,40 @@ class ScopeRepository implements ScopeRepositoryInterface
         ClientEntityInterface $clientEntity,
         $userIdentifier = null,
     ) {
-        // Ở đây bạn có thể thêm logic để lọc các scope dựa trên client hoặc user.
-        // Ví dụ: một client chỉ được phép yêu cầu một số scope nhất định.
-        // Hiện tại, chúng ta trả về tất cả các scope đã được validate.
-        return $scopes;
+        $clientRestrictedScopes = config('oauth2.restricted_scopes', []);
+        $clientId = $clientEntity->getIdentifier();
+
+        $allowedScopes = array_filter($scopes, function (ScopeEntityInterface $scope) use ($clientId, $clientRestrictedScopes) {
+            $scopeIdentifier = $scope->getIdentifier();
+
+            if (array_key_exists($scopeIdentifier, $clientRestrictedScopes)) {
+                $allowedClients = $clientRestrictedScopes[$scopeIdentifier];
+                if (!in_array($clientId, $allowedClients, true)) {
+                    return false;
+                }
+            }
+            return true;
+        });
+
+        if ($userIdentifier !== null) {
+            $user = User::find($userIdentifier);
+            $userRestrictedScopes = config('oauth2.user_restricted_scopes', []);
+
+            if ($user) {
+                $allowedScopes = array_filter($allowedScopes, function (ScopeEntityInterface $scope) use ($user, $userRestrictedScopes) {
+                    $scopeIdentifier = $scope->getIdentifier();
+
+                    if (array_key_exists($scopeIdentifier, $userRestrictedScopes)) {
+                        $permissionName = $userRestrictedScopes[$scopeIdentifier];
+                        if (!Gate::check($user, $permissionName)) {
+                            return false;
+                        }
+                    }
+                    return true;
+                });
+            }
+        }
+
+        return array_values($allowedScopes);
     }
 }

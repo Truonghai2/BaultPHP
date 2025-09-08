@@ -58,15 +58,16 @@ class CacheManager
      * Tạo một instance của file cache driver.
      *
      * @param  array  $config
-     * @return \Core\Cache\FileStore
+     * @return \Core\Cache\Repository
      */
-    protected function createFileDriver(array $config): FileStore
+    protected function createFileDriver(array $config): Repository
     {
         // Giả định rằng 'files' đã được bind vào container.
         // Nếu chưa, bạn cần tạo một FilesystemServiceProvider.
         $filesystem = $this->app->make(Filesystem::class);
 
-        return new FileStore($filesystem, $config['path']);
+        $store = new FileStore($filesystem, $config['path']);
+        return new Repository($store);
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace Core\Database;
 
 use Core\Database\Swoole\SwooleRedisPool;
+use Psr\Log\LoggerInterface;
 use Swoole\Coroutine;
 
 /**
@@ -11,32 +12,44 @@ use Swoole\Coroutine;
 class CoroutineRedisManager
 {
     /**
-     * The key used to store the connection in the coroutine context.
+     * The base key used to store connections in the coroutine context.
      */
-    protected const CONTEXT_KEY = 'redis_connection';
+    protected const CONTEXT_KEY_PREFIX = 'redis_connection_';
+
     protected LoggerInterface $logger;
+
+    public function __construct(LoggerInterface $logger)
+    {
+        $this->logger = $logger;
+    }
 
     /**
      * Get a Redis connection for the current coroutine.
      *
+     * @param string|null $name The name of the connection pool to use. If null, the default will be used.
      * @return \Swoole\Coroutine\Client|\Redis
      */
-    public function get(): \Swoole\Coroutine\Client|\Redis
+    public function get(string $name = null): \Swoole\Coroutine\Client|\Redis
     {
-        $cid = Coroutine::getCid();
-        $context = Coroutine::getContext();
+        // The default Redis connection name is 'default'.
+        $name ??= 'default';
+        $contextKey = self::CONTEXT_KEY_PREFIX . $name;
 
-        if (isset($context[self::CONTEXT_KEY])) {
-            $this->logger->debug('Reusing Redis connection from coroutine context.', ['cid' => $cid]);
-            return $context[self::CONTEXT_KEY];
+        $cid = Coroutine::getCid();
+        $context = Coroutine::getContext($cid);
+
+        if (isset($context[$contextKey])) {
+            $this->logger->debug('Reusing Redis connection from coroutine context.', ['cid' => $cid, 'connection' => $name]);
+            return $context[$contextKey];
         }
 
-        $this->logger->debug('Fetching new Redis connection from pool for coroutine.', ['cid' => $cid, 'pool_stats' => SwooleRedisPool::stats()]);
-        $connection = SwooleRedisPool::get();
-        $context[self::CONTEXT_KEY] = $connection;
+        // Assumes SwooleRedisPool is updated to accept a pool name
+        $this->logger->debug('Fetching new Redis connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwooleRedisPool::stats($name)]);
+        $connection = SwooleRedisPool::get($name);
+        $context[$contextKey] = $connection;
 
-        Coroutine::defer(function () use ($connection, $cid) {
-            $this->release($connection, $cid);
+        Coroutine::defer(function () use ($connection, $name, $cid) {
+            $this->release($connection, $name, $cid);
         });
 
         return $connection;
@@ -45,9 +58,10 @@ class CoroutineRedisManager
     /**
      * Release a Redis connection back to the pool.
      */
-    public function release(\Swoole\Coroutine\Client|\Redis $connection, int $cid): void
+    public function release(\Swoole\Coroutine\Client|\Redis $connection, string $name, int $cid): void
     {
-        SwooleRedisPool::put($connection);
-        $this->logger->debug('Released Redis connection back to pool.', ['cid' => $cid, 'pool_stats' => SwooleRedisPool::stats()]);
+        // Assumes SwooleRedisPool is updated to accept a pool name
+        SwooleRedisPool::put($connection, $name);
+        $this->logger->debug('Released Redis connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwooleRedisPool::stats($name)]);
     }
 }

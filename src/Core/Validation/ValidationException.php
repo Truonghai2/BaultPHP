@@ -2,33 +2,48 @@
 
 namespace Core\Validation;
 
-/**
- * Exception tùy chỉnh cho các lỗi validation trong framework.
- * Việc này giúp tách biệt code của bạn khỏi exception cụ thể của thư viện bên thứ ba.
- */
 class ValidationException extends \Exception
 {
     /**
-     * Mảng chứa các lỗi validation.
+     * The validator instance.
      *
-     * @var array
+     * @var \Core\Validation\Validator
      */
-    public array $errors;
+    public Validator $validator;
 
     /**
-     * Tạo một instance exception mới.
+     * Create a new validation exception instance.
+     *
+     * @param  \Core\Validation\Validator  $validator
      */
-    public function __construct(array $errors, string $message = 'The given data was invalid.', int $code = 422, \Throwable $previous = null)
+    public function __construct(Validator $validator)
     {
-        parent::__construct($message, $code, $previous);
-        $this->errors = $errors;
+        // Sử dụng mã lỗi 422 (Unprocessable Entity) là chuẩn cho lỗi validation.
+        parent::__construct('The given data was invalid.', 422);
+        $this->validator = $validator;
     }
 
     /**
-     * Lấy danh sách các lỗi validation.
+     * Create a new validation exception with a given array of messages.
+     *
+     * @param  array  $messages
+     * @return static
+     */
+    public static function withMessages(array $messages): static
+    {
+        // Tạo một validator "giả" để bọc các message lỗi.
+        // Điều này giữ cho cấu trúc của exception nhất quán.
+        $validator = new Validator([], []);
+        $validator->setErrors($messages);
+
+        return new static($validator);
+    }
+
+    /**
+     * Lấy các thông báo lỗi từ validator.
      */
     public function errors(): array
     {
-        return $this->errors;
+        return $this->validator->errors();
     }
 }

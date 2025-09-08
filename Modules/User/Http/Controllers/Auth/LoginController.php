@@ -10,6 +10,7 @@ use Modules\User\Application\Handlers\LoginUserHandler;
 use Modules\User\Application\Handlers\LogoutUserHandler;
 use Modules\User\Http\Requests\LoginRequest;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 #[Route(prefix: '/auth', name: 'auth.', group: 'web')]
@@ -30,7 +31,7 @@ class LoginController extends Controller
         name: 'login',
         middleware: ['throttle:5,1'],
     )]
-    public function login(LoginRequest $request, LoginUserHandler $handler, SessionInterface $session): ResponseInterface
+    public function login(LoginRequest $request, LoginUserHandler $handler, LoggerInterface $logger, SessionInterface $session): ResponseInterface
     {
         $data = $request->validated();
         $remember = !empty($request->getParsedBody()['remember'] ?? false);
@@ -40,14 +41,21 @@ class LoginController extends Controller
         $user = $handler->handle($command);
 
         if ($user) {
-            return redirect()->intended(route('home'));
+            $response = redirect()->intended(route('home'));
+
+            $session->migrate(true);
+
+            $logger->info('Đăng nhập thành công cho người dùng: ' . $data['email']);
+            return $response->with('success', __('Đăng nhập thành công!'));
         }
+
+        $logger->warning('Đăng nhập thất bại cho email: ' . $data['email']);
 
         $input = $request->getParsedBody();
         unset($input['password']);
 
         return redirect()->back()
-            ->withErrors(['email' => __('Invalid credentials.')])
+            ->withErrors(['email' => __('Thông tin đăng nhập không chính xác.')])
             ->withInput($input);
     }
 
@@ -55,10 +63,10 @@ class LoginController extends Controller
      * Log the user out of the application.
      */
     #[Route(method: 'POST', uri: '/logout', name: 'logout')]
-    public function logout(LogoutUserHandler $handler): ResponseInterface
+    public function logout(LogoutUserHandler $handler)
     {
         $handler->handle();
 
-        return redirect('/');
+        return redirect('/')->with('success', __('Đăng xuất thành công!'));
     }
 }

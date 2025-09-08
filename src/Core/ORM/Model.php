@@ -6,8 +6,10 @@ use Core\ORM\Events\Observable;
 use Core\ORM\Relations\BelongsTo;
 use Core\ORM\Relations\BelongsToMany;
 use Core\ORM\Relations\HasMany;
+use Core\ORM\Relations\MorphedByMany;
 use Core\ORM\Relations\MorphMany;
 use Core\ORM\Relations\MorphTo;
+use Core\ORM\Relations\MorphToMany;
 use Core\ORM\Relations\Relation;
 use Core\ORM\Scopes\Scope;
 use Core\Support\Collection;
@@ -24,6 +26,11 @@ abstract class Model
      * The model's fillable attributes.
      */
     protected array $fillable = [];
+
+    /**
+     * The attributes that aren't mass assignable.
+     */
+    protected array $guarded = ['*'];
 
     /**
      * The attributes that are mass sortable.
@@ -126,12 +133,32 @@ abstract class Model
         return null;
     }
 
+    public function isRelationLoaded(string $key): bool
+    {
+        return array_key_exists($key, $this->relations);
+    }
+
+    /**
+     * Get all the current attributes on the model.
+     *
+     * @return array
+     */
+    public function getAttributes(): array
+    {
+        return $this->attributes;
+    }
+
     protected function isFillable(string $key): bool
     {
-        if (empty($this->fillable)) {
-            return true;
+        if (!empty($this->fillable)) {
+            return in_array($key, $this->fillable);
         }
-        return in_array($key, $this->fillable);
+
+        if ($this->guarded === ['*']) {
+            return false;
+        }
+
+        return !in_array($key, $this->guarded);
     }
 
     public function save(): bool
@@ -147,14 +174,14 @@ abstract class Model
 
             if (empty($dirty)) {
                 $this->fireModelEvent('saved');
-                return true; // Nothing to update
+                return true;
             }
 
             if ($this->fireModelEvent('updating') === false) {
                 return false;
             }
 
-            if ($query->where($this->getKeyName(), $this->getKey())->update($dirty)) {
+            if ($query->where($this->getKeyName(), $this->getKey())->update($dirty) > 0) {
                 $this->syncOriginal();
                 $this->fireModelEvent('updated');
                 $this->fireModelEvent('saved');
@@ -226,7 +253,7 @@ abstract class Model
 
         return $this->newQuery()->where($this->getKeyName(), $this->getKey())->update([
             $column => $this->getAttribute($column),
-        ]);
+        ]) > 0;
     }
 
     /**
@@ -235,7 +262,7 @@ abstract class Model
     protected function touchRelations(): void
     {
         foreach ($this->touches as $relation) {
-            $parent = $this->{$relation}; // This will lazy-load the relation
+            $parent = $this->{$relation};
             $parent?->touch();
         }
     }
@@ -459,7 +486,6 @@ abstract class Model
      */
     public static function __callStatic($method, $parameters)
     {
-        // Forward the call to a new query builder instance
         return static::query()->$method(...$parameters);
     }
 
@@ -491,10 +517,6 @@ abstract class Model
 
     protected static function boot(): void
     {
-        // This method is a hook for models to register their own boot logic.
-        // The ActiveScope is now applied via the HasActiveState trait's boot method,
-        // which is the correct approach. Applying it here forces it on all models,
-        // causing errors for models that don't have an 'is_active' state.
     }
 
     protected function bootTraits(): void
@@ -564,13 +586,60 @@ abstract class Model
     }
 
     /**
+     * Define a has-many-through relationship.
+     *
+     * @param  string  $related The final related model class.
+     * @param  string  $through The intermediate model class.
+     * @param  string|null  $firstKey Foreign key on the "through" model.
+     * @param  string|null  $secondKey Foreign key on the "related" model.
+     * @param  string|null  $localKey Local key on the parent model.
+     * @param  string|null  $secondLocalKey Local key on the "through" model.
+     * @return \Core\ORM\Relations\HasManyThrough
+     */
+    protected function hasManyThrough(string $related, string $through, ?string $firstKey = null, ?string $secondKey = null, ?string $localKey = null, ?string $secondLocalKey = null): Relations\HasManyThrough
+    {
+        $throughInstance = new $through();
+        $relatedInstance = new $related();
+
+        $localKey = $localKey ?: $this->getKeyName();
+        $firstKey = $firstKey ?: strtolower(basename(str_replace('\\', '/', get_class($this)))) . '_' . $this->getKeyName();
+        $secondLocalKey = $secondLocalKey ?: $throughInstance->getKeyName();
+        $secondKey = $secondKey ?: strtolower(basename(str_replace('\\', '/', $through))) . '_' . $throughInstance->getKeyName();
+
+        return new Relations\HasManyThrough($relatedInstance->newQuery(), $this, $throughInstance, $firstKey, $secondKey, $localKey, $secondLocalKey);
+    }
+
+    /**
+     * Define a has-one-through relationship.
+     *
+     * @param  string  $related The final related model class.
+     * @param  string  $through The intermediate model class.
+     * @param  string|null  $firstKey Foreign key on the "through" model.
+     * @param  string|null  $secondKey Foreign key on the "related" model.
+     * @param  string|null  $localKey Local key on the parent model.
+     * @param  string|null  $secondLocalKey Local key on the "through" model.
+     * @return \Core\ORM\Relations\HasOneThrough
+     */
+    protected function hasOneThrough(string $related, string $through, ?string $firstKey = null, ?string $secondKey = null, ?string $localKey = null, ?string $secondLocalKey = null): Relations\HasOneThrough
+    {
+        $throughInstance = new $through();
+        $relatedInstance = new $related();
+
+        $localKey = $localKey ?: $this->getKeyName();
+        $firstKey = $firstKey ?: strtolower(basename(str_replace('\\', '/', get_class($this)))) . '_' . $this->getKeyName();
+        $secondLocalKey = $secondLocalKey ?: $throughInstance->getKeyName();
+        $secondKey = $secondKey ?: strtolower(basename(str_replace('\\', '/', $through))) . '_' . $throughInstance->getKeyName();
+
+        return new Relations\HasOneThrough($relatedInstance->newQuery(), $this, $throughInstance, $firstKey, $secondKey, $localKey, $secondLocalKey);
+    }
+
+    /**
      * Define a one-to-many polymorphic relationship.
      */
     protected function morphMany(string $related, string $name): MorphMany
     {
         $instance = new $related();
 
-        // e.g., from 'commentable', we get 'commentable_type' and 'commentable_id'
         $morphType = $name . '_type';
         $foreignKey = $name . '_id';
 
@@ -580,22 +649,158 @@ abstract class Model
     }
 
     /**
+     * Define a many-to-many polymorphic relationship.
+     *
+     * @param  string  $related The related model class.
+     * @param  string  $name The relationship name (used for morph type and id).
+     * @param  string|null  $table The pivot table name.
+     * @param  string|null  $foreignPivotKey The foreign key of the parent model on the pivot table.
+     * @param  string|null  $relatedPivotKey The foreign key of the related model on the pivot table.
+     * @return \Core\ORM\Relations\MorphToMany
+     */
+    protected function morphToMany(string $related, string $name, ?string $table = null, ?string $foreignPivotKey = null, ?string $relatedPivotKey = null): MorphToMany
+    {
+        $instance = new $related();
+        $relatedPivotKey = $relatedPivotKey ?: strtolower(basename(str_replace('\\', '/', $related))) . '_id';
+
+        $foreignPivotKey = $foreignPivotKey ?: $name . '_id';
+        $morphType = $name . '_type';
+
+        $table = $table ?: $name . 's'; // e.g., 'taggable' becomes 'taggables'
+
+        return new MorphToMany($instance->newQuery(), $this, $table, $foreignPivotKey, $relatedPivotKey, $this->getKeyName(), $instance->getKeyName(), $morphType);
+    }
+
+    /**
+     * Define a "morphed by many" relationship.
+     * This is the inverse of a morphToMany relationship.
+     *
+     * @param  string  $related The related model class.
+     * @param  string  $name The relationship name.
+     * @param  string|null  $table The pivot table name.
+     * @param  string|null  $foreignPivotKey The foreign key of the current model on the pivot table.
+     * @param  string|null  $relatedPivotKey The foreign key of the related model on the pivot table.
+     * @return \Core\ORM\Relations\MorphedByMany
+     */
+    protected function morphedByMany(string $related, string $name, ?string $table = null, ?string $foreignPivotKey = null, ?string $relatedPivotKey = null): MorphedByMany
+    {
+        $instance = new $related();
+        $foreignPivotKey = $foreignPivotKey ?: strtolower(basename(str_replace('\\', '/', get_class($this)))) . '_id';
+        $relatedPivotKey = $relatedPivotKey ?: $name . '_id';
+        $morphType = $name . '_type';
+        $table = $table ?: $name . 's';
+
+        return new MorphedByMany($instance->newQuery(), $this, $table, $foreignPivotKey, $relatedPivotKey, $this->getKeyName(), $instance->getKeyName(), $morphType);
+    }
+
+    /**
      * Define a polymorphic, inverse one-to-one or many relationship.
      */
     protected function morphTo(string $name = null, string $type = null, string $id = null): MorphTo
     {
-        $name = $name ?: debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
+        $relationName = $name ?: debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 2)[1]['function'];
 
-        $type = $type ?: $name . '_type';
-        $id = $id ?: $name . '_id';
+        $type = $type ?: $relationName . '_type';
+        $id = $id ?: $relationName . '_id';
 
-        $ownerKey = 'id'; // This is almost always the primary key of the related models.
-        return new MorphTo($this->newQueryWithoutScopes(), $this, $id, $type, $ownerKey);
+        $ownerKey = 'id';
+        return new MorphTo($this->newQueryWithoutScopes(), $this, $id, $type, $ownerKey, $relationName);
     }
 
     public function getMorphClass(): string
     {
         return static::class;
+    }
+
+    /**
+     * Load a relationship on the current model instance.
+     *
+     * @param  string|array  $relations
+     * @return $this
+     */
+    public function load($relations): static
+    {
+        $relations = is_string($relations) ? func_get_args() : $relations;
+
+        $query = $this->newQuery();
+        $query->loadRelations([$this], $relations);
+
+        return $this;
+    }
+
+    /**
+     * Load a relationship on the model if it is not already loaded.
+     *
+     * @param  string|array  $relations
+     * @return $this
+     */
+    public function loadMissing($relations): static
+    {
+        $relations = is_string($relations) ? func_get_args() : $relations;
+
+        $relationsToLoad = [];
+
+        foreach ($relations as $name => $constraints) {
+            $relationName = is_numeric($name) ? $constraints : $name;
+            $topLevelRelation = explode('.', $relationName)[0];
+
+            if (!$this->isRelationLoaded($topLevelRelation)) {
+                $relationsToLoad[$name] = $constraints;
+            }
+        }
+
+        if (!empty($relationsToLoad)) {
+            $this->load($relationsToLoad);
+        }
+
+        return $this;
+    }
+
+    /**
+     * Load a polymorphic relationship's nested relations conditionally.
+     *
+     * @param  string  $relation The name of the MorphTo relationship.
+     * @param  array   $relations An array mapping morphable types to the relations to load.
+     * @return $this
+     */
+    public function loadMorph(string $relation, array $relations): static
+    {
+        if (!$this->isRelationLoaded($relation)) {
+            $this->load($relation);
+        }
+
+        $relatedModel = $this->getRelationValue($relation);
+
+        if ($relatedModel) {
+            $morphType = get_class($relatedModel);
+
+            if (isset($relations[$morphType])) {
+                $relatedModel->load($relations[$morphType]);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * Load a relationship count on the current model instance.
+     *
+     * @param  string|array  $relations
+     * @return $this
+     */
+    public function loadCount($relations): static
+    {
+        $relations = is_string($relations) ? func_get_args() : $relations;
+
+        $query = $this->newQuery();
+        $query->loadCount(new Collection([$this]), $relations);
+
+        return $this;
+    }
+
+    public function getRelationValue(string $key)
+    {
+        return $this->relations[$key] ?? null;
     }
 
     public function newFromBuilder(array $attributes = []): static
@@ -621,14 +826,10 @@ abstract class Model
      */
     public function replicate(): static
     {
-        // Create a new instance without passing attributes to the constructor.
         $clone = new static();
 
-        // Manually copy all attributes from the original model.
-        // This bypasses the `fillable` check.
         $clone->attributes = $this->attributes;
 
-        // Unset the primary key to ensure it's treated as a new record on save.
         unset($clone->attributes[$this->getKeyName()]);
 
         return $clone;

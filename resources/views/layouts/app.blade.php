@@ -5,9 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>@yield('title', 'Welcome') - {{ config('app.name', 'BaultPHP') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo/BaultPHP-icon.png') }}">
-    <link rel="manifest" href="{{ asset('manifest.json') }}">
 
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="stylesheet" href="{{ asset('assets/app.css') }}">
+    <script src="{{ asset('assets/app.js') }}" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     @yield('styles')
     
@@ -35,6 +35,7 @@
 </head>
 <body class="h-full bg-gray-900 text-gray-100 antialiased">
     <div class="min-h-full">
+        @include('components.flash-messages')
         <header class="bg-gray-900/80 backdrop-blur-sm sticky top-0 z-40">
             <nav class="mx-auto flex max-w-7xl items-center justify-between p-4 lg:px-8" aria-label="Global">
                 <div class="flex lg:flex-1 items-center">
@@ -108,7 +109,7 @@
         </footer>
     </div>
 
-    @include('debug.bar')
+    {{-- @include('debug.bar') --}}
     <script>
         document.documentElement.classList.replace('no-js','js');
         // fade-in body

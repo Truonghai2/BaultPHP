@@ -40,8 +40,8 @@ return [
     |
     */
     'argon' => [
-        'memory' => env('ARGON_MEMORY_COST', 65536), // Kilobytes
+        'memory' => env('ARGON_MEMORY_COST', 65536),
         'threads' => env('ARGON_THREADS', 1),
-        'time' => env('ARGON_TIME_COST', 4),
+        'time' => env('ARGON_TIME_COST', 3),
     ],
 ];

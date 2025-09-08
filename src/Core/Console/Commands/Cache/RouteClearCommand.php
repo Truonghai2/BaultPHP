@@ -28,6 +28,6 @@ class RouteClearCommand extends BaseCommand
         } else {
             $this->comment('› Route cache not found. Nothing to clear.');
         }
-        return 0;
+        return self::SUCCESS;
     }
 }

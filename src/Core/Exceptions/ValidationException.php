@@ -8,17 +8,33 @@ class ValidationException extends \Exception
 {
     /**
      * The validator instance.
+     *
+     * @var \Core\Validation\Validator
      */
     public Validator $validator;
 
-    public function __construct(Validator $validator, string $message = 'The given data was invalid.', int $code = 422)
+    /**
+     * Create a new validation exception instance.
+     *
+     * @param  \Core\Validation\Validator  $validator
+     */
+    public function __construct(Validator $validator)
     {
-        parent::__construct($message, $code);
+        parent::__construct('The given data was invalid.');
         $this->validator = $validator;
     }
 
-    public function errors(): array
+    /**
+     * Create a new validation exception with a given array of messages.
+     *
+     * @param  array  $messages
+     * @return static
+     */
+    public static function withMessages(array $messages): static
     {
-        return $this->validator->errors();
+        $validator = new Validator([], []);
+        $validator->setErrors($messages);
+
+        return new static($validator);
     }
 }

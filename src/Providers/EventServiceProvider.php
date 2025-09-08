@@ -23,48 +23,109 @@ class EventServiceProvider extends ServiceProvider
 
     public function register(): void
     {
-        // Bind Core\Events\Dispatcher to both the core interface and the illuminate interface
-        // so either can be type hinted.
         $this->app->singleton(EventDispatcherInterface::class, function ($app) {
             return new Dispatcher($app);
         });
-        // Explicitly bind the dispatcher to the 'events' key.
+
         $this->app->alias(EventDispatcherInterface::class, 'events');
     }
 
     public function boot(): void
     {
-        $events = $this->app->make('events');
+        /** @var EventDispatcherInterface $dispatcher */
+        $dispatcher = $this->app->make('events');
 
-        foreach ($this->listen as $event => $listeners) {
-            foreach ($listeners as $listener) {
-                $events->listen($event, $listener);
+        $cachedEventsPath = $this->app->basePath('bootstrap/cache/events.php');
+
+        if (file_exists($cachedEventsPath)) {
+            $events = require $cachedEventsPath;
+        } else {
+            $events = $this->getEventsToRegister();
+        }
+
+        $this->registerListeners($dispatcher, $events);
+    }
+
+    /**
+     * Discovers all event-listener mappings from providers, config, and modules.
+     * This method is designed to be called by the `event:cache` command.
+     *
+     * @return array<class-string, array<int, class-string>>
+     */
+    public function getEventsToRegister(): array
+    {
+        $providerListeners = $this->listen;
+        $globalListeners = config('events', []);
+
+        $moduleListeners = $this->getModuleListeners();
+
+        $allEvents = array_merge_recursive($providerListeners, $globalListeners, $moduleListeners);
+
+        // Ensure listeners are unique for each event
+        foreach ($allEvents as $event => &$listeners) {
+            if (is_array($listeners)) {
+                $listeners = array_values(array_unique($listeners));
+            }
+        }
+        unset($listeners);
+
+        return $allEvents;
+    }
+
+    /**
+     * Scan all enabled modules and collect their event listeners.
+     */
+    protected function getModuleListeners(): array
+    {
+        $moduleListeners = [];
+        $enabledModules = $this->getEnabledModules();
+
+        foreach ($enabledModules as $moduleName) {
+            $eventsFile = base_path("Modules/{$moduleName}/events.php");
+
+            if (file_exists($eventsFile)) {
+                $listeners = require $eventsFile;
+                if (is_array($listeners)) {
+                    $moduleListeners = array_merge_recursive($moduleListeners, $listeners);
+                }
+            }
+        }
+        return $moduleListeners;
+    }
+
+    /**
+     * Get the list of enabled module names, from cache if available.
+     *
+     * @return array
+     */
+    protected function getEnabledModules(): array
+    {
+        $cachedModulesPath = $this->app->basePath('bootstrap/cache/modules.php');
+        if (file_exists($cachedModulesPath)) {
+            return require $cachedModulesPath;
+        }
+
+        $enabledModuleNames = [];
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
+
+        foreach ($moduleJsonPaths as $path) {
+            $data = json_decode(file_get_contents($path), true);
+            if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
+                $enabledModuleNames[] = $data['name'];
             }
         }
 
-        $dispatcher = $this->app->make(EventDispatcherInterface::class);
+        return $enabledModuleNames;
+    }
 
-        // Load global listeners
-        $globalListeners = config('events', []);
-        foreach ($globalListeners as $event => $listeners) {
+    /**
+     * Register the given event-listener mappings with the dispatcher.
+     */
+    protected function registerListeners(EventDispatcherInterface $dispatcher, array $events): void
+    {
+        foreach ($events as $event => $listeners) {
             foreach ($listeners as $listener) {
                 $dispatcher->listen($event, $listener);
-            }
-        }
-
-        // Load listeners from all modules
-        $moduleDirs = glob(base_path('Modules/*'), GLOB_ONLYDIR);
-        foreach ($moduleDirs as $dir) {
-            $eventsFile = $dir . '/events.php';
-            if (!file_exists($eventsFile)) {
-                continue;
-            }
-
-            $moduleListeners = require $eventsFile;
-            foreach ($moduleListeners as $event => $listeners) {
-                foreach ($listeners as $listener) {
-                    $dispatcher->listen($event, $listener);
-                }
             }
         }
     }

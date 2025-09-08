@@ -63,16 +63,30 @@ class DatabaseSessionHandler implements SessionHandlerInterface
                 'user_id' => $this->getUserId($data),
             ];
 
-            // Sử dụng cú pháp "upsert" (update or insert) để hiệu quả
-            // Cải tiến: Sử dụng INSERT ... ON DUPLICATE KEY UPDATE thay vì REPLACE.
-            // Lệnh này hiệu quả hơn và ít phá hủy hơn (không thực hiện DELETE + INSERT),
-            // giúp giữ lại các giá trị không thay đổi và tránh kích hoạt trigger DELETE không mong muốn.
-            // Lưu ý: Cú pháp này dành riêng cho MySQL/MariaDB.
-            $sql = "INSERT INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id)
-                    VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)
-                    ON DUPLICATE KEY UPDATE
-                    payload = VALUES(payload), last_activity = VALUES(last_activity),
-                    ip_address = VALUES(ip_address), user_agent = VALUES(user_agent), user_id = VALUES(user_id)";
+            $driver = $pdo->getAttribute(PDO::ATTR_DRIVER_NAME);
+
+            switch ($driver) {
+                case 'mysql':
+                    $sql = "INSERT INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id)
+                            VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)
+                            ON DUPLICATE KEY UPDATE
+                            payload = VALUES(payload), last_activity = VALUES(last_activity),
+                            ip_address = VALUES(ip_address), user_agent = VALUES(user_agent), user_id = VALUES(user_id)";
+                    break;
+                case 'pgsql':
+                    $sql = "INSERT INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id)
+                            VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)
+                            ON CONFLICT (id) DO UPDATE SET
+                            payload = EXCLUDED.payload, last_activity = EXCLUDED.last_activity,
+                            ip_address = EXCLUDED.ip_address, user_agent = EXCLUDED.user_agent, user_id = EXCLUDED.user_id";
+                    break;
+                case 'sqlite':
+                    $sql = "INSERT OR REPLACE INTO {$this->table} (id, payload, last_activity, ip_address, user_agent, user_id)
+                            VALUES (:id, :payload, :last_activity, :ip_address, :user_agent, :user_id)";
+                    break;
+                default:
+                    throw new \RuntimeException("Database driver '{$driver}' is not supported by DatabaseSessionHandler's upsert logic.");
+            }
 
             $stmt = $pdo->prepare($sql);
 
@@ -113,16 +127,12 @@ class DatabaseSessionHandler implements SessionHandlerInterface
      */
     protected function getConnection(): mixed
     {
-        // The check must be performed here, inside the method, not in the constructor.
-        // This ensures we check the context for every session operation, not just once at worker startup.
         $isSwooleCoroutine = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
 
-        // If running in Swoole and the pool is enabled, get a connection from the pool.
         if ($isSwooleCoroutine && class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
             return SwoolePdoPool::get();
         }
 
-        // Fallback for non-Swoole environments (e.g., CLI commands).
         return $this->app->make(PDO::class);
     }
 
@@ -133,10 +143,8 @@ class DatabaseSessionHandler implements SessionHandlerInterface
      */
     protected function releaseConnection(PDO $pdo): void
     {
-        // We must perform the same check here to ensure we only put connections back that came from the pool.
         $isSwooleCoroutine = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
 
-        // Only release the connection back to the pool if it came from there.
         if ($isSwooleCoroutine && class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
             SwoolePdoPool::put($pdo);
         }
@@ -160,15 +168,9 @@ class DatabaseSessionHandler implements SessionHandlerInterface
 
     protected function getUserId(string $payload): ?int
     {
-        // Sử dụng unserialize() trên dữ liệu không đáng tin cậy là một rủi ro bảo mật.
-        // Chúng ta có thể giảm thiểu rủi ro này bằng cách ngăn chặn việc khởi tạo đối tượng.
-        // Khối try-catch được sử dụng để xử lý các lỗi unserialize tiềm ẩn
-        // từ dữ liệu session bị hỏng hoặc không hợp lệ, an toàn hơn việc dùng toán tử @.
         try {
             $data = unserialize($payload, ['allowed_classes' => false]);
         } catch (\Throwable $e) {
-            // Nếu unserialize thất bại, chúng ta không thể lấy được user ID.
-            // Ghi log sự kiện này nếu có logger.
             if ($this->app->has(\Psr\Log\LoggerInterface::class)) {
                 $this->app->make(\Psr\Log\LoggerInterface::class)->warning('Failed to unserialize session payload.', ['exception' => $e]);
             }

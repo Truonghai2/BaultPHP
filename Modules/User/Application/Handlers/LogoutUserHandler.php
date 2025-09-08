@@ -18,8 +18,5 @@ class LogoutUserHandler
     public function handle(): void
     {
         $this->auth->guard('web')->logout();
-
-        $this->session->invalidate();
-        $this->session->migrate(true);
     }
 }

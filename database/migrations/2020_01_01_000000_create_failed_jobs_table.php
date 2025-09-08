@@ -1,34 +1,31 @@
 <?php
 
-/**
- * Migration to create the failed_jobs table.
- * This table stores information about queued jobs that have failed to process.
- */
-class CreateFailedJobsTable
-{
+use Core\ORM\RawExpression;
+use Core\Schema\Blueprint;
+use Core\Schema\Migration;
+
+return new class () extends Migration {
     /**
      * Run the migrations.
      */
-    public function up(PDO $pdo): void
+    public function up(): void
     {
-        $pdo->exec('
-            CREATE TABLE IF NOT EXISTS `failed_jobs` (
-                `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-                `uuid` VARCHAR(36) NOT NULL UNIQUE,
-                `connection` TEXT NOT NULL,
-                `queue` TEXT NOT NULL,
-                `payload` LONGTEXT NOT NULL,
-                `exception` LONGTEXT NOT NULL,
-                `failed_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        ');
+        $this->schema->create('failed_jobs', function (Blueprint $table) {
+            $table->id();
+            $table->uuid('uuid')->unique();
+            $table->text('connection');
+            $table->text('queue');
+            $table->longText('payload');
+            $table->longText('exception');
+            $table->timestamp('failed_at')->default(new RawExpression('CURRENT_TIMESTAMP'));
+        });
     }
 
     /**
      * Reverse the migrations.
      */
-    public function down(PDO $pdo): void
+    public function down(): void
     {
-        $pdo->exec('DROP TABLE IF EXISTS `failed_jobs`');
+        $this->schema->dropIfExists('failed_jobs');
     }
-}
+};

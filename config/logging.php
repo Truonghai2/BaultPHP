@@ -36,8 +36,7 @@ return [
 
         'sentry' => [
             'driver' => 'sentry',
-            'level' => env('SENTRY_LOG_LEVEL', 'error'), // Chỉ gửi lỗi từ mức 'error' trở lên
-            // Các cấu hình khác của Sentry có thể được đặt ở đây nếu cần
+            'level' => env('SENTRY_LOG_LEVEL', 'error'),
         ],
 
         'single' => [

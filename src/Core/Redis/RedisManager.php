@@ -4,7 +4,12 @@ namespace Core\Redis;
 
 use Core\Application;
 use Core\Database\Swoole\SwooleRedisPool;
-use RedisException;
+
+if (!class_exists('RedisException')) {
+    class RedisException extends \Exception
+    {
+    }
+}
 
 /**
  * Class RedisManager

@@ -10,3 +10,4 @@
 /bootstrap/cache/*.php
 
 .env
+/docker/postgres-data

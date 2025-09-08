@@ -12,9 +12,6 @@ class TranslationServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('translator', function ($app) {
-            // Sử dụng Core\Filesystem\Filesystem của chúng ta theo yêu cầu.
-            // Điều quan trọng là class này phải có phương thức `getRequire()`,
-            // mà chúng ta đã thêm vào để đảm bảo tương thích với trình tải bản dịch.
             $loader = new FileLoader(
                 $app->make(Filesystem::class),
                 $app->basePath('lang'),
@@ -30,5 +27,15 @@ class TranslationServiceProvider extends ServiceProvider
     {
         $this->app->get('translator')->setLocale(config('app.locale'));
         $this->app->get('translator')->setFallback(config('app.fallback_locale'));
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return ['translator', Translator::class];
     }
 }

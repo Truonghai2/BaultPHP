@@ -3,23 +3,15 @@
 
 services:
   app:
-    # Đảm bảo container vite được khởi động trước container app
-    depends_on:
-      - vite
     volumes:
       - .:/app:cached
       - /app/vendor
 
   nginx:
     ports:
-      - "${NGINX_HOST_PORT:-88}:80"
+      - "${NGINX_HOST_PORT:-888}:80"
 
-  vite:
-    ports:
-      - "${VITE_HOST_PORT:-5173}:5173"
-    volumes:
-      - .:/app:cached
-      - bault-node-modules:/app/node_modules
+  
 
   centrifugo:
     ports:

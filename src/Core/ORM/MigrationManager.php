@@ -44,9 +44,28 @@ class MigrationManager
 
     protected function ensureTable(): void
     {
+        $driver = $this->pdo->getAttribute(\PDO::ATTR_DRIVER_NAME);
+        $idColumnDefinition = '';
+
+        switch ($driver) {
+            case 'pgsql':
+                $idColumnDefinition = 'id SERIAL PRIMARY KEY';
+                break;
+            case 'sqlite':
+                $idColumnDefinition = 'id INTEGER PRIMARY KEY AUTOINCREMENT';
+                break;
+            case 'sqlsrv':
+                $idColumnDefinition = 'id INT IDENTITY(1,1) PRIMARY KEY';
+                break;
+            case 'mysql':
+            default:
+                $idColumnDefinition = 'id INT AUTO_INCREMENT PRIMARY KEY';
+                break;
+        }
+
         $this->pdo->exec("
             CREATE TABLE IF NOT EXISTS {$this->table} (
-                id INT AUTO_INCREMENT PRIMARY KEY,
+                {$idColumnDefinition},
                 migration VARCHAR(255) NOT NULL,
                 batch INT NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -143,12 +162,18 @@ class MigrationManager
 
     protected function getAllMigrationFiles(array $paths): array
     {
-        // Automatically include the default application migration path.
-        // This makes the manager smarter and removes the need for a dedicated service provider.
         $defaultPath = base_path('database/migrations');
         if (is_dir($defaultPath) && !in_array($defaultPath, $paths, true)) {
-            // Add the default path to the beginning of the array.
             array_unshift($paths, $defaultPath);
+        }
+
+        $modulesPath = base_path('Modules');
+        if (is_dir($modulesPath)) {
+            $moduleDirs = glob($modulesPath . '/*', GLOB_ONLYDIR);
+            foreach ($moduleDirs as $moduleDir) {
+                $moduleMigrationPath = $moduleDir . '/Infrastructure/Migrations';
+                $paths[] = $moduleMigrationPath;
+            }
         }
 
         $files = [];
@@ -161,7 +186,7 @@ class MigrationManager
                 $files = array_merge($files, $globResult);
             }
         }
-        sort($files); // Đảm bảo migration chạy theo thứ tự tên file
+        sort($files);
         return $files;
     }
 
@@ -177,12 +202,10 @@ class MigrationManager
         $namespace = null;
         $class = null;
 
-        // Match the namespace declaration
         if (preg_match('/^namespace\s+([^;]+);/m', $content, $matches)) {
             $namespace = $matches[1];
         }
 
-        // Match the class declaration
         if (preg_match('/^class\s+([^\s{]+)/m', $content, $matches)) {
             $class = $matches[1];
         }
@@ -211,7 +234,6 @@ class MigrationManager
 
     protected function getMigrationsForBatch(int $batch): array
     {
-        // Lấy theo thứ tự ngược lại để rollback đúng thứ tự (quan trọng khi có khóa ngoại)
         $stmt = $this->pdo->prepare("SELECT migration FROM {$this->table} WHERE batch = ? ORDER BY id DESC");
         $stmt->execute([$batch]);
         return $stmt->fetchAll(\PDO::FETCH_COLUMN);
@@ -241,7 +263,6 @@ class MigrationManager
 
         $this->log("<info>Rolling back batch:</info> {$batch}");
 
-        // Create a map of migration names to file paths for efficient lookup.
         $filesMap = [];
         foreach ($this->getAllMigrationFiles($paths) as $file) {
             $filesMap[basename($file, '.php')] = $file;
@@ -279,7 +300,6 @@ class MigrationManager
             $instance->setSchema($this->schema);
             $instance->up();
         } else {
-            // Old style migration
             $instance->up($this->pdo);
         }
     }
@@ -290,7 +310,6 @@ class MigrationManager
             $instance->setSchema($this->schema);
             $instance->down();
         } else {
-            // Old style migration
             $instance->down($this->pdo);
         }
     }

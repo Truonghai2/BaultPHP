@@ -5,6 +5,11 @@ namespace Core\ORM;
 use Core\Application;
 use Core\Database\CoroutineConnectionManager;
 use Core\Database\Swoole\SwoolePdoPool;
+use Core\Schema\Grammars\Grammar;
+use Core\Schema\Grammars\MySqlGrammar;
+use Core\Schema\Grammars\PostgresGrammar;
+use Core\Schema\Grammars\SQLiteGrammar;
+use Core\Schema\Grammars\SqlServerGrammar;
 use PDOException;
 
 /**
@@ -25,6 +30,12 @@ class Connection
      * @var array<string, \PDO>
      */
     protected array $connections = [];
+
+    /**
+     * The array of active grammar instances.
+     * @var array<string, \Core\Schema\Grammars\Grammar>
+     */
+    protected array $grammars = [];
 
     public function __construct(Application $app)
     {
@@ -60,31 +71,7 @@ class Connection
             return $this->connections[$poolKey];
         }
 
-        $connections = $configRepo->get('database.connections');
-        $originalConfig = $connections[$name] ?? null;
-
-        if (!$originalConfig) {
-            throw new \Exception("Database connection [$name] not configured.");
-        }
-
-        // Bắt đầu với một bản sao sạch của config cho lần resolve này
-        $config = $originalConfig;
-
-        // Xử lý tách biệt read/write
-        if (isset($config['read']) && isset($config['write'])) {
-            if (!in_array($type, ['read', 'write'])) {
-                throw new \InvalidArgumentException("Loại kết nối không hợp lệ [{$type}]. Phải là 'read' hoặc 'write'.");
-            }
-
-            // Hợp nhất config cơ sở với config của loại kết nối cụ thể.
-            // Config cụ thể (ví dụ: 'host') sẽ ghi đè lên config cơ sở.
-            $typeSpecificConfig = $config[$type];
-            unset($config['read'], $config['write']);
-            $config = array_merge($config, $typeSpecificConfig);
-        }
-
-        $driver = $config['driver'];
-        $dbname = $config['database'];
+        $config = $this->getConfig($name, $type);
 
         try {
             $dsn = $this->makeDsn($config);
@@ -111,7 +98,7 @@ class Connection
             // If the database is not found, we throw a clear, fatal exception.
             if (str_contains($e->getMessage(), 'Unknown database')) {
                 throw new \RuntimeException(
-                    "Database `{$dbname}` does not exist. Please ensure it is created before starting the application. Check your docker-compose.yml and .env files.",
+                    "Database `{$config['database']}` does not exist. Please ensure it is created before starting the application. Check your docker-compose.yml and .env files.",
                     (int)$e->getCode(),
                     $e,
                 );
@@ -123,12 +110,58 @@ class Connection
         return $this->connections[$poolKey];
     }
 
+    public function getGrammar(string $name = null): Grammar
+    {
+        $configRepo = $this->app->make('config');
+        $name ??= $configRepo->get('database.default', 'mysql');
+
+        if (isset($this->grammars[$name])) {
+            return $this->grammars[$name];
+        }
+
+        $config = $this->getConfig($name);
+        $driver = $config['driver'];
+
+        $grammar = match ($driver) {
+            'mysql' => new MySqlGrammar(),
+            'pgsql' => new PostgresGrammar(),
+            'sqlite' => new SQLiteGrammar(),
+            'sqlsrv' => new SqlServerGrammar(),
+            default => throw new \InvalidArgumentException("Unsupported database driver: {$driver}"),
+        };
+
+        return $this->grammars[$name] = $grammar;
+    }
+
+    protected function getConfig(string $name, ?string $type = null): array
+    {
+        $configRepo = $this->app->make('config');
+        $connections = $configRepo->get('database.connections');
+        $config = $connections[$name] ?? null;
+
+        if (!$config) {
+            throw new \Exception("Database connection [$name] not configured.");
+        }
+
+        if ($type && isset($config['read']) && isset($config['write'])) {
+            if (!in_array($type, ['read', 'write'])) {
+                throw new \InvalidArgumentException("Invalid connection type [{$type}]. Must be 'read' or 'write'.");
+            }
+            $typeSpecificConfig = $config[$type];
+            unset($config['read'], $config['write']);
+            $config = array_merge($config, $typeSpecificConfig);
+        }
+
+        return $config;
+    }
+
     /**
      * Close all connections in the pool.
      */
     public function flush(): void
     {
         $this->connections = [];
+        $this->grammars = [];
     }
 
     /**

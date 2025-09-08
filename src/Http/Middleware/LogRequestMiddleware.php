@@ -19,13 +19,18 @@ class LogRequestMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        $startTime = microtime(true);
+
         $response = $handler->handle($request);
+
+        $duration = (microtime(true) - $startTime) * 1000;
 
         $this->logger->info('Request Handled', [
             'method' => $request->getMethod(),
             'uri' => (string) $request->getUri(),
             'ip' => $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown',
             'status' => $response->getStatusCode(),
+            'duration_ms' => number_format($duration, 2),
         ]);
 
         return $response;

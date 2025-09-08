@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Core\Contracts\Support\DeferrableProvider;
 use Core\CQRS\CommandBus;
 use Core\CQRS\CommandBusWithMiddleware;
 use Core\CQRS\Middleware\DatabaseTransactionMiddleware;
@@ -9,7 +10,7 @@ use Core\CQRS\Middleware\LoggingCommandMiddleware;
 use Core\CQRS\SimpleCommandBus;
 use Core\Support\ServiceProvider;
 
-class CqrsServiceProvider extends ServiceProvider
+class CqrsServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     public function register(): void
     {
@@ -33,5 +34,15 @@ class CqrsServiceProvider extends ServiceProvider
                 $app,
             );
         });
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [CommandBus::class];
     }
 }

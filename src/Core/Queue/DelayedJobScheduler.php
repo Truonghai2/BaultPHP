@@ -25,7 +25,7 @@ class DelayedJobScheduler
     ) {
         $this->config = $this->app->make('config')->get('queue');
         $this->queueName = $this->config['connections']['redis']['delayed_queue'] ?? 'queues:delayed:default';
-        $this->redisManager = $this->app->make(RedisManager::class);
+        $this->redisManager = $this->app->make('redis');
     }
 
     /**

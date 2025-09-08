@@ -38,4 +38,22 @@ class PermissionCacheService
         $cacheKey = "acl:all_perms:{$userId}";
         $this->cache->forget($cacheKey);
     }
+
+    /**
+     * Xóa cache quyền cho một mảng các ID người dùng.
+     * Hiệu quả hơn nhiều so với việc xóa từng cái một bằng cách sử dụng
+     * lệnh xóa hàng loạt của cache driver (ví dụ: DEL trong Redis).
+     *
+     * @param int[] $userIds
+     * @return void
+     */
+    public function flushForUserIds(array $userIds): void
+    {
+        if (empty($userIds)) {
+            return;
+        }
+
+        $keys = array_map(fn ($id) => "acl:all_perms:{$id}", $userIds);
+        $this->cache->store()->deleteMultiple($keys);
+    }
 }

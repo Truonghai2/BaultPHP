@@ -1,35 +1,35 @@
-# Hướng Dẫn: Xây Dựng CRUD Hoàn Chỉnh Với BaultPHP
+# Guide: Building a Complete CRUD with BaultPHP
 
-Tài liệu này sẽ hướng dẫn bạn qua từng bước để tạo một module quản lý bài viết (`Post`) hoàn chỉnh, bao gồm các chức năng Tạo, Đọc, Cập nhật và Xóa (CRUD) thông qua API.
+This document will guide you through the steps to create a complete post management module (`Post`), including Create, Read, Update, and Delete (CRUD) functionalities through an API.
 
-## Mục tiêu
+## Objective
 
-Chúng ta sẽ xây dựng các endpoint API sau:
+We will build the following API endpoints:
 
-- `GET /api/posts`: Lấy danh sách tất cả bài viết.
-- `POST /api/posts`: Tạo một bài viết mới.
-- `GET /api/posts/{id}`: Lấy thông tin chi tiết một bài viết.
-- `PUT /api/posts/{id}`: Cập nhật một bài viết.
-- `DELETE /api/posts/{id}`: Xóa một bài viết.
+- `GET /api/posts`: Get a list of all posts.
+- `POST /api/posts`: Create a new post.
+- `GET /api/posts/{id}`: Get the details of a specific post.
+- `PUT /api/posts/{id}`: Update a post.
+- `DELETE /api/posts/{id}`: Delete a post.
 
-## Bước 1: Tạo Module `Post`
+## Step 1: Create the `Post` Module
 
-Đầu tiên, hãy sử dụng công cụ CLI để tạo một module mới tên là `Post`. Mở terminal và chạy lệnh:
+First, let's use the CLI tool to create a new module named `Post`. Open your terminal and run the command:
 
 ```bash
 php cli ddd:make-module Post
 ```
 
-Lệnh này sẽ tạo ra toàn bộ cấu trúc thư mục cần thiết bên trong `Modules/Post`, sẵn sàng để chúng ta phát triển.
+This command will create the entire necessary directory structure inside `Modules/Post`, ready for us to develop.
 
-## Bước 2: Tạo Database Migration
+## Step 2: Create the Database Migration
 
-Tiếp theo, chúng ta cần định nghĩa cấu trúc cho bảng `posts` trong cơ sở dữ liệu.
+Next, we need to define the structure for the `posts` table in the database.
 
-1.  Tạo một file migration mới. Tên file nên theo định dạng `YYYY_MM_DD_His_create_posts_table.php`.
-    **Tạo file:** `Modules/Post/Infrastructure/Migrations/2025_07_16_120000_create_posts_table.php`
+1.  Create a new migration file. The filename should follow the format `YYYY_MM_DD_His_create_posts_table.php`.
+    **Create file:** `Modules/Post/Infrastructure/Migrations/2025_07_16_120000_create_posts_table.php`
 
-2.  Thêm nội dung sau vào file migration vừa tạo:
+2.  Add the following content to the newly created migration file:
 
     ```php
     <?php
@@ -45,7 +45,7 @@ Tiếp theo, chúng ta cần định nghĩa cấu trúc cho bảng `posts` trong
                 $table->id();
                 $table->string('title');
                 $table->text('content');
-                $table->timestamps(); // Tự động tạo 2 cột created_at và updated_at
+                $table->timestamps(); // Automatically creates created_at and updated_at columns
             });
         }
 
@@ -56,12 +56,12 @@ Tiếp theo, chúng ta cần định nghĩa cấu trúc cho bảng `posts` trong
     };
     ```
 
-## Bước 3: Tạo Model
+## Step 3: Create the Model
 
-Bây giờ, hãy tạo ORM Model để tương tác với bảng `posts`.
+Now, let's create the ORM Model to interact with the `posts` table.
 
-1.  **Tạo file:** `Modules/Post/Infrastructure/Models/Post.php`
-2.  Thêm nội dung:
+1.  **Create file:** `Modules/Post/Infrastructure/Models/Post.php`
+2.  Add content:
 
     ```php
     <?php
@@ -72,10 +72,10 @@ Bây giờ, hãy tạo ORM Model để tương tác với bảng `posts`.
 
     class Post extends Model
     {
-        // Tên bảng trong CSDL
+        // Table name in the database
         protected static string $table = 'posts';
 
-        // Các trường được phép gán hàng loạt (mass-assignment)
+        // The attributes that are mass assignable.
         protected $fillable = [
             'title',
             'content',
@@ -83,22 +83,22 @@ Bây giờ, hãy tạo ORM Model để tương tác với bảng `posts`.
     }
     ```
 
-## Bước 4: Chạy Migration
+## Step 4: Run the Migration
 
-Sau khi đã có file migration và model, hãy chạy lệnh sau để tạo bảng `posts` trong CSDL:
+Once you have the migration file and the model, run the following command to create the `posts` table in the database:
 
 ```bash
 php cli ddd:migrate
 ```
 
-Bạn sẽ thấy thông báo cho biết migration đã được chạy thành công.
+You will see a message indicating that the migration was run successfully.
 
-## Bước 5: Tạo Controller và Định nghĩa Routes
+## Step 5: Create the Controller and Define Routes
 
-Chúng ta sẽ tạo một `PostController` và sử dụng **Attribute-based Routing** để định nghĩa các endpoint.
+We will create a `PostController` and use **Attribute-based Routing** to define the endpoints.
 
-1.  **Tạo file:** `Modules/Post/Http/Controllers/PostController.php`
-2.  Thêm nội dung khởi tạo cho controller. Chúng ta sẽ điền logic cho các phương thức ở bước tiếp theo.
+1.  **Create file:** `Modules/Post/Http/Controllers/PostController.php`
+2.  Add the initial content for the controller. We will fill in the logic for the methods in the next step.
 
     ```php
     <?php
@@ -116,44 +116,44 @@ Chúng ta sẽ tạo một `PostController` và sử dụng **Attribute-based Ro
         #[Route('/api/posts', method: 'GET')]
         public function index(): Response
         {
-            // Logic để lấy danh sách bài viết
+            // Logic to get the list of posts
         }
 
         #[Route('/api/posts', method: 'POST')]
         public function store(Request $request, EventDispatcherInterface $dispatcher): Response
         {
-            // Logic để tạo bài viết mới
+            // Logic to create a new post
         }
 
         #[Route('/api/posts/{id}', method: 'GET')]
         public function show(int $id): Response
         {
-            // Logic để xem chi tiết một bài viết
+            // Logic to view a single post
         }
 
         #[Route('/api/posts/{id}', method: 'PUT')]
         public function update(Request $request, int $id): Response
         {
-            // Logic để cập nhật bài viết
+            // Logic to update a post
         }
 
         #[Route('/api/posts/{id}', method: 'DELETE')]
         public function destroy(int $id): Response
         {
-            // Logic để xóa bài viết
+            // Logic to delete a post
         }
     }
     ```
 
-**Lưu ý:** Framework sẽ tự động quét và đăng ký các route được định nghĩa bằng Attribute. Để tăng tốc trong môi trường production, bạn có thể chạy `php cli route:cache`.
+**Note:** The framework will automatically scan and register routes defined by Attributes. To speed this up in a production environment, you can run `php cli route:cache`.
 
-## Bước 6: Hoàn Thiện Logic CRUD trong Controller
+## Step 6: Complete the CRUD Logic in the Controller
 
-Bây giờ, chúng ta sẽ điền logic cho từng phương thức trong `PostController`.
+Now, we will fill in the logic for each method in the `PostController`.
 
-### a. Lấy danh sách (Read - Index)
+### a. Get List (Read - Index)
 
-Cập nhật phương thức `index()`:
+Update the `index()` method:
 
 ```php
     #[Route('/api/posts', method: 'GET')]
@@ -164,16 +164,16 @@ Cập nhật phương thức `index()`:
     }
 ```
 
-### b. Tạo mới (Create - Store)
+### b. Create New (Create - Store)
 
-Cập nhật phương thức `store()`:
+Update the `store()` method:
 
 ```php
     #[Route('/api/posts', method: 'POST')]
     public function store(Request $request, EventDispatcherInterface $dispatcher): Response
     {
-        // Đơn giản, chúng ta sẽ validate trực tiếp ở đây.
-        // Trong thực tế, bạn nên tạo một FormRequest riêng.
+        // For simplicity, we will validate directly here.
+        // In a real application, you should create a separate FormRequest.
         $validated = $request->validate([
             'title' => 'required|string|max:255',
             'content' => 'required|string',
@@ -181,16 +181,16 @@ Cập nhật phương thức `store()`:
 
         $post = Post::create($validated);
 
-        // Bắn ra sự kiện để các hệ thống khác có thể xử lý
+        // Dispatch an event so other systems can handle it
         $dispatcher->dispatch(new \Modules\Post\Domain\Events\PostWasCreated($post));
 
         return response()->json($post, 201); // 201 Created
     }
 ```
 
-### c. Xem chi tiết (Read - Show)
+### c. View Details (Read - Show)
 
-Cập nhật phương thức `show()`:
+Update the `show()` method:
 
 ```php
     #[Route('/api/posts/{id}', method: 'GET')]
@@ -201,9 +201,9 @@ Cập nhật phương thức `show()`:
     }
 ```
 
-### d. Cập nhật (Update)
+### d. Update
 
-Cập nhật phương thức `update()`:
+Update the `update()` method:
 
 ```php
     #[Route('/api/posts/{id}', method: 'PUT')]
@@ -222,9 +222,9 @@ Cập nhật phương thức `update()`:
     }
 ```
 
-### e. Xóa (Delete - Destroy)
+### e. Delete (Destroy)
 
-Cập nhật phương thức `destroy()`:
+Update the `destroy()` method:
 
 ```php
     #[Route('/api/posts/{id}', method: 'DELETE')]
@@ -237,17 +237,17 @@ Cập nhật phương thức `destroy()`:
     }
 ```
 
-## Bước 7: Kiểm tra API
+## Step 7: Test the API
 
-Bây giờ module CRUD của bạn đã hoàn tất! Hãy khởi động server:
+Your CRUD module is now complete! Start the server:
 
 ```bash
 php cli serve
 ```
 
-Bạn có thể sử dụng một công cụ như **Postman**, **Insomnia**, hoặc `curl` để kiểm tra các endpoint:
+You can use a tool like **Postman**, **Insomnia**, or `curl` to test the endpoints:
 
-**Tạo một bài viết mới:**
+**Create a new post:**
 
 ```bash
 curl -X POST http://localhost:8080/api/posts \
@@ -255,13 +255,13 @@ curl -X POST http://localhost:8080/api/posts \
      -d '{"title": "My First Post", "content": "This is the content of my first post."}'
 ```
 
-**Lấy danh sách bài viết:**
+**Get the list of posts:**
 
 ```bash
 curl http://localhost:8080/api/posts
 ```
 
-**Cập nhật bài viết có ID là 1:**
+**Update the post with ID 1:**
 
 ```bash
 curl -X PUT http://localhost:8080/api/posts/1 \
@@ -269,17 +269,17 @@ curl -X PUT http://localhost:8080/api/posts/1 \
      -d '{"title": "My Updated Post", "content": "Content has been updated."}'
 ```
 
-**Xóa bài viết có ID là 1:**
+**Delete the post with ID 1:**
 
 ```bash
 curl -X DELETE http://localhost:8080/api/posts/1
 ```
 
-## Tổng kết
+## Summary
 
-Chúc mừng! Bạn đã xây dựng thành công một module CRUD hoàn chỉnh trong BaultPHP. Từ đây, bạn có thể áp dụng các khái niệm nâng cao hơn như:
+Congratulations! You have successfully built a complete CRUD module in BaultPHP. From here, you can apply more advanced concepts such as:
 
-- Tạo các class `FormRequest` riêng để xử lý validation phức tạp.
-- Tách logic nghiệp vụ ra các lớp `Use Case` trong thư mục `Application` của module.
-- Sử dụng `Repository Pattern` để trừu tượng hóa việc truy cập dữ liệu.
-- Thêm cơ chế xác thực và phân quyền cho các endpoint.
+- Creating separate `FormRequest` classes to handle complex validation.
+- Separating business logic into `Use Case` classes within the module's `Application` directory.
+- Using the `Repository Pattern` to abstract data access.
+- Adding authentication and authorization mechanisms to the endpoints.

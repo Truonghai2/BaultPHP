@@ -238,7 +238,7 @@ class SwooleServer
 
                         $debugData = $debugManager->getData();
                         /** @var RedisManager $redisManager */
-                        $redisManager = $this->app->make(RedisManager::class);
+                        $redisManager = $this->app->make('redis');
                         $key = 'debug:requests:' . $requestId;
                         $redisManager->setex($key, config('debug.expiration', 3600), json_encode($debugData));
                     } catch (Throwable $e) {

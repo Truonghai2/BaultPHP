@@ -58,42 +58,51 @@ class ConnectionPoolManager
 
     private function initializeDbPool(bool $isTaskWorker, string $workerType): void
     {
-        $this->logger->info('[DEBUG] Checking DB Pool Config', ['config' => $this->dbPoolConfig]);
-
         if (empty($this->dbPoolConfig['enabled'])) {
-            $this->logger->warning('[DEBUG] Skipping DB Pool initialization because it is disabled in the config.');
+            $this->logger->debug('DB Pool is disabled, skipping initialization.');
             return;
         }
 
-        $connectionName = $this->dbPoolConfig['connection'];
-        $dbConfig = $this->app->make('config')->get("database.connections.{$connectionName}");
-        $poolSize = $isTaskWorker ? ($this->dbPoolConfig['task_worker_pool_size'] ?? 10) : ($this->dbPoolConfig['worker_pool_size'] ?? 10);
-        $heartbeat = $this->dbPoolConfig['heartbeat'] ?? 60;
-        $circuitBreakerConfig = $this->dbPoolConfig['circuit_breaker'] ?? [];
-        SwoolePdoPool::init($dbConfig, $poolSize, $circuitBreakerConfig, $this->app, $heartbeat);
-        $this->logger->debug("Swoole PDO Pool initialized for {$workerType}");
+        // Iterate over all configured pools and initialize them by name
+        foreach ($this->dbPoolConfig['pools'] ?? [] as $name => $poolConfig) {
+            try {
+                $dbConfig = $this->app->make('config')->get("database.connections.{$name}");
+                if (!$dbConfig) {
+                    throw new \InvalidArgumentException("Database connection '{$name}' is not defined in config/database.php.");
+                }
+                $poolSize = $isTaskWorker ? ($poolConfig['task_worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10) : ($poolConfig['worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10);
+                $heartbeat = $poolConfig['heartbeat'] ?? 60;
+                $circuitBreakerConfig = $poolConfig['circuit_breaker'] ?? [];
+                SwoolePdoPool::init($dbConfig, $poolSize, $circuitBreakerConfig, $this->app, $heartbeat, $name);
+                $this->logger->debug("Swoole PDO Pool '{$name}' initialized for {$workerType}", ['size' => $poolSize]);
+            } catch (\Throwable $e) {
+                $this->logger->error("Failed to initialize DB pool '{$name}': " . $e->getMessage());
+            }
+        }
     }
 
     private function initializeRedisPool(bool $isTaskWorker, string $workerType): void
     {
-        $this->logger->info('[DEBUG] Checking Redis Pool Config', ['config' => $this->redisPoolConfig]);
-
         if (empty($this->redisPoolConfig['enabled'])) {
-            $this->logger->warning('[DEBUG] Skipping Redis Pool initialization because it is disabled in the config.');
+            $this->logger->debug('Redis Pool is disabled, skipping initialization.');
             return;
         }
 
-        $circuitBreakerConfig = $this->redisPoolConfig['circuit_breaker'] ?? [];
+        // Iterate over all configured pools and initialize them by name
+        foreach ($this->redisPoolConfig['pools'] ?? [] as $name => $poolConfig) {
+            try {
+                $redisConfig = $this->app->make('config')->get("database.redis.{$name}");
+                if (!$redisConfig) {
+                    throw new \InvalidArgumentException("Redis connection '{$name}' is not defined in config/database.php.");
+                }
+                $poolSize = $isTaskWorker ? ($poolConfig['task_worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10) : ($poolConfig['worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10);
+                $circuitBreakerConfig = $poolConfig['circuit_breaker'] ?? [];
 
-        if (($circuitBreakerConfig['enabled'] ?? false) && ($circuitBreakerConfig['storage'] ?? 'redis') === 'redis') {
-            $this->logger->warning('Circuit breaker for the "redis" service is using "apcu" storage to avoid circular dependency. The circuit state will be per-worker, not shared across workers.');
-            $circuitBreakerConfig['storage'] = 'apcu';
+                SwooleRedisPool::init($redisConfig, $poolSize, $circuitBreakerConfig, $this->app, null, $name);
+                $this->logger->debug("Swoole Redis Pool '{$name}' initialized for {$workerType}", ['size' => $poolSize]);
+            } catch (\Throwable $e) {
+                $this->logger->error("Failed to initialize Redis pool '{$name}': " . $e->getMessage());
+            }
         }
-
-        $connectionName = $this->redisPoolConfig['connection'];
-        $redisConfig = $this->app->make('config')->get("database.redis.{$connectionName}");
-        $poolSize = $isTaskWorker ? ($this->redisPoolConfig['task_worker_pool_size'] ?? 10) : ($this->redisPoolConfig['worker_pool_size'] ?? 10);
-        SwooleRedisPool::init($redisConfig, $poolSize, $circuitBreakerConfig, $this->app, null);
-        $this->logger->debug("Swoole Redis Pool initialized for {$workerType}");
     }
 }

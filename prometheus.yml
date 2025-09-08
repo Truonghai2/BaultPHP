@@ -1,5 +1,0 @@
-scrape_configs:
-  - job_name: 'baultPHP_app'
-    static_configs:
-      # Thay 'host.docker.internal' bằng IP của máy host nếu chạy Prometheus trong Docker
-      - targets: ['host.docker.internal:9090'] 

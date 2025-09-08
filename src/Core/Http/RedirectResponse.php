@@ -2,53 +2,69 @@
 
 namespace Core\Http;
 
-use Nyholm\Psr7\Response;
+use Core\Validation\ValidationException;
+use Core\Validation\Validator;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UriInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
-class RedirectResponse extends Response
+/**
+ * A custom RedirectResponse that integrates with the session to flash data.
+ * This is useful for redirecting with input and errors after form submissions.
+ * It is PSR-7 compliant by extending the base Response class.
+ */
+class RedirectResponse extends Response implements ResponseInterface
 {
-    protected SessionInterface $session;
+    /**
+     * The session instance.
+     *
+     * @var \Symfony\Component\HttpFoundation\Session\SessionInterface|null
+     */
+    protected ?SessionInterface $session = null;
 
     /**
-     * Create a new redirect response instance.
+     * Create a redirect response.
      *
-     * @param string $url The URL to redirect to.
-     * @param int $status The HTTP status code.
-     * @param array $headers Additional headers.
+     * Produces a redirect response with a Location header and the given status
+     * (302 by default).
+     *
+     * @param string|UriInterface $uri URI for the Location header.
+     * @param int $status Integer status code for the redirect; 302 by default.
+     * @param array $headers Array of headers to use at initialization.
      */
-    public function __construct(string $url, int $status = 302, array $headers = [])
+    public function __construct($uri, int $status = 302, array $headers = [])
     {
-        // Ensure Location header is set for redirection.
-        $headers['Location'] = $url;
-        parent::__construct($status, $headers);
+        parent::__construct('', $status, $headers);
+        $this->headers['Location'] = (string) $uri;
     }
 
     /**
-     * Set the session instance on the response.
+     * Sets the session instance on the response.
      *
-     * @param SessionInterface $session
+     * @param  \Symfony\Component\HttpFoundation\Session\SessionInterface  $session
      * @return $this
      */
-    public function setSession(SessionInterface $session): static
+    public function setSession(SessionInterface $session): self
     {
         $this->session = $session;
+
         return $this;
     }
 
     /**
      * Flash a piece of data to the session.
      *
-     * @param string|array $key
-     * @param mixed $value
+     * @param  string  $key
+     * @param  mixed  $value
      * @return $this
      */
-    public function with($key, $value = null): static
+    public function with(string $key, $value): self
     {
-        $key = is_array($key) ? $key : [$key => $value];
-
-        foreach ($key as $k => $v) {
-            $this->session->getFlashBag()->set($k, $v);
+        if (! $this->session) {
+            throw new \RuntimeException('Session has not been set on the RedirectResponse.');
         }
+
+        $this->session->getFlashBag()->set($key, $value);
 
         return $this;
     }
@@ -56,22 +72,69 @@ class RedirectResponse extends Response
     /**
      * Flash an array of input to the session.
      *
-     * @param array $input
+     * @param  array  $input
      * @return $this
      */
-    public function withInput(array $input): static
+    public function withInput(array $input): self
     {
-        return $this->with('_old_input', $input);
+        if (! $this->session) {
+            throw new \RuntimeException('Session has not been set on the RedirectResponse.');
+        }
+
+        $this->session->getFlashBag()->set('_old_input', $input);
+
+        return $this;
     }
 
     /**
      * Flash a container of errors to the session.
      *
-     * @param array $errors
+     * @param  object|array  $provider The error provider (e.g., a Validator instance) or an array of errors.
      * @return $this
      */
-    public function withErrors(array $errors): static
+    public function withErrors($provider): self
     {
-        return $this->with('errors', $errors);
+        if (! $this->session) {
+            throw new \RuntimeException('Session has not been set on the RedirectResponse.');
+        }
+
+        $errors = $this->parseErrors($provider);
+
+        $this->session->getFlashBag()->set('errors', $errors);
+
+        return $this;
+    }
+
+    /**
+     * Parse the error provider into an array.
+     *
+     * This is where the original error likely occurred. The fix is to ensure
+     * we check if the provider is an object before attempting to call a method on it.
+     *
+     * @param  object|array  $provider
+     * @return array
+     */
+    protected function parseErrors($provider): array
+    {
+        // Handle the framework's specific validation classes first.
+        if ($provider instanceof ValidationException) {
+            return $provider->errors();
+        }
+
+        // The provider might also be the Validator instance itself.
+        if ($provider instanceof Validator) {
+            return $provider->errors();
+        }
+
+        // Keep original logic for compatibility.
+        if (is_object($provider) && method_exists($provider, 'getMessageBag')) {
+            return $provider->getMessageBag()->toArray();
+        }
+
+        if (is_object($provider) && method_exists($provider, 'toArray')) {
+            return $provider->toArray();
+        }
+
+        return (array) $provider;
     }
 }

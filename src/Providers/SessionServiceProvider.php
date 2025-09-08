@@ -2,50 +2,120 @@
 
 namespace App\Providers;
 
-use Core\Database\Swoole\SwooleRedisPool;
+use Core\Application;
+use Core\Contracts\StatefulService;
+use Core\Database\CoroutineConnectionManager;
+use Core\Database\CoroutineRedisManager;
 use Core\Session\DirectSessionTokenStorage;
-use Core\Session\RedisSessionHandler;
+use Core\Session\SessionManager;
 use Core\Support\ServiceProvider;
+use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
+use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
+use Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Csrf\TokenGenerator\TokenGeneratorInterface;
 use Symfony\Component\Security\Csrf\TokenGenerator\UriSafeTokenGenerator;
-use Symfony\Component\Security\Csrf\TokenStorage\SessionTokenStorage;
 use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
 
 class SessionServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // It's a good practice to register RequestStack as a singleton
-        // so the same instance is used throughout the application. It's required
-        // by the SessionTokenStorage.
+        $this->app->singleton(SessionManager::class, function (Application $app) {
+            return new SessionManager(
+                $app,
+                function () use ($app) {
+                    return $this->createSessionHandler($app);
+                },
+            );
+        });
+
+        $this->app->tag(SessionManager::class, StatefulService::class);
+
         $this->app->singleton(RequestStack::class);
 
         $this->app->singleton('session', function ($app) {
-            return new Session(new NativeSessionStorage());
+            return $app->make(SessionManager::class)->getSession();
         });
 
         $this->app->alias('session', Session::class);
 
-        // Also alias the interface to the 'session' binding. This allows other services
-        // to depend on the interface, making them more decoupled from the concrete implementation.
         $this->app->alias('session', \Symfony\Component\HttpFoundation\Session\SessionInterface::class);
 
-        // Register the core CSRF services from the Symfony component.
-        // This is the foundation for our CSRF protection.
         $this->registerCsrfServices();
 
-        // Register our application's CsrfManager wrapper. This now has its
-        // dependencies correctly registered in the container.
         $this->app->singleton(\Core\Security\CsrfManager::class, function ($app) {
             return new \Core\Security\CsrfManager(
                 $app->make(CsrfTokenManagerInterface::class),
             );
         });
+    }
+
+    /**
+     * Create the session handler based on the configuration.
+     *
+     * @param \Core\Application $app
+     * @return \SessionHandlerInterface
+     */
+    protected function createSessionHandler(Application $app): \SessionHandlerInterface
+    {
+        $config = $app->make('config');
+        $driver = $config->get('session.driver');
+
+        return match ($driver) {
+            'database' => $this->createDatabaseHandler($app, $config),
+            'redis' => $this->createRedisHandler($app, $config),
+            'file' => new \Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler(),
+            default => throw new InvalidArgumentException("Unsupported session driver [{$driver}]."),
+        };
+    }
+
+    /**
+     * Create a new database session handler instance.
+     *
+     * @param \Core\Application $app
+     * @param \Core\Config $config
+     * @return \Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
+     */
+    protected function createDatabaseHandler(Application $app, \Core\Config $config): PdoSessionHandler
+    {
+        if (!$config->get('server.swoole.db_pool.enabled', false)) {
+            throw new \RuntimeException('Database session driver requires the DB connection pool to be enabled in config/server.php.');
+        }
+
+        // The CoroutineConnectionManager manages the default connection pool.
+        // The 'session.database_connection' config is not used here as the manager handles the default connection.
+        $pdo = $app->make(CoroutineConnectionManager::class)->get();
+        $table = $config->get('session.table', 'sessions');
+
+        return new PdoSessionHandler($pdo, ['db_table' => $table]);
+    }
+
+    /**
+     * Create a new Redis session handler instance.
+     *
+     * @param \Core\Application $app
+     * @param \Core\Config $config
+     * @return \Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler
+     */
+    protected function createRedisHandler(Application $app, \Core\Config $config): RedisSessionHandler
+    {
+        if (!$config->get('server.swoole.redis_pool.enabled', false)) {
+            throw new \RuntimeException('Redis session driver requires the Redis connection pool to be enabled in config/server.php.');
+        }
+
+        // Use the configured Redis connection for sessions, or 'default' if not specified.
+        $connectionName = $config->get('session.connection', 'default');
+
+        // Use CoroutineRedisManager to get a connection from the pool,
+        $redisClient = $app->make(CoroutineRedisManager::class)->get($connectionName);
+
+        $lifetime = $config->get('session.lifetime', 120) * 60; // in seconds
+
+        return new RedisSessionHandler($redisClient, ['ttl' => $lifetime]);
     }
 
     /**
@@ -56,42 +126,9 @@ class SessionServiceProvider extends ServiceProvider
         $this->app->singleton(TokenGeneratorInterface::class, UriSafeTokenGenerator::class);
 
         $this->app->singleton(TokenStorageInterface::class, function ($app) {
-            // The default SessionTokenStorage relies on a session being present on the
-            // RequestStack. In this application, some parts of the code (like view rendering
-            // from the router) might need a CSRF token before the StartSession middleware
-            // has run, which causes a SessionNotFoundException.
-            //
-            // To solve this without a major architectural change, we use a custom
-            // token storage that interacts with the 'session' service directly. This
-            // custom storage bypasses the RequestStack and starts the session on-demand
-            // if it's not already started.
             return new DirectSessionTokenStorage($app->make('session'));
         });
 
         $this->app->singleton(CsrfTokenManagerInterface::class, CsrfTokenManager::class);
-    }
-
-    public function boot(): void
-    {
-        // Set Redis handler only if the driver is 'redis' AND running in a Swoole environment.
-        // This ensures that CLI commands are not affected, as session management for HTTP
-        // requests is handled by the StartSession middleware.
-        if (php_sapi_name() === 'cli') {
-            return;
-        }
-
-        $isSwooleEnv = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
-
-        if (config('session.driver') === 'redis' && $isSwooleEnv && SwooleRedisPool::isInitialized()) {
-            $handler = new RedisSessionHandler(config('session'));
-
-            // Set custom handler for PHP. The session itself will be started by the StartSession middleware.
-            session_set_save_handler($handler, true);
-
-            // Configure session parameters
-            ini_set('session.gc_probability', '0'); // Disable default PHP GC
-        }
-        // For other drivers or environments, we rely on the default PHP session handling,
-        // which will be initiated by the StartSession middleware.
     }
 }

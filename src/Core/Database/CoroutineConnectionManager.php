@@ -16,9 +16,10 @@ use Swoole\Database\PDOProxy;
 class CoroutineConnectionManager
 {
     /**
-     * The key used to store the connection in the coroutine context.
+     * The base key used to store connections in the coroutine context.
      */
-    protected const CONTEXT_KEY = 'db_connection';
+    protected const CONTEXT_KEY_PREFIX = 'db_connection_';
+
     protected LoggerInterface $logger;
 
     public function __construct(LoggerInterface $logger)
@@ -33,30 +34,29 @@ class CoroutineConnectionManager
      * Otherwise, a new connection is fetched from the pool, and its release is
      * deferred until the coroutine exits.
      *
+     * @param string|null $name The name of the connection pool to use. If null, the default will be used.
      * @return PDO|PDOProxy
      */
-    public function get(): PDO|PDOProxy
+    public function get(string $name = null): PDO|PDOProxy
     {
+        $name ??= config('database.default', 'mysql');
+        $contextKey = self::CONTEXT_KEY_PREFIX . $name;
+
         $cid = Coroutine::getCid();
         $context = Coroutine::getContext($cid);
 
-        if (isset($context[self::CONTEXT_KEY])) {
-            $this->logger->debug('Reusing DB connection from coroutine context.', ['cid' => $cid]);
-            return $context[self::CONTEXT_KEY];
+        if (isset($context[$contextKey])) {
+            $this->logger->debug('Reusing DB connection from coroutine context.', ['cid' => $cid, 'connection' => $name]);
+            return $context[$contextKey];
         }
 
-        // Connection does not exist for this coroutine, get a new one from the pool.
-        $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'pool_stats' => SwoolePdoPool::stats()]);
-        $connection = SwoolePdoPool::get();
+        $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwoolePdoPool::stats($name)]);
+        $connection = SwoolePdoPool::get($name);
 
-        // Store it in the context for subsequent calls within the same coroutine.
-        $context[self::CONTEXT_KEY] = $connection;
+        $context[$contextKey] = $connection;
 
-        // CRITICAL: Defer the release of the connection.
-        // This function will be executed automatically when the coroutine finishes,
-        // ensuring the connection is always returned to the pool.
-        Coroutine::defer(function () use ($connection, $cid) {
-            $this->release($connection, $cid);
+        Coroutine::defer(function () use ($connection, $name, $cid) {
+            $this->release($connection, $name, $cid);
         });
 
         return $connection;
@@ -65,9 +65,9 @@ class CoroutineConnectionManager
     /**
      * Release a PDO connection back to the pool.
      */
-    public function release(PDO|PDOProxy $connection, int $cid): void
+    public function release(PDO|PDOProxy $connection, string $name, int $cid): void
     {
-        SwoolePdoPool::put($connection);
-        $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'pool_stats' => SwoolePdoPool::stats()]);
+        SwoolePdoPool::put($connection, $name);
+        $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwoolePdoPool::stats($name)]);
     }
 }

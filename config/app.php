@@ -12,11 +12,6 @@ return [
     'url' => env('APP_URL', 'http://localhost:9501'),
     'asset_url' => env('ASSET_URL', null),
 
-    // This URL is used by the `vite()` helper to generate the correct URLs
-    // for your assets when running in development mode with a dev server.
-    // It should point to the Vite container from the perspective of the PHP container.
-    'vite_dev_url' => env('VITE_DEV_URL', 'http://localhost:5173'),
-
     'timezone' => 'Asia/Ho_Chi_Minh',
     'locale' => 'en',
     'fallback_locale' => 'en',
@@ -25,6 +20,8 @@ return [
     'cipher' => 'AES-256-CBC',
 
     'rpc_secret_token' => env('RPC_SECRET_TOKEN', 'baultPHP'),
+
+    'developer_ips' => env('DEVELOPER_IPS', ''),
 
     'providers' => [
         \App\Providers\AppServiceProvider::class,
@@ -45,6 +42,9 @@ return [
         \Core\Queue\QueueServiceProvider::class,
         \App\Providers\MeilisearchServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,
+        \App\Providers\CacheServiceProvider::class,
+        \App\Providers\FeatureServiceProvider::class,
+        \App\Providers\ScheduleServiceProvider::class,
     ],
 
     'aliases' => [
@@ -57,5 +57,6 @@ return [
         'Hash'    => Core\Support\Facades\Hash::class,
         'Queue'   => Core\Support\Facades\Queue::class,
         'Mail'    => Core\Support\Facades\Mail::class,
+        'Feature' => Core\Support\Facades\Feature::class,
     ],
 ];

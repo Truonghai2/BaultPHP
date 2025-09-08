@@ -1,24 +1,15 @@
-# Tên của workflow, sẽ hiển thị trong tab "Actions" của GitHub.
 name: Deploy BaultPHP Application
 
-# Cấu hình trigger: Chạy workflow này mỗi khi có push lên nhánh `main`.
 on:
   push:
     branches: [ "main" ]
-
-# Định nghĩa các công việc (jobs) sẽ được thực thi.
 jobs:
-  # --- JOB MỚI: CHẠY KIỂM THỬ TỰ ĐỘNG ---
   test:
-    # Chạy job này trên một máy ảo Ubuntu mới nhất.
     runs-on: ubuntu-latest
     steps:
-      # Bước 1: Checkout mã nguồn từ repository.
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Bước 2: Tạo file .env cho môi trường kiểm thử.
-      # File này sẽ ghi đè các biến môi trường để kết nối đến các service trong Docker.
       - name: Setup .env file for testing
         run: |
           echo "APP_ENV=testing" > .env
@@ -33,68 +24,52 @@ jobs:
           echo "REDIS_HOST=redis" >> .env
           echo "REDIS_PORT=6379" >> .env
 
-      # Bước 3: Khởi chạy các dịch vụ bằng Docker Compose.
-      # Lệnh `up -d` sẽ build image (nếu cần) và chạy các container ở chế độ nền.
-      # Healthcheck trong docker-compose.yml sẽ đảm bảo các service phụ thuộc khởi động đúng thứ tự.
+      - name: Make entrypoint scripts executable
+        run: |
+          chmod +x ./docker/mysql/primary-entrypoint.sh
+          chmod +x ./docker/mysql/replica-entrypoint.sh
+          chmod +x ./docker/php/entrypoint.sh
+
       - name: Start services
-        run: docker-compose up -d
+        run: docker compose up --build
 
-      # Bước 4: Chạy migrations và seeders để chuẩn bị CSDL cho việc test.
       - name: Run database migrations
-        run: docker-compose exec -T app php cli ddd:migrate --seed
+        run: docker compose exec -T app php cli ddd:migrate --seed
 
-      # Bước 5: Chạy bộ test PHPUnit.
       - name: Run PHPUnit tests
-        run: docker-compose exec -T app ./vendor/bin/phpunit
+        run: docker compose exec -T app ./vendor/bin/phpunit
 
-  # --- JOB 1: BUILD & PUSH DOCKER IMAGE ---
   build:
-    # Chạy job này trên một máy ảo Ubuntu mới nhất do GitHub cung cấp.
     runs-on: ubuntu-latest
-    # Quan trọng: Job này chỉ chạy sau khi job `test` đã hoàn thành thành công.
     needs: test
     steps:
-      # Bước 1: Checkout mã nguồn từ repository.
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Bước 2: Thiết lập Docker Buildx để có các tính năng build nâng cao.
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Bước 3: Đăng nhập vào Docker Hub sử dụng secrets đã cấu hình.
       - name: Log in to Docker Hub
         uses: docker/login-action@v3
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Bước 4: Build và push Docker image.
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          # Sử dụng context là thư mục hiện tại.
           context: .
-          # Đẩy image lên registry sau khi build thành công.
           push: true
-          # Gắn tag cho image.
-          # Ví dụ: your-username/baultphp-app:latest và your-username/baultphp-app:<mã-commit-sha>
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:latest, ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:${{ github.sha }}
-          # Truyền build-arg APP_ENV=production vào Dockerfile để cài đặt đúng dependencies.
           build-args: |
             APP_ENV=production
-          # Bật cache để tăng tốc các lần build sau.
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # --- JOB 2: DEPLOY TO PRODUCTION SERVER ---
   deploy:
-    # Chạy job này trên một máy ảo Ubuntu.
     runs-on: ubuntu-latest
-    # Quan trọng: Job này chỉ chạy sau khi job `build` (và `test`) đã hoàn thành.
     needs: build
     steps:
-      # Bước 1: Sử dụng action SSH để kết nối và thực thi lệnh trên server.
       - name: Deploy to server
         uses: appleboy/ssh-action@master
         with:
@@ -102,18 +77,18 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Di chuyển đến thư mục chứa ứng dụng trên server.
+            # Navigate to the application directory on the server.
             cd ${{ secrets.APP_PATH_ON_SERVER }}
             
-            # Kéo (pull) image mới nhất của service 'app' từ Docker Hub.
+            # Pull the latest image of the 'app' service from Docker Hub.
             echo ">>> Pulling latest image..."
-            docker-compose pull app
-            
-            # Khởi động lại container với image mới.
-            # Docker Compose sẽ tự động thực hiện rolling update (tạo container mới trước, rồi mới xóa container cũ).
-            # --remove-orphans sẽ dọn dẹp các container không còn được định nghĩa (nếu có).
+            docker compose pull app
+
+            # Restart the container with the new image.
+            # Docker Compose will automatically perform a rolling update (create a new container before removing the old one).
+            # --remove-orphans will clean up containers that are no longer defined (if any).
             echo ">>> Deploying new container..."
-            docker-compose up -d --remove-orphans app
+            docker compose up -d --remove-orphans app
             
-            # [Tùy chọn] Dọn dẹp các image cũ không còn được sử dụng để tiết kiệm dung lượng.
+            # [Optional] Clean up old, unused images to save space.
             docker image prune -f

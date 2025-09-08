@@ -73,7 +73,7 @@ class QueueServiceProvider extends BaseServiceProvider
      */
     protected function registerWorker(): void
     {
-        $this->app->bind(QueueWorker::class);
+        $this->app->singleton(QueueWorker::class);
     }
 
     /**

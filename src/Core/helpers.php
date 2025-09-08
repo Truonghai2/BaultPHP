@@ -265,7 +265,6 @@ if (!function_exists('response')) {
 }
 
 use Core\Facades\Translate;
-use Core\Support\Vite;
 
 if (!function_exists('__')) {
 
@@ -285,25 +284,6 @@ if (!function_exists('public_path')) {
         return base_path('public' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
     }
 
-}
-
-if (!function_exists('vite')) {
-    /**
-     * Get the Vite assets for the application.
-     *
-     * @param string|string[] $entrypoints
-     * @return \Core\Support\HtmlString
-     */
-    function vite(string|array $entrypoints): \Core\Support\HtmlString
-    {
-        if (!app()->bound(Vite::class)) {
-            app()->singleton(Vite::class);
-        }
-
-        $htmlContent = app(Vite::class)($entrypoints);
-
-        return new \Core\Support\HtmlString((string) $htmlContent);
-    }
 }
 
 use Laminas\Escaper\Escaper;
@@ -418,7 +398,7 @@ if (!function_exists('old')) {
         /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
         $session = app('session');
 
-        $oldInput = $session->getFlashBag()->get('_old_input')[0] ?? [];
+        $oldInput = $session->getFlashBag()->get('_old_input') ?? [];
 
         return $oldInput[$key] ?? $default;
     }

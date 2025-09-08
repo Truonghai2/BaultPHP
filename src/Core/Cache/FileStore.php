@@ -21,7 +21,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function get(string $key, mixed $default = null): mixed
+    public function get($key, $default = null)
     {
         $path = $this->path($key);
 
@@ -48,7 +48,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function set(string $key, mixed $value, DateInterval|int|null $ttl = null): bool
+    public function set($key, $value, $ttl = null): bool
     {
         $seconds = $this->getSeconds($ttl);
 
@@ -71,7 +71,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function delete(string $key): bool
+    public function delete($key): bool
     {
         $path = $this->path($key);
 
@@ -95,7 +95,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    public function getMultiple($keys, $default = null): iterable
     {
         $results = [];
         foreach ($keys as $key) {
@@ -107,7 +107,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function setMultiple(iterable $values, DateInterval|int|null $ttl = null): bool
+    public function setMultiple($values, $ttl = null): bool
     {
         $success = true;
         foreach ($values as $key => $value) {
@@ -121,7 +121,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function deleteMultiple(iterable $keys): bool
+    public function deleteMultiple($keys): bool
     {
         $success = true;
         foreach ($keys as $key) {
@@ -135,7 +135,7 @@ class FileStore implements Store
     /**
      * {@inheritdoc}
      */
-    public function has(string $key): bool
+    public function has($key): bool
     {
         $marker = new \stdClass();
         return $this->get($key, $marker) !== $marker;
@@ -177,7 +177,7 @@ class FileStore implements Store
      * @param  \DateInterval|int|null  $ttl
      * @return int
      */
-    protected function getSeconds(DateInterval|int|null $ttl): int
+    protected function getSeconds($ttl): int
     {
         if ($ttl instanceof DateInterval) {
             return (new \DateTime('now'))->add($ttl)->getTimestamp() - time();

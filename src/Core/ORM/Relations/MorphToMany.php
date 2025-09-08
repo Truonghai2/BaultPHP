@@ -40,30 +40,57 @@ class MorphToMany extends BelongsToMany
     /**
      * Attach a model to the parent.
      * Overrides the parent method to add the morph type.
+     *
+     * @param mixed $ids
+     * @param array $attributes
+     * @return void
      */
-    public function attach($id): void
+    public function attach($ids, array $attributes = []): void
     {
-        $ids = is_array($id) ? $id : [$id];
-        if (empty($ids)) {
-            return;
+        // Add the morph type to the attributes for the pivot table.
+        $attributes[$this->morphType] = $this->morphClass;
+
+        parent::attach($ids, $attributes);
+    }
+
+    /**
+     * Sync the intermediate tables with a list of IDs.
+     * Overrides the parent method to add the morph type.
+     *
+     * @param \Core\Support\Collection|array $ids
+     * @param bool $detaching
+     * @return array
+     */
+    public function sync(Collection|array $ids, bool $detaching = true): array
+    {
+        $syncData = $this->formatSyncIds($ids);
+
+        foreach ($syncData as $id => &$attributes) {
+            $attributes[$this->morphType] = $this->morphClass;
         }
 
-        $current = $this->getAttachedIds($ids);
-        $toAttach = array_values(array_diff($ids, $current));
+        return parent::sync($syncData, $detaching);
+    }
 
-        if (empty($toAttach)) {
-            return;
-        }
+    /**
+     * Get a new query builder for the pivot table.
+     */
+    protected function newPivotQuery(): QueryBuilder
+    {
+        return parent::newPivotQuery()->where($this->morphType, '=', $this->morphClass);
+    }
 
-        $records = [];
-        foreach ($toAttach as $relatedId) {
-            $records[] = [
-                $this->foreignPivotKey => $this->parent->getKey(),
-                $this->relatedPivotKey => $relatedId,
-                $this->morphType => $this->morphClass,
-            ];
-        }
-
-        $this->newPivotQuery()->insert($records);
+    /**
+     * Get the SQL for a sub-select to count the number of related models.
+     * Overrides the parent method to add the morph type constraint.
+     */
+    public function getSelectCountSql(): string
+    {
+        $parentTable = $this->parent->getTable();
+        $joinClause = "INNER JOIN `{$this->pivotTable}` ON `{$this->relatedTable}`.`{$this->relatedKey}` = `{$this->pivotTable}`.`{$this->relatedPivotKey}`";
+        $whereClause = "WHERE `{$this->pivotTable}`.`{$this->foreignPivotKey}` = `{$parentTable}`.`{$this->parentKey}`";
+        $whereClause .= " AND `{$this->pivotTable}`.`{$this->morphType}` = '{$this->morphClass}'";
+        $sql = "SELECT count(*) FROM `{$this->relatedTable}` {$joinClause} {$whereClause}";
+        return $sql;
     }
 }

@@ -18,12 +18,11 @@ class LoggingServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton('log', function (Application $app): \Core\Logging\LogManager {
-            // Khởi tạo LogManager.
-            $manager = new \Core\Logging\LogManager($app);
+        $this->app->singleton('log', function (Application $app) {
+            $config = $app->make('config')->get('logging');
 
-            // Đẩy các processor toàn cục vào manager.
-            // Manager sẽ tự động áp dụng các processor này cho MỌI kênh log được tạo ra.
+            $manager = new \Core\Logging\LogManager($app, $config ?? []);
+
             $manager->pushProcessor(new ProcessIdProcessor());
             $manager->pushProcessor(new WebProcessor());
             $manager->pushProcessor($this->app->make(RequestProcessor::class));
@@ -41,7 +40,6 @@ class LoggingServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Không cần làm gì ở đây, nhưng giữ lại để tuân thủ cấu trúc.
     }
 
     /**

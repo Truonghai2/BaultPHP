@@ -4,6 +4,7 @@ namespace Core\Events;
 
 use Core\Application;
 use Core\Contracts\Queue\ShouldQueue;
+use Core\Events\Queue\CallQueuedListener;
 use Core\Queue\QueueManager;
 
 /**
@@ -19,6 +20,13 @@ class Dispatcher implements EventDispatcherInterface
      * and the value is an array of listener classes or callables.
      */
     protected array $listeners = [];
+
+    /**
+     * The wildcard listeners.
+     *
+     * @var array<string, array<string|callable>>
+     */
+    protected array $wildcardListeners = [];
 
     /**
      * @var QueueManager
@@ -44,7 +52,11 @@ class Dispatcher implements EventDispatcherInterface
      */
     public function listen(string $event, string|callable $listener): void
     {
-        $this->listeners[$event][] = $listener;
+        if (str_contains($event, '*')) {
+            $this->wildcardListeners[$event][] = $listener;
+        } else {
+            $this->listeners[$event][] = $listener;
+        }
     }
 
     /**
@@ -53,13 +65,52 @@ class Dispatcher implements EventDispatcherInterface
     public function dispatch(object $event): void
     {
         $eventName = get_class($event);
-        if (!isset($this->listeners[$eventName])) {
+        $listeners = $this->getListenersFor($eventName);
+
+        if (empty($listeners)) {
             return;
         }
 
-        foreach ($this->listeners[$eventName] as $listenerClass) {
-            $this->dispatchToListener($event, $listenerClass);
+        foreach ($listeners as $listener) {
+            if (is_callable($listener) && !is_string($listener)) {
+                $listener($event);
+            } else {
+                $this->dispatchToListener($event, (string) $listener);
+            }
         }
+    }
+
+    /**
+     * Get all the listeners for a given event name, including wildcards.
+     *
+     * @param  string  $eventName
+     * @return array
+     */
+    protected function getListenersFor(string $eventName): array
+    {
+        $specificListeners = $this->listeners[$eventName] ?? [];
+        $wildcardListeners = $this->getWildcardListeners($eventName);
+
+        return array_merge($specificListeners, $wildcardListeners);
+    }
+
+    /**
+     * Get the wildcard listeners for the event.
+     *
+     * @param  string  $eventName
+     * @return array
+     */
+    protected function getWildcardListeners(string $eventName): array
+    {
+        $wildcards = [];
+
+        foreach ($this->wildcardListeners as $key => $listeners) {
+            if (fnmatch($key, $eventName)) {
+                $wildcards = array_merge($wildcards, $listeners);
+            }
+        }
+
+        return $wildcards;
     }
 
     /**
@@ -70,7 +121,8 @@ class Dispatcher implements EventDispatcherInterface
         $listener = $this->app->make($listenerClass);
 
         if ($listener instanceof ShouldQueue) {
-            $this->app->make('queue')->push($listener, $event);
+            $job = new CallQueuedListener($listenerClass, $event, $listener->tries ?? null);
+            $this->app->make('queue')->push($job);
         } else {
             $listener->handle($event);
         }

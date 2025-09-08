@@ -66,4 +66,14 @@ class HasMany extends Relation
 
         return $sql;
     }
+
+    public function getQualifiedForeignKeyName(): string
+    {
+        return $this->query->getModel()->getTable() . '.' . $this->foreignKey;
+    }
+
+    public function getLocalKeyName(): string
+    {
+        return $this->localKey;
+    }
 }

@@ -73,7 +73,9 @@ class RedisJob implements JobContract
      */
     public function handle(): void
     {
-        $this->instance->handle();
+        // Use the container to call the handle method. This allows for
+        // method dependency injection on the job's handle method.
+        $this->app->call([$this->instance, 'handle']);
     }
 
     /**
@@ -155,6 +157,20 @@ class RedisJob implements JobContract
     public function getJobId(): string
     {
         return $this->decoded['id'];
+    }
+
+    /**
+     * Get the display name of the queued job.
+     *
+     * @return string
+     */
+    public function resolveName(): string
+    {
+        // If the underlying job has a specific display name, use it.
+        if (method_exists($this->instance, 'displayName')) {
+            return $this->instance->displayName();
+        }
+        return get_class($this->instance);
     }
 
     /**

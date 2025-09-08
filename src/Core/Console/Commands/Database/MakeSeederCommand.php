@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Console\Commands;
+namespace Core\Console\Commands\Database;
 
 use Core\Console\Contracts\BaseCommand;
 use InvalidArgumentException;
@@ -61,8 +61,6 @@ class MakeSeederCommand extends BaseCommand
     {
         $path = base_path('src/Core/Console/Commands/stubs/seeder.stub');
         if (!file_exists($path)) {
-            // This is a fallback in case the stub file doesn't exist,
-            // though it's better to ensure it does.
             throw new InvalidArgumentException('Stub file [seeder.stub] not found.');
         }
         return $path;
