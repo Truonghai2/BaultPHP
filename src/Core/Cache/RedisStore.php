@@ -2,16 +2,16 @@
 
 namespace Core\Cache;
 
-use Psr\SimpleCache\CacheInterface;
+use Core\Contracts\Cache\Store;
 use Redis;
 
-class RedisStore implements CacheInterface
+class RedisStore implements Store
 {
-    protected Redis $redis;
+    protected \Redis $redis;
     protected string $prefix;
 
     /**
-     * Tạo một instance RedisStore mới.
+     * T\u1ea1o m\u1ed9t instance RedisStore m\u1edbi.
      *
      * @param  \Redis  $redis
      * @param  string  $prefix
@@ -22,13 +22,23 @@ class RedisStore implements CacheInterface
         $this->setPrefix($prefix);
     }
 
-    public function get(string $key, mixed $default = null): mixed
+    /**
+     * {@inheritdoc}
+     */
+    public function get($key, $default = null)
     {
         $value = $this->redis->get($this->prefix . $key);
         return $value !== false && $value !== null ? unserialize($value) : $default;
     }
 
-    public function set(string $key, mixed $value, \DateInterval|int|null $ttl = null): bool
+    /**
+     * {@inheritdoc}
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param \DateInterval|\DateTimeInterface|int|null $ttl
+     */
+    public function set($key, $value, $ttl = null): bool
     {
         $seconds = $this->getSeconds($ttl);
 
@@ -43,7 +53,10 @@ class RedisStore implements CacheInterface
         );
     }
 
-    public function delete(string $key): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function delete($key): bool
     {
         return (bool) $this->redis->del($this->prefix . $key);
     }
@@ -60,7 +73,10 @@ class RedisStore implements CacheInterface
         return true;
     }
 
-    public function getMultiple(iterable $keys, mixed $default = null): iterable
+    /**
+     * {@inheritdoc}
+     */
+    public function getMultiple($keys, $default = null): iterable
     {
         $keys = is_array($keys) ? $keys : iterator_to_array($keys);
         if (empty($keys)) {
@@ -78,7 +94,13 @@ class RedisStore implements CacheInterface
         return $results;
     }
 
-    public function setMultiple(iterable $values, \DateInterval|int|null $ttl = null): bool
+    /**
+     * {@inheritdoc}
+     *
+     * @param iterable $values
+     * @param \DateInterval|\DateTimeInterface|int|null $ttl
+     */
+    public function setMultiple($values, $ttl = null): bool
     {
         $values = is_array($values) ? $values : iterator_to_array($values);
         if (empty($values)) {
@@ -98,7 +120,10 @@ class RedisStore implements CacheInterface
         return true;
     }
 
-    public function deleteMultiple(iterable $keys): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function deleteMultiple($keys): bool
     {
         $keys = is_array($keys) ? $keys : iterator_to_array($keys);
         if (empty($keys)) {
@@ -110,7 +135,10 @@ class RedisStore implements CacheInterface
         return true;
     }
 
-    public function has(string $key): bool
+    /**
+     * {@inheritdoc}
+     */
+    public function has($key): bool
     {
         return (bool) $this->redis->exists($this->prefix . $key);
     }
@@ -129,7 +157,7 @@ class RedisStore implements CacheInterface
     }
 
     /**
-     * Đặt tiền tố cho các key cache.
+     * \u0110\u1eb7t ti\u1ec1n t\u1ed1 cho c\u00e1c key cache.
      *
      * @param  string  $prefix
      * @return void
@@ -139,7 +167,7 @@ class RedisStore implements CacheInterface
         $this->prefix = !empty($prefix) ? $prefix . ':' : '';
     }
 
-    protected function getSeconds($ttl): int
+    protected function getSeconds(\DateInterval|\DateTimeInterface|int|null $ttl): int
     {
         if ($ttl instanceof \DateInterval) {
             return (new \DateTime('now'))->add($ttl)->getTimestamp() - time();
@@ -150,7 +178,7 @@ class RedisStore implements CacheInterface
         }
 
         if (is_null($ttl)) {
-            return 31536000; // 1 năm
+            return 31536000; // 1 n\u0103m
         }
 
         return (int) $ttl;

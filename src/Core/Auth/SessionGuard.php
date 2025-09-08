@@ -7,6 +7,7 @@ use Core\Contracts\Auth\Authenticatable;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
 use Core\Cookie\CookieManager;
+use Core\Support\Facades\Hash;
 use Symfony\Component\HttpFoundation\Session\Session;
 
 class SessionGuard implements Guard
@@ -48,22 +49,24 @@ class SessionGuard implements Guard
         $id = $this->session->get($this->getName());
 
         if (!is_null($id)) {
-            $this->user = $this->provider->retrieveById($id);
+            $user = $this->provider->retrieveById($id);
+            if (!is_null($user)) {
+                $this->user = $user;
+                $this->userResolved = true;
+                return $this->user;
+            }
         }
 
-        if (is_null($this->user)) {
-            $recaller = $this->getRecallerFromCookie();
+        $recaller = $this->getRecallerFromCookie();
 
-            if ($recaller) {
-                if (is_null($id) || $recaller['id'] != $id) {
-                    $this->user = $this->provider->retrieveById($recaller['id']);
-                }
+        if (!is_null($recaller)) {
+            $user = $this->userFromRecaller($recaller);
 
-                if ($this->user && $this->validateRecaller($this->user, $recaller['token'])) {
-                    $this->updateSession($this->user->getAuthIdentifier());
-                } else {
-                    $this->user = null;
-                }
+            if (!is_null($user)) {
+                $this->updateSession($user->getAuthIdentifier());
+                $this->user = $user;
+            } else {
+                $this->forgetRecaller();
             }
         }
 
@@ -89,7 +92,14 @@ class SessionGuard implements Guard
 
     public function logout(): void
     {
-        $this->clearRememberMeCookie();
+        $user = $this->user;
+
+        $this->forgetRecaller();
+
+        if ($user && $user->getRememberToken()) {
+            $user->setRememberToken(null);
+            $user->save();
+        }
 
         $this->user = null;
         $this->userResolved = false;
@@ -111,7 +121,7 @@ class SessionGuard implements Guard
 
     protected function hasValidCredentials(?Authenticatable $user, array $credentials): bool
     {
-        return !is_null($user) && password_verify($credentials['password'], $user->getAuthPassword());
+        return !is_null($user) && Hash::check($credentials['password'], $user->getAuthPassword());
     }
 
     public function setUser(Authenticatable $user): void
@@ -155,6 +165,37 @@ class SessionGuard implements Guard
     }
 
     /**
+     * Attempt to retrieve a user by the "remember me" cookie's data.
+     *
+     * @param array $recaller
+     * @return \Core\Contracts\Auth\Authenticatable|null
+     */
+    protected function userFromRecaller(array $recaller): ?Authenticatable
+    {
+        if (!isset($recaller['id']) || !isset($recaller['token'])) {
+            return null;
+        }
+
+        $user = $this->provider->retrieveById($recaller['id']);
+
+        if ($user && $this->validateRecaller($user, $recaller['token'])) {
+            return $user;
+        }
+
+        return null;
+    }
+
+    /**
+     * Invalidate and remove the "remember me" cookie.
+     *
+     * @return void
+     */
+    protected function forgetRecaller(): void
+    {
+        $this->cookieManager->queue($this->getRememberMeCookieName(), '', -2628000);
+    }
+
+    /**
      * Xác thực người dùng dựa trên token từ cookie.
      */
     protected function validateRecaller(Authenticatable $user, string $token): bool
@@ -174,16 +215,5 @@ class SessionGuard implements Guard
         $lifetime = 60 * 24 * 365;
 
         $this->cookieManager->queue($this->getRememberMeCookieName(), $cookieValue, $lifetime);
-    }
-
-    protected function clearRememberMeCookie(): void
-    {
-        $user = $this->user();
-        if ($user && $user->getRememberToken()) {
-            $user->setRememberToken(null);
-            $user->save();
-        }
-
-        $this->cookieManager->queue($this->getRememberMeCookieName(), '', -2628000);
     }
 }

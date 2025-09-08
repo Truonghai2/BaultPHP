@@ -23,7 +23,7 @@ return [
     | Mỗi guard có một driver và một provider. Provider có thể được cấu hình
     | trong phần "providers" bên dưới.
     |
-    | Hỗ trợ sẵn: "session", "jwt"
+    | Hỗ trợ sẵn: "session", "token"
     |
     */
     'guards' => [
@@ -33,6 +33,11 @@ return [
         ],
 
         'api' => [
+            'driver' => 'token',
+            'provider' => 'users',
+        ],
+
+        'centrifugo' => [
             'driver' => 'token',
             'provider' => 'users',
         ],
@@ -47,6 +52,9 @@ return [
     */
     'super_admin_permission' => 'system.manage-all',
 
+    'cache' => [
+        'permissions_ttl' => 3600,
+    ],
     /*
     |--------------------------------------------------------------------------
     | User Providers

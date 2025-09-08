@@ -8,25 +8,32 @@ use Core\ORM\QueryBuilder;
 class MorphTo extends Relation
 {
     protected string $morphType;
-    protected string $morphId;
+    protected string $morphId; // This is the foreign key on the parent model
     protected string $ownerKey;
+    protected string $relationName;
 
     /**
      * A dictionary of models grouped by their type.
      * ['App\Models\Post' => [1, 2], 'App\Models\Video' => [3, 4]]
      * @var array
+     * @deprecated This logic is now handled in QueryBuilder::eagerLoadMorphTo
      */
     protected array $modelsByType = [];
 
-    public function __construct(QueryBuilder $query, Model $parent, string $morphId, string $morphType, string $ownerKey)
+    public function __construct(QueryBuilder $query, Model $parent, string $morphId, string $morphType, string $ownerKey, string $relationName)
     {
         $this->morphId = $morphId;
         $this->morphType = $morphType;
         $this->ownerKey = $ownerKey;
+        $this->relationName = $relationName;
 
         parent::__construct($query, $parent);
     }
 
+    /**
+     * Get the results of the relationship for the parent model.
+     * This is for lazy loading.
+     */
     public function getResults()
     {
         $type = $this->parent->getAttribute($this->morphType);
@@ -40,64 +47,90 @@ class MorphTo extends Relation
         $instance = new $type();
         $query = $instance->newQuery();
 
+        // The owner key is the primary key of the related model.
         return $query->where($instance->getKeyName(), '=', $id)->first();
     }
 
-    public function addEagerConstraints(array $models)
+    /**
+     * Associate the model instance to the parent.
+     *
+     * @param  \Core\ORM\Model  $model
+     * @return \Core\ORM\Model The parent model.
+     */
+    public function associate(Model $model): Model
     {
-        $this->modelsByType = [];
-        foreach ($models as $model) {
-            $type = $model->getAttribute($this->morphType);
-            if ($type) {
-                $this->modelsByType[$type][] = $model->getAttribute($this->morphId);
-            }
-        }
-    }
+        $this->parent->setAttribute($this->morphId, $model->getKey());
+        $this->parent->setAttribute($this->morphType, $model->getMorphClass());
 
-    public function match(array $models, array $results, string $relation): array
-    {
-        $dictionary = [];
+        // Also set the relation on the parent model so it's available immediately
+        // without another query.
+        $this->parent->setRelation($this->relationName, $model);
 
-        foreach ($results as $result) {
-            $dictionary[$result->getMorphClass()][$result->getKey()] = $result;
-        }
-
-        foreach ($models as $model) {
-            $type = $model->getAttribute($this->morphType);
-            $id = $model->getAttribute($this->morphId);
-
-            if (isset($dictionary[$type][$id])) {
-                $model->setRelation($relation, $dictionary[$type][$id]);
-            }
-        }
-
-        return $models;
+        return $this->parent;
     }
 
     /**
-     * Overrides the base get() method to perform multiple queries for each morph type.
+     * Dissociate the model from the parent.
+     *
+     * @return \Core\ORM\Model The parent model.
      */
-    public function get(): array
+    public function dissociate(): Model
     {
-        $results = [];
+        $this->parent->setAttribute($this->morphId, null);
+        $this->parent->setAttribute($this->morphType, null);
 
-        foreach ($this->modelsByType as $type => $ids) {
-            if (empty($ids)) {
-                continue;
-            }
+        $this->parent->setRelation($this->relationName, null);
 
-            /** @var Model $instance */
-            $instance = new $type();
-            $query = $instance->newQuery();
-            $typeResults = $query->whereIn($instance->getKeyName(), array_unique($ids))->get();
-            $results = array_merge($results, $typeResults);
-        }
+        return $this->parent;
+    }
 
-        return $results;
+    /**
+     * This method is not used for MorphTo relationships as the eager loading
+     * logic is handled specially in the QueryBuilder.
+     */
+    public function addEagerConstraints(array $models)
+    {
+        // This is intentionally left empty.
+        // The logic is in QueryBuilder::eagerLoadMorphTo
+    }
+
+    /**
+     * This method is not used for MorphTo relationships as the eager loading
+     * logic is handled specially in the QueryBuilder.
+     */
+    public function match(array $models, array $results, string $relation): array
+    {
+        // This is intentionally left empty.
+        // The logic is in QueryBuilder::eagerLoadMorphTo
+        return $models;
     }
 
     public function getSelectCountSql(): string
     {
         throw new \LogicException('withCount() is not supported for MorphTo relationships.');
+    }
+
+    /**
+     * Get the name of the "type" column.
+     */
+    public function getMorphType(): string
+    {
+        return $this->morphType;
+    }
+
+    /**
+     * Get the name of the foreign key column.
+     */
+    public function getForeignKey(): string
+    {
+        return $this->morphId;
+    }
+
+    /**
+     * Get the name of the owner key column.
+     */
+    public function getOwnerKey(): string
+    {
+        return $this->ownerKey;
     }
 }

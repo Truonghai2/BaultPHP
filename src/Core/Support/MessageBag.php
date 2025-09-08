@@ -78,6 +78,16 @@ class MessageBag implements Countable, IteratorAggregate, JsonSerializable
     }
 
     /**
+     * Get all of the messages for the bag as an array.
+     *
+     * @return array
+     */
+    public function toArray(): array
+    {
+        return $this->all();
+    }
+
+    /**
      * Get the number of messages in the container.
      *
      * @return int

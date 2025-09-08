@@ -27,14 +27,13 @@ class UserSeeder extends Seeder
 
         $this->command?->info('Admin user "admin@bault.dev" created or already exists.');
 
-        // Gán vai trò super-admin cho tài khoản này
         $superAdminRole = Role::where('name', 'super-admin')->first();
 
         if ($superAdminRole) {
             RoleAssignment::firstOrCreate([
                 'user_id' => $user->id,
                 'role_id' => $superAdminRole->id,
-                'context_id' => 1, // Giả sử context global là 1
+                'context_id' => 1,
             ]);
             $this->command?->info('Ensured "admin@bault.dev" has the "super-admin" role.');
         }

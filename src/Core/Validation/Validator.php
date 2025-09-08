@@ -153,9 +153,18 @@ class Validator
     public function validated(): array
     {
         if ($this->fails()) {
-            // This behavior is consistent with FormRequest, which expects an exception on failure.
-            throw new \Core\Exceptions\ValidationException($this);
+            throw new ValidationException($this);
         }
         return $this->validatedData;
+    }
+
+    /**
+     * Set the error messages for the validator.
+     *
+     * @param array $errors
+     */
+    public function setErrors(array $errors): void
+    {
+        $this->errors = $errors;
     }
 }

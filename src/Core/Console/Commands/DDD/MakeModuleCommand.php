@@ -34,9 +34,7 @@ class MakeModuleCommand extends BaseCommand
         $this->createScaffoldFiles($modulePath, $name);
 
         $this->io->success("Module [{$name}] created successfully.");
-        $this->io->comment("-> To activate, add <fg=yellow>Modules\\{$name}\\Providers\\{$name}ServiceProvider::class</> to your <fg=yellow>config/app.php</> providers array.");
-        $this->io->comment('   (This step might be automated in the future with `module:sync`)');
-
+        $this->io->comment("-> Module is enabled by default in <fg=yellow>Modules/{$name}/module.json</>. No further action is needed.");
         return self::SUCCESS;
     }
 

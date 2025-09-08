@@ -1,37 +1,37 @@
 Modules/
 └── Post/
 ├── Application/
-│ ├── Commands/ # (Use Cases) Các lệnh ghi dữ liệu (CUD)
+│ ├── Commands/ # (Use Cases) Data writing commands (CUD)
 │ │ └── CreatePostCommand.php
-│ ├── Handlers/ # Xử lý các Command
+│ ├── Handlers/ # Handles Commands
 │ │ └── CreatePostHandler.php
-│ ├── Queries/ # (Use Cases) Các lệnh đọc dữ liệu (R)
-│ ├── Policies/ # Các lớp Policy phân quyền
+│ ├── Queries/ # (Use Cases) Data reading commands (R)
+│ ├── Policies/ # Authorization Policy classes
 │ │ └── PostPolicy.php
-│ └── Listeners/ # Xử lý các Event
+│ └── Listeners/ # Handles Events
 │
 ├── Domain/
-│ ├── Entities/ # Các đối tượng nghiệp vụ cốt lõi (có định danh)
-│ │ └── Post.php # (Có thể là Model nếu dùng Active Record)
-│ ├── Events/ # Các sự kiện nghiệp vụ
+│ ├── Entities/ # Core business objects (with identity)
+│ │ └── Post.php # (Can be a Model if using Active Record)
+│ ├── Events/ # Business events
 │ │ └── PostWasCreated.php
-│ ├── Repositories/ # Các Interface cho việc truy cập dữ liệu
+│ ├── Repositories/ # Interfaces for data access
 │ │ └── PostRepositoryInterface.php
-│ └── Services/ # Logic nghiệp vụ phức tạp không thuộc về Entity nào
+│ └── Services/ # Complex business logic that doesn't belong to any Entity
 │
 ├── Infrastructure/
 │ ├── Migrations/ # Database migrations
 │ │ └── 2025_07_16_120000_create_posts_table.php
-│ ├── Models/ # Các ORM Model (triển khai của Entity)
-│ │ └── Post.php # (Nếu tách biệt với Entity)
-│ └── Repositories/ # Triển khai cụ thể của Repository Interfaces
+│ ├── Models/ # ORM Models (implementation of Entity)
+│ │ └── Post.php # (If separate from Entity)
+│ └── Repositories/ # Concrete implementation of Repository Interfaces
 │ └── EloquentPostRepository.php
 │
 ├── Http/
-│ ├── Controllers/ # Chỉ điều phối request, gọi Use Case
+│ ├── Controllers/ # Only dispatches requests, calls Use Case
 │ │ └── PostController.php
-│ └── Requests/ # Các FormRequest để validate
+│ └── Requests/ # FormRequests for validation
 │ └── CreatePostRequest.php
 │
 └── Providers/
-└── PostServiceProvider.php # Đăng ký mọi thứ của module này
+└── PostServiceProvider.php # Registers everything for this module

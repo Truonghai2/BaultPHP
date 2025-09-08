@@ -310,7 +310,7 @@ class Compiler
     {
         $value = str_replace('@csrf', '<?php echo csrf_field(); ?>', $value);
         $value = preg_replace('/@method\(\s*\'(.*?)\'\s*\)/', '<input type="hidden" name="_method" value="<?php echo htmlspecialchars(\'$1\', ENT_QUOTES); ?>">', $value);
-        $value = preg_replace('/@vite\((.*?)\)/', '<?php echo vite($1); ?>', $value);
+
         return $value;
     }
 

@@ -162,6 +162,29 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
     }
 
     /**
+     * Write a string as warning output.
+     *
+     * @param string $string The message to write.
+     */
+    public function warn(string $string): void
+    {
+        $this->line($string, 'comment');
+    }
+
+    /**
+     * Write a list of items to the output.
+     *
+     * @param array $elements The elements to list.
+     */
+    public function listing(array $elements): void
+    {
+        if (!isset($this->io)) {
+            return;
+        }
+        $this->io->listing($elements);
+    }
+
+    /**
      * Set the application instance.
      * This is used by the ConsoleKernel to inject the core application container.
      *
@@ -170,5 +193,18 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
     public function setCoreApplication(\Core\Application $app): void
     {
         $this->app = $app;
+    }
+
+    /**
+     * Calls another console command by its class name.
+     *
+     * @param class-string<CommandInterface> $commandClass
+     */
+    protected function callCommand(string $commandClass): void
+    {
+        /** @var BaseCommand $command */
+        $command = $this->app->make($commandClass);
+        $command->setCoreApplication($this->app);
+        $command->handle();
     }
 }

@@ -3,9 +3,8 @@
 namespace App\Providers;
 
 use Core\Support\ServiceProvider;
-use Modules\Post\Application\Policies\PostPolicy;
-use Modules\Post\Infrastructure\Models\Post;
 use Modules\User\Domain\Services\AccessControlService;
+use Modules\User\Infrastructure\Models\User;
 
 class AuthServiceProvider extends ServiceProvider
 {
@@ -15,9 +14,6 @@ class AuthServiceProvider extends ServiceProvider
      * @var array<class-string, class-string>
      */
     protected array $policies = [
-        // Post::class => PostPolicy::class,
-        // Thêm các model và policy khác ở đây
-        // \App\Models\Comment::class => \App\Policies\CommentPolicy::class,
     ];
 
     /**
@@ -26,6 +22,13 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
+        /** @var AccessControlService $acl */
+        $acl = $this->app->make(AccessControlService::class);
+
+        $acl->before(function (User $user, string $ability) {
+            return $user->isSuperAdmin() ? true : null;
+        });
     }
 
     /**

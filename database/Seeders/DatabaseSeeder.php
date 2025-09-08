@@ -16,7 +16,8 @@ class DatabaseSeeder extends Seeder
         $this->command?->info('Running main database seeder...');
 
         $this->call([
-            RoleSeeder::class, // Chạy seeder này trước để đảm bảo các Role tồn tại
+            ContextSeeder::class,
+            RoleSeeder::class,
             UserSeeder::class,
             OAuthClientSeeder::class,
         ]);

@@ -36,6 +36,7 @@ return [
     */
     'table' => 'sessions',
 
+    'database_connection' => env('SESSION_DB_CONNECTION', null),
     /*
     |--------------------------------------------------------------------------
     | Redis Session Connection

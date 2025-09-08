@@ -60,7 +60,7 @@ class Kernel implements KernelContract
         'web' => [
             \Http\Middleware\EncryptCookies::class,
             \Http\Middleware\StartSession::class,
-            \Http\Middleware\ShareErrorsFromSession::class,
+            \Http\Middleware\ShareMessagesFromSession::class, // <-- Thay thế ở đây
             \Http\Middleware\VerifyCsrfToken::class,
             \Http\Middleware\SubstituteBindings::class,
             \Http\Middleware\TerminateSession::class,
@@ -177,9 +177,11 @@ class Kernel implements KernelContract
         $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
-            /** @var FormRequest $formRequest */
+            // Container đã biết về ServerRequestInterface (được bind trong Kernel::handle).
+            // Do đó, nó có thể tự động inject cả Application và ServerRequestInterface
+            // vào constructor của FormRequest.
+            /** @var \Http\FormRequest $formRequest */
             $formRequest = $app->make($typeName);
-            $formRequest->setRequest($request);
             $formRequest->validateResolved();
             return $formRequest;
         }

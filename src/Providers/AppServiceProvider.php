@@ -14,10 +14,6 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Bind the HTTP Kernel contract to its concrete implementation.
-        // This is essential for the web server to know how to handle
-        // incoming HTTP requests. We register it as a singleton
-        // as there should only be one kernel instance per worker.
         $this->app->singleton(KernelContract::class, \Http\Kernel::class);
 
         $this->app->singleton(CentrifugoAPIService::class, function () {
@@ -39,7 +35,10 @@ class AppServiceProvider extends ServiceProvider
             return new CoroutineRedisManager($app->make(LoggerInterface::class));
         });
 
-        // Register the HealthCheckService as a singleton.
         $this->app->singleton(HealthCheckService::class);
+
+        $this->app->singleton('hash', function () {
+            return new \Core\Hashing\BcryptHasher();
+        });
     }
 }

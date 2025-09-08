@@ -6,7 +6,6 @@ use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Queue\Queue;
 use Core\Queue\Jobs\RedisJob;
-use Core\Redis\RedisManager;
 use DateInterval;
 use DateTimeInterface;
 
@@ -18,7 +17,7 @@ class RedisQueue implements Queue
 
     public function __construct(protected Application $app, protected array $config)
     {
-        $manager = $this->app->make(RedisManager::class);
+        $manager = $this->app->make('redis');
         $this->connectionName = $this->config['connection'] ?? 'default';
         $this->redis = $manager->connection($this->connectionName);
         $this->defaultQueue = $config['queue'] ?? 'default';

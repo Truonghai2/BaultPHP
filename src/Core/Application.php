@@ -607,6 +607,21 @@ class Application implements ContainerInterface, \ArrayAccess
         return $this->basePath('bootstrap/cache/providers.php');
     }
 
+    public function getCachedEventsPath(): string
+    {
+        return $this->basePath('bootstrap/cache/events.php');
+    }
+
+    /**
+     * Get the path to the cached commands file.
+     *
+     * @return string
+     */
+    public function getCachedCommandsPath(): string
+    {
+        return $this->bootstrapPath('cache/commands.php');
+    }
+
     /**
      * Get the version number of the application.
      *

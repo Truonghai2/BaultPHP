@@ -1,46 +1,47 @@
-# --- Stage 1: Cài đặt dependencies với Composer ---
-# Sử dụng image chính thức của Composer.
-# Đặt tên stage này là "vendor" để có thể tham chiếu sau này.
+# --- Stage 1: Install dependencies with Composer ---
+# Use the official Composer image.
+# Name this stage "vendor" to be able to reference it later.
 FROM composer:2 AS vendor
 
 ARG APP_ENV=production
 WORKDIR /app
 
-# Sao chép chỉ các file cần thiết cho việc cài đặt composer.
-# Điều này tận dụng cache của Docker, chỉ chạy lại khi các file này thay đổi.
-COPY composer.json composer.lock ./
+# Copy only the files necessary for composer installation.
+# This takes advantage of Docker's cache, only re-running when these files change.
+COPY composer.json composer.lock ./ 
 
-# Cài đặt dependencies hệ thống và extension `sockets` mà `spiral/goridge` yêu cầu.
-# Image composer:2 dựa trên Alpine Linux, vì vậy chúng ta dùng `apk`.
-# Gói `linux-headers` là tương đương với `linux-libc-dev` trên Debian.
+# Install system dependencies and the `sockets` extension required by `spiral/goridge`.
+# The composer:2 image is based on Alpine Linux, so we use `apk`.
+# The `linux-headers` package is equivalent to `linux-libc-dev` on Debian.
 RUN apk update && apk add --no-cache linux-headers \
     && docker-php-ext-install sockets
 
-# Sử dụng --mount=type=cache để tăng tốc độ cài đặt ở các lần build sau.
 RUN --mount=type=cache,target=/root/.composer/cache \
+    export COMPOSER_ALLOW_SUPERUSER=1 COMPOSER_PROCESS_TIMEOUT=600 && \
+    composer config -g github-protocols https && \
     if [ "${APP_ENV}" = "production" ]; then \
         composer install --no-interaction --no-plugins --no-scripts --no-dev --optimize-autoloader; \
     else \
         composer install --no-interaction --no-plugins --no-scripts; \
     fi
 
-# --- Stage 2: Build image ứng dụng chính ---
-# Bắt đầu từ image Swoole chính thức.
+# --- Stage 2: Build the main application image ---
+# Start from the official Swoole image.
 FROM phpswoole/swoole:5.1.3-php8.2
  
-# Thiết lập các biến môi trường để dễ quản lý
+# Set environment variables for easy management
 ENV APP_USER=appuser \
     APP_GROUP=appgroup \
     APP_UID=1000 \
     APP_GID=1000 \
     APP_HOME=/app
  
-# Tạo user và group không phải root để tăng cường bảo mật
+# Create a non-root user and group to enhance security
 RUN groupadd --gid $APP_GID $APP_GROUP && \
     useradd --uid $APP_UID --gid $APP_GID --create-home --shell /bin/bash $APP_USER
  
-# Cài đặt dependencies và extensions.
-# Gỡ bỏ các gói build-time trong cùng một layer để giảm kích thước image.
+# Install dependencies and extensions.
+# Remove build-time packages in the same layer to reduce image size.
 ARG DEBIAN_FRONTEND=noninteractive
 RUN buildDeps=" \
         autoconf \
@@ -61,56 +62,57 @@ RUN buildDeps=" \
         gosu \
         supervisor \
         default-mysql-client \
+        postgresql-client \
     && pecl install redis apcu \
     && docker-php-ext-enable redis apcu \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pcntl bcmath sockets \
+    && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pdo_pgsql pcntl bcmath sockets \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps && apt-get clean && rm -rf /var/lib/apt/lists/*
  
-# [QUAN TRỌNG] Sử dụng tài nguyên từ framework:
-# Sao chép các file cấu hình tùy chỉnh vào image.
-# Việc gộp các lệnh COPY vào một layer giúp image gọn hơn một chút.
+# [IMPORTANT] Use resources from the framework:
+# Copy custom configuration files into the image.
+# Grouping COPY commands into one layer makes the image slightly smaller.
 COPY docker/php/conf.d/apcu.ini /usr/local/etc/php/conf.d/zz-apcu.ini
 COPY docker/php/conf.d/custom.ini /usr/local/etc/php/conf.d/zz-bault-custom.ini
 COPY docker/supervisor/app.conf /etc/supervisor/conf.d/app.conf
  
-# Tạo alias 'bault' cho 'php /app/cli' để tiện lợi hơn khi làm việc trong container.
+# Create an alias 'bault' for 'php /app/cli' for more convenience when working inside the container.
 RUN echo "alias bault='php /app/cli'" >> /etc/bash.bashrc
  
 WORKDIR $APP_HOME
  
-# Sao chép thư mục vendor đã được cài đặt từ stage "vendor".
+# Copy the vendor directory installed from the "vendor" stage.
 COPY --from=vendor --chown=$APP_USER:$APP_GROUP $APP_HOME/vendor $APP_HOME/vendor
  
-# Sao chép entrypoint script trước để tận dụng cache tốt hơn.
-# Nếu chỉ thay đổi code ứng dụng, layer này sẽ không cần build lại.
+# Copy the entrypoint script first to better leverage the cache.
+# If only the application code changes, this layer will not need to be rebuilt.
 COPY --chmod=0755 ./docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 
-# Sao chép toàn bộ mã nguồn ứng dụng.
-# QUAN TRỌNG: Hãy đảm bảo bạn đã tạo file .dockerignore.
+# Copy the entire application source code.
+# IMPORTANT: Make sure you have created a .dockerignore file.
 COPY --chown=$APP_USER:$APP_GROUP . .
  
-# Cấp quyền sở hữu thư mục ứng dụng cho user `appuser` để user này có thể
-# tạo các thư mục con bên trong nó (ví dụ: storage).
+# Grant ownership of the application directory to the `appuser` user so that this user can
+# create subdirectories within it (e.g., storage).
 RUN chown $APP_USER:$APP_GROUP $APP_HOME
 
-# Chuyển sang user ứng dụng để tạo các thư mục cần thiết với quyền sở hữu đúng.
-# Điều này giúp giảm bớt logic cần xử lý trong entrypoint script.
+# Switch to the application user to create necessary directories with the correct ownership.
+# This helps reduce the logic that needs to be handled in the entrypoint script.
 USER $APP_USER
 RUN mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache bootstrap/cache
  
-# Chuyển về lại root. Entrypoint sẽ sử dụng `gosu` để chuyển về $APP_USER khi chạy ứng dụng.
+# Switch back to root. The entrypoint will use `gosu` to switch to $APP_USER when running the application.
 USER root
  
-# [TÙY CHỌN] Thêm Health Check để Docker có thể kiểm tra tình trạng của container.
-# Healthcheck này khớp với cấu hình trong docker-compose.yml.
+# [OPTIONAL] Add a Health Check so Docker can check the container's status.
+# This healthcheck matches the configuration in docker-compose.yml.
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=5 \
   CMD curl -f http://localhost:9501/ping || exit 1
 
-# Thiết lập entrypoint để chạy script của chúng ta.
+# Set the entrypoint to run our script.
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
-# CMD mặc định sẽ được truyền vào entrypoint.
-# Chạy supervisord. Nó sẽ tự động đọc file cấu hình chính /etc/supervisord.conf,
-# file này sẽ bao gồm tất cả các file .conf trong /etc/supervisor/conf.d/,
-# bao gồm cả app.conf của chúng ta.
+# The default CMD will be passed to the entrypoint.
+# Run supervisord. It will automatically read the main configuration file /etc/supervisord.conf,
+# which will include all files .conf in /etc/supervisor/conf.d/, 
+# including our app.conf.
 CMD ["/usr/bin/supervisord", "-n"]

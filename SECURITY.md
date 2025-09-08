@@ -72,6 +72,8 @@ Bảo vệ chống lại XSS là trách nhiệm của lớp View (hiển thị).
 
 Laravel cung cấp các dịch vụ mã hóa và hashing mạnh mẽ.
 
+- **Chống Tấn Công Cross-Site Request Forgery (CSRF):** Đối với các ứng dụng sử dụng session, mọi request tương tác với component (đến `/bault/update`) đều được bảo vệ bởi một middleware `VerifyCsrfToken`. Middleware này yêu cầu mỗi request phải đính kèm một `X-CSRF-TOKEN` header hợp lệ, đảm bảo rằng request được gửi từ chính ứng dụng của bạn chứ không phải từ một trang web độc hại khác.
+
 ## 6. Xác thực dữ liệu đầu vào (Input Validation)
 
 - Hashing: Sử dụng Bcrypt và Argon2 để hash mật khẩu một cách an toàn.

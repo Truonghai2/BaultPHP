@@ -34,29 +34,41 @@ else
     gosu $APP_USER php /app/cli view:clear
 fi
 
-# 4. Wait for the database to be ready before running migrations.
-# This prevents race conditions during startup where the app container starts
-# faster than the db container is ready to accept network connections.
-echo "Waiting for database connection at ${DB_HOST}..."
-# Use the environment variables passed from docker-compose.
-# The 'until' loop will try to connect until it succeeds.
-until mysqladmin ping -h"${DB_HOST}" -u"${DB_USERNAME}" -p"${DB_PASSWORD}" --silent; do
-    echo "Database is unavailable - sleeping"
-    sleep 2
-done
-echo "Database is up - continuing..."
+# 4. Wait for the database to be ready.
+# Use DB_HOST and DB_PORT from the environment to ensure this script
+# checks the same database the application will connect to.
+if [ "$DB_CONNECTION" = "pgsql" ]; then
+    echo "Waiting for PostgreSQL database connection at ${DB_HOST}:${DB_PORT}..."
+    
+    # Export password for pg_isready to use
+    export PGPASSWORD="${DB_PASSWORD}"
+    
+    until pg_isready -h "${DB_HOST}" -p "${DB_PORT}" -U "${DB_USERNAME}" -d "${DB_DATABASE}" -q; do
+        echo "PostgreSQL is unavailable - sleeping"
+        sleep 2
+    done
+    
+    unset PGPASSWORD
+    echo "PostgreSQL is up - continuing..."
+elif [ "$DB_CONNECTION" = "mysql" ]; then
+    echo "Waiting for MySQL database connection at ${DB_HOST}:${DB_PORT}..."
 
+    until mysqladmin ping -h"${DB_HOST}" -P"${DB_PORT}" -u"${DB_USERNAME}" -p"${DB_PASSWORD}" --silent; do
+        echo "MySQL is unavailable - sleeping"
+        sleep 2
+    done
+    echo "MySQL is up - continuing..."
+else
+    echo "Unsupported DB_CONNECTION: ${DB_CONNECTION}. Skipping database wait."
+fi
 
 # 5. Run Database Migrations AS THE APPLICATION USER.
 echo "Running database migrations as $APP_USER user..."
 gosu $APP_USER php /app/cli ddd:migrate --force
 
+echo "RUN_SEEDERS is true. Running database seeder..."
 gosu $APP_USER php /app/cli db:seed
 
-# 6. Execute the main command passed from the Dockerfile (CMD).
-# The `exec "$@"` command replaces the current shell process with the command
-# passed as arguments to the script (the CMD from the Dockerfile). This is important because
-# it allows the main application (e.g., supervisord) to become PID 1 inside the container,
 echo "Starting main process: $@"
 
 exec "$@"

@@ -23,6 +23,13 @@ class User extends Model implements Authenticatable
 
     protected array $hidden = ['password', 'remember_token'];
 
+    protected static function booted(): void
+    {
+        static::deleted(function (self $user) {
+            dispatch(new \Modules\User\Domain\Events\UserDeleted($user->id));
+        });
+    }
+
     public function getAuthIdentifier()
     {
         return $this->getKey();
@@ -86,5 +93,16 @@ class User extends Model implements Authenticatable
         // Delegate the role check to the optimized AccessControlService.
         // This leverages the central caching mechanism and respects context hierarchy.
         return app(AccessControlService::class)->hasRole($this, $roleName, $context);
+    }
+
+    /**
+     * Check if the user is a super-admin.
+     * This is a convenient shortcut that delegates the check to the AccessControlService.
+     *
+     * @return bool
+     */
+    public function isSuperAdmin(): bool
+    {
+        return app(AccessControlService::class)->isSuperAdmin($this);
     }
 }

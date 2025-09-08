@@ -3,11 +3,11 @@
 namespace Core\WebSocket;
 
 use Core\Application;
-use Core\Support\Facades\Auth;
+use Core\Auth\TokenGuard;
 use RoadRunner\Centrifugo\CentrifugoWorker as RoadRunnerCentrifugoWorker;
 use RoadRunner\Centrifugo\Payload;
 use RoadRunner\Centrifugo\Request;
-use RoadRunner\Centrifugo\Request\RequestFactory;
+use RoadRunner\Centrifugo\RequestFactory;
 use Spiral\RoadRunner\Worker;
 use Symfony\Component\Console\Output\OutputInterface;
 
@@ -34,8 +34,8 @@ class CentrifugoWorker
             try {
                 // Xử lý các loại request khác nhau
                 match (get_class($request)) {
-                    Request\Connect::class => $this->handleConnect($request),
-                    Request\Refresh::class => $this->handleRefresh($request),
+                    Connect::class => $this->handleConnect($request),
+                    Refresh::class => $this->handleRefresh($request),
                     // Thêm các handler khác nếu cần: Publish, Subscribe, RPC...
                     default => $this->handleUnknown($request),
                 };
@@ -53,7 +53,7 @@ class CentrifugoWorker
      * Xử lý khi một client mới kết nối đến Centrifugo.
      * Đây là nơi để xác thực người dùng.
      */
-    private function handleConnect(Request\Connect $request): void
+    private function handleConnect(Connect $request): void
     {
         $token = $request->token;
         if (empty($token)) {
@@ -64,8 +64,9 @@ class CentrifugoWorker
         }
 
         try {
-            // Sử dụng Auth guard của bạn để xác thực token
-            $user = Auth::guard('jwt_ws')->userFromToken($token);
+            /** @var TokenGuard $guard */
+            $guard = $this->app->make('auth')->guard('centrifugo');
+            $user = $guard->userFromToken($token);
 
             if (!$user) {
                 $this->output->writeln('<comment>Connect request rejected: Invalid token.</comment>');
@@ -73,15 +74,19 @@ class CentrifugoWorker
                 return;
             }
 
+            if (!in_array('websocket', $guard->getScopes())) {
+                $this->output->writeln('<comment>Connect request rejected: Token missing websocket scope.</comment>');
+                $request->disconnect('4003', 'Forbidden: Insufficient scope');
+                return;
+            }
+
             $this->output->writeln("<info>User authenticated via Centrifugo: {$user->id}</info>");
 
-            // Cho phép kết nối và trả về user ID cho Centrifugo
-            // Centrifugo sẽ gắn user ID này vào connection context.
             $request->respond(new Payload\ConnectResponse(
                 user: (string)$user->id,
             ));
         } catch (\Throwable $e) {
-            $this->output->writeln("<error>Authentication error: {$e->getMessage()}</error>");
+            $this->output->writeln("<error>Authentication error in CentrifugoWorker: {$e->getMessage()}</error>");
             $request->error(500, 'Internal Server Error');
         }
     }
@@ -89,14 +94,12 @@ class CentrifugoWorker
     /**
      * Xử lý khi Centrifugo muốn làm mới session của client.
      */
-    private function handleRefresh(Request\Refresh $request): void
+    private function handleRefresh(Refresh $request): void
     {
-        // Logic ở đây tương tự như connect, bạn có thể cấp lại token mới nếu cần
-        // hoặc chỉ đơn giản là cho phép gia hạn session.
         $this->output->writeln("<info>Refreshing session for user: {$request->user}</info>");
 
         $request->respond(new Payload\RefreshResponse(
-            expired: false, // true nếu muốn ngắt kết nối
+            expired: false,
         ));
     }
 
@@ -105,7 +108,7 @@ class CentrifugoWorker
         $type = get_class($request);
         $this->output->writeln("<comment>Received unhandled request type: {$type}</comment>");
 
-        if ($request instanceof Request\Invalid) {
+        if ($request instanceof Invalid) {
             $this->output->writeln("<error>Invalid request: {$request->getException()->getMessage()}</error>");
         }
     }

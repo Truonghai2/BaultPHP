@@ -2,40 +2,40 @@
 
 namespace Core\Console\Commands\Cache;
 
-use Core\Application;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Input\InputInterface;
-use Symfony\Component\Console\Output\OutputInterface;
+use Core\Console\Contracts\BaseCommand;
 
-class ConfigClearCommand extends Command
+class ConfigClearCommand extends BaseCommand
 {
-    protected static $defaultName = 'config:clear';
-
-    protected Application $app;
-
-    public function __construct(Application $app)
+    /**
+     * The signature of the command.
+     */
+    public function signature(): string
     {
-        parent::__construct();
-        $this->app = $app;
+        return 'config:clear';
     }
 
-    protected function configure()
+    /**
+     * The description of the command.
+     */
+    public function description(): string
     {
-        $this->setName(static::$defaultName);
-        $this->setDescription('Clear the configuration cache.');
+        return 'Remove the configuration cache file.';
     }
 
-    protected function execute(InputInterface $input, OutputInterface $output): int
+    /**
+     * Execute the console command.
+     */
+    public function handle(): int
     {
-        $configPath = $this->app->bootstrapPath('cache/config.php');
+        $cachePath = $this->app->bootstrapPath('cache/config.php');
 
-        if (file_exists($configPath)) {
-            @unlink($configPath);
-            $output->writeln('<info>Configuration cache cleared!</info>');
+        if (file_exists($cachePath)) {
+            unlink($cachePath);
+            $this->info('✔ Configuration cache cleared successfully!');
         } else {
-            $output->writeln('<info>Configuration cache not found.</info>');
+            $this->comment('› Configuration cache not found. Nothing to clear.');
         }
 
-        return Command::SUCCESS;
+        return self::SUCCESS;
     }
 }

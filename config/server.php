@@ -71,6 +71,15 @@ return [
                 base_path('routes'),
                 base_path('.env'),
             ],
+            /*
+            |--------------------------------------------------------------------------
+            | Use File Polling
+            |--------------------------------------------------------------------------
+            |
+            | Buộc watcher sử dụng chế độ polling thay vì lắng nghe sự kiện file.
+            | Điều này cần thiết khi chạy trong Docker trên Windows/macOS.
+            */
+            'use_polling' => env('SWOOLE_WATCH_USE_POLLING', false),
             'ignore' => [
                 storage_path(),
                 base_path('bootstrap/cache'),

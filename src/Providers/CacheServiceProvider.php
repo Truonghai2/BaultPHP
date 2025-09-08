@@ -20,6 +20,8 @@ class CacheServiceProvider extends ServiceProvider
         // 2. Tạo alias để có thể inject Core\Cache\CacheManager bằng type-hint nếu cần.
         $this->app->alias('cache', CacheManager::class);
 
+        $this->app->singleton(\Core\Contracts\Cache\Factory::class, \App\Cache\AppCacheManager::class);
+
         // 3. Binding quan trọng nhất: Bind interface PSR-16 vào cache store mặc định.
         // Điều này cho phép code của bạn chỉ cần yêu cầu CacheInterface và container sẽ
         // tự động cung cấp store mặc định (ví dụ: redis hoặc file).

@@ -31,7 +31,7 @@ class EncryptionServiceProvider extends ServiceProvider
                 $key = base64_decode(substr($key, 7));
             }
 
-            return new Encrypter($key, $cipher);
+            return new Encrypter($key);
         });
 
         $this->app->alias(Encrypter::class, 'encrypter');

@@ -12,52 +12,68 @@ use Modules\User\Infrastructure\Models\Context;
 use Modules\User\Infrastructure\Models\RoleAssignment;
 use Modules\User\Infrastructure\Models\User;
 
+/**
+ * The central service for handling all authorization logic.
+ *
+ * This service provides a flexible, context-aware, and high-performance way to check user permissions.
+ * It leverages policies, roles, and a multi-level caching strategy to avoid database bottlenecks.
+ */
 class AccessControlService
 {
     /**
-     * A cache for user permissions to avoid redundant database queries within a single request.
-     * The new format stores ALL permissions for a user.
-     * Format: [userId => [
-     *     'is_super' => bool,
-     *     'contexts' => [contextId => [
-     *          'roles' => [roleId => roleName, ...],
-     *          'permissions' => [permissionName => true, ...]
-     *      ]],
-     * ]]
+     * The ID of the system-level context, which is the root for all permissions.
+     */
+    private const SYSTEM_CONTEXT_ID = 1;
+
+    /**
+     * In-memory cache for user permissions during a single request to avoid redundant DB queries.
+     * Format: [userId => ['contexts' => [contextId => ['roles' => [...], 'permissions' => [...]]]]]
      */
     private array $permissionCache = [];
 
     /**
-     * A static cache for reflected parent context methods to improve performance.
+     * In-memory cache for resolved Context objects during a single request.
+     * Format: ["level:instanceId" => Context]
+     */
+    private array $resolvedContextCache = [];
+
+    /**
+     * Static cache for parent context reflection methods to improve performance.
      * Format: [className => ?ReflectionMethod]
      */
     private static array $reflectionCache = [];
 
     /**
      * The registered model-to-policy mappings.
-     *
      * @var array<string, string>
      */
     protected array $policies = [];
 
-    private ?CacheManager $cache;
+    /**
+     * @var callable[]
+     */
+    private array $beforeCallbacks = [];
 
-    protected Application $app;
+    /** @var \Psr\SimpleCache\CacheInterface|null */
+    private ?\Psr\SimpleCache\CacheInterface $cacheStore = null;
 
-    // Sử dụng Dependency Injection để inject CacheManager.
-    // `?CacheManager` cho phép service hoạt động ngay cả khi CacheServiceProvider chưa được đăng ký (hữu ích cho testing).
-    public function __construct(Application $app, ?CacheManager $cache = null)
-    {
-        $this->app = $app;
-        $this->cache = $cache;
+    /** @var Context|null */
+    private ?Context $systemContext = null;
+
+    /**
+     * @param Application $app The application container.
+     * @param CacheManager|null $cacheManager The cache manager. Can be null to operate without a
+     *                                 persistent cache, which is useful for testing.
+     */
+    public function __construct(
+        protected Application $app,
+        ?CacheManager $cacheManager = null,
+    ) {
+        $this->cacheStore = $cacheManager?->store();
     }
 
     /**
      * Register a policy for a given model class.
-     *
-     * @param  string  $model
-     * @param  string  $policy
-     * @return void
      */
     public function policy(string $model, string $policy): void
     {
@@ -65,44 +81,47 @@ class AccessControlService
     }
 
     /**
+     * Register a callback to be executed before all other authorization checks.
+     */
+    public function before(callable $callback): void
+    {
+        $this->beforeCallbacks[] = $callback;
+    }
+
+    /**
      * Check if a user has a specific permission in a given context.
      *
      * @param User $user The user to check.
      * @param string $permissionName The name of the permission.
-     * @param Model|Context|null $context The context object (e.g., a Post, a Course, or a Context model).
-     * @return bool
+     * @param Model|Context|null $context The context (e.g., a Post model, a Course model).
      */
     public function check(User $user, string $permissionName, $context = null): bool
     {
-        // Cấp 1: Kiểm tra Policy trước. Nếu policy trả về kết quả, sử dụng nó.
+        // 1. Check "before" callbacks first (e.g., for super-admins)
+        foreach ($this->beforeCallbacks as $before) {
+            $result = $this->app->call($before, ['user' => $user, 'ability' => $permissionName]);
+            if (!is_null($result)) {
+                return $result;
+            }
+        }
+
+        // 2. Check registered policies
         $policyResult = $this->callPolicyMethod($user, $permissionName, $context);
         if (!is_null($policyResult)) {
             return $policyResult;
         }
 
-        // Cấp 2: Kiểm tra xem người dùng có phải là Super Admin không.
-        // Đây là bước kiểm tra nhanh nhất và có quyền cao nhất.
-        if ($this->isSuperAdmin($user)) {
-            return true;
-        }
-
-        // Cấp 3: Kiểm tra xem toàn bộ quyền của user đã được load vào cache chưa.
         if (!isset($this->permissionCache[$user->id])) {
             $this->loadAndCacheUserPermissions($user);
         }
 
-        // Cấp 4: Nếu không phải superuser, tiếp tục kiểm tra quyền cụ thể.
         $context = $this->resolveContext($context);
-
-        // Cấp 5: Kiểm tra quyền dựa trên dữ liệu đã được cache.
-        // Logic này sẽ duyệt từ context hiện tại lên các context cha.
         $contextIds = $this->getContextHierarchyIds($context);
-
         $userContexts = $this->permissionCache[$user->id]['contexts'] ?? [];
 
         foreach ($contextIds as $contextId) {
             if (isset($userContexts[$contextId]['permissions'][$permissionName])) {
-                return true; // Tìm thấy quyền ở cấp này hoặc cấp cha
+                return true;
             }
         }
 
@@ -110,17 +129,16 @@ class AccessControlService
     }
 
     /**
-     * Cho phép một người dùng tạm thời đóng vai trò super admin trong request hiện tại.
-     * Hữu ích cho các kịch bản testing hoặc development. Nó bỏ qua các kiểm tra CSDL
-     * bằng cách trực tiếp điền vào cache phân quyền trong bộ nhớ.
+     * Temporarily grants a user super-admin privileges for the current request.
+     * Useful for testing or development scenarios.
      *
-     * @param User $user Người dùng để cấp quyền super admin.
+     * @param User $user The user to grant super-admin privileges to.
      */
     public function actAsSuperAdmin(User $user): void
     {
         $this->permissionCache[$user->id] = [
             'contexts' => [
-                1 => [
+                self::SYSTEM_CONTEXT_ID => [
                     'roles' => [
                         0 => 'super-admin',
                     ],
@@ -132,10 +150,7 @@ class AccessControlService
 
     /**
      * Checks if a user has the 'super-admin' role in the system context.
-     * This check is highly optimized to use the request-level cache.
-     *
-     * @param User $user
-     * @return bool
+     * This check is highly optimized using the in-request cache.
      */
     public function isSuperAdmin(User $user): bool
     {
@@ -143,37 +158,35 @@ class AccessControlService
             $this->loadAndCacheUserPermissions($user);
         }
 
-        // System context ID is always 1.
-        return isset($this->permissionCache[$user->id]['contexts'][1]['roles'])
-            && in_array('super-admin', $this->permissionCache[$user->id]['contexts'][1]['roles'], true);
+        return isset($this->permissionCache[$user->id]['contexts'][self::SYSTEM_CONTEXT_ID]['roles'])
+            && in_array('super-admin', $this->permissionCache[$user->id]['contexts'][self::SYSTEM_CONTEXT_ID]['roles'], true);
     }
 
     /**
      * Check if a user has a specific role in a given context, including parent contexts.
-     * This method is optimized to use the pre-loaded cache.
      *
      * @param User $user The user to check.
      * @param string $roleName The name of the role.
-     * @param Model|Context|null $context The context object.
-     * @return bool
+     * @param Model|Context|null $context The context.
      */
     public function hasRole(User $user, string $roleName, $context = null): bool
     {
-        // Step 1: Ensure user data is loaded into the request cache.
+        // Một super-admin ngầm định có tất cả các vai trò. Đây là một bước kiểm tra nhanh.
+        if ($this->isSuperAdmin($user)) {
+            return true;
+        }
+
         if (!isset($this->permissionCache[$user->id])) {
             $this->loadAndCacheUserPermissions($user);
         }
 
-        // Step 2: Resolve the context and its hierarchy.
         $context = $this->resolveContext($context);
         $contextIds = $this->getContextHierarchyIds($context);
 
-        // Step 3: Check the cache for the role in the current context or any parent context.
         $userContexts = $this->permissionCache[$user->id]['contexts'] ?? [];
 
         foreach ($contextIds as $contextId) {
             $rolesInContext = $userContexts[$contextId]['roles'] ?? [];
-            // Since a user has only one role per context, this check is efficient.
             if (in_array($roleName, $rolesInContext, true)) {
                 return true;
             }
@@ -183,144 +196,192 @@ class AccessControlService
     }
 
     /**
-     * Call the appropriate method on a policy if one is registered.
-     *
-     * @param  \Modules\User\Infrastructure\Models\User  $user
-     * @param  string  $permission
-     * @param  mixed  $context
-     * @return bool|null  Returns boolean if a policy method was called, null otherwise.
+     * Call the corresponding method on a policy if it is registered for the given context.
      */
     protected function callPolicyMethod(User $user, string $permission, $context): ?bool
     {
-        $classToAuthorize = is_object($context) ? get_class($context) : $context;
-
-        if (!is_string($classToAuthorize) || !class_exists($classToAuthorize) || !is_subclass_of($classToAuthorize, Model::class)) {
+        // 1. Resolve the model class from the context.
+        $modelClass = $this->getClassForPolicy($context);
+        if (!$modelClass) {
             return null;
         }
 
-        $policyClass = $this->policies[$classToAuthorize] ?? null;
+        // 2. Find the registered policy for this model class.
+        $policyClass = $this->policies[$modelClass] ?? null;
         if (!$policyClass) {
-            return null; // No policy registered for this model.
+            return null;
         }
 
-        // Determine the policy method name from the permission name.
-        // Convention: 'resource:action' -> 'action'. 'action' -> 'action'.
-        $parts = explode(':', $permission);
-        $methodName = end($parts);
-
+        // 3. Instantiate the policy.
         $policyInstance = $this->app->make($policyClass);
 
+        // 4. Check the 'before' method on the policy, which can intercept any check.
         if (method_exists($policyInstance, 'before')) {
+            // The 'before' method receives the user and the full ability string.
             $beforeResult = $this->app->call([$policyInstance, 'before'], [$user, $permission]);
             if (!is_null($beforeResult)) {
                 return $beforeResult;
             }
         }
 
-        if (method_exists($policyInstance, $methodName)) {
-            $result = null;
-            if (is_object($context)) {
-                $result = $this->app->call([$policyInstance, $methodName], [$user, $context]);
-            } else {
-                $result = $this->app->call([$policyInstance, $methodName], [$user]);
-            }
+        // 5. Determine the specific ability method to call from the permission string.
+        $methodName = $this->getPolicyMethodName($permission);
 
-            if ($result instanceof Response) {
-                if (!$result->allowed()) {
-                    throw new AuthorizationException($result->message() ?? 'This action is unauthorized.', 403);
-                }
-                return true;
-            }
+        // 6. Check if the specific ability method exists on the policy.
+        if (!method_exists($policyInstance, $methodName)) {
+            return null;
+        }
 
-            return (bool) $result;
+        // 7. Prepare parameters and call the ability method.
+        // The convention is that the User is the first parameter, and the model instance
+        // (if provided as an object) is the second.
+        $parameters = is_object($context) ? [$user, $context] : [$user];
+        $result = $this->app->call([$policyInstance, $methodName], $parameters);
+
+        // 8. Process the result, handling both boolean and Response objects.
+        return $this->processPolicyResult($result);
+    }
+
+    /**
+     * Get the class name for a policy check from a given context.
+     */
+    private function getClassForPolicy($context): ?string
+    {
+        if ($context instanceof Model) {
+            return get_class($context);
+        }
+
+        if (is_string($context) && class_exists($context) && is_subclass_of($context, Model::class)) {
+            return $context;
         }
 
         return null;
     }
 
     /**
-     * Resolve a context object from a model or null.
-     * This method is now responsible for finding/creating contexts and their hierarchy.
+     * Get the policy method name from a permission string (e.g., 'post:update' -> 'update').
+     */
+    private function getPolicyMethodName(string $permission): string
+    {
+        $parts = explode(':', $permission);
+        return end($parts);
+    }
+
+    /**
+     * Process the result from a policy method call.
+     * @throws AuthorizationException
+     */
+    private function processPolicyResult($result): bool
+    {
+        if ($result instanceof Response) {
+            if (!$result->allowed()) {
+                throw new AuthorizationException($result->message() ?? 'This action is unauthorized.', 403);
+            }
+            return true;
+        }
+
+        return (bool) $result;
+    }
+
+    /**
+     * Resolves a model, object, or null into a concrete Context instance.
+     * If a context for a model does not exist, it will be created automatically.
      */
     public function resolveContext($context): Context
     {
+        // 1. Handle null/default case (system context) with caching
+        if ($context === null) {
+            if ($this->systemContext === null) {
+                /** @var Context $systemContext */
+                $systemContext = Context::findOrFail(self::SYSTEM_CONTEXT_ID);
+                $this->systemContext = $systemContext;
+            }
+            return $this->systemContext;
+        }
+
+        // 2. Handle if it's already a Context object
         if ($context instanceof Context) {
             return $context;
         }
 
+        // 3. Handle Model case
         if ($context instanceof Model) {
             $level = strtolower(basename(str_replace('\\', '/', get_class($context))));
             $instanceId = $context->getKey();
-        } else {
-            // The system context (ID 1) must exist. findOrFail ensures this and returns the correct type.
-            /** @var Context $systemContext */
-            $systemContext = Context::findOrFail(1);
-            return $systemContext;
+            $cacheKey = "{$level}:{$instanceId}";
+
+            // 3a. Check in-request cache
+            if (isset($this->resolvedContextCache[$cacheKey])) {
+                return $this->resolvedContextCache[$cacheKey];
+            }
+
+            // 3b. Use firstOrNew to be more atomic and avoid race conditions.
+            // This is paired with a unique DB index on [context_level, instance_id].
+            $attributes = ['context_level' => $level, 'instance_id' => $instanceId];
+
+            /** @var Context $foundOrNewContext */
+            $foundOrNewContext = Context::firstOrNew($attributes);
+
+            // 3c. If it's a new model (doesn't exist in DB), we need to fill in parent details and save.
+            if (!$foundOrNewContext->exists) {
+                $parentContext = $this->resolveParentContext($context);
+
+                $foundOrNewContext->fill([
+                    'parent_id'     => $parentContext->id,
+                    'depth'         => $parentContext->depth + 1,
+                    'path'          => $parentContext->path,
+                ]);
+                $foundOrNewContext->save(); // First save to get an ID
+
+                // Update path with its own ID and save again
+                $foundOrNewContext->path .= $foundOrNewContext->id . '/';
+                $foundOrNewContext->save();
+            }
+
+            // 3d. Cache and return
+            return $this->resolvedContextCache[$cacheKey] = $foundOrNewContext;
         }
 
-        /** @var Context|null $existingContext */
-        $existingContext = Context::where('context_level', '=', $level)
-                                  ->where('instance_id', '=', $instanceId)
-                                  ->first();
-
-        if ($existingContext) {
-            return $existingContext;
-        }
-
-        $parentContext = $this->resolveParentContext($context);
-
-        /** @var Context $newContext */
-        $newContext = Context::create([
-            'parent_id'     => $parentContext->id,
-            'context_level' => $level,
-            'instance_id'   => $instanceId,
-            'depth'         => $parentContext->depth + 1,
-            'path'          => $parentContext->path,
-        ]);
-
-        $newContext->path .= $newContext->id . '/';
-        $newContext->save();
-
-        return $newContext;
+        // 4. If it's not a supported type, throw an exception.
+        throw new \InvalidArgumentException('Unsupported context type provided to resolveContext.');
     }
 
     /**
-     * A helper method to resolve a context directly by its level and instance ID.
-     * This is useful for controllers that don't have a full model instance.
+     * Helper method to get a context directly by its level and instance ID.
+     * Useful for controllers that don't have a full model instance.
      */
     public function resolveContextByLevelAndId(string $level, int $instanceId): Context
     {
-        // This logic is similar to resolveContext, but starts from level/id instead of a model.
-        /** @var Context|null $existingContext */
-        $existingContext = Context::where('context_level', '=', $level)
-                                  ->where('instance_id', '=', $instanceId)
-                                  ->first();
+        $existingContext = $this->findContextByLevelAndId($level, $instanceId);
 
         if ($existingContext) {
             return $existingContext;
         }
 
-        // If the context doesn't exist, we cannot create it because we don't know its parent.
-        // This should be considered an application error (e.g., trying to assign a role to a non-existent post).
-        // For simplicity, we'll throw an exception. A more complex system might return null.
         throw new \InvalidArgumentException("Context for level '{$level}' with ID '{$instanceId}' does not exist.");
     }
 
     /**
-     * Dựa vào convention, tìm context cha từ một model.
-     * This new version uses the `#[ParentContext]` attribute for flexibility.
+     * Helper to find a context by level and instance ID.
+     */
+    private function findContextByLevelAndId(string $level, int $instanceId): ?Context
+    {
+        /** @var Context|null */
+        return Context::where('context_level', '=', $level)->where('instance_id', '=', $instanceId)->first();
+    }
+    /**
+     * Determines the parent context for a given model.
+     * Uses the `#[ParentContext]` attribute for maximum flexibility.
      */
     private function resolveParentContext(Model $model): Context
     {
         $className = get_class($model);
 
-        // Use a static cache to avoid repeated reflection for the same class within a request.
         if (!array_key_exists($className, self::$reflectionCache)) {
-            self::$reflectionCache[$className] = null; // Default to null
+            self::$reflectionCache[$className] = null;
             $reflector = new \ReflectionClass($className);
 
             foreach ($reflector->getMethods(\ReflectionMethod::IS_PUBLIC) as $method) {
-                // Find the first method with the ParentContext attribute.
                 if (!empty($method->getAttributes(ParentContext::class))) {
                     self::$reflectionCache[$className] = $method;
                     break;
@@ -332,85 +393,102 @@ class AccessControlService
         $parentMethod = self::$reflectionCache[$className];
 
         if ($parentMethod) {
-            // Invoke the method (e.g., $model->course()) to get the parent model instance.
             $parentModel = $parentMethod->invoke($model);
             if ($parentModel instanceof Model) {
                 return $this->resolveContext($parentModel);
             }
         }
 
-        // Nếu không tìm thấy cha cụ thể, mặc định cha là hệ thống
+        // If no specific parent is found, default to the system context.
         return $this->resolveContext(null);
     }
 
     private function getContextHierarchyIds(Context $context): array
     {
-        // Sử dụng Materialized Path để lấy tất cả ID trong chuỗi phân cấp.
-        // Ví dụ: path '1/5/12/' sẽ trả về [1, 5, 12].
+        // Use the Materialized Path to get all IDs in the hierarchy.
+        // e.g., a path of '1/5/12/' will return [1, 5, 12].
         return explode('/', rtrim($context->path, '/'));
     }
 
     /**
-     * Loads all permissions for a given user and caches them.
-     * This is the core optimization to prevent N+1 queries.
+     * Loads and caches all permissions for a user.
+     * This is a core optimization to prevent N+1 query problems.
      */
     private function loadAndCacheUserPermissions(User $user): void
     {
-        // Cấp 1: Kiểm tra cache bền vững (Redis) trước
         $cacheKey = "acl:all_perms:{$user->id}";
-        if ($this->cache) {
-            $cachedPermissions = $this->cache->store()->get($cacheKey);
+
+        // 1. First, check the persistent cache.
+        if ($this->cacheStore) {
+            $cachedPermissions = $this->cacheStore->get($cacheKey);
             if ($cachedPermissions) {
-                // Nếu có trong cache Redis, giải nén và lưu vào cache tĩnh của request
                 $this->permissionCache[$user->id] = json_decode($cachedPermissions, true);
                 return;
             }
         }
 
-        // Cấp 2: Nếu không có trong cache, thực hiện truy vấn CSDL
-        $permissionsByContext = [];
-        $isSuperUser = false;
+        // 2. If cache is missed, use a lock to prevent Cache Stampede.
+        // This ensures only one process rebuilds the cache at a time.
+        $lock = $this->app->make(CacheManager::class)->lock("lock:build_perms:{$user->id}", 10);
 
-        // Query 1: Get all role assignments for the user, eager loading the role and its permissions.
-        // This is highly efficient, reducing N+1 problems.
-        $assignments = RoleAssignment::where('user_id', '=', $user->id)->with('role.permissions')->get();
-
-        if ($assignments->isNotEmpty()) {
-            // Xử lý kết quả trong PHP để xây dựng cấu trúc cache
-            foreach ($assignments as $assignment) {
-                // The role and its permissions are already loaded.
-                $role = $assignment->role;
-                if ($role) {
-                    $contextId = $assignment->context_id;
-
-                    // Initialize context cache if it doesn't exist
-                    if (!isset($permissionsByContext[$contextId])) {
-                        $permissionsByContext[$contextId] = ['roles' => [], 'permissions' => []];
-                    }
-
-                    // Cache the role name and ID
-                    $permissionsByContext[$contextId]['roles'][$role->id] = $role->name;
-
-                    // Cache all permissions for that role
-                    if ($role->permissions) {
-                        foreach ($role->permissions as $permission) {
-                            $permissionsByContext[$contextId]['permissions'][$permission->name] = true;
-                        }
-                    }
+        $permissionsData = $lock->block(5, function () use ($user, $cacheKey) {
+            // 2a. Double-check inside the lock in case another process built the cache while we waited.
+            if ($this->cacheStore) {
+                $cached = $this->cacheStore->get($cacheKey);
+                if ($cached) {
+                    return json_decode($cached, true);
                 }
             }
+
+            // 2b. Tối ưu hóa: Xây dựng quyền từ CSDL bằng một truy vấn JOIN duy nhất.
+            // Điều này hiệu quả hơn nhiều so với việc eager-load nhiều quan hệ và xử lý trong PHP.
+            $results = RoleAssignment::query()
+                ->join('roles', 'role_assignments.role_id', '=', 'roles.id')
+                ->join('permission_role', 'roles.id', '=', 'permission_role.role_id')
+                ->join('permissions', 'permission_role.permission_id', '=', 'permissions.id')
+                ->where('role_assignments.user_id', '=', $user->id)
+                ->select('role_assignments.context_id', 'roles.id as role_id', 'roles.name as role_name', 'permissions.name as permission_name')
+                ->get();
+
+            $permissionsByContext = [];
+            foreach ($results as $row) {
+                $contextId = $row->context_id;
+
+                if (!isset($permissionsByContext[$contextId])) {
+                    $permissionsByContext[$contextId] = ['roles' => [], 'permissions' => []];
+                }
+
+                $permissionsByContext[$contextId]['roles'][$row->role_id] = $row->role_name;
+                $permissionsByContext[$contextId]['permissions'][$row->permission_name] = true;
+            }
+
+            $dataToCache = ['contexts' => $permissionsByContext];
+            // 2c. Store in the persistent cache with a configurable TTL.
+            if ($this->cacheStore) {
+                $ttl = $this->app->make('config')->get('auth.cache.permissions_ttl', 3600);
+                $this->cacheStore->put($cacheKey, json_encode($dataToCache), $ttl);
+            }
+
+            return $dataToCache;
+        });
+
+        // 3. Populate the in-request cache.
+        $this->permissionCache[$user->id] = $permissionsData;
+    }
+
+    /**
+     * Xóa cache quyền cho một người dùng cụ thể.
+     * Bao gồm cả cache bền vững (Redis/file) và cache trong request.
+     *
+     * @param int $userId ID của người dùng cần xóa cache.
+     */
+    public function flushCacheForUser(int $userId): void
+    {
+        // Xóa cache bền vững
+        if ($this->cacheStore) {
+            $this->cacheStore->delete("acl:all_perms:{$userId}");
         }
 
-        // Xây dựng cấu trúc cache hoàn chỉnh
-        $this->permissionCache[$user->id] = [
-            // 'is_super' flag is no longer needed, we check the role directly.
-            'contexts' => $permissionsByContext,
-        ];
-
-        // Cấp 3: Lưu cấu trúc hoàn chỉnh vào cache bền vững (Redis)
-        if ($this->cache) {
-            // Cache trong 1 giờ (3600 giây)
-            $this->cache->store()->put($cacheKey, json_encode($this->permissionCache[$user->id]), 3600);
-        }
+        unset($this->permissionCache[$userId]);
     }
 }

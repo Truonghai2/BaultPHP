@@ -1,43 +1,43 @@
-# Hướng Dẫn Tích Hợp Frontend với BaultPHP
+# Frontend Integration Guide for BaultPHP
 
-Chào mừng các lập trình viên frontend! Tài liệu này sẽ hướng dẫn bạn cách kết nối và tương tác với backend được xây dựng bằng BaultPHP.
+Welcome, frontend developers! This document will guide you on how to connect and interact with a backend built with BaultPHP.
 
-BaultPHP là một backend mạnh mẽ, cung cấp các API RESTful và kết nối WebSocket để xây dựng các ứng dụng web động và hiện đại.
+BaultPHP is a powerful backend that provides RESTful APIs and WebSocket connections for building dynamic and modern web applications.
 
-## Mục Lục
+## Table of Contents
 
-1.  [Tổng Quan về API](#1-tổng-quan-về-api)
-2.  [Xác Thực (Authentication)](#2-xác-thực-authentication)
-3.  [Ví Dụ Tương Tác API (JavaScript Fetch)](#3-ví-dụ-tương-tác-api-javascript-fetch)
-    - Lấy Danh Sách Bài Viết
-    - Tạo Bài Viết Mới
-    - Cập Nhật Bài Viết
-    - Xóa Bài Viết
-4.  [Xử Lý CORS (Cross-Origin Resource Sharing)](#4-xử-lý-cors-cross-origin-resource-sharing)
-5.  [Tích Hợp Real-time với WebSocket](#5-tích-hợp-real-time-với-websocket)
-
----
-
-## 1. Tổng Quan về API
-
-Backend BaultPHP cung cấp các endpoint API theo chuẩn REST. Một ví dụ điển hình là các endpoint quản lý bài viết đã được định nghĩa trong `CRUD_TUTORIAL.md`:
-
-- **`GET /api/posts`**: Lấy danh sách tất cả bài viết.
-- **`POST /api/posts`**: Tạo một bài viết mới.
-- **`GET /api/posts/{id}`**: Lấy thông tin chi tiết một bài viết.
-- **`PUT /api/posts/{id}`**: Cập nhật một bài viết.
-- **`DELETE /api/posts/{id}`**: Xóa một bài viết.
-
-Tất cả dữ liệu được trao đổi qua định dạng **JSON**.
+1.  [API Overview](#1-api-overview)
+2.  [Authentication](#2-authentication)
+3.  [API Interaction Examples (JavaScript Fetch)](#3-api-interaction-examples-javascript-fetch)
+    - Get List of Posts
+    - Create a New Post
+    - Update a Post
+    - Delete a Post
+4.  [Handling CORS (Cross-Origin Resource Sharing)](#4-handling-cors-cross-origin-resource-sharing)
+5.  [Real-time Integration with WebSocket](#5-real-time-integration-with-websocket)
 
 ---
 
-## 2. Xác thực với OAuth2 (Authentication)
+## 1. API Overview
 
-Hệ thống sử dụng **OAuth2** với luồng
+The BaultPHP backend provides REST-compliant API endpoints. A typical example is the post management endpoints defined in `CRUD_TUTORIAL.md`:
 
-1.  **Đăng nhập**: Frontend gửi `email` và `password` của người dùng đến một endpoint đăng nhập, ví dụ `POST /api/login`.
-2.  **Nhận Token**: Nếu thông tin đăng nhập chính xác, backend sẽ trả về một JWT.
+- **`GET /api/posts`**: Get a list of all posts.
+- **`POST /api/posts`**: Create a new post.
+- **`GET /api/posts/{id}`**: Get the details of a specific post.
+- **`PUT /api/posts/{id}`**: Update a post.
+- **`DELETE /api/posts/{id}`**: Delete a post.
+
+All data is exchanged in **JSON** format.
+
+---
+
+## 2. Authentication with OAuth2
+
+The system uses **OAuth2** with the following flow
+
+1.  **Login**: The frontend sends the user's `email` and `password` to a login endpoint, for example, `POST /api/login`.
+2.  **Receive Token**: If the login information is correct, the backend will return a JWT.
     ```json
     {
       "access_token": "ey...",
@@ -45,26 +45,26 @@ Hệ thống sử dụng **OAuth2** với luồng
       "expires_in": 3600
     }
     ```
-3.  **Lưu Token**: Frontend cần lưu `access_token` này một cách an toàn, thường là trong `localStorage` hoặc `sessionStorage`.
-4.  **Gửi Token với mỗi Request**: Với mỗi request tiếp theo đến các endpoint được bảo vệ, frontend phải đính kèm token này vào header `Authorization`.
+3.  **Save Token**: The frontend needs to save this `access_token` securely, usually in `localStorage` or `sessionStorage`.
+4.  **Send Token with Each Request**: For every subsequent request to protected endpoints, the frontend must attach this token to the `Authorization` header.
 
-    **Ví dụ Header:**
+    **Header Example:**
 
     ```
     Authorization: Bearer ey...
     ```
 
-Nếu token không hợp lệ hoặc thiếu, backend sẽ trả về lỗi `401 Unauthorized`.
+If the token is invalid or missing, the backend will return a `401 Unauthorized` error.
 
 ---
 
-## 3. Ví Dụ Tương Tác API (JavaScript Fetch)
+## 3. API Interaction Examples (JavaScript Fetch)
 
-Dưới đây là các ví dụ sử dụng `fetch` API của JavaScript để thực hiện các thao tác CRUD với module `Post`.
+Below are examples using the JavaScript `fetch` API to perform CRUD operations with the `Post` module.
 
-Giả sử backend đang chạy tại `http://localhost:88` (theo cấu hình Nginx trong docker-compose).
+Assume the backend is running at `http://localhost:88` (as configured in the docker-compose Nginx setup).
 
-### Lấy Danh Sách Bài Viết
+### Get List of Posts
 
 ```javascript
 async function getPosts(baseUrl = "http://localhost:88") {
@@ -78,7 +78,7 @@ async function getPosts(baseUrl = "http://localhost:88") {
 }
 ```
 
-### Tạo Bài Viết Mới
+### Create a New Post
 
 ```javascript
 async function createPost(
@@ -91,7 +91,7 @@ async function createPost(
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`, // Gửi token xác thực
+      Authorization: `Bearer ${token}`, // Send authentication token
     },
     body: JSON.stringify({ title, content }),
   });
@@ -106,7 +106,7 @@ async function createPost(
 }
 ```
 
-### Cập Nhật Bài Viết
+### Update a Post
 
 ```javascript
 async function updatePost(
@@ -134,7 +134,7 @@ async function updatePost(
 }
 ```
 
-### Xóa Bài Viết
+### Delete a Post
 
 ```javascript
 async function deletePost(postId, token, baseUrl = "http://localhost:88") {
@@ -155,59 +155,59 @@ async function deletePost(postId, token, baseUrl = "http://localhost:88") {
 
 ---
 
-## 4. Xử Lý CORS (Cross-Origin Resource Sharing)
+## 4. Handling CORS (Cross-Origin Resource Sharing)
 
-Khi phát triển, frontend của bạn (ví dụ: `http://localhost:5173`) và backend (`http://localhost:88`) thường chạy trên hai "origin" khác nhau (do khác cổng). Trình duyệt sẽ chặn các request từ frontend đến backend vì lý do bảo mật, gây ra lỗi **CORS**.
+During development, your frontend (e.g., `http://localhost:5173`) and backend (`http://localhost:88`) often run on two different "origins" (due to different ports). The browser will block requests from the frontend to the backend for security reasons, causing a **CORS** error.
 
-Để khắc phục, backend BaultPHP cần được cấu hình để cho phép các request từ origin của frontend. Điều này thường được thực hiện bằng cách thêm một **Middleware** trong BaultPHP để tự động thêm các HTTP header cần thiết vào mỗi response.
+To fix this, the BaultPHP backend needs to be configured to allow requests from the frontend's origin. This is usually done by adding a **Middleware** in BaultPHP to automatically add the necessary HTTP headers to each response.
 
-**Các header cần thiết:**
+**Necessary headers:**
 
-- `Access-Control-Allow-Origin`: Chỉ định origin được phép (ví dụ: `http://localhost:5173` hoặc `*` cho tất cả).
-- `Access-Control-Allow-Methods`: Các phương thức HTTP được phép (ví dụ: `GET, POST, PUT, DELETE, OPTIONS`).
-- `Access-Control-Allow-Headers`: Các header được phép trong request (ví dụ: `Content-Type, Authorization`).
+- `Access-Control-Allow-Origin`: Specifies the allowed origin (e.g., `http://localhost:5173` or `*` for all).
+- `Access-Control-Allow-Methods`: The allowed HTTP methods (e.g., `GET, POST, PUT, DELETE, OPTIONS`).
+- `Access-Control-Allow-Headers`: The allowed headers in the request (e.g., `Content-Type, Authorization`).
 
-Hãy liên hệ với đội ngũ backend để đảm bảo middleware này đã được kích hoạt.
+Contact the backend team to ensure this middleware is enabled.
 
 ---
 
-## 5. Tích Hợp Real-time với WebSocket
+## 5. Real-time Integration with WebSocket
 
-BaultPHP sử dụng **Centrifuge** để cung cấp các tính năng real-time qua WebSocket. Điều này rất hữu ích cho các thông báo, chat, hoặc cập nhật dữ liệu trực tiếp.
+BaultPHP uses **Centrifuge** to provide real-time features via WebSocket. This is very useful for notifications, chat, or live data updates.
 
-**Thư viện phía Frontend:**
+**Frontend Library:**
 
-Bạn có thể sử dụng thư viện `centrifuge-js` để kết nối.
+You can use the `centrifuge-js` library to connect.
 
 ```bash
 npm install centrifuge
 ```
 
-**Ví dụ kết nối và lắng nghe sự kiện:**
+**Example of connecting and listening for events:**
 
 ```javascript
 import { Centrifuge } from "centrifuge";
 
-// Lấy URL và token kết nối từ một endpoint API riêng của backend
-const connectionUrl = "ws://localhost:8000/connection/websocket"; // URL của Centrifugo
-const connectionToken = "..."; // Token này phải do backend tạo ra cho từng user
+// Get the connection URL and token from a dedicated backend API endpoint
+const connectionUrl = "ws://localhost:8000/connection/websocket"; // URL of Centrifugo
+const connectionToken = "..."; // This token must be generated by the backend for each user
 
 const centrifuge = new Centrifuge(connectionUrl, {
   token: connectionToken,
 });
 
-// Lắng nghe sự kiện kết nối thành công
+// Listen for the successful connection event
 centrifuge.on("connected", function (ctx) {
   console.log("Connected to WebSocket server", ctx);
 });
 
-// Lắng nghe một channel cụ thể, ví dụ channel 'notifications'
+// Listen to a specific channel, e.g., the 'notifications' channel
 const sub = centrifuge.newSubscription("notifications");
 
-// Lắng nghe các message được publish đến channel này
+// Listen for messages published to this channel
 sub.on("publication", function (ctx) {
   console.log("Received new notification:", ctx.data);
-  // Ví dụ: Hiển thị thông báo cho người dùng
+  // Example: Display a notification to the user
 });
 
 sub.subscribe();
@@ -215,4 +215,4 @@ sub.subscribe();
 centrifuge.connect();
 ```
 
-Tài liệu này cung cấp các thông tin cơ bản để bạn bắt đầu. Chúc bạn xây dựng được một giao diện người dùng tuyệt vời với BaultPHP!
+This document provides the basic information to get you started. Happy building a great user interface with BaultPHP!

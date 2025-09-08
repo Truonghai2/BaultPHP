@@ -327,6 +327,26 @@ class Collection implements ArrayAccess, Countable, IteratorAggregate, JsonSeria
     }
 
     /**
+     * Load a relationship count on all models in the collection.
+     *
+     * @param  string|array  $relations
+     * @return $this
+     */
+    public function loadCount($relations): self
+    {
+        if ($this->isEmpty()) {
+            return $this;
+        }
+
+        $relations = is_string($relations) ? func_get_args() : $relations;
+
+        $query = $this->first()->newQuery();
+        $query->loadCount($this, $relations);
+
+        return $this;
+    }
+
+    /**
      * Kiểm tra xem một item có tồn tại trong collection bằng key không.
      *
      * @param  mixed  $key

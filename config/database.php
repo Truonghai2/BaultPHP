@@ -23,21 +23,14 @@ return [
     */
 
     'connections' => [
-
         'mysql' => [
             'driver' => 'mysql',
-            // Use a read/write split to distribute database load.
-            // In development, the read host will safely fall back to the main DB_HOST.
             'read' => [
-                // Use the read replica host if defined, otherwise fall back to the main write host.
                 'host' => env('DB_READ_HOST', env('DB_HOST')),
             ],
             'write' => [
                 'host' => env('DB_HOST', '127.0.0.1'),
             ],
-            // This option, if supported by the framework, ensures that after a write
-            // operation, subsequent read operations in the same request cycle
-            // use the write connection to avoid issues with replication lag.
             'sticky'    => true,
             'port' => env('DB_PORT', '3306'),
             'database' => env('DB_DATABASE', 'bault'),
@@ -49,6 +42,25 @@ return [
             'prefix' => '',
             'strict' => true,
             'engine' => null,
+        ],
+
+        'pgsql' => [
+            'driver' => 'pgsql',
+            'read' => [
+                'host' => env('DB_READ_HOST', env('DB_HOST')),
+            ],
+            'write' => [
+                'host' => env('DB_HOST', '127.0.0.1'),
+            ],
+            'sticky'    => true,
+            'port' => env('DB_PORT', '5432'),
+            'database' => env('DB_DATABASE', 'bault'),
+            'username' => env('DB_USERNAME', 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'schema' => 'public',
+            'sslmode' => env('DB_SSLMODE', 'prefer'),
         ],
 
     ],
@@ -69,5 +81,4 @@ return [
             'database' => env('REDIS_DB', '0'),
         ],
     ],
-
 ];

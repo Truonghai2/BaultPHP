@@ -2,34 +2,48 @@
 
 namespace Http;
 
-use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
+use Core\Exceptions\AuthorizationException;
 use Core\Exceptions\HttpResponseException;
-use Core\Exceptions\ValidationException;
 use Core\Http\Redirector;
 use Core\Validation\Factory as ValidationFactory;
+use Core\Validation\ValidationException;
 use Core\Validation\Validator;
 use Psr\Http\Message\ServerRequestInterface;
 
 abstract class FormRequest
 {
     protected Application $app;
-    protected ?ServerRequestInterface $request = null;
+    protected ServerRequestInterface $request;
     protected ?Validator $validator = null;
     protected ?Authenticatable $user;
     /**
      * @var array<string, mixed>|null
      */
     protected ?array $cachedParsedBody = null;
+    /**
+     * @var array<int, string>
+     */
+    protected array $routeParameters = [];
+    /**
+     * Các thuộc tính không nên được flash vào session khi có lỗi validation.
+     * @var array<int, string>
+     */
+    protected array $dontFlash = [
+        'password',
+        'password_confirmation',
+    ];
 
     /**
      * FormRequest được tạo thông qua container, cho phép inject các dependency.
      * Container sẽ tự động inject Application.
      */
-    public function __construct(Application $app)
+    public function __construct(Application $app, ServerRequestInterface $request)
     {
         $this->app = $app;
+        $this->request = $request;
+        $this->user = $this->user();
     }
 
     /**
@@ -43,20 +57,6 @@ abstract class FormRequest
     public function authorize(): bool
     {
         return false;
-    }
-
-    /**
-     * Set the current request instance for the form request.
-     *
-     * @param ServerRequestInterface $request
-     * @return $this
-     */
-    public function setRequest(ServerRequestInterface $request): static
-    {
-        $this->request = $request;
-        $this->user = $this->user();
-
-        return $this;
     }
 
     /**
@@ -76,10 +76,6 @@ abstract class FormRequest
      */
     public function validateResolved(): void
     {
-        if (!isset($this->request)) {
-            $this->setRequest($this->app->make(ServerRequestInterface::class));
-        }
-
         if (!$this->authorize()) {
             throw new AuthorizationException('This action is unauthorized.', 403);
         }
@@ -102,7 +98,11 @@ abstract class FormRequest
         if (!$this->validator) {
             throw new \LogicException('Validator not initialized before calling validated().');
         }
-        return $this->validator->validated();
+
+        // Cải tiến bảo mật: Loại bỏ các tham số từ route khỏi dữ liệu đã validate.
+        // Điều này ngăn chặn các lỗ hổng mass assignment khi một tham số route (ví dụ: `id`)
+        // vô tình bị ghi đè bởi dữ liệu đầu vào của người dùng và sau đó được sử dụng trong các thao tác như `update()`.
+        return array_diff_key($this->validator->validated(), array_flip($this->routeParameters));
     }
 
     /**
@@ -132,7 +132,7 @@ abstract class FormRequest
 
     protected function failedValidation(Validator $validator): void
     {
-        $exception = new ValidationException($validator);
+        $exception = new ValidationException($validator); // Đã sử dụng đúng namespace mới
 
         if ($this->expectsJson()) {
             throw $exception;
@@ -154,9 +154,14 @@ abstract class FormRequest
         /** @var Redirector $redirector */
         $redirector = $this->app->make(Redirector::class);
 
+        $input = $this->getParsedBody();
+        foreach ($this->dontFlash as $key) {
+            unset($input[$key]);
+        }
+
         return $redirector->back()
             ->withErrors($validator->errors())
-            ->withInput($this->getParsedBody());
+            ->withInput($input);
     }
 
     /**
@@ -166,9 +171,6 @@ abstract class FormRequest
      */
     protected function expectsJson(): bool
     {
-        if (!isset($this->request)) {
-            return false;
-        }
         return str_contains($this->request->getHeaderLine('Accept'), 'application/json');
     }
 
@@ -195,6 +197,7 @@ abstract class FormRequest
     {
         $route = $this->request->getAttribute('route');
         $routeParams = $route ? $route->parameters : [];
+        $this->routeParameters = array_keys($routeParams);
 
         return array_merge(
             $routeParams,
@@ -212,10 +215,6 @@ abstract class FormRequest
      */
     public function getParsedBody(): array
     {
-        if (!isset($this->request)) {
-            $this->setRequest($this->app->make(ServerRequestInterface::class));
-        }
-
         if (is_null($this->cachedParsedBody)) {
             $this->cachedParsedBody = (array) $this->request->getParsedBody();
         }
@@ -234,10 +233,6 @@ abstract class FormRequest
      */
     public function __call(string $method, array $args)
     {
-        if (!isset($this->request)) {
-            $this->setRequest($this->app->make(ServerRequestInterface::class));
-        }
-
         return $this->request->$method(...$args);
     }
 
@@ -246,19 +241,11 @@ abstract class FormRequest
      */
     public function __get(string $key)
     {
-        if (!isset($this->request)) {
-            $this->setRequest($this->app->make(ServerRequestInterface::class));
-        }
-
         return $this->request->$key;
     }
 
     public function all(): array
     {
-        if (!isset($this->request)) {
-            $this->setRequest($this->app->make(ServerRequestInterface::class));
-        }
-
         return array_merge(
             $this->request->getQueryParams(),
             $this->getParsedBody(),

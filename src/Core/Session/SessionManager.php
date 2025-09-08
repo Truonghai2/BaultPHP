@@ -4,9 +4,11 @@ namespace Core\Session;
 
 use Core\Application;
 use Core\Contracts\StatefulService;
+use Core\Database\Swoole\SwooleRedisPool;
 use SessionHandlerInterface;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
+use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 
 class SessionManager implements StatefulService
@@ -67,6 +69,7 @@ class SessionManager implements StatefulService
     protected function createDriver(string $driver): SessionHandlerInterface
     {
         return match ($driver) {
+            'redis' => $this->createRedisDriver(),
             'database' => $this->createDatabaseDriver(),
             default => $this->createFileDriver(),
         };
@@ -81,10 +84,28 @@ class SessionManager implements StatefulService
 
     protected function createDatabaseDriver(): SessionHandlerInterface
     {
-        return new DatabaseSessionHandler(
-            $this->app,
-            $this->config['table'] ?? 'sessions',
-            $this->config['lifetime'] ?? 120,
+        // Sử dụng PdoSessionHandler của Symfony để đảm bảo có cơ chế khóa (locking) an toàn
+        return new PdoSessionHandler(
+            $this->app->make(\PDO::class),
+            [
+                'db_table' => $this->config['table'] ?? 'sessions',
+                'db_id_col' => 'id',
+                'db_data_col' => 'payload',
+                'db_time_col' => 'last_activity',
+                'db_lifetime_col' => 'lifetime',
+            ],
         );
+    }
+
+    protected function createRedisDriver(): SessionHandlerInterface
+    {
+        $isSwooleEnv = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+
+        if ($isSwooleEnv && class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
+            // RedisSessionHandler đã được viết tốt cho môi trường Swoole
+            return new RedisSessionHandler($this->config);
+        }
+
+        throw new \RuntimeException('Redis session driver is configured but is only supported in a Swoole environment with a configured Redis pool.');
     }
 }

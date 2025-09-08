@@ -2,10 +2,11 @@
 
 namespace App\Providers;
 
+use Core\Contracts\Support\DeferrableProvider;
 use Core\Support\ServiceProvider;
 use Core\Validation\Factory as ValidationFactory;
 
-class ValidationServiceProvider extends ServiceProvider
+class ValidationServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     /**
      * Register the validation services.
@@ -14,13 +15,20 @@ class ValidationServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Đăng ký ValidationFactory như một singleton. Đây là binding gốc.
         $this->app->singleton(ValidationFactory::class, function ($app) {
             return new ValidationFactory($app);
         });
 
-        // Tạo một alias từ tên ngắn 'validator' đến tên class đầy đủ.
-        // Điều này cho phép resolve service thông qua app('validator').
         $this->app->alias(ValidationFactory::class, 'validator');
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [ValidationFactory::class, 'validator'];
     }
 }

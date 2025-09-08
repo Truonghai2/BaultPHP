@@ -4,7 +4,7 @@ namespace App\Exceptions;
 
 use Core\Contracts\Exceptions\Handler as HandlerContract;
 use Core\Contracts\View\Factory as ViewFactory;
-use Core\Http\Response;
+use Core\Http\Redirector;
 use Core\Validation\ValidationException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface as Request;
@@ -37,7 +37,6 @@ class Handler implements HandlerContract
     {
         error_reporting(-1);
 
-        // Convert all errors to ErrorException
         set_error_handler(function ($level, $message, $file = '', $line = 0) {
             if (error_reporting() & $level) {
                 throw new \ErrorException($message, 0, $level, $file, $line);
@@ -79,21 +78,17 @@ class Handler implements HandlerContract
             return $this->prepareJsonResponse($request, $e);
         }
 
-        // Nếu đang ở chế độ debug, luôn hiển thị trang lỗi chi tiết của Whoops.
         if (config('app.debug', false)) {
             return $this->renderExceptionForDebug($request, $e);
         }
 
-        // Nếu không ở chế độ debug, render các trang lỗi tùy chỉnh.
         $statusCode = $this->getStatusCode($e);
         $viewPath = "errors.{$statusCode}";
 
-        // Kiểm tra xem có view cho mã lỗi cụ thể không (ví dụ: errors.404).
         if ($this->view->exists($viewPath)) {
             return response($this->view->make($viewPath, ['exception' => $e])->render(), $statusCode);
         }
 
-        // Nếu không, trả về một trang lỗi 500 chung nếu có, hoặc một chuỗi mặc định.
         $fallbackContent = $this->view->exists('errors.500') ? $this->view->make('errors.500', ['exception' => $e])->render() : 'Sorry, something went wrong.';
         return response($fallbackContent, $statusCode);
     }
@@ -122,8 +117,6 @@ class Handler implements HandlerContract
      */
     protected function getDebugData(Request $request, Throwable $e): array
     {
-        // Nếu exception là ViewException, nó sẽ chứa đường dẫn và dòng lỗi của file view gốc,
-        // giúp chúng ta hiển thị đúng đoạn code snippet từ file .blade.php thay vì file đã biên dịch.
         $file = $e instanceof \Core\View\ViewException ? $e->getViewPath() : $e->getFile();
         $line = $e instanceof \Core\View\ViewException ? $e->getViewLine() : $e->getLine();
         return [
@@ -234,7 +227,12 @@ class Handler implements HandlerContract
      */
     protected function handleValidationException(Request $request, ValidationException $e): ResponseInterface
     {
-        return $this->prepareJsonResponse($request, $e);
+        /** @var Redirector $redirector */
+        $redirector = app(Redirector::class);
+
+        return $redirector->back()
+            ->withInput($request->getParsedBody() ?? [])
+            ->withErrors($e->errors());
     }
 
     /**

@@ -2,22 +2,37 @@
 
 namespace Core\Schema;
 
-class ColumnDefinition
-{
-    protected string $sql;
-    public bool $isUnique = false;
-    protected $defaultValue = null;
-    protected bool $hasDefault = false;
-    protected bool $isNullable = false;
-    public bool $isIndex = false;
-    protected ?string $comment = null;
-    protected ?string $foreignTable = null;
-    protected ?string $foreignColumn = null;
-    protected string $onDeleteAction = 'CASCADE';
+use Core\Support\Fluent;
 
-    public function __construct(string $sql)
+/**
+ * Represents a column definition in a database schema.
+ * This class is a data carrier, using Fluent's magic properties.
+ */
+class ColumnDefinition extends Fluent
+{
+    /**
+     * Specify that the column should be unique.
+     *
+     * @return $this
+     */
+    public function unique(): self
     {
-        $this->sql = $sql;
+        $this->unique = true;
+
+        return $this;
+    }
+
+    /**
+     * Allow NULL values to be inserted into the column.
+     *
+     * @param  bool  $value
+     * @return $this
+     */
+    public function nullable(bool $value = true): self
+    {
+        $this->nullable = $value;
+
+        return $this;
     }
 
     /**
@@ -28,141 +43,99 @@ class ColumnDefinition
      */
     public function default($value): self
     {
-        $this->hasDefault = true;
-        $this->defaultValue = $value;
-        return $this;
-    }
+        $this->default = $value;
 
-    /**
-     * Allow NULL values to be inserted into the column.
-     * @return $this
-     */
-    public function nullable(): self
-    {
-        $this->isNullable = true;
-        return $this;
-    }
-
-    public function unique(): self
-    {
-        $this->isUnique = true;
-        return $this;
-    }
-
-    /**
-     * Add an index to the column.
-     *
-     * @return $this
-     */
-    public function index(): self
-    {
-        $this->isIndex = true;
         return $this;
     }
 
     /**
      * Add a comment to the column.
      *
-     * @param string $comment
+     * @param  string  $comment
      * @return $this
      */
     public function comment(string $comment): self
     {
         $this->comment = $comment;
+
         return $this;
     }
 
-    public function getSql(): string
+    /**
+     * Add a foreign key constraint.
+     *
+     * @param  string|null  $table
+     * @param  string  $column
+     * @return $this
+     */
+    public function constrained($table = null, $column = 'id'): self
     {
-        $baseSql = $this->sql;
-
-        if ($this->isNullable) {
-            $baseSql .= ' NULL';
-        } else {
-            $baseSql .= ' NOT NULL';
+        if (is_null($table)) {
+            $table = str_replace('_id', '', $this->name) . 's';
         }
 
-        if ($this->hasDefault) {
-            if (is_null($this->defaultValue)) {
-                $baseSql .= ' DEFAULT NULL';
-            } elseif (is_string($this->defaultValue)) {
-                // Handle special keywords like CURRENT_TIMESTAMP without quotes
-                if (in_array(strtoupper($this->defaultValue), ['CURRENT_TIMESTAMP'])) {
-                    $baseSql .= ' DEFAULT ' . $this->defaultValue;
-                } else {
-                    $baseSql .= " DEFAULT '" . addslashes($this->defaultValue) . "'";
-                }
-            } elseif (is_bool($this->defaultValue)) {
-                $baseSql .= ' DEFAULT ' . ($this->defaultValue ? '1' : '0');
-            } else {
-                $baseSql .= ' DEFAULT ' . $this->defaultValue;
-            }
-        }
+        $this->foreign = ['table' => $table, 'column' => $column];
 
-        if ($this->comment) {
-            $baseSql .= " COMMENT '" . addslashes($this->comment) . "'";
-        }
-
-        return $baseSql;
-    }
-
-    public function getForeignKey(): ?string
-    {
-        if ($this->foreignTable) {
-            $references = "`{$this->foreignTable}` (`{$this->foreignColumn}`)";
-            return "FOREIGN KEY (`{$this->getName()}`) REFERENCES {$references} ON DELETE {$this->onDeleteAction}";
-        }
-        return null;
-    }
-
-    public function setOption(string $key, mixed $value): void
-    {
-        switch ($key) {
-            case 'default':
-                $this->default($value);
-                break;
-            case 'nullable':
-                if ($value) {
-                    $this->nullable();
-                }
-                break;
-            case 'unique':
-                if ($value) {
-                    $this->unique();
-                }
-                break;
-            case 'index':
-                if ($value) {
-                    $this->index();
-                }
-                break;
-            default:
-                throw new \InvalidArgumentException("Unknown option '$key' for ColumnDefinition.");
-        }
-    }
-
-    public function useCurrent(): self
-    {
-        $this->default('CURRENT_TIMESTAMP');
         return $this;
     }
 
-    public function constrained(string $table, string $column = 'id'): self
-    {
-        $this->foreignTable = $table;
-        $this->foreignColumn = $column;
-        return $this;
-    }
-
+    /**
+     * Specify the action to take on delete.
+     *
+     * @param  string  $action
+     * @return $this
+     */
     public function onDelete(string $action): self
     {
-        $this->onDeleteAction = $action;
+        // FIX: Avoid indirect modification.
+        // Get the array, modify it, and set it back.
+        $foreign = $this->foreign;
+        $foreign['onDelete'] = $action;
+        $this->foreign = $foreign;
+
         return $this;
     }
 
-    protected function getName(): string
+    /**
+     * Specify the action to take on update.
+     *
+     * @param  string  $action
+     * @return $this
+     */
+    public function onUpdate(string $action): self
     {
-        preg_match('/`([^`]+)`/', $this->sql, $matches);
-        return $matches[1] ?? '';
+        $foreign = $this->foreign;
+        $foreign['onUpdate'] = $action;
+        $this->foreign = $foreign;
+
+        return $this;
+    }
+
+    /**
+     * Specify that this is a column modification.
+     *
+     * @return $this
+     */
+    public function change(): self
+    {
+        $this->change = true;
+
+        return $this;
+    }
+
+    /**
+     * Specify that the column should be indexed.
+     *
+     * @param  string|null  $name
+     * @return $this
+     */
+    public function index(?string $name = null): self
+    {
+        $this->index = [
+            'name' => $name ?? $this->name . '_index',
+            'columns' => [$this->name],
+        ];
+
+        return $this;
     }
 }

@@ -4,7 +4,6 @@ namespace Core\Http;
 
 use Core\Application;
 use Core\Routing\Router;
-use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class Redirector
@@ -13,11 +12,11 @@ class Redirector
     protected Router $router;
     protected SessionInterface $session;
 
-    public function __construct(Application $app)
+    public function __construct(Application $app, Router $router, SessionInterface $session)
     {
         $this->app = $app;
-        $this->router = $app->make(Router::class);
-        $this->session = $app->make(SessionInterface::class);
+        $this->router = $router;
+        $this->session = $session;
     }
 
     /**
@@ -43,7 +42,7 @@ class Redirector
      */
     public function back(int $status = 302, array $headers = [], string $fallback = '/'): RedirectResponse
     {
-        $request = $this->app->make(ServerRequestInterface::class);
+        $request = $this->app->make(\Psr\Http\Message\ServerRequestInterface::class);
         $referer = $request->getHeaderLine('Referer');
 
         if ($referer) {

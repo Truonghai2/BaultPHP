@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Exceptions\Handler;
+use Core\Contracts\Exceptions\Handler as ExceptionHandlerContract;
 use Core\Routing\RouteRegistrar;
 use Core\Support\ServiceProvider;
 
@@ -14,6 +16,8 @@ class RouteServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        $this->app->singleton(ExceptionHandlerContract::class, Handler::class);
+
         $this->app->singleton(static::class, fn () => $this);
 
         $this->app->singleton(\Core\Routing\Router::class, function ($app) {
@@ -23,7 +27,9 @@ class RouteServiceProvider extends ServiceProvider
         $this->app->singleton(RouteRegistrar::class);
 
         $this->app->singleton(\Core\Http\Redirector::class, function ($app) {
-            return new \Core\Http\Redirector($app);
+            $router = $app->make(\Core\Routing\Router::class);
+            $session = $app->make(\Symfony\Component\HttpFoundation\Session\SessionInterface::class);
+            return new \Core\Http\Redirector($app, $router, $session);
         });
     }
 
@@ -31,7 +37,7 @@ class RouteServiceProvider extends ServiceProvider
     {
         $router = $this->app->make(\Core\Routing\Router::class);
 
-        $cachedRoutesFile = $this->app->getCachedRoutesPath();
+        $cachedRoutesFile = $this->app->basePath('bootstrap/cache/routes.php');
         if (file_exists($cachedRoutesFile) && !env('APP_DEBUG', false)) {
             $cachedRoutes = require $cachedRoutesFile;
             $router->loadFromCache($cachedRoutes);
@@ -59,6 +65,16 @@ class RouteServiceProvider extends ServiceProvider
         $this->mapAttributeRoutes($router);
         $router->post('/bault/upload-file', [\Http\Controllers\ComponentUploadController::class, '__invoke']);
         $router->post('/bault/update', [\Http\Controllers\ComponentController::class, '__invoke']);
+
+        $router->get('/dev/perf-test/db', [\Http\Controllers\PerformanceTestController::class, 'testDb']);
+
+        // Route for real-time server and connection pool status
+        $router->get('/_/status', [\Http\Controllers\ServerStatusController::class, '__invoke'])
+               ->middleware([\Http\Middleware\ProtectMetricsMiddleware::class]);
+
+        // Route for Prometheus metrics scraping
+        $router->get('/metrics', [\Http\Controllers\PrometheusMetricsController::class, '__invoke'])
+               ->middleware([\Http\Middleware\ProtectMetricsMiddleware::class]);
     }
 
     /**

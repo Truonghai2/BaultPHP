@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Modules\User\Application\Listeners;
 
+use Modules\User\Application\Jobs\FlushUserPermissionCacheJob;
 use Modules\User\Domain\Events\RoleAssignedToUser;
-use Modules\User\Domain\Services\PermissionCacheService;
 
 /**
  * Xử lý sự kiện RoleAssignedToUser để xóa cache quyền của người dùng.
@@ -14,13 +14,11 @@ use Modules\User\Domain\Services\PermissionCacheService;
  */
 class FlushPermissionCacheOnRoleChange
 {
-    public function __construct(
-        private readonly PermissionCacheService $permissionCache,
-    ) {
-    }
-
     public function handle(RoleAssignedToUser $event): void
     {
-        $this->permissionCache->flushForUser($event->user);
+        // Thay vì xóa cache đồng bộ, chúng ta đẩy một job vào hàng đợi.
+        // Điều này giúp phản hồi cho người dùng nhanh hơn, mặc dù trong trường hợp này
+        // tác vụ xóa cache đã rất nhanh và việc này không thực sự cần thiết.
+        dispatch(new FlushUserPermissionCacheJob($event->user->id));
     }
 }

@@ -3,10 +3,12 @@
 namespace Core\Auth;
 
 use Core\Application;
+use Core\Cache\CacheManager;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
 use Core\Contracts\StatefulService;
 use InvalidArgumentException;
+use League\OAuth2\Server\ResourceServer;
 
 /**
  * @mixin \Core\Contracts\Auth\Guard
@@ -36,12 +38,27 @@ class AuthManager implements StatefulService
             throw new InvalidArgumentException("Auth guard [{$name}] is not defined.");
         }
 
-        if ($config['driver'] === 'session') {
-            $provider = $this->createUserProvider($config['provider'] ?? null);
-            return new SessionGuard($this->app, $this->app->make('session'), $provider);
-        }
+        $driver = $config['driver'];
 
-        throw new InvalidArgumentException("Auth driver [{$config['driver']}] for guard [{$name}] is not supported.");
+        switch ($driver) {
+            case 'session':
+                $provider = $this->createUserProvider($config['provider'] ?? null);
+                return new SessionGuard(
+                    $this->app,
+                    $this->app->make('session'),
+                    $provider,
+                );
+
+            case 'token':
+                return new TokenGuard(
+                    $this->app,
+                    $this->app->make(ResourceServer::class),
+                    $this->app->make(CacheManager::class),
+                );
+
+            default:
+                throw new InvalidArgumentException("Auth driver [{$driver}] for guard [{$name}] is not supported.");
+        }
     }
 
     protected function createUserProvider(?string $providerName): UserProvider

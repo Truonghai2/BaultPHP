@@ -6,10 +6,12 @@ use Core\ORM\Exceptions\ModelNotFoundException;
 use Core\Support\Collection;
 use Psr\Http\Message\ServerRequestInterface as Request;
 use Swoole\Database\PDOProxy;
+use Swoole\Database\PDOStatementProxy;
 
 class QueryBuilder
 {
     protected string $modelClass;
+    protected ?Model $modelInstance = null;
     protected string $table;
     protected array $wheres = [];
     protected array $eagerLoad = [];
@@ -33,7 +35,10 @@ class QueryBuilder
      */
     public function getModel(): Model
     {
-        return new $this->modelClass();
+        if ($this->modelInstance === null) {
+            $this->modelInstance = new $this->modelClass();
+        }
+        return $this->modelInstance;
     }
 
     public function table(string $table): self
@@ -328,25 +333,8 @@ class QueryBuilder
         $sql .= $limitClause;
 
         $bindings = array_merge($whereBindings, $limitBindings);
-        $stmt = $this->getConnection('read')->prepare($sql);
-
-        $i = 1;
-        foreach ($bindings as $value) {
-            if (is_int($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
-            } elseif (is_bool($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
-            } elseif (is_null($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
-            }
-            $i++;
-        }
-
-        $stmt->execute();
+        $stmt = $this->execute($sql, $bindings, 'read');
         $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
-
         $models = array_map([$this, 'hydrate'], $results);
 
         if (!empty($models) && !empty($this->eagerLoad)) {
@@ -372,7 +360,7 @@ class QueryBuilder
         $results = $this->forPage($page, $perPage)->get();
 
         return new Paginator($results, $total, $perPage, $page, [
-            'path' => app(ServerRequestInterface::class)->getUri()->getPath(),
+            'path' => app(Request::class)->getUri()->getPath(),
             'pageName' => $pageName,
         ]);
     }
@@ -413,33 +401,21 @@ class QueryBuilder
         $sql .= $this->buildJoinClause();
         $sql .= $whereClause;
 
-        $stmt = $this->getConnection('read')->prepare($sql);
-
-        $i = 1;
-        foreach ($bindings as $value) {
-            if (is_int($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
-            } elseif (is_bool($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
-            } elseif (is_null($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
-            }
-            $i++;
-        }
-
-        $stmt->execute();
+        $stmt = $this->execute($sql, $bindings, 'read');
 
         return (int) $stmt->fetchColumn();
     }
 
     public function exists(): bool
     {
-        $query = clone $this;
-        $query->select((new $this->modelClass())->getKeyName());
+        $sql = "SELECT EXISTS(SELECT 1 FROM {$this->table}";
+        [$whereClause, $bindings] = $this->buildWhereClause();
+        $sql .= $this->buildJoinClause();
+        $sql .= $whereClause;
+        $sql .= ' LIMIT 1)';
 
-        return (bool) $query->first();
+        $stmt = $this->execute($sql, $bindings, 'read');
+        return (bool) $stmt->fetchColumn();
     }
 
     public function insertGetId(array $attributes): ?int
@@ -460,9 +436,8 @@ class QueryBuilder
 
         $sql = "INSERT INTO {$this->table} ({$columns}) VALUES ({$placeholders})";
 
+        $this->execute($sql, $bindings, 'write');
         $pdo = $this->getConnection('write');
-        $stmt = $pdo->prepare($sql);
-        $stmt->execute($bindings);
 
         $id = $pdo->lastInsertId();
         return $id ? (int)$id : null;
@@ -504,19 +479,10 @@ class QueryBuilder
 
         $sql = "INSERT INTO {$this->table} ({$columns}) VALUES " . implode(', ', $placeholders);
 
-        $stmt = $this->getConnection('write')->prepare($sql);
-
-        $i = 1;
-        foreach ($bindings as $value) {
-            $type = is_int($value) ? \PDO::PARAM_INT : (is_bool($value) ? \PDO::PARAM_BOOL : (is_null($value) ? \PDO::PARAM_NULL : \PDO::PARAM_STR));
-            $stmt->bindValue($i, $value, $type);
-            $i++;
-        }
-
-        return $stmt->execute();
+        return $this->execute($sql, $bindings, 'write')->rowCount() > 0;
     }
 
-    public function update(array $attributes): bool
+    public function update(array $attributes): int
     {
         $setParts = [];
         $bindings = [];
@@ -534,24 +500,9 @@ class QueryBuilder
 
         $sql = "UPDATE {$this->table} SET {$setClause}" . $whereClause;
 
-        $stmt = $this->getConnection('write')->prepare($sql);
-
-        $i = 1;
         $allBindings = array_merge($bindings, $whereBindings);
-        foreach ($allBindings as $value) {
-            if (is_int($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
-            } elseif (is_bool($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
-            } elseif (is_null($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
-            }
-            $i++;
-        }
 
-        return $stmt->execute();
+        return $this->execute($sql, $allBindings, 'write')->rowCount();
     }
 
     public function delete(): bool
@@ -564,23 +515,7 @@ class QueryBuilder
         [$whereClause, $bindings] = $this->buildWhereClause();
         $sql = "DELETE FROM {$this->table}" . $whereClause;
 
-        $stmt = $this->getConnection('write')->prepare($sql);
-
-        $i = 1;
-        foreach ($bindings as $value) {
-            if (is_int($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
-            } elseif (is_bool($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
-            } elseif (is_null($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
-            }
-            $i++;
-        }
-
-        return $stmt->execute();
+        return $this->execute($sql, $bindings, 'write')->rowCount() > 0;
     }
 
     protected function buildWhereClause(): array
@@ -697,6 +632,72 @@ class QueryBuilder
         return $model->newFromBuilder($attributes);
     }
 
+    /**
+     * Eager load relationships on a collection of models.
+     * This is the public entry point for "lazy eager loading".
+     *
+     * @param  array  $models
+     * @param  string|array  $relations
+     * @return void
+     */
+    public function loadRelations(array $models, $relations): void
+    {
+        if (empty($models)) {
+            return;
+        }
+
+        $relations = $this->parseWithRelations(is_string($relations) ? func_get_args() : $relations);
+        $this->eagerLoadLevel(new Collection($models), $relations);
+    }
+
+    /**
+     * Load a relationship count on a collection of models.
+     *
+     * @param  \Core\Support\Collection  $models
+     * @param  string|array  $relations
+     * @return void
+     */
+    public function loadCount(Collection $models, $relations): void
+    {
+        if ($models->isEmpty()) {
+            return;
+        }
+
+        $relations = is_string($relations) ? func_get_args() : $relations;
+        if (is_string(reset($relations))) {
+            $relations = array_slice($relations, 1);
+        }
+
+        foreach ($relations as $name => $constraints) {
+            $relationName = is_numeric($name) ? $constraints : $name;
+
+            $relation = $models->first()->{$relationName}();
+
+            if ($relation instanceof Relations\MorphTo) {
+                throw new \LogicException('loadCount() is not supported for MorphTo relationships.');
+            }
+
+            $query = $relation->getQuery();
+            $relation->addEagerConstraints($models->all());
+
+            $foreignKey = $relation instanceof Relations\BelongsToMany
+                ? "{$relation->getPivotTable()}.{$relation->getForeignPivotKey()}"
+                : $relation->getQualifiedForeignKeyName();
+
+            $results = $query->selectRaw("{$foreignKey}, count(*) as aggregate")
+                ->groupBy($foreignKey)
+                ->pluck('aggregate', $foreignKey);
+
+            $parentKeyName = $relation instanceof Relations\BelongsToMany
+                ? $relation->getParentKeyName()
+                : $relation->getLocalKeyName();
+
+            foreach ($models as $model) {
+                $model->setAttribute($relationName . '_count', $results[$model->getAttribute($parentKeyName)] ?? 0);
+            }
+        }
+    }
+
     protected function eagerLoadRelations(array $models): void
     {
         $this->eagerLoadLevel($models, $this->eagerLoad);
@@ -710,50 +711,97 @@ class QueryBuilder
      * @param  array  $relations
      * @return void
      */
-    protected function eagerLoadLevel(array $models, array $relations): void
+    protected function eagerLoadLevel(Collection $models, array $relations): void
     {
         if (empty($models)) {
             return;
         }
 
         foreach ($relations as $relationName => $relationData) {
-            if (empty($relationData['nested']) && !is_callable($relationData['constraints'])) {
+            /** @var \Core\ORM\Relations\Relation $relation */
+            $relation = $models->first()->{$relationName}();
+
+            if ($relation instanceof Relations\MorphTo) {
+                $this->eagerLoadMorphTo($relation, $models, $relationName, $relationData);
+            } else {
+                $this->eagerLoadStandardRelation($relation, $models, $relationName, $relationData);
+            }
+        }
+    }
+
+    protected function eagerLoadStandardRelation(\Core\ORM\Relations\Relation $relation, Collection $models, string $relationName, array $relationData): void
+    {
+        if (is_callable($relationData['constraints'])) {
+            $relationData['constraints']($relation->getQuery());
+        }
+
+        $relation->addEagerConstraints($models->all());
+
+        $results = $relation->get();
+
+        $relation->match($models->all(), $results->all(), $relationName);
+
+        if (!empty($relationData['nested'])) {
+            $this->eagerLoadLevel($this->collectRelatedModels($models, $relationName), $relationData['nested']);
+        }
+    }
+
+    protected function eagerLoadMorphTo(\Core\ORM\Relations\MorphTo $relation, Collection $models, string $relationName, array $relationData): void
+    {
+        $morphable = $models->groupBy($relation->getMorphType());
+
+        $allResults = new Collection();
+
+        foreach ($morphable as $type => $modelGroup) {
+            if (!$type) {
                 continue;
             }
 
-            /** @var \Core\ORM\Relations\Relation $relation */
-            $relation = $models[0]->{$relationName}();
+            $instance = new $type();
+            $ownerKeyName = $instance->getKeyName();
+            $foreignKeyName = $relation->getForeignKey();
+
+            $ownerKeys = $modelGroup->pluck($foreignKeyName)->filter()->unique()->all();
+
+            if (empty($ownerKeys)) {
+                continue;
+            }
+
+            $query = $instance->newQuery()->whereIn($ownerKeyName, $ownerKeys);
 
             if (is_callable($relationData['constraints'])) {
-                $relationData['constraints']($relation->getQuery());
+                $relationData['constraints']($query);
             }
 
-            $relation->addEagerConstraints($models);
+            $allResults = $allResults->merge($query->get());
+        }
 
-            $results = $relation->get();
+        $dictionary = $allResults->keyBy(function ($result) {
+            return get_class($result) . ':' . $result->getKey();
+        });
 
-            $relation->match($models, $results, $relationName);
+        foreach ($models as $model) {
+            $morphType = $model->{$relation->getMorphType()};
+            $ownerKey = $model->{$relation->getForeignKey()};
+            $key = $morphType . ':' . $ownerKey;
 
-            if (!empty($relationData['nested'])) {
-                $relatedModels = [];
-                foreach ($models as $model) {
-                    $loadedRelation = $model->getAttribute($relationName);
-                    if ($loadedRelation) {
-                        if ($loadedRelation instanceof Model) {
-                            $relatedModels[] = $loadedRelation;
-                        } else {
-                            $relatedModels = array_merge($relatedModels, $loadedRelation);
-                        }
-                    }
-                }
-                $this->eagerLoadLevel($relatedModels, $relationData['nested']);
+            if ($morphType && $ownerKey && isset($dictionary[$key])) {
+                $model->setRelation($relationName, $dictionary[$key]);
             }
+        }
+
+        if (!empty($relationData['nested'])) {
+            $this->eagerLoadLevel($this->collectRelatedModels($models, $relationName), $relationData['nested']);
         }
     }
 
     protected function parseWithRelations(array $relations): array
     {
         $parsed = [];
+
+        if ($relations instanceof Collection) {
+            $relations = $relations->all();
+        }
 
         foreach ($relations as $name => $constraints) {
             if (is_numeric($name)) {
@@ -777,6 +825,24 @@ class QueryBuilder
             }
         }
         return $parsed;
+    }
+
+    private function collectRelatedModels(Collection $models, string $relationName): Collection
+    {
+        $related = new Collection();
+
+        foreach ($models as $model) {
+            $loadedRelation = $model->getAttribute($relationName);
+
+            if ($loadedRelation) {
+                if ($loadedRelation instanceof Model) {
+                    $related->push($loadedRelation);
+                } elseif ($loadedRelation instanceof Collection || is_array($loadedRelation)) {
+                    $related = $related->merge($loadedRelation);
+                }
+            }
+        }
+        return $related;
     }
 
     /**
@@ -822,25 +888,7 @@ class QueryBuilder
         [$limitClause, $limitBindings] = $this->buildLimitClause();
         $sql .= $limitClause;
 
-        $bindings = array_merge($whereBindings, $limitBindings);
-
-        $stmt = $this->getConnection('read')->prepare($sql);
-
-        $i = 1;
-        foreach ($bindings as $value) {
-            if (is_int($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_INT);
-            } elseif (is_bool($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_BOOL);
-            } elseif (is_null($value)) {
-                $stmt->bindValue($i, $value, \PDO::PARAM_NULL);
-            } else {
-                $stmt->bindValue($i, $value, \PDO::PARAM_STR);
-            }
-            $i++;
-        }
-
-        $stmt->execute();
+        $stmt = $this->execute($sql, array_merge($whereBindings, $limitBindings), 'read');
 
         $results = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
@@ -858,7 +906,6 @@ class QueryBuilder
         if ($model->usesSoftDeletes()) {
             $column = $model->getQualifiedDeletedAtColumn();
 
-            // Find and remove the soft delete where clause
             $this->wheres = array_values(array_filter($this->wheres, function ($where) use ($column) {
                 return !($where['column'] === $column && strtoupper($where['operator']) === 'IS NULL');
             }));
@@ -883,13 +930,12 @@ class QueryBuilder
     /**
      * Run a raw, hard delete query on the table.
      */
-    public function forceDelete(): bool
+    public function forceDelete(): int
     {
         [$whereClause, $bindings] = $this->buildWhereClause();
         $sql = "DELETE FROM {$this->table}" . $whereClause;
 
-        $stmt = $this->getConnection('write')->prepare($sql);
-        return $stmt->execute($bindings);
+        return $this->execute($sql, $bindings, 'write')->rowCount();
     }
 
     /**
@@ -901,13 +947,10 @@ class QueryBuilder
     {
         $model = $this->getModel();
         if (!$model->usesSoftDeletes()) {
-            // Cannot restore on a model that doesn't use soft deletes.
             return false;
         }
 
-        // To restore, we should typically query for trashed items first.
-        // e.g., Post::onlyTrashed()->where('user_id', 1)->restore();
-        return $this->update([$model->getDeletedAtColumn() => null]);
+        return $this->update([$model->getDeletedAtColumn() => null]) > 0;
     }
 
     /**
@@ -921,9 +964,7 @@ class QueryBuilder
         $column = $model->getDeletedAtColumn();
         $time = date('Y-m-d H:i:s');
 
-        // We can reuse the update method. It will respect existing where clauses
-        // and only update the `deleted_at` timestamp.
-        return $this->update([$column => $time]);
+        return $this->update([$column => $time]) > 0;
     }
 
     /**
@@ -961,5 +1002,39 @@ class QueryBuilder
         return $this->update([
             $column => new RawExpression("`$column` + $amount"),
         ]);
+    }
+
+    /**
+     * Execute a statement with bindings.
+     *
+     * @param string $sql
+     * @param array $bindings
+     * @param string $connectionType 'read' or 'write'
+     * @return \PDOStatement|PDOStatementProxy
+     */
+    private function execute(string $sql, array $bindings, string $connectionType): \PDOStatement|PDOStatementProxy
+    {
+        $pdo = $this->getConnection($connectionType);
+        $stmt = $pdo->prepare($sql);
+
+        if (!empty($bindings)) {
+            foreach ($bindings as $key => $value) {
+                // PDO parameters are 1-indexed
+                $paramType = \PDO::PARAM_STR;
+                if (is_int($value)) {
+                    $paramType = \PDO::PARAM_INT;
+                } elseif (is_bool($value)) {
+                    $paramType = \PDO::PARAM_BOOL;
+                } elseif (is_null($value)) {
+                    $paramType = \PDO::PARAM_NULL;
+                }
+                $stmt->bindValue($key + 1, $value, $paramType);
+            }
+            $stmt->execute();
+        } else {
+            $stmt->execute();
+        }
+
+        return $stmt;
     }
 }
