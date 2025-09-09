@@ -3,12 +3,13 @@
 namespace App\Providers;
 
 use Core\Contracts\Http\Kernel as KernelContract;
-use Core\Database\CoroutineConnectionManager;
-use Core\Database\CoroutineRedisManager;
+use Core\Contracts\PoolManager;
+use Core\Database\Fiber\FiberConnectionManager;
+use Core\Http\FormRequest;
+use Core\Redis\FiberRedisManager;
 use Core\Services\HealthCheckService;
 use Core\Support\ServiceProvider;
 use Core\WebSocket\CentrifugoAPIService;
-use Psr\Log\LoggerInterface;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -27,18 +28,21 @@ class AppServiceProvider extends ServiceProvider
             return new CentrifugoAPIService($apiUrl, $apiKey);
         });
 
-        $this->app->singleton(CoroutineConnectionManager::class, function ($app) {
-            return new CoroutineConnectionManager($app->make(LoggerInterface::class));
-        });
+        $this->app->singleton(FiberConnectionManager::class);
+        $this->app->tag(FiberConnectionManager::class, PoolManager::class);
 
-        $this->app->singleton(CoroutineRedisManager::class, function ($app) {
-            return new CoroutineRedisManager($app->make(LoggerInterface::class));
-        });
+        $this->app->singleton(FiberRedisManager::class);
+        $this->app->tag(FiberRedisManager::class, PoolManager::class);
 
         $this->app->singleton(HealthCheckService::class);
 
-        $this->app->singleton('hash', function () {
-            return new \Core\Hashing\BcryptHasher();
+        $this->configureFormRequestValidation();
+    }
+
+    protected function configureFormRequestValidation(): void
+    {
+        $this->app->afterResolving(FormRequest::class, function (FormRequest $request) {
+            $request->validateResolved();
         });
     }
 }

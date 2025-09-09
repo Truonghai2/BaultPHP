@@ -2,9 +2,9 @@
 
 namespace Http;
 
+use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
-use Core\Exceptions\AuthorizationException;
 use Core\Exceptions\HttpResponseException;
 use Core\Http\Redirector;
 use Core\Validation\Factory as ValidationFactory;

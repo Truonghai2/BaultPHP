@@ -4,16 +4,17 @@ namespace Core\Server;
 
 use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
+use Core\Contracts\PoolManager;
 use Core\Contracts\StatefulService;
 use Core\Contracts\Task\Task;
 use Core\Debug\DebugManager;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Queue\DelayedJobScheduler;
-use Core\Redis\RedisManager;
 use Core\Server\Development\FileWatcher;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
+use Revolt\EventLoop\Adapter\Swoole\SwooleDriver;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Server as SwooleHttpServer;
@@ -30,7 +31,6 @@ class SwooleServer
     protected HttpFoundationFactory $httpFoundationFactory;
     protected \Core\Contracts\Http\Kernel $kernel;
     protected ExceptionHandler $exceptionHandler;
-    protected ?ConnectionPoolManager $poolManager = null;
     protected ?FileWatcher $fileWatcher = null;
     protected bool $isDebug = false;
     /**
@@ -237,24 +237,24 @@ class SwooleServer
                         ]);
 
                         $debugData = $debugManager->getData();
-                        /** @var RedisManager $redisManager */
-                        $redisManager = $this->app->make('redis');
-                        $key = 'debug:requests:' . $requestId;
-                        $redisManager->setex($key, config('debug.expiration', 3600), json_encode($debugData));
+                        /** @var \Core\Redis\FiberRedisManager $redisManager */
+                        $redisManager = $this->app->make('redis'); // Resolves to FiberRedisManager
+                        $redisClient = null;
+                        try {
+                            $redisClient = $redisManager->get('default');
+                            $key = 'debug:requests:' . $requestId;
+                            $redisClient->set($key, json_encode($debugData), config('debug.expiration', 3600));
+                        } finally {
+                            if ($redisClient) {
+                                $redisManager->put($redisClient, 'default');
+                            }
+                        }
                     } catch (Throwable $e) {
                         $this->getLogger()->error('Failed to save debug data to Redis.', ['exception' => $e]);
                     }
                 }
             }
-
-            $this->app->forgetInstance(ServerRequestInterface::class);
-            $this->app->forgetInstance(SwooleRequest::class);
-            $this->app->forgetInstance('request_id');
-
-            if (++$this->requestCount % 1000 === 0) {
-                $this->getLogger()->debug("[TRACE] Request [{$requestId}]: State reset and garbage collection complete.");
-                gc_collect_cycles();
-            }
+            $this->cleanupAfterRequest($requestId);
         }
     }
 
@@ -322,6 +322,11 @@ class SwooleServer
      */
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
+        // CRITICAL: This must be the first thing to run in the worker.
+        // It tells Revolt to use Swoole's event loop, enabling all Amp/Revolt
+        // based libraries (like our Fiber pools) to work correctly.
+        \Revolt\EventLoop::setDriver(new SwooleDriver());
+
         try {
             if (function_exists('opcache_reset')) {
                 opcache_reset();
@@ -333,17 +338,6 @@ class SwooleServer
 
             $this->kernel = $this->app->make(\Core\Contracts\Http\Kernel::class);
             $this->exceptionHandler = $this->app->make(ExceptionHandler::class);
-
-            $configPath = base_path('config/server.php');
-            if (!file_exists($configPath)) {
-                $this->getLogger()->error('Server config file not found, pools will not be initialized.', ['path' => $configPath]);
-                $workerSwooleConfig = [];
-            } else {
-                $workerSwooleConfig = (require $configPath)['swoole'] ?? [];
-            }
-
-            $this->poolManager = new ConnectionPoolManager($this->app, $this->getLogger(), $workerSwooleConfig);
-            $this->poolManager->initializePools($server->taskworker);
 
             $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
             $this->getLogger()->info(
@@ -364,6 +358,13 @@ class SwooleServer
                     $this->getLogger()->debug('[TRACE] Delayed job scheduler started on worker #0.', ['interval_ms' => $checkInterval]);
                 }
             }
+
+            \Swoole\Coroutine::create(function () {
+                foreach ($this->app->getTagged(PoolManager::class) as $manager) {
+                    $manager->warmup();
+                }
+                $this->getLogger()->debug('Connection pools warmed up.');
+            });
         } catch (Throwable $e) {
             try {
                 $this->getLogger()->critical(
@@ -387,7 +388,11 @@ class SwooleServer
      */
     public function onWorkerStop(SwooleHttpServer $server, int $workerId): void
     {
-        $this->poolManager?->closePools();
+        // Close all managed connection pools gracefully.
+        // This iterates through services tagged with `PoolManager`.
+        foreach ($this->app->getTagged(PoolManager::class) as $manager) {
+            $manager->close();
+        }
 
         if ($this->delayedJobTimerId !== null) {
             \Swoole\Timer::clear($this->delayedJobTimerId);
@@ -395,6 +400,23 @@ class SwooleServer
 
         $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
         $this->getLogger()->info("Swoole {$workerType} #{$workerId} stopped gracefully.");
+    }
+
+    /**
+     * Cleans up application state after a request is handled.
+     *
+     * @param string $requestId
+     */
+    protected function cleanupAfterRequest(string $requestId): void
+    {
+        $this->app->forgetInstance(ServerRequestInterface::class);
+        $this->app->forgetInstance(SwooleRequest::class);
+        $this->app->forgetInstance('request_id');
+
+        if (++$this->requestCount % 1000 === 0) {
+            $this->getLogger()->debug("[TRACE] Request [{$requestId}]: State reset and garbage collection complete.");
+            gc_collect_cycles();
+        }
     }
 
     protected function transformRequest(SwooleRequest $swooleRequest): ServerRequestInterface

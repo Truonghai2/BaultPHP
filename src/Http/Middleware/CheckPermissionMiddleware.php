@@ -2,23 +2,34 @@
 
 namespace Http\Middleware;
 
-use App\Exceptions\ForbiddenException;
+use Core\Support\Facades\Auth;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 class CheckPermissionMiddleware implements MiddlewareInterface
 {
-    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
+    /**
+     * Handle an incoming request.
+     *
+     * @param ServerRequestInterface $request
+     * @param RequestHandlerInterface $handler
+     * @param string ...$permissions The permissions required to access the route.
+     * @return ResponseInterface
+     */
+    public function handle(ServerRequestInterface $request, RequestHandlerInterface $handler, string ...$permissions): ResponseInterface
     {
-        $route = $request->getAttribute('route');
+        $user = Auth::user();
 
-        if ($route && isset($route->action['permission'])) {
-            $permission = $route->action['permission'];
+        if (!$user) {
+            throw new AccessDeniedException('Authentication required.');
+        }
 
-            if (!auth()->user()->hasPermissionTo($permission)) {
-                throw new ForbiddenException();
+        foreach ($permissions as $permission) {
+            if (!$user->can($permission)) {
+                throw new AccessDeniedException("You do not have permission to '{$permission}'.");
             }
         }
 

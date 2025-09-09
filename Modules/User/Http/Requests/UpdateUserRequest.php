@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace Modules\User\Http\Requests;
 
-use Http\FormRequest;
+use Core\Http\FormRequest;
 
 /**
  * Handles the validation for updating a user.

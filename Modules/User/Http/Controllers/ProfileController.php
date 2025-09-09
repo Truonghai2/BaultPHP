@@ -62,25 +62,13 @@ class ProfileController
     #[Route('/profile/avatar', method: 'POST', group: 'web')]
     public function updateAvatar(UpdateAvatarRequest $request): ResponseInterface
     {
-        /** @var \Psr\Http\Message\UploadedFileInterface $uploadedFile */
+        /** @var \Core\Http\UploadedFile $uploadedFile */
         $uploadedFile = $request->file('avatar');
 
-        $newFilename = sprintf(
-            '%s.%s',
-            bin2hex(random_bytes(16)),
-            pathinfo($uploadedFile->getClientFilename(), PATHINFO_EXTENSION),
-        );
-
-        $storagePath = storage_path('app/public/avatars');
-        if (!is_dir($storagePath)) {
-            mkdir($storagePath, 0755, true);
-        }
-        $targetPath = $storagePath . DIRECTORY_SEPARATOR . $newFilename;
-
-        $uploadedFile->moveTo($targetPath);
+        $path = $uploadedFile->store('avatars', 'public');
 
         $user = $this->auth->user();
-        $user->avatar_path = 'avatars/' . $newFilename;
+        $user->avatar_path = $path;
         $user->save();
 
         return redirect()->back()->with('success', 'Avatar đã được cập nhật thành công!');
