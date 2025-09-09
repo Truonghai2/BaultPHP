@@ -4,8 +4,8 @@ namespace App\Providers;
 
 use Core\Application;
 use Core\Contracts\StatefulService;
-use Core\Database\CoroutineConnectionManager;
-use Core\Database\CoroutineRedisManager;
+use Core\Database\Fiber\FiberConnectionManager;
+use Core\Redis\FiberRedisManager;
 use Core\Session\DirectSessionTokenStorage;
 use Core\Session\SessionManager;
 use Core\Support\ServiceProvider;
@@ -88,7 +88,11 @@ class SessionServiceProvider extends ServiceProvider
 
         // The CoroutineConnectionManager manages the default connection pool.
         // The 'session.database_connection' config is not used here as the manager handles the default connection.
-        $pdo = $app->make(CoroutineConnectionManager::class)->get();
+        // --- Refactor: Thay thế CoroutineConnectionManager bằng FiberConnectionManager ---
+        // Logic cũ: $pdo = $app->make(\Core\Database\CoroutineConnectionManager::class)->get();
+        // Logic mới:
+        $pdo = $app->make(FiberConnectionManager::class)->get();
+
         $table = $config->get('session.table', 'sessions');
 
         return new PdoSessionHandler($pdo, ['db_table' => $table]);
@@ -110,8 +114,8 @@ class SessionServiceProvider extends ServiceProvider
         // Use the configured Redis connection for sessions, or 'default' if not specified.
         $connectionName = $config->get('session.connection', 'default');
 
-        // Use CoroutineRedisManager to get a connection from the pool,
-        $redisClient = $app->make(CoroutineRedisManager::class)->get($connectionName);
+        // Sử dụng FiberRedisManager để lấy kết nối bất đồng bộ từ pool.
+        $redisClient = $app->make(FiberRedisManager::class)->get($connectionName);
 
         $lifetime = $config->get('session.lifetime', 120) * 60; // in seconds
 

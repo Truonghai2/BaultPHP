@@ -55,6 +55,7 @@ return [
         'Log'     => Core\Support\Facades\Log::class,
         'Gate'    => Core\Support\Facades\Gate::class,
         'Hash'    => Core\Support\Facades\Hash::class,
+        'Storage' => Core\Support\Facades\Storage::class,
         'Queue'   => Core\Support\Facades\Queue::class,
         'Mail'    => Core\Support\Facades\Mail::class,
         'Feature' => Core\Support\Facades\Feature::class,

@@ -3,11 +3,15 @@
 namespace Core\Auth;
 
 use Core\Application;
+use Core\Auth\Events\Authenticated;
+use Core\Auth\Events\Login;
+use Core\Auth\Events\Logout;
 use Core\Contracts\Auth\Authenticatable;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
 use Core\Cookie\CookieManager;
 use Core\Support\Facades\Hash;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Session\Session;
 
 class SessionGuard implements Guard
@@ -20,6 +24,7 @@ class SessionGuard implements Guard
     protected Session $session;
     protected UserProvider $provider;
     protected ?Authenticatable $user = null;
+    protected ?EventDispatcherInterface $dispatcher;
     protected bool $userResolved = false;
 
     public function __construct(Application $app, Session $session, UserProvider $provider)
@@ -28,6 +33,7 @@ class SessionGuard implements Guard
         $this->cookieManager = $app->make(CookieManager::class);
         $this->session = $session;
         $this->provider = $provider;
+        $this->dispatcher = $app->has(EventDispatcherInterface::class) ? $app->make(EventDispatcherInterface::class) : null;
     }
 
     public function check(): bool
@@ -51,7 +57,7 @@ class SessionGuard implements Guard
         if (!is_null($id)) {
             $user = $this->provider->retrieveById($id);
             if (!is_null($user)) {
-                $this->user = $user;
+                $this->fireAuthenticatedEvent($user);
                 $this->userResolved = true;
                 return $this->user;
             }
@@ -63,7 +69,7 @@ class SessionGuard implements Guard
             $user = $this->userFromRecaller($recaller);
 
             if (!is_null($user)) {
-                $this->updateSession($user->getAuthIdentifier());
+                $this->login($user, true); // Log them in properly, which will also fire the Login event.
                 $this->user = $user;
             } else {
                 $this->forgetRecaller();
@@ -88,23 +94,28 @@ class SessionGuard implements Guard
         }
 
         $this->setUser($user);
+
+        $this->dispatcher?->dispatch(new Login('session', $user, $remember));
     }
 
     public function logout(): void
     {
         $user = $this->user;
 
-        $this->forgetRecaller();
-
-        if ($user && $user->getRememberToken()) {
-            $user->setRememberToken(null);
-            $user->save();
+        // Lấy selector từ cookie trước khi xóa nó
+        $recaller = $this->getRecallerFromCookie();
+        if ($recaller && isset($recaller['selector'])) {
+            $this->removeRememberToken($recaller['selector']);
         }
+
+        $this->forgetRecallerCookie();
 
         $this->user = null;
         $this->userResolved = false;
 
         $this->session->remove($this->getName());
+
+        $this->dispatcher?->dispatch(new Logout('session', $user));
     }
 
     public function attempt(array $credentials = [], bool $remember = false): bool
@@ -130,6 +141,12 @@ class SessionGuard implements Guard
         $this->userResolved = true;
     }
 
+    protected function fireAuthenticatedEvent(Authenticatable $user): void
+    {
+        $this->user = $user;
+        $this->dispatcher?->dispatch(new Authenticated('session', $user));
+    }
+
     protected function getName(): string
     {
         return 'login_web_' . sha1(static::class);
@@ -149,19 +166,19 @@ class SessionGuard implements Guard
     /**
      * Lấy payload (id và token) từ cookie "remember me".
      *
-     * @return array|null
+     * @return array{selector: string, verifier: string}|null
      */
     protected function getRecallerFromCookie(): ?array
     {
         $cookie = $this->cookieManager->get($this->getRememberMeCookieName());
 
-        if (!$cookie || !str_contains($cookie, '|')) {
+        if (!$cookie || !str_contains($cookie, ':')) {
             return null;
         }
 
-        [$id, $token] = explode('|', $cookie, 2);
+        [$selector, $verifier] = explode(':', $cookie, 2);
 
-        return ($id && $token) ? ['id' => $id, 'token' => $token] : null;
+        return ($selector && $verifier) ? ['selector' => $selector, 'verifier' => $verifier] : null;
     }
 
     /**
@@ -172,46 +189,79 @@ class SessionGuard implements Guard
      */
     protected function userFromRecaller(array $recaller): ?Authenticatable
     {
-        if (!isset($recaller['id']) || !isset($recaller['token'])) {
+        if (!isset($recaller['selector']) || !isset($recaller['verifier'])) {
             return null;
         }
 
-        $user = $this->provider->retrieveById($recaller['id']);
+        $tokenRecord = RememberToken::where('selector', $recaller['selector'])->first();
 
-        if ($user && $this->validateRecaller($user, $recaller['token'])) {
-            return $user;
+        if (!$tokenRecord) {
+            return null;
+        }
+
+        if (hash_equals($tokenRecord->verifier_hash, hash('sha256', $recaller['verifier']))) {
+            // Token hợp lệ, đăng nhập người dùng và tái tạo token
+            $user = $this->provider->retrieveById($tokenRecord->user_id);
+            if ($user) {
+                $this->updateRememberToken($tokenRecord->selector);
+                return $user;
+            }
+        } else {
+            // Phát hiện tấn công! Selector hợp lệ nhưng verifier sai.
+            // Xóa tất cả token của người dùng này.
+            RememberToken::where('user_id', $tokenRecord->user_id)->delete();
+            $this->forgetRecallerCookie();
+            // Bạn có thể dispatch một event ở đây để ghi log hoặc thông báo cho người dùng.
         }
 
         return null;
     }
 
     /**
-     * Invalidate and remove the "remember me" cookie.
-     *
-     * @return void
+     * Chỉ xóa cookie khỏi trình duyệt.
      */
-    protected function forgetRecaller(): void
+    protected function forgetRecallerCookie(): void
     {
         $this->cookieManager->queue($this->getRememberMeCookieName(), '', -2628000);
     }
 
     /**
-     * Xác thực người dùng dựa trên token từ cookie.
+     * Xóa một remember token khỏi CSDL bằng selector.
      */
-    protected function validateRecaller(Authenticatable $user, string $token): bool
+    protected function removeRememberToken(string $selector): void
     {
-        $userRememberToken = $user->getRememberToken();
-
-        return $userRememberToken && hash_equals($userRememberToken, hash('sha256', $token));
+        RememberToken::where('selector', $selector)->delete();
     }
 
     protected function createRememberMeCookie(Authenticatable $user): void
     {
-        $token = bin2hex(random_bytes(32));
-        $user->setRememberToken(hash('sha256', $token));
-        $user->save();
+        $selector = bin2hex(random_bytes(16));
+        $verifier = bin2hex(random_bytes(32));
 
-        $cookieValue = $user->getAuthIdentifier() . '|' . $token;
+        RememberToken::create([
+            'user_id' => $user->getAuthIdentifier(),
+            'selector' => $selector,
+            'verifier_hash' => hash('sha256', $verifier),
+        ]);
+
+        $cookieValue = $selector . ':' . $verifier;
+        $lifetime = 60 * 24 * 365;
+
+        $this->cookieManager->queue($this->getRememberMeCookieName(), $cookieValue, $lifetime);
+    }
+
+    /**
+     * Cập nhật verifier cho một token hiện có và gửi lại cookie mới.
+     */
+    protected function updateRememberToken(string $selector): void
+    {
+        $newVerifier = bin2hex(random_bytes(32));
+
+        RememberToken::where('selector', $selector)->update([
+            'verifier_hash' => hash('sha256', $newVerifier),
+        ]);
+
+        $cookieValue = $selector . ':' . $newVerifier;
         $lifetime = 60 * 24 * 365;
 
         $this->cookieManager->queue($this->getRememberMeCookieName(), $cookieValue, $lifetime);

@@ -42,6 +42,22 @@ class Kernel implements KernelContract
     ];
 
     /**
+     * The application's middleware priority.
+     *
+     * This forces non-global middleware to always be in a given order.
+     *
+     * @var array<int, class-string>
+     */
+    protected array $middlewarePriority = [
+        \Http\Middleware\EncryptCookies::class,
+        \Http\Middleware\StartSession::class,
+        \Http\Middleware\ShareMessagesFromSession::class,
+        \Http\Middleware\VerifyCsrfToken::class,
+        \Http\Middleware\SubstituteBindings::class,
+        \Http\Middleware\AddQueuedCookiesToResponse::class,
+    ];
+
+    /**
      * The application's route middleware aliases.
      * These are used to map a short name to a middleware class.
      *
@@ -60,7 +76,7 @@ class Kernel implements KernelContract
         'web' => [
             \Http\Middleware\EncryptCookies::class,
             \Http\Middleware\StartSession::class,
-            \Http\Middleware\ShareMessagesFromSession::class, // <-- Thay thế ở đây
+            \Http\Middleware\ShareMessagesFromSession::class,
             \Http\Middleware\VerifyCsrfToken::class,
             \Http\Middleware\SubstituteBindings::class,
             \Http\Middleware\TerminateSession::class,
@@ -87,55 +103,10 @@ class Kernel implements KernelContract
         try {
             $routeOrResponse = $this->router->dispatch($request);
 
-            if ($routeOrResponse instanceof ResponseInterface) {
-                return $routeOrResponse;
-            }
-
-            $route = $routeOrResponse;
+            $route = $this->ensureRoute($routeOrResponse);
             $request = $request->withAttribute('route', $route);
 
-            $pipe = new MiddlewarePipe();
-
-            foreach ($this->middleware as $middleware) {
-                $pipe->pipe($this->resolveMiddleware($middleware));
-            }
-
-            $group = $route->group ?? '';
-            if (!empty($group) && isset($this->middlewareGroups[$group])) {
-                foreach ($this->middlewareGroups[$group] as $middleware) {
-                    $pipe->pipe($this->resolveMiddleware($middleware));
-                }
-            }
-
-            foreach ($route->middleware as $middleware) {
-                $pipe->pipe($this->resolveMiddleware($middleware));
-            }
-
-            $finalHandler = new class ($this->app, $route, $this) implements RequestHandlerInterface {
-                public function __construct(
-                    private Application $app,
-                    private \Core\Routing\Route $route,
-                    private Kernel $kernel,
-                ) {
-                }
-
-                public function handle(ServerRequestInterface $request): ResponseInterface
-                {
-                    $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
-
-                    if ($responseContent instanceof ResponseInterface) {
-                        return $responseContent;
-                    }
-
-                    if (is_array($responseContent) || is_object($responseContent) || $responseContent instanceof \JsonSerializable) {
-                        return response()->json($responseContent);
-                    }
-
-                    return response((string) $responseContent);
-                }
-            };
-
-            $response = $pipe->process($request, $finalHandler);
+            $response = $this->sendRequestThroughRouter($request, $route);
 
             return $response;
         } catch (HttpResponseException $e) {
@@ -145,6 +116,69 @@ class Kernel implements KernelContract
         } catch (Throwable $e) {
             return $this->renderException($request, $e);
         }
+    }
+
+    /**
+     * Send the given request through the middleware pipeline.
+     */
+    protected function sendRequestThroughRouter(ServerRequestInterface $request, Route $route): ResponseInterface
+    {
+        $this->app->instance(ServerRequestInterface::class, $request);
+
+        $pipe = new MiddlewarePipe();
+
+        $middlewareStack = $this->gatherAndSortMiddleware($route);
+
+        foreach ($middlewareStack as $middleware) {
+            [$name, $parameters] = $this->parseMiddleware($middleware);
+            $class = $this->routeMiddleware[$name] ?? $name;
+
+            // Create a closure that will instantiate and call the middleware,
+            // passing the extra parameters. This allows for parameter support.
+            $callableMiddleware = function (ServerRequestInterface $req, RequestHandlerInterface $handler) use ($class, $parameters) {
+                $instance = $this->app->make($class);
+                // Assume middleware has a `handle` method that accepts parameters.
+                // This is a convention we are establishing.
+                return $instance->handle($req, $handler, ...$parameters);
+            };
+
+            $pipe->pipe($callableMiddleware);
+        }
+
+        // The final handler that executes the controller action.
+        $finalHandler = new class ($this->app, $route, $this) implements RequestHandlerInterface {
+            public function __construct(
+                private Application $app,
+                private Route $route,
+                private Kernel $kernel,
+            ) {
+            }
+
+            public function handle(ServerRequestInterface $request): ResponseInterface
+            {
+                $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
+
+                if ($responseContent instanceof ResponseInterface) {
+                    return $responseContent;
+                }
+
+                if (is_array($responseContent) || is_object($responseContent) || $responseContent instanceof \JsonSerializable) {
+                    return response()->json($responseContent);
+                }
+
+                return response((string) $responseContent);
+            }
+        };
+
+        return $pipe->process($request, $finalHandler);
+    }
+
+    protected function ensureRoute($routeOrResponse): Route
+    {
+        if ($routeOrResponse instanceof ResponseInterface) {
+            throw new HttpResponseException($routeOrResponse);
+        }
+        return $routeOrResponse;
     }
 
     /**
@@ -177,9 +211,6 @@ class Kernel implements KernelContract
         $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
-            // Container đã biết về ServerRequestInterface (được bind trong Kernel::handle).
-            // Do đó, nó có thể tự động inject cả Application và ServerRequestInterface
-            // vào constructor của FormRequest.
             /** @var \Http\FormRequest $formRequest */
             $formRequest = $app->make($typeName);
             $formRequest->validateResolved();
@@ -203,12 +234,6 @@ class Kernel implements KernelContract
         }
 
         throw new \LogicException("Unable to resolve controller parameter: [\${$parameter->getName()}] in method {$route->handler[0]}::{$route->handler[1]}");
-    }
-
-    protected function resolveMiddleware(string $middleware): \Psr\Http\Server\MiddlewareInterface
-    {
-        $class = $this->routeMiddleware[$middleware] ?? $middleware;
-        return $this->app->make($class);
     }
 
     protected function renderException(ServerRequestInterface $request, Throwable $e): ResponseInterface
@@ -242,5 +267,52 @@ class Kernel implements KernelContract
     public function middlewareGroup(string $group, array $middleware): void
     {
         $this->middlewareGroups[$group] = $middleware;
+    }
+
+    /**
+     * Gather all middleware for a given route and sort them by priority.
+     *
+     * @return array<int, class-string|string>
+     */
+    protected function gatherAndSortMiddleware(Route $route): array
+    {
+        $group = $route->group ?? '';
+        $groupMiddleware = isset($this->middlewareGroups[$group]) ? $this->middlewareGroups[$group] : [];
+
+        $middleware = array_merge(
+            $this->middleware,
+            $groupMiddleware,
+            $route->middleware,
+        );
+
+        usort($middleware, function ($a, $b) {
+            $aName = $this->parseMiddleware($a)[0];
+            $bName = $this->parseMiddleware($b)[0];
+
+            $aClass = $this->routeMiddleware[$aName] ?? $aName;
+            $bClass = $this->routeMiddleware[$bName] ?? $bName;
+
+            $aPos = array_search($aClass, $this->middlewarePriority);
+            $bPos = array_search($bClass, $this->middlewarePriority);
+
+            if ($aPos === false && $bPos === false) {
+                return 0;
+            }
+            if ($aPos === false) {
+                return 1;
+            }
+            if ($bPos === false) {
+                return -1;
+            }
+
+            return $aPos <=> $bPos;
+        });
+
+        return array_unique($middleware);
+    }
+
+    protected function parseMiddleware(string $middleware): array
+    {
+        return str_contains($middleware, ':') ? explode(':', $middleware, 2) : [$middleware, ''];
     }
 }

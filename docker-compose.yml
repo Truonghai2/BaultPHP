@@ -10,9 +10,9 @@ services:
     restart: unless-stopped
     working_dir: /app
     volumes:
-      - .:/app
-    ports:
-      - "9501:9501"
+      - .:/app:cached
+      - /app/vendor   
+      - /app/node_modules 
     networks:
       - bault-network
     depends_on:
@@ -22,12 +22,6 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy 
-        # healthcheck:
-    #   test: ["CMD", "curl", "--fail", "http://localhost:9501/ping"]
-    #   interval: 10s
-    #   timeout: 5s
-    #   retries: 5
-    #   start_period: 30s
     environment:
       - DB_CONNECTION=${DB_CONNECTION:-mysql}
       - DB_HOST=${DB_HOST:-db}
@@ -40,6 +34,7 @@ services:
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
       - SWOOLE_HOT_RELOAD_ENABLE=true
+      - CHOKIDAR_USEPOLLING=true
       - NGINX_HOST_PORT=888
       - PMA_HOST_PORT=8080
       

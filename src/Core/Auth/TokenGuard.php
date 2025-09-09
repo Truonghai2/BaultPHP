@@ -3,6 +3,9 @@
 namespace Core\Auth;
 
 use Core\Application;
+use Core\Auth\Events\Authenticated;
+use Core\Auth\Events\Login;
+use Core\Auth\Events\Logout;
 use Core\Cache\CacheManager;
 use Core\Contracts\Auth\Authenticatable;
 use Core\Contracts\Auth\Guard;
@@ -10,6 +13,7 @@ use Laminas\Diactoros\ServerRequest;
 use League\OAuth2\Server\Exception\OAuthServerException;
 use League\OAuth2\Server\ResourceServer;
 use Modules\User\Infrastructure\Models\User;
+use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
@@ -21,6 +25,7 @@ class TokenGuard implements Guard
 {
     protected ?Authenticatable $user = null;
     protected bool $userResolved = false;
+    protected ?EventDispatcherInterface $dispatcher;
     protected array $validatedRequestAttributes = [];
 
     public function __construct(
@@ -28,6 +33,7 @@ class TokenGuard implements Guard
         protected ResourceServer $resourceServer,
         protected CacheManager $cache,
     ) {
+        $this->dispatcher = $this->app->has(EventDispatcherInterface::class) ? $this->app->make(EventDispatcherInterface::class) : null;
     }
 
     public function check(): bool
@@ -47,7 +53,6 @@ class TokenGuard implements Guard
         }
 
         try {
-            // Attempt to validate, but suppress exceptions for simple checks.
             $this->validate();
         } catch (OAuthServerException) {
             return null;
@@ -58,7 +63,11 @@ class TokenGuard implements Guard
 
     public function id()
     {
-        return $this->user()?->getAuthIdentifier();
+        if (isset($this->validatedRequestAttributes['oauth_user_id'])) {
+            return $this->validatedRequestAttributes['oauth_user_id'];
+        }
+
+        return $this->user()?->getAuthIdentifier() ?? null;
     }
 
     /**
@@ -137,6 +146,8 @@ class TokenGuard implements Guard
             throw new OAuthServerException('Access token is not associated with a valid user.', 10, 'invalid_grant', 401);
         }
 
+        $this->dispatcher?->dispatch(new Authenticated('token', $user));
+
         return $user;
     }
 
@@ -156,8 +167,26 @@ class TokenGuard implements Guard
         $this->userResolved = true;
     }
 
+    /**
+     * Log a user into the application.
+     *
+     * For a token-based guard, this doesn't create a session. It simply sets
+     * the user for the current request instance.
+     */
+    public function login(Authenticatable $user): void
+    {
+        // Dispatch event để đảm bảo tính nhất quán với SessionGuard
+        $this->dispatcher?->dispatch(new Login('token', $user, false));
+        $this->setUser($user);
+    }
+
     public function logout(): void
     {
+        $user = $this->user;
+
+        // Dispatch event trước khi xóa user
+        $this->dispatcher?->dispatch(new Logout('token', $user));
+
         $this->user = null;
         $this->userResolved = false;
         $this->validatedRequestAttributes = [];
@@ -165,6 +194,6 @@ class TokenGuard implements Guard
 
     public function attempt(array $credentials = []): bool
     {
-        return false; // Not applicable for a stateless token guard.
+        return false;
     }
 }

@@ -72,6 +72,20 @@ class Filesystem
     }
 
     /**
+     * Create a symbolic link from the target to the link.
+     *
+     * @param  string  $target
+     * @param  string  $link
+     * @return bool
+     */
+    public function link(string $target, string $link): bool
+    {
+        $this->ensureDirectoryExists(dirname($link));
+
+        return symlink($target, $link);
+    }
+
+    /**
      * Delete the file at a given path.
      *
      * @param  string  $path
