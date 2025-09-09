@@ -4,6 +4,7 @@ namespace Core\Auth;
 
 use Core\Application;
 use Core\Auth\Events\Authenticated;
+use Core\Auth\Events\CookieTheftDetected;
 use Core\Auth\Events\Login;
 use Core\Auth\Events\Logout;
 use Core\Contracts\Auth\Authenticatable;
@@ -58,7 +59,6 @@ class SessionGuard implements Guard
             $user = $this->provider->retrieveById($id);
             if (!is_null($user)) {
                 $this->fireAuthenticatedEvent($user);
-                $this->userResolved = true;
                 return $this->user;
             }
         }
@@ -69,10 +69,13 @@ class SessionGuard implements Guard
             $user = $this->userFromRecaller($recaller);
 
             if (!is_null($user)) {
-                $this->login($user, true); // Log them in properly, which will also fire the Login event.
-                $this->user = $user;
+                $this->updateSession($user->getAuthIdentifier());
+
+                $this->dispatcher?->dispatch(new Login('session', $user, true));
+
+                $this->setUser($user);
             } else {
-                $this->forgetRecaller();
+                $this->forgetRecallerCookie();
             }
         }
 
@@ -102,7 +105,6 @@ class SessionGuard implements Guard
     {
         $user = $this->user;
 
-        // Lấy selector từ cookie trước khi xóa nó
         $recaller = $this->getRecallerFromCookie();
         if ($recaller && isset($recaller['selector'])) {
             $this->removeRememberToken($recaller['selector']);
@@ -144,6 +146,7 @@ class SessionGuard implements Guard
     protected function fireAuthenticatedEvent(Authenticatable $user): void
     {
         $this->user = $user;
+        $this->userResolved = true;
         $this->dispatcher?->dispatch(new Authenticated('session', $user));
     }
 
@@ -200,18 +203,15 @@ class SessionGuard implements Guard
         }
 
         if (hash_equals($tokenRecord->verifier_hash, hash('sha256', $recaller['verifier']))) {
-            // Token hợp lệ, đăng nhập người dùng và tái tạo token
             $user = $this->provider->retrieveById($tokenRecord->user_id);
             if ($user) {
                 $this->updateRememberToken($tokenRecord->selector);
                 return $user;
             }
         } else {
-            // Phát hiện tấn công! Selector hợp lệ nhưng verifier sai.
-            // Xóa tất cả token của người dùng này.
+            $this->dispatcher?->dispatch(new CookieTheftDetected($tokenRecord->user_id));
             RememberToken::where('user_id', $tokenRecord->user_id)->delete();
             $this->forgetRecallerCookie();
-            // Bạn có thể dispatch một event ở đây để ghi log hoặc thông báo cho người dùng.
         }
 
         return null;
