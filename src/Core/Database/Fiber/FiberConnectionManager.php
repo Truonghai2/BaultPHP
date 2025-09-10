@@ -5,6 +5,7 @@ namespace Core\Database\Fiber;
 use Core\Application;
 use Core\Contracts\PoolManager;
 use Core\ORM\Connection;
+use InvalidArgumentException;
 use PDO;
 
 /**
@@ -12,37 +13,37 @@ use PDO;
  */
 class FiberConnectionManager implements PoolManager
 {
-    private FiberConnectionPool $pool;
+    /** @var FiberConnectionPool[] */
+    private array $pools = [];
+    private Application $app;
 
     public function __construct(Application $app)
     {
-        $config = $app->make('config');
-        $poolSize = $config->get('server.swoole.db_pool.worker_pool_size', 10);
-
-        $factory = function () use ($app): PDO {
-            /** @var Connection $connection */
-            $connection = $app->make(Connection::class);
-            return $connection->createFreshConnection('mysql', 'write');
-        };
-
-        $this->pool = new FiberConnectionPool($factory, $poolSize);
+        $this->app = $app;
     }
 
     /**
      * Lấy một kết nối PDO từ pool.
      * Phương thức này là non-blocking nhờ vào FiberConnectionPool.
+     * @param string|null $name Tên của connection (ví dụ: 'mysql', 'pgsql').
      */
-    public function get(): PDO
+    public function get(?string $name = null): PDO
     {
-        return $this->pool->get();
+        $name = $name ?? $this->getDefaultConnectionName();
+        return $this->pool($name)->get();
     }
 
     /**
      * Trả một kết nối PDO về lại pool.
+     * @param PDO $connection
+     * @param string|null $name
      */
-    public function put(PDO $connection): void
+    public function put(PDO $connection, ?string $name = null): void
     {
-        $this->pool->put($connection);
+        $name = $name ?? $this->getDefaultConnectionName();
+        if (isset($this->pools[$name])) {
+            $this->pools[$name]->put($connection);
+        }
     }
 
     /**
@@ -50,7 +51,10 @@ class FiberConnectionManager implements PoolManager
      */
     public function close(): void
     {
-        $this->pool->close();
+        foreach ($this->pools as $pool) {
+            $pool->close();
+        }
+        $this->pools = [];
     }
 
     /**
@@ -59,17 +63,94 @@ class FiberConnectionManager implements PoolManager
     public function warmup(): void
     {
         $config = $this->app->make('config');
-        $warmupSize = $config->get('server.swoole.db_pool.warmup_size', 2);
-        $poolSize = $config->get('server.swoole.db_pool.worker_pool_size', 10);
-        $targetSize = min($warmupSize, $poolSize);
+        $dbPoolsConfig = $config->get('server.swoole.db_pool.pools', []);
 
-        $connections = [];
-        for ($i = 0; $i < $targetSize; $i++) {
-            $connections[] = $this->get();
+        foreach (array_keys($dbPoolsConfig) as $name) {
+            $poolConfig = $config->get("server.swoole.db_pool.pools.{$name}", []);
+
+            $isTaskWorker = false;
+            if ($this->app->bound('swoole.server')) {
+                $server = $this->app->make('swoole.server');
+                $isTaskWorker = (bool) ($server->taskworker ?? false);
+            }
+            $poolSize = $isTaskWorker
+                ? ($poolConfig['task_worker_pool_size'] ?? $config->get('server.swoole.db_pool.task_worker_pool_size', 10))
+                : ($poolConfig['worker_pool_size'] ?? $config->get('server.swoole.db_pool.worker_pool_size', 10));
+
+            $warmupSize = $isTaskWorker
+                ? ($poolConfig['task_worker_warmup_size'] ?? $config->get('server.swoole.db_pool.task_worker_warmup_size', 5))
+                : ($poolConfig['worker_warmup_size'] ?? $config->get('server.swoole.db_pool.worker_warmup_size', 5));
+
+            $targetSize = min((int) $warmupSize, (int) $poolSize);
+
+            if ($targetSize <= 0) {
+                continue;
+            }
+
+            $connections = [];
+            for ($i = 0; $i < $targetSize; $i++) {
+                $connections[] = $this->get($name);
+            }
+
+            foreach ($connections as $connection) {
+                $this->put($connection, $name);
+            }
+        }
+    }
+
+    /**
+     * Lấy ra instance của pool cho một connection cụ thể.
+     *
+     * @param string $name
+     * @return FiberConnectionPool
+     */
+    private function pool(string $name): FiberConnectionPool
+    {
+        if (!isset($this->pools[$name])) {
+            $this->pools[$name] = $this->createPool($name);
         }
 
-        foreach ($connections as $connection) {
-            $this->put($connection);
+        return $this->pools[$name];
+    }
+
+    /**
+     * Tạo một pool mới cho một connection.
+     *
+     * @param string $name
+     * @return FiberConnectionPool
+     */
+    private function createPool(string $name): FiberConnectionPool
+    {
+        $config = $this->app->make('config');
+        $dbConfig = $config->get("database.connections.{$name}");
+
+        if (!$dbConfig) {
+            throw new InvalidArgumentException("Database connection [{$name}] not configured.");
         }
+
+        $poolConfig = $config->get("server.swoole.db_pool.pools.{$name}", []);
+
+        $isTaskWorker = false;
+        if ($this->app->bound('swoole.server')) {
+            $server = $this->app->make('swoole.server');
+            $isTaskWorker = (bool) ($server->taskworker ?? false);
+        }
+
+        $poolSize = $isTaskWorker
+            ? ($poolConfig['task_worker_pool_size'] ?? $config->get('server.swoole.db_pool.task_worker_pool_size', 10))
+            : ($poolConfig['worker_pool_size'] ?? $config->get('server.swoole.db_pool.worker_pool_size', 10));
+
+        $factory = function () use ($name): PDO {
+            /** @var Connection $connection */
+            $connection = $this->app->make(Connection::class);
+            return $connection->connection($name, 'write');
+        };
+
+        return new FiberConnectionPool($factory, (int) $poolSize);
+    }
+
+    private function getDefaultConnectionName(): string
+    {
+        return $this->app->make('config')->get('database.default', 'mysql');
     }
 }

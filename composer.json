@@ -42,7 +42,8 @@
     "league/oauth2-server": "^8.5",
     "php-amqplib/php-amqplib": "^3.7",
     "revolt/event-loop": "^1.0",
-    "amphp/redis": "^2.0"
+    "amphp/redis": "^2.0",
+    "revolt/event-loop-adapter-react": "^1.1"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.3",
