@@ -5,7 +5,7 @@ namespace Core\Queue;
 use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Queue\Jobs\ProcessJobTask;
-use Core\Redis\RedisManager;
+use Core\Redis\FiberRedisManager;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -17,7 +17,7 @@ class DelayedJobScheduler
 {
     protected array $config;
     protected string $queueName;
-    protected RedisManager $redisManager;
+    protected FiberRedisManager $redisManager;
 
     public function __construct(
         protected Application $app,
@@ -35,7 +35,7 @@ class DelayedJobScheduler
     {
         // Because this is a long-running timer, we must get and release the connection
         // for each invocation to ensure we are using the connection pool correctly.
-        $redis = $this->redisManager->getFromPool();
+        $redis = $this->redisManager->get();
         try {
             // Get all jobs with a timestamp <= the current time
             $jobsToProcess = $redis->zrangebyscore($this->queueName, '-inf', time());
@@ -62,7 +62,7 @@ class DelayedJobScheduler
         } catch (Throwable $e) {
             $this->logger->error('Delayed job scheduler error: ' . $e->getMessage(), ['exception' => $e]);
         } finally {
-            $this->redisManager->putToPool($redis);
+            $this->redisManager->put($redis);
         }
     }
 }

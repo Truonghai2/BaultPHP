@@ -86,14 +86,15 @@ class SessionServiceProvider extends ServiceProvider
             throw new \RuntimeException('Database session driver requires the DB connection pool to be enabled in config/server.php.');
         }
 
-        // The CoroutineConnectionManager manages the default connection pool.
-        // The 'session.database_connection' config is not used here as the manager handles the default connection.
-        // --- Refactor: Thay thế CoroutineConnectionManager bằng FiberConnectionManager ---
-        // Logic cũ: $pdo = $app->make(\Core\Database\CoroutineConnectionManager::class)->get();
-        // Logic mới:
-        $pdo = $app->make(FiberConnectionManager::class)->get();
+        $connectionName = $config->get('session.connection');
+        $dbManager = $app->make(FiberConnectionManager::class);
+        $pdo = $dbManager->get($connectionName);
 
         $table = $config->get('session.table', 'sessions');
+
+        \Swoole\Coroutine::defer(function () use ($dbManager, $pdo, $connectionName) {
+            $dbManager->put($pdo, $connectionName);
+        });
 
         return new PdoSessionHandler($pdo, ['db_table' => $table]);
     }
@@ -111,13 +112,16 @@ class SessionServiceProvider extends ServiceProvider
             throw new \RuntimeException('Redis session driver requires the Redis connection pool to be enabled in config/server.php.');
         }
 
-        // Use the configured Redis connection for sessions, or 'default' if not specified.
         $connectionName = $config->get('session.connection', 'default');
+        $redisManager = $app->make(FiberRedisManager::class);
 
-        // Sử dụng FiberRedisManager để lấy kết nối bất đồng bộ từ pool.
-        $redisClient = $app->make(FiberRedisManager::class)->get($connectionName);
+        $redisClient = $redisManager->get($connectionName);
 
-        $lifetime = $config->get('session.lifetime', 120) * 60; // in seconds
+        $lifetime = $config->get('session.lifetime', 120) * 60;
+
+        \Swoole\Coroutine::defer(function () use ($redisManager, $redisClient, $connectionName) {
+            $redisManager->put($redisClient, $connectionName);
+        });
 
         return new RedisSessionHandler($redisClient, ['ttl' => $lifetime]);
     }

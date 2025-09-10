@@ -7,7 +7,7 @@
     <link rel="icon" type="image/png" href="{{ asset('images/logo/BaultPHP-icon.png') }}">
 
     <link rel="stylesheet" href="{{ asset('assets/app.css') }}">
-    <script src="{{ asset('assets/app.js') }}" defer></script>
+    <script src="{{ asset('assets/app.js') }}" type="module" defer></script>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     @yield('styles')
     

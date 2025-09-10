@@ -54,16 +54,13 @@ class FiberRedisPool
         if ($this->currentSize < $this->maxSize) {
             $this->currentSize++;
             try {
-                // Factory trả về một Future, chúng ta await nó để lấy kết nối.
-                // Lệnh await sẽ tạm dừng Fiber hiện tại cho đến khi kết nối được thiết lập.
-                return \Amp\Future\await(($this->factory)());
+                return ($this->factory)()->await();
             } catch (Throwable $e) {
-                $this->currentSize--; // Giảm số lượng nếu tạo kết nối thất bại.
+                $this->currentSize--;
                 throw $e;
             }
         }
 
-        // Nếu pool đã đầy, tạm dừng Fiber này và đưa vào hàng đợi.
         $suspension = EventLoop::getSuspension();
         $this->waitQueue->enqueue($suspension);
 
@@ -77,16 +74,15 @@ class FiberRedisPool
      */
     public function put(RedisClient $connection): void
     {
-        if ($connection->isClosed()) {
+        if (!$connection->isAlive()) {
             $this->currentSize--;
-            return; // Không đưa kết nối đã đóng vào lại pool.
+            return;
         }
         try {
-            // Gửi một lệnh PING nhẹ nhàng để xác nhận.
             $connection->ping();
         } catch (Throwable) {
             $this->currentSize--;
-            return; // Kết nối có vấn đề, không đưa vào lại pool.
+            return;
         }
         if (!$this->waitQueue->isEmpty()) {
             $suspension = $this->waitQueue->dequeue();

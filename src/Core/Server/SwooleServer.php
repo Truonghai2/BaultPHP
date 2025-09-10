@@ -14,7 +14,7 @@ use Core\Server\Development\FileWatcher;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use Revolt\EventLoop\Adapter\Swoole\SwooleDriver;
+use Revolt\EventLoop;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Server as SwooleHttpServer;
@@ -238,7 +238,7 @@ class SwooleServer
 
                         $debugData = $debugManager->getData();
                         /** @var \Core\Redis\FiberRedisManager $redisManager */
-                        $redisManager = $this->app->make('redis'); // Resolves to FiberRedisManager
+                        $redisManager = $this->app->make('redis');
                         $redisClient = null;
                         try {
                             $redisClient = $redisManager->get('default');
@@ -322,10 +322,9 @@ class SwooleServer
      */
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
-        // CRITICAL: This must be the first thing to run in the worker.
-        // It tells Revolt to use Swoole's event loop, enabling all Amp/Revolt
-        // based libraries (like our Fiber pools) to work correctly.
-        \Revolt\EventLoop::setDriver(new SwooleDriver());
+        EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
+
+        $this->app->instance('swoole.server', $server);
 
         try {
             if (function_exists('opcache_reset')) {
@@ -486,7 +485,6 @@ class SwooleServer
             }
         }
 
-        // Ghi log với message và context
         $this->getLogger()->info(
             sprintf(
                 'Request [ID: %s] "%s %s" %d %s (%dms)',

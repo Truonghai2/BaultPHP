@@ -92,10 +92,48 @@ class FiberRedisManager implements PoolManager
                 $redisConfig['port'],
             );
 
-            return \Amp\Redis\connect($connectionString);
+            return \Amp\Future::complete(\Amp\Redis\createRedisClient($connectionString));
         };
 
         return new FiberRedisPool($factory, $poolSize);
+    }
+
+    /**
+     * Warms up the configured connection pools by creating a predefined number of connections.
+     */
+    public function warmup(): void
+    {
+        $config = $this->app->make('config');
+        $redisPoolsConfig = $config->get('server.swoole.redis_pool.pools', []);
+
+        // Only warm up pools explicitly defined in the server config.
+        foreach ($redisPoolsConfig as $name => $poolConfig) {
+            // This logic relies on 'swoole.server' being bound in the container.
+            $server = $this->app->make('swoole.server');
+            $isTaskWorker = (bool) ($server->taskworker ?? false);
+
+            $poolSize = $isTaskWorker
+                ? ($poolConfig['task_worker_pool_size'] ?? $poolConfig['worker_pool_size'] ?? 10)
+                : ($poolConfig['worker_pool_size'] ?? 10);
+
+            // Allow per-pool warmup_size, falling back to a global default, then 0.
+            $warmupSize = $poolConfig['warmup_size'] ?? $config->get('server.swoole.redis_pool.warmup_size', 0);
+            $targetSize = min((int)$warmupSize, (int)$poolSize);
+
+            if ($targetSize <= 0) {
+                continue;
+            }
+
+            $connections = [];
+            for ($i = 0; $i < $targetSize; $i++) {
+                // get() will create the pool if it doesn't exist.
+                $connections[] = $this->get($name);
+            }
+
+            foreach ($connections as $connection) {
+                $this->put($connection, $name);
+            }
+        }
     }
 
     /**
