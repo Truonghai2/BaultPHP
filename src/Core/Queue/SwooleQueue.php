@@ -6,16 +6,17 @@ use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Queue\Queue;
 use Core\Queue\Jobs\ProcessJobTask;
-use Core\Redis\RedisManager;
+use Core\Redis\FiberRedisManager;
 use Core\Server\SwooleServer;
 use DateInterval;
 use DateTimeInterface;
+use Psr\Log\LoggerInterface;
 use RuntimeException;
 
 class SwooleQueue implements Queue
 {
     protected SwooleServer $server;
-    protected RedisManager $redisManager;
+    protected FiberRedisManager $redisManager;
 
     public function __construct(protected Application $app)
     {
@@ -23,7 +24,7 @@ class SwooleQueue implements Queue
             throw new RuntimeException('The Swoole queue driver can only be used when running within the Swoole server.');
         }
         $this->server = $this->app->make(SwooleServer::class);
-        $this->redisManager = $this->app->make('redis');
+        $this->redisManager = $this->app->make(FiberRedisManager::class);
     }
 
     /**
@@ -52,10 +53,20 @@ class SwooleQueue implements Queue
         $queueName = $this->getQueueName($queue);
         $serializedJob = serialize($job);
 
-        // The RedisManager's __call magic method is now Swoole-aware.
-        // It will automatically get a connection from the pool, execute the command,
-        // and put the connection back, making this operation safe.
-        $this->redisManager->zadd($queueName, [$serializedJob => $executionTimestamp]);
+        $redis = null;
+        try {
+            $redis = $this->redisManager->get();
+            $redis->zAdd($queueName, $executionTimestamp, $serializedJob)->await();
+        } catch (\Throwable $e) {
+            $this->app->make(LoggerInterface::class)->error(
+                'Failed to add a delayed job to the queue.',
+                ['exception' => $e, 'job' => get_class($job)],
+            );
+        } finally {
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
+        }
     }
 
     /**
@@ -64,7 +75,6 @@ class SwooleQueue implements Queue
      */
     public function pop(?string $queue = null): ?Job
     {
-        // Không được hỗ trợ/không áp dụng cho hàng đợi dựa trên task của Swoole.
         return null;
     }
 

@@ -4,16 +4,14 @@ namespace App\Providers;
 
 use Core\Application;
 use Core\Contracts\StatefulService;
-use Core\Database\Fiber\FiberConnectionManager;
-use Core\Redis\FiberRedisManager;
 use Core\Session\DirectSessionTokenStorage;
 use Core\Session\SessionManager;
+use Core\Session\SwoolePdoSessionHandler;
+use Core\Session\SwooleRedisSessionHandler;
 use Core\Support\ServiceProvider;
 use InvalidArgumentException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Csrf\TokenGenerator\TokenGeneratorInterface;
@@ -27,7 +25,7 @@ class SessionServiceProvider extends ServiceProvider
         $this->app->singleton(SessionManager::class, function (Application $app) {
             return new SessionManager(
                 $app,
-                function () use ($app) {
+                function () use ($app) { // This closure is now correctly passed to the SessionManager
                     return $this->createSessionHandler($app);
                 },
             );
@@ -78,25 +76,23 @@ class SessionServiceProvider extends ServiceProvider
      *
      * @param \Core\Application $app
      * @param \Core\Config $config
-     * @return \Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler
+     * @return \Core\Session\SwoolePdoSessionHandler
      */
-    protected function createDatabaseHandler(Application $app, \Core\Config $config): PdoSessionHandler
+    protected function createDatabaseHandler(Application $app, \Core\Config $config): SwoolePdoSessionHandler
     {
-        if (!$config->get('server.swoole.db_pool.enabled', false)) {
+        if (!$config->get('server.swoole.pools.database.enabled', false)) {
             throw new \RuntimeException('Database session driver requires the DB connection pool to be enabled in config/server.php.');
         }
 
-        $connectionName = $config->get('session.connection');
-        $dbManager = $app->make(FiberConnectionManager::class);
-        $pdo = $dbManager->get($connectionName);
-
+        $connectionName = $config->get('session.database_connection') ?? $config->get('database.default');
         $table = $config->get('session.table', 'sessions');
+        $lifetime = (int) $config->get('session.lifetime', 120) * 60; // Convert minutes to seconds
 
-        \Swoole\Coroutine::defer(function () use ($dbManager, $pdo, $connectionName) {
-            $dbManager->put($pdo, $connectionName);
-        });
-
-        return new PdoSessionHandler($pdo, ['db_table' => $table]);
+        return new SwoolePdoSessionHandler(
+            $connectionName,
+            $table,
+            $lifetime,
+        );
     }
 
     /**
@@ -104,26 +100,21 @@ class SessionServiceProvider extends ServiceProvider
      *
      * @param \Core\Application $app
      * @param \Core\Config $config
-     * @return \Symfony\Component\HttpFoundation\Session\Storage\Handler\RedisSessionHandler
+     * @return \SessionHandlerInterface
      */
-    protected function createRedisHandler(Application $app, \Core\Config $config): RedisSessionHandler
+    protected function createRedisHandler(Application $app, \Core\Config $config): \SessionHandlerInterface
     {
-        if (!$config->get('server.swoole.redis_pool.enabled', false)) {
+        if (!$config->get('server.swoole.pools.redis.enabled', false)) {
             throw new \RuntimeException('Redis session driver requires the Redis connection pool to be enabled in config/server.php.');
         }
 
         $connectionName = $config->get('session.connection', 'default');
-        $redisManager = $app->make(FiberRedisManager::class);
+        $lifetime = (int) $config->get('session.lifetime', 120) * 60; // Convert minutes to seconds
 
-        $redisClient = $redisManager->get($connectionName);
-
-        $lifetime = $config->get('session.lifetime', 120) * 60;
-
-        \Swoole\Coroutine::defer(function () use ($redisManager, $redisClient, $connectionName) {
-            $redisManager->put($redisClient, $connectionName);
-        });
-
-        return new RedisSessionHandler($redisClient, ['ttl' => $lifetime]);
+        return new SwooleRedisSessionHandler(
+            $connectionName,
+            $lifetime,
+        );
     }
 
     /**

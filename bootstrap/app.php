@@ -61,16 +61,13 @@ if (file_exists($cachedServicesPath)) {
     | debugging and adding new providers without clearing caches.
     |
     */
-    // Register ConfigServiceProvider first to make the 'config' service available.
     $app->register(\App\Providers\ConfigServiceProvider::class);
 
-    // Now, register all other providers listed in the configuration.
     $providers = $app->make('config')->get('app.providers', []);
     foreach ($providers as $provider) {
         $app->register($provider);
     }
 
-    // Discover and register Module Service Providers
     $moduleJsonPaths = glob($app->basePath('Modules/*/module.json'));
 
     if ($moduleJsonPaths === false) {
@@ -80,7 +77,6 @@ if (file_exists($cachedServicesPath)) {
     foreach ($moduleJsonPaths as $path) {
         $data = json_decode(file_get_contents($path), true);
         if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
-            // A module can have multiple providers listed in its manifest.
             foreach ($data['providers'] ?? [] as $providerClass) {
                 if (class_exists($providerClass)) {
                     $app->register($providerClass);

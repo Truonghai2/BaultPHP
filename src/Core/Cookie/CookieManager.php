@@ -2,12 +2,13 @@
 
 namespace Core\Cookie;
 
+use Core\Contracts\StatefulService;
 use Core\Encryption\Encrypter;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Symfony\Component\HttpFoundation\Cookie;
 
-class CookieManager
+class CookieManager implements StatefulService
 {
     protected Encrypter $encrypter;
     protected array $queued = [];
@@ -75,7 +76,6 @@ class CookieManager
      */
     public function forget(string $name, ?string $path = null, ?string $domain = null): void
     {
-        // Queue a cookie with a past expiration date
         $this->queue($name, '', -2628000, $path, $domain);
     }
 
@@ -89,5 +89,13 @@ class CookieManager
         }
 
         return $response;
+    }
+
+    /**
+     * Reset the queued cookies for the next request.
+     */
+    public function resetState(): void
+    {
+        $this->queued = [];
     }
 }

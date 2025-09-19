@@ -4,6 +4,7 @@ namespace Core\Filesystem;
 
 use LogicException;
 use RecursiveDirectoryIterator;
+use RecursiveFilterIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
 
@@ -19,6 +20,12 @@ class FileSystemWatcher
      * @var string[]
      */
     protected array $paths = [];
+
+    /**
+     * Các đường dẫn đến thư mục/file cần bỏ qua.
+     * @var string[]
+     */
+    protected array $ignorePaths = [];
 
     /**
      * Các phần mở rộng file được phép theo dõi (ví dụ: ['php', 'env']).
@@ -46,13 +53,22 @@ class FileSystemWatcher
     protected array $fileStates = [];
 
     /**
-     * @param string[] $paths
+     * Điều kiện để vòng lặp tiếp tục chạy.
+     * @var callable|null
      */
-    public function __construct(array $paths = [])
-    {
-        $this->paths($paths);
-    }
+    protected $loopCondition = null;
 
+    /**
+     * @param string[] $paths Các thư mục cần theo dõi.
+     * @param string[] $ignorePaths Các thư mục/file cần bỏ qua.
+     */
+    public function __construct(array $paths = [], array $ignorePaths = [])
+    {
+        // Mặc định, vòng lặp sẽ chạy mãi mãi nếu không có điều kiện nào được thiết lập.
+        $this->loopCondition = fn () => true;
+        $this->paths($paths);
+        $this->ignore($ignorePaths);
+    }
     /**
      * @param string[] $paths
      */
@@ -69,7 +85,22 @@ class FileSystemWatcher
      */
     public function paths(array $paths): self
     {
-        $this->paths = array_filter($paths, 'is_dir');
+        $this->paths = array_map([$this, 'normalizePath'], array_filter($paths, 'is_dir'));
+        return $this;
+    }
+
+    /**
+     * Thiết lập các đường dẫn cần bỏ qua.
+     *
+     * @param string[] $paths
+     * @return $this
+     */
+    public function ignore(array $paths): self
+    {
+        $this->ignorePaths = array_map(function ($path) {
+            // Nếu là file, chuẩn hóa và trả về. Nếu là thư mục, thêm dấu / cuối để so sánh chính xác.
+            return is_dir($path) ? rtrim($this->normalizePath($path), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR : $this->normalizePath($path);
+        }, $paths);
         return $this;
     }
 
@@ -82,7 +113,6 @@ class FileSystemWatcher
      */
     public function extensions(array $extensions): self
     {
-        // Chuyển tất cả về chữ thường để so sánh không phân biệt hoa/thường
         $this->allowedExtensions = array_map('strtolower', $extensions);
         return $this;
     }
@@ -101,10 +131,23 @@ class FileSystemWatcher
     }
 
     /**
-     * Bắt đầu quá trình theo dõi.
-     * Đây là một vòng lặp vô tận, nó sẽ block tiến trình.
+     * Thiết lập một điều kiện để kiểm tra trong mỗi vòng lặp.
+     * Vòng lặp sẽ dừng khi callback trả về false.
      *
-     * @throws LogicException Nếu chưa đăng ký callback.
+     * @param callable $condition
+     * @return $this
+     */
+    public function setLoopCondition(callable $condition): self
+    {
+        $this->loopCondition = $condition;
+        return $this;
+    }
+
+    /**
+     * Bắt đầu quá trình theo dõi.
+     * Đây là một vòng lặp, nó sẽ block tiến trình cho đến khi điều kiện lặp trả về false.
+     *
+     * @throws \LogicException Nếu chưa đăng ký callback.
      */
     public function start(): void
     {
@@ -114,7 +157,7 @@ class FileSystemWatcher
 
         $this->fileStates = $this->scanFiles();
 
-        while (true) {
+        while (call_user_func($this->loopCondition)) {
             usleep($this->sleep * 1000);
 
             $newStates = $this->scanFiles();
@@ -141,24 +184,73 @@ class FileSystemWatcher
     {
         $files = [];
         foreach ($this->paths as $path) {
-            $iterator = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS));
+            if (!is_dir($path)) {
+                continue;
+            }
+
+            $directoryIterator = new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS);
+
+            // Sử dụng RecursiveFilterIterator để lọc hiệu quả
+            $filterIterator = new class ($directoryIterator, $this->ignorePaths, $this->allowedExtensions) extends RecursiveFilterIterator {
+                private array $ignorePaths;
+                private array $allowedExtensions;
+
+                public function __construct(\RecursiveIterator $iterator, array $ignorePaths, array $allowedExtensions)
+                {
+                    parent::__construct($iterator);
+                    $this->ignorePaths = $ignorePaths;
+                    $this->allowedExtensions = $allowedExtensions;
+                }
+
+                public function accept(): bool
+                {
+                    /** @var \SplFileInfo $fileInfo */
+                    $fileInfo = $this->current();
+                    $realPath = $fileInfo->getRealPath();
+
+                    if (!$realPath) {
+                        return false;
+                    }
+
+                    $normalizedPath = str_replace('\\', '/', $realPath);
+
+                    foreach ($this->ignorePaths as $ignorePath) {
+                        if (str_starts_with($normalizedPath, $ignorePath)) {
+                            return false;
+                        }
+                    }
+
+                    if ($fileInfo->isDir()) {
+                        return true;
+                    }
+
+                    if (!empty($this->allowedExtensions)) {
+                        return in_array(strtolower($fileInfo->getExtension()), $this->allowedExtensions, true);
+                    }
+
+                    return true;
+                }
+
+                public function getChildren(): self
+                {
+                    return new self($this->getInnerIterator()->getChildren(), $this->ignorePaths, $this->allowedExtensions);
+                }
+            };
+
+            $iterator = new RecursiveIteratorIterator($filterIterator, RecursiveIteratorIterator::SELF_FIRST);
+
             /** @var SplFileInfo $fileInfo */
             foreach ($iterator as $fileInfo) {
-                if (!$fileInfo->isFile()) {
-                    continue;
-                }
-
-                // Lọc theo phần mở rộng nếu được chỉ định
-                if (!empty($this->allowedExtensions) && !in_array(strtolower($fileInfo->getExtension()), $this->allowedExtensions, true)) {
-                    continue;
-                }
-
-                // Chỉ thêm file vào danh sách nếu nó có đường dẫn thực
-                if ($realPath = $fileInfo->getRealPath()) {
+                if ($fileInfo->isFile() && ($realPath = $fileInfo->getRealPath())) {
                     $files[$realPath] = $fileInfo->getMTime();
                 }
             }
         }
         return $files;
+    }
+
+    private function normalizePath(string $path): string
+    {
+        return str_replace('\\', '/', $path);
     }
 }

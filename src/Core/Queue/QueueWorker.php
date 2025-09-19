@@ -2,6 +2,7 @@
 
 namespace Core\Queue;
 
+use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\Queue\FailedJobProviderInterface;
 use Core\Contracts\Queue\Job;
@@ -14,8 +15,6 @@ use Throwable;
  */
 class QueueWorker
 {
-    protected Dispatcher $events;
-
     /**
      * Create a new queue worker.
      * The worker is decoupled from the concrete failed job provider by depending on the interface.
@@ -24,15 +23,16 @@ class QueueWorker
      * @param \Core\Queue\QueueManager $manager The queue manager to resolve connections.
      * @param \Core\Contracts\Queue\FailedJobProviderInterface $failer The provider for logging failed jobs.
      * @param \Core\Contracts\Exceptions\Handler $exceptionHandler The application's exception handler.
-     * @param \Core\Contracts\Events\Dispatcher $events The event dispatcher.
+     * @param \Core\Events\Dispatcher $events The event dispatcher.
+     * @param \Core\Application $app The application instance.
      */
     public function __construct(
         protected QueueManager $manager,
         protected FailedJobProviderInterface $failer,
         protected ExceptionHandler $exceptionHandler,
-        ?Dispatcher $events = null,
+        protected Dispatcher $events,
+        protected Application $app,
     ) {
-        $this->events = $events ?? app(Dispatcher::class);
     }
 
     /**
@@ -62,34 +62,21 @@ class QueueWorker
      */
     public function process(string $connectionName, Job $job): void
     {
-        // Fire an event before processing the job.
         $this->raiseBeforeJobEvent($connectionName, $job);
 
         try {
-            if ($this->hasExceededMaxTries($job)) {
-                $this->failJob($connectionName, $job, new \RuntimeException('Job has exceeded the maximum number of attempts.'));
-                return;
-            }
+            // Sử dụng container để gọi, cho phép method injection.
+            $this->app->call([$job, 'handle']);
 
-            // Execute the job's main logic.
-            $job->handle();
-
-            // If handle() is successful, delete the job from the queue.
             $job->delete();
 
-            // Fire an event after a job has been processed.
             $this->raiseAfterJobEvent($connectionName, $job);
 
         } catch (Throwable $e) {
-            // Fire an event for the exception that occurred.
             $this->raiseExceptionOccurredEvent($connectionName, $job, $e);
 
-            // If an exception occurs, check if the job should be retried.
-            if (!$job->isDeleted()) {
-                // If the job is not released, handle the failure.
-                if (!$job->isReleased()) {
-                    $this->handleJobFailure($connectionName, $job, $e);
-                }
+            if (!$job->isDeleted() && !$job->isReleased()) {
+                $this->handleJobFailure($connectionName, $job, $e);
             }
         }
     }
@@ -107,7 +94,6 @@ class QueueWorker
         if ($this->hasExceededMaxTries($job)) {
             $this->failJob($connectionName, $job, $e);
         } else {
-            // Release the job back to the queue for a later attempt.
             $job->release();
         }
     }
@@ -121,13 +107,10 @@ class QueueWorker
      */
     protected function failJob(string $connectionName, Job $job, Throwable $e): void
     {
-        // 1. Log the job to the failed job provider (e.g., database).
         $this->logFailedJob($connectionName, $job, $e);
 
-        // 2. Call the job's own fail method for any custom logic.
-        $job->fail($e);
+        $this->app->call([$job, 'fail'], ['e' => $e]);
 
-        // 3. Fire the JobFailed event.
         $this->raiseJobFailedEvent($connectionName, $job, $e);
     }
 
@@ -147,10 +130,8 @@ class QueueWorker
         // Now, log the job to the failed job provider.
         $this->failer->log(
             $connectionName,
-            // Use getRawBody() to get the original payload.
-            // This avoids issues with a modified job object.
+            method_exists($job, 'getQueue') ? $job->getQueue() : 'default',
             $job->getRawBody(),
-            // The queue name should be a property on the job instance.
             $e,
         );
     }

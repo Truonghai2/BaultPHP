@@ -20,6 +20,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(CentrifugoAPIService::class, function () {
             $apiUrl = config('services.centrifugo.api_url', 'http://127.0.0.1:8000');
             $apiKey = config('services.centrifugo.api_key');
+            dd(config('services.centrifugo.api_key'));
 
             if (is_null($apiKey)) {
                 throw new \InvalidArgumentException('Centrifugo API key is not configured.');

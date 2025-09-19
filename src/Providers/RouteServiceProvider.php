@@ -35,6 +35,10 @@ class RouteServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->runningInConsole()) {
+            return;
+        }
+
         $router = $this->app->make(\Core\Routing\Router::class);
 
         $cachedRoutesFile = $this->app->basePath('bootstrap/cache/routes.php');

@@ -42,9 +42,13 @@ class Redirector
      */
     public function back(int $status = 302, array $headers = [], string $fallback = '/'): RedirectResponse
     {
-        $request = $this->app->make(\Psr\Http\Message\ServerRequestInterface::class);
-        $referer = $request->getHeaderLine('Referer');
+        $previousUrl = $this->session->get('url.previous');
 
+        if ($previousUrl) {
+            return $this->to($previousUrl, $status, $headers);
+        }
+
+        $referer = $this->app->make(\Psr\Http\Message\ServerRequestInterface::class)->getHeaderLine('Referer');
         if ($referer) {
             return $this->to($referer, $status, $headers);
         }

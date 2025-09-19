@@ -10,4 +10,9 @@ class ModuleServiceProvider extends BaseServiceProvider
     {
         parent::register();
     }
+
+    public function boot(): void
+    {
+        $this->loadModuleViews('admin');
+    }
 }

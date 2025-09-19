@@ -16,12 +16,10 @@ class BulkIndexJob extends BaseJob
 {
     use Dispatchable;
     // Dependencies are not serialized. They are resolved at runtime.
-    private Client $client;
-    private LoggerInterface $logger;
 
     // Properties to be serialized and stored in the queue payload.
-    protected string $indexName;
-    protected array $documents;
+    protected string $modelClass;
+    protected array $modelKeys;
 
     /**
      * The number of times the job may be attempted.
@@ -29,49 +27,58 @@ class BulkIndexJob extends BaseJob
     public int $tries = 3;
 
     /**
-     * Create a new job instance.
+     * Create a new job instance. The job only stores the model class and keys
+     * to keep the payload small and avoid serialization issues with complex objects.
      *
-     * @param string $indexName The name of the index to update.
-     * @param array $documents The documents to be indexed.
+     * @param string $modelClass The fully qualified class name of the model.
+     * @param array $modelKeys The primary keys of the models to be indexed.
      */
-    public function __construct(string $indexName, array $documents)
+    public function __construct(string $modelClass, array $modelKeys)
     {
-        $this->indexName = $indexName;
-        $this->documents = $documents;
+        $this->modelClass = $modelClass;
+        $this->modelKeys = $modelKeys;
     }
 
     /**
      * Execute the job. This method is called by the queue worker.
+     * Dependencies are automatically injected by the container thanks to the change in QueueWorker.
+     *
+     * @param Client $client The MeiliSearch client instance.
+     * @param LoggerInterface $logger The logger instance.
      */
-    public function handle(): void
+    public function handle(Client $client, LoggerInterface $logger): void
     {
-        // Resolve dependencies inside handle() for maximum safety in long-running workers.
-        $this->client = app(Client::class);
-        $this->logger = app(LoggerInterface::class);
+        if (!class_exists($this->modelClass) || !is_subclass_of($this->modelClass, \Core\ORM\Model::class)) {
+            $logger->error("Invalid model class '{$this->modelClass}' in BulkIndexJob.");
+            $this->delete();
+            return;
+        }
 
-        $this->logger->info("Starting bulk index job for index '{$this->indexName}'.", ['docs_count' => count($this->documents)]);
-        $this->client->index($this->indexName)->addDocuments($this->documents);
-        $this->logger->info("Finished bulk index job for index '{$this->indexName}'.");
+        $models = $this->modelClass::findMany($this->modelKeys);
+
+        if ($models->isEmpty()) {
+            $logger->info("No models found for keys in BulkIndexJob for model '{$this->modelClass}'. Nothing to index.");
+            return;
+        }
+
+        // The toSearchableArray() method should be defined in the Searchable trait.
+        $documents = $models->map(fn ($model) => $model->toSearchableArray())->all();
+        $indexName = (new $this->modelClass())->searchableAs();
+
+        $logger->info("Starting bulk index job for index '{$indexName}'.", ['docs_count' => count($documents)]);
+        $client->index($indexName)->addDocuments($documents);
+        $logger->info("Finished bulk index job for index '{$indexName}'.");
     }
 
     /**
      * Handle a job failure. This overrides the default behavior in BaseJob.
      *
      * @param  \Throwable|null  $e
+     * @param  LoggerInterface $logger
      */
-    public function fail(Throwable $e = null): void
+    public function fail(Throwable $e = null, LoggerInterface $logger = null): void
     {
-        // Re-resolve logger in case it wasn't resolved in handle() due to an early error.
-        $this->logger = app(LoggerInterface::class);
-
-        if ($e) {
-            $this->logger->error(
-                "BulkIndexJob failed for index '{$this->indexName}': " . $e->getMessage(),
-                ['exception' => $e],
-            );
-        } else {
-            $this->logger->error("BulkIndexJob failed for index '{$this->indexName}' for an unknown reason.");
-        }
+        parent::fail($e);
     }
 
     /**
@@ -80,8 +87,8 @@ class BulkIndexJob extends BaseJob
     public function __serialize(): array
     {
         return [
-            'indexName' => $this->indexName,
-            'documents' => $this->documents,
+            'modelClass' => $this->modelClass,
+            'modelKeys' => $this->modelKeys,
         ];
     }
 
@@ -90,7 +97,7 @@ class BulkIndexJob extends BaseJob
      */
     public function __unserialize(array $data): void
     {
-        $this->indexName = $data['indexName'];
-        $this->documents = $data['documents'];
+        $this->modelClass = $data['modelClass'];
+        $this->modelKeys = $data['modelKeys'];
     }
 }

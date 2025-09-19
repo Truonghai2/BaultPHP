@@ -2,73 +2,76 @@
 
 namespace Core\Database\Swoole;
 
-use Ackintosh\Ganesha;
-use Core\Application;
-use Core\Exceptions\RedisException;
-use RuntimeException;
-use Swoole\ConnectionPool;
-use Swoole\Database\RedisConfig;
-use Swoole\Database\RedisPool;
+use Redis;
 use Throwable;
 
 /**
- * Class SwooleRedisPool
- * A static wrapper for the Swoole RedisPool to make it globally accessible.
+ * Manages a pool of Redis connections using a custom channel-based pool.
+ * This class extends BaseSwoolePool to provide Redis-specific logic for
+ * creating, pinging, and validating connections.
  */
-class SwooleRedisPool extends AbstractConnectionPool
+class SwooleRedisPool extends BaseSwoolePool
 {
-    protected static ?ConnectionPool $pool = null;
-    protected static ?Ganesha $ganesha = null;
-    protected static bool $circuitBreakerEnabled = false;
-    protected static string $serviceName = 'redis';
-    protected static int $poolSize = 0;
-
-    /**
-     * Initialize the Swoole Redis connection pool.
-     */
-    public static function init(array $config, int $poolSize, array $circuitBreakerConfig, Application $app, ?int $heartbeat = null): void
+    protected static function createConnection(string $name): mixed
     {
-        if (self::isInitialized()) {
-            return;
-        }
-
-        self::$poolSize = $poolSize;
-
-        $swooleConfig = (new RedisConfig())
-            ->withHost($config['host'] ?? '127.0.0.1')
-            ->withPort($config['port'] ?? 6379)
-            ->withDbIndex($config['database'] ?? 0)
-            ->withTimeout($config['timeout'] ?? 1.0);
-
-        if (!empty($config['password'])) {
-            $swooleConfig = $swooleConfig->withAuth((string) $config['password']);
-        }
-
-        self::$pool = new RedisPool($swooleConfig, $poolSize);
-        self::initializeCircuitBreaker($circuitBreakerConfig, $app);
-    }
-
-    /**
-     * Get a raw connection from the pool and verify it's alive.
-     * @return \Redis The connection object.
-     * @throws Throwable If the connection is not healthy.
-     */
-    protected static function getAndVerifyConnection(): \Redis
-    {
-        if (!self::$pool) {
-            throw new RuntimeException('Redis Pool is not available.');
-        }
-
-        /** @var \Redis $redis */
-        $redis = self::$pool->get();
+        $config = static::$configs[$name];
+        $redis = new Redis();
 
         try {
-            $redis->ping();
-        } catch (\RedisException $e) {
-            $redis->close(); // Close the broken connection
-            throw new RedisException('Redis connection ping failed.', 0, $e);
+            $redis->connect(
+                $config['host'] ?? '127.0.0.1',
+                (int) ($config['port'] ?? 6379),
+                $config['timeout'] ?? 1.0,
+            );
+
+            if (!empty($config['password'])) {
+                $redis->auth($config['password']);
+            }
+
+            if (isset($config['database'])) {
+                $redis->select($config['database']);
+            }
+
+            $redis->lastUsedTime = time();
+            return $redis;
+        } catch (Throwable $e) {
+            static::$app->make(\Psr\Log\LoggerInterface::class)
+                ->error("Failed to create Redis connection for '{$name}': " . $e->getMessage());
+            return false;
+        }
+    }
+
+    protected static function ping(mixed $connection): bool
+    {
+        if (!$connection instanceof Redis) {
+            return false;
         }
 
-        return $redis;
+        // Giả sử tên pool là 'default' nếu không có cách nào xác định.
+        // Một cải tiến trong tương lai có thể là truyền tên pool vào hàm ping.
+        $config = static::$configs['default'] ?? [];
+        $heartbeat = $config['heartbeat'] ?? 60;
+
+        if (isset($connection->lastUsedTime) && time() - $connection->lastUsedTime < $heartbeat) {
+            return true;
+        }
+
+        try {
+            // Lệnh PING của Redis sẽ trả về "+PONG" hoặc ném exception nếu thất bại.
+            $connection->ping();
+            $connection->lastUsedTime = time();
+            return true;
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
+    protected static function isValid(mixed $connection): bool
+    {
+        if ($connection instanceof Redis) {
+            // Không trả về pool nếu đang trong một transaction.
+            return !$connection->getMode() == Redis::MULTI;
+        }
+        return false;
     }
 }

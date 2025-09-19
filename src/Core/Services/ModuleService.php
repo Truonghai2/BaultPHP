@@ -3,9 +3,12 @@
 namespace Core\Services;
 
 use Core\Cache\CacheManager;
+use Core\Exceptions\Module\ModuleDependencyException;
 use Core\Exceptions\Module\ModuleNotFoundException;
-use Core\Filesystem\Filesystem; // Import CacheManager
+use Core\Filesystem\Filesystem;
+use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
+use Symfony\Component\Process\Process;
 
 /**
  * Handles business logic for managing modules.
@@ -13,12 +16,12 @@ use Modules\Admin\Infrastructure\Models\Module;
 class ModuleService
 {
     protected string $modulesPath;
-    private const CACHE_KEY = 'all_modules_list'; // Khóa cache cho danh sách module
-    private const CACHE_TTL = 300; // Thời gian sống của cache: 5 phút (300 giây)
+    private const CACHE_KEY = 'all_modules_list';
+    private const CACHE_TTL = 300;
 
     public function __construct(
         protected Filesystem $fs,
-        protected CacheManager $cache, // Inject CacheManager
+        protected CacheManager $cache,
     ) {
         $this->modulesPath = base_path('Modules');
     }
@@ -30,7 +33,6 @@ class ModuleService
      */
     public function getModules(): array
     {
-        // 1. Thử lấy dữ liệu từ cache trước
         if ($cachedModules = $this->cache->get(self::CACHE_KEY)) {
             return $cachedModules;
         }
@@ -55,6 +57,7 @@ class ModuleService
                     'version' => $dbModule->version,
                     'description' => $dbModule->description,
                     'enabled' => $dbModule->enabled,
+                    'status' => $dbModule->status,
                 ];
             } else {
                 $jsonPath = $this->modulesPath . '/' . $name . '/module.json';
@@ -67,11 +70,11 @@ class ModuleService
                     'version' => $meta['version'] ?? '1.0.0',
                     'description' => $meta['description'] ?? 'No description provided.',
                     'enabled' => $meta['enabled'] ?? false,
+                    'status' => 'new',
                 ];
             }
         }
 
-        // 2. Lưu kết quả vào cache trước khi trả về
         $this->cache->set(self::CACHE_KEY, $allModules, self::CACHE_TTL);
 
         return $allModules;
@@ -130,10 +133,9 @@ class ModuleService
         // Xóa khỏi DB bằng ORM
         Module::where('name', $moduleName)->delete();
 
-        // Xóa thư mục
         $this->fs->deleteDirectory($dir);
 
-        $this->cache->forget(self::CACHE_KEY); // Xóa cache sau khi xóa module
+        $this->cache->forget(self::CACHE_KEY);
     }
 
     /**
@@ -160,16 +162,67 @@ class ModuleService
             return;
         }
 
-        // TODO: Thêm logic kiểm tra các yêu cầu (requirements) ở đây.
-
         Module::create([
             'name' => $moduleName,
             'version' => $meta['version'] ?? '1.0.0',
             'enabled' => $meta['enabled'] ?? false,
-            'status' => 'installed',
+            'status' => 'installing_dependencies',
             'description' => $meta['description'] ?? '',
         ]);
 
+        InstallModuleDependenciesJob::dispatch($moduleName);
+
         $this->cache->forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Cài đặt các thư viện mà module yêu cầu thông qua Composer.
+     *
+     * @param string $moduleName Tên module đang được cài đặt.
+     * @param array $dependencies Danh sách các yêu cầu từ module.json.
+     * @throws ModuleDependencyException Nếu quá trình cài đặt thất bại.
+     */
+    public function handleDependencies(string $moduleName, array $dependencies): void
+    {
+        if (empty($dependencies)) {
+            return;
+        }
+
+        $packages = array_filter($dependencies, function ($key) {
+            return !in_array($key, ['php'], true) && !str_starts_with($key, 'ext-');
+        }, ARRAY_FILTER_USE_KEY);
+
+        if (empty($packages)) {
+            return;
+        }
+
+        $command = [$this->findComposer(), 'require'];
+        foreach ($packages as $package => $version) {
+            $command[] = "{$package}:{$version}";
+        }
+
+        $command[] = '--no-interaction';
+        $command[] = '--no-progress';
+        $command[] = '--no-plugins';
+        $command[] = '--no-scripts';
+        $command[] = '--with-all-dependencies';
+
+        $process = new Process($command, base_path(), null, null, 300);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            throw new ModuleDependencyException(
+                "Không thể cài đặt các thư viện cho module '{$moduleName}'. Lỗi Composer: " . $process->getErrorOutput(),
+            );
+        }
+    }
+
+    /**
+     * Tìm đường dẫn thực thi của Composer.
+     */
+    private function findComposer(): string
+    {
+        // Ưu tiên composer.phar trong thư mục gốc nếu có
+        return $this->fs->exists(base_path('composer.phar')) ? PHP_BINARY . ' composer.phar' : 'composer';
     }
 }

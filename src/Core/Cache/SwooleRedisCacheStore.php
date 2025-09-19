@@ -2,20 +2,27 @@
 
 namespace Core\Cache;
 
-use Core\Database\Swoole\SwooleRedisPool;
+use Amp\Future;
+use Amp\Redis\SetOptions;
+use Core\Redis\FiberRedisManager;
 use DateInterval;
 use DateTimeInterface;
 use Psr\SimpleCache\CacheInterface;
+use Throwable;
 
 /**
  * Một Cache Store implement PSR-16, được tối ưu cho môi trường Swoole
- * bằng cách sử dụng connection pool.
+ * bằng cách sử dụng FiberRedisManager và connection pool bất đồng bộ.
  */
 class SwooleRedisCacheStore implements CacheInterface
 {
     protected string $prefix;
 
-    public function __construct(string $prefix = '')
+    /**
+     * @param FiberRedisManager $redisManager The asynchronous Redis connection pool manager.
+     * @param string $prefix A prefix for all cache keys.
+     */
+    public function __construct(protected FiberRedisManager $redisManager, string $prefix = '')
     {
         $this->setPrefix($prefix);
     }
@@ -27,64 +34,85 @@ class SwooleRedisCacheStore implements CacheInterface
 
     public function get($key, $default = null)
     {
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
-            $value = $redis->get($this->prefix . $key);
-            if ($value === false || $value === null) {
+            $redis = $this->redisManager->get();
+            $value = Future\await($redis->get($this->prefix . $key));
+
+            if ($value === null) {
                 return $default;
             }
-            // Dữ liệu được lưu dưới dạng chuỗi, cần unserialize để lấy lại giá trị gốc.
+
             return unserialize($value);
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
     public function set($key, $value, $ttl = null)
     {
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
+            $redis = $this->redisManager->get();
             $serialized = serialize($value);
             $seconds = $this->getSeconds($ttl);
 
             if ($seconds <= 0) {
-                // Theo chuẩn PSR-16, TTL <= 0 có nghĩa là xóa key.
-                return $this->delete($key);
+                return Future\await($redis->delete($this->prefix . $key)) > 0;
             }
 
-            return $redis->setex($this->prefix . $key, $seconds, $serialized);
+            $options = SetOptions::default()->withTtl($seconds);
+            Future\await($redis->set($this->prefix . $key, $serialized, $options));
+
+            return true;
+        } catch (Throwable) {
+            return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
     public function delete($key)
     {
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
-            return $redis->del($this->prefix . $key) > 0;
+            $redis = $this->redisManager->get();
+            return Future\await($redis->delete($this->prefix . $key)) > 0;
+        } catch (Throwable) {
+            return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
     public function clear()
     {
-        // Cảnh báo: Thao tác này có thể chậm trên CSDL lớn.
-        // Sử dụng SCAN để tránh block server Redis.
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
-            $iterator = null;
-            do {
-                $keys = $redis->scan($iterator, $this->prefix . '*');
-                if (!empty($keys)) {
-                    // Xóa các key tìm thấy
-                    $redis->del($keys);
-                }
-            } while ($iterator > 0);
+            $redis = $this->redisManager->get();
+            $iterator = $redis->scan($this->prefix . '*');
+            $keysToDelete = [];
+            foreach ($iterator as $key) {
+                $keysToDelete[] = $key;
+            }
+
+            if (!empty($keysToDelete)) {
+                Future\await($redis->delete(...$keysToDelete));
+            }
+
             return true;
+        } catch (Throwable) {
+            return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
@@ -95,19 +123,27 @@ class SwooleRedisCacheStore implements CacheInterface
             return [];
         }
 
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
+            $redis = $this->redisManager->get();
             $prefixedKeys = array_map(fn ($k) => $this->prefix . $k, $keys);
-            $values = $redis->mget($prefixedKeys);
-            $results = [];
-            foreach ($keys as $index => $key) {
-                $results[$key] = (isset($values[$index]) && $values[$index] !== false)
-                    ? unserialize($values[$index])
-                    : $default;
+            $values = Future\await($redis->getMultiple($prefixedKeys));
+
+            $results = array_fill_keys($keys, $default);
+            $prefixLength = strlen($this->prefix);
+
+            foreach ($values as $prefixedKey => $value) {
+                if ($value !== null) {
+                    $originalKey = substr($prefixedKey, $prefixLength);
+                    $results[$originalKey] = unserialize($value);
+                }
             }
+
             return $results;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
@@ -118,23 +154,29 @@ class SwooleRedisCacheStore implements CacheInterface
             return true;
         }
 
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
-            $redis->multi(\Redis::PIPELINE);
+            $redis = $this->redisManager->get();
             $seconds = $this->getSeconds($ttl);
+            $data = [];
+
             foreach ($values as $key => $value) {
-                if ($seconds > 0) {
-                    $redis->setex($this->prefix . $key, $seconds, serialize($value));
-                } else {
-                    $redis->del($this->prefix . $key);
-                }
+                $data[$this->prefix . $key] = serialize($value);
             }
-            $redis->exec();
+
+            if ($seconds > 0) {
+                Future\await($redis->setMultiple($data, SetOptions::default()->withTtl($seconds)));
+            } else {
+                Future\await($redis->delete(...array_keys($data)));
+            }
+
             return true;
-        } catch (\Throwable) {
+        } catch (Throwable) {
             return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
@@ -145,23 +187,33 @@ class SwooleRedisCacheStore implements CacheInterface
             return true;
         }
 
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
+            $redis = $this->redisManager->get();
             $prefixedKeys = array_map(fn ($k) => $this->prefix . $k, $keys);
-            $redis->del($prefixedKeys);
+            Future\await($redis->delete(...$prefixedKeys));
             return true;
+        } catch (Throwable) {
+            return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
     public function has($key)
     {
-        $redis = SwooleRedisPool::get();
+        $redis = null;
         try {
-            return (bool) $redis->exists($this->prefix . $key);
+            $redis = $this->redisManager->get();
+            return Future\await($redis->exists($this->prefix . $key)) > 0;
+        } catch (Throwable) {
+            return false;
         } finally {
-            SwooleRedisPool::put($redis);
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
         }
     }
 
@@ -176,8 +228,7 @@ class SwooleRedisCacheStore implements CacheInterface
         }
 
         if (is_null($ttl)) {
-            // Giá trị mặc định rất lớn, coi như là "vĩnh viễn".
-            return 31536000; // 1 năm
+            return 31536000;
         }
 
         return (int) $ttl;

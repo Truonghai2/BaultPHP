@@ -2,95 +2,77 @@
 
 namespace Core\Database\Swoole;
 
-use Ackintosh\Ganesha;
-use Core\Application;
-use Core\Debug\TraceablePdo;
 use PDO;
-use RuntimeException;
-use Swoole\ConnectionPool;
-use Swoole\Database\PDOConfig;
-use Swoole\Database\PDOPool;
 use Throwable;
 
 /**
- * Manages a pool of PDO connections for a Swoole server.
- *
- * This class is a static wrapper around the native Swoole PDOPool, making it
- * globally accessible and integrating it with the application's circuit breaker.
+ * Manages a pool of PDO connections using a custom channel-based pool.
+ * This class extends BaseSwoolePool to provide PDO-specific logic for
+ * creating, pinging, and validating connections.
  */
-class SwoolePdoPool extends AbstractConnectionPool
+class SwoolePdoPool extends BaseSwoolePool
 {
-    protected static ?ConnectionPool $pool = null;
-    protected static ?Ganesha $ganesha = null;
-    protected static bool $circuitBreakerEnabled = false;
-    protected static string $serviceName = 'database';
-    protected static int $poolSize = 0;
-
-    /**
-     * Initializes the connection pool.
-     *
-     * @param array $config The database connection configuration.
-     */
-    public static function init(array $config, int $poolSize, array $circuitBreakerConfig, Application $app, ?int $heartbeat = 60): void
+    protected static function createConnection(string $name): mixed
     {
-        if (self::isInitialized()) {
-            return;
+        $config = static::$configs[$name];
+        $dsn = sprintf(
+            '%s:host=%s;port=%d;dbname=%s;charset=%s',
+            $config['driver'],
+            $config['write']['host'] ?? $config['host'],
+            $config['port'],
+            $config['database'],
+            $config['charset'],
+        );
+
+        $options = [
+            PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES => false,
+        ];
+
+        try {
+            $pdo = new PDO($dsn, $config['username'], $config['password'], $options);
+            $pdo->lastUsedTime = time();
+            return $pdo;
+        } catch (Throwable $e) {
+            static::$app->make(\Psr\Log\LoggerInterface::class)
+                ->error("Failed to create PDO connection for '{$name}': " . $e->getMessage());
+            return false;
         }
-
-        self::$app = $app;
-        self::$poolSize = $poolSize;
-
-        $host = $config['write']['host'] ?? $config['host'] ?? '127.0.0.1';
-
-        $swooleConfig = (new PDOConfig())
-            ->withDriver($config['driver'] ?? 'mysql')
-            ->withHost($host)
-            ->withPort($config['port'] ?? 3306)
-            ->withDbName($config['database'] ?? '')
-            ->withCharset($config['charset'] ?? 'utf8mb4')
-            ->withUsername($config['username'] ?? '')
-            ->withPassword($config['password'] ?? '');
-
-        self::$pool = new PDOPool($swooleConfig, $poolSize);
-
-        if (property_exists(self::$pool, 'heartbeat')) {
-            self::$pool->heartbeat = (float) $heartbeat;
-        }
-        self::initializeCircuitBreaker($circuitBreakerConfig, $app);
     }
 
-    /**
-     * Get a raw connection from the pool and verify it's alive.
-     * @return \PDO|\Swoole\Database\PDOProxy The connection object.
-     * @throws Throwable If the connection is not healthy.
-     */
-    protected static function getAndVerifyConnection(): mixed
+    protected static function ping(mixed $connection): bool
     {
-        if (!self::$pool) {
-            throw new RuntimeException('PDO Pool is not available.');
+        if (!$connection instanceof PDO) {
+            return false;
         }
 
-        /** @var PDO $connection */
-        $connection = self::$pool->get();
+        $config = static::$configs[static::getConnectionName($connection)] ?? [];
+        $heartbeat = $config['heartbeat'] ?? 60;
 
-        // Nếu debug được bật, wrap connection trong TraceablePdo
-        if (config('debug.enabled', false) && self::$app->bound(\Core\Debug\DebugManager::class)) {
-            /** @var \Core\Debug\DebugManager $debugManager */
-            $debugManager = self::$app->make(\Core\Debug\DebugManager::class);
-            if ($debugManager->isEnabled()) {
-                $connection = new TraceablePdo($connection, $debugManager);
-            }
+        if (isset($connection->lastUsedTime) && time() - $connection->lastUsedTime < $heartbeat) {
+            return true;
         }
 
         try {
-            // A simple, low-overhead query to check if the connection is still alive.
-            $connection->getAttribute(\PDO::ATTR_SERVER_INFO);
-        } catch (Throwable $e) {
-            // If the connection is dead, we don't put it back in the pool.
-            // The pool will create a new one when needed.
-            throw new RuntimeException('PDO connection is no longer alive.', 0, $e);
+            $connection->query('SELECT 1');
+            $connection->lastUsedTime = time();
+            return true;
+        } catch (Throwable) {
+            return false;
         }
+    }
 
-        return $connection;
+    protected static function isValid(mixed $connection): bool
+    {
+        if ($connection instanceof PDO) {
+            return !$connection->inTransaction();
+        }
+        return false;
+    }
+
+    private static function getConnectionName(PDO $pdo): ?string
+    {
+        return 'default';
     }
 }

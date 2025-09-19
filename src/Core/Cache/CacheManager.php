@@ -48,9 +48,15 @@ class CacheManager
      */
     protected function createRedisDriver(array $config): Repository
     {
-        // Lấy kết nối Redis thông qua RedisManager
-        $connection = $this->app->make('redis')->connection($config['connection'] ?? null);
-        $store = new RedisStore($connection, $this->getPrefix($config));
+        $isSwooleFiber = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+
+        if ($isSwooleFiber && $this->app->bound(\Core\Redis\FiberRedisManager::class)) {
+            $redisManager = $this->app->make(\Core\Redis\FiberRedisManager::class);
+            $store = new SwooleRedisCacheStore($redisManager, $this->getPrefix($config));
+        } else {
+            $connection = $this->app->make('redis.legacy')->connection($config['connection'] ?? null);
+            $store = new RedisStore($connection, $this->getPrefix($config));
+        }
         return new Repository($store);
     }
 
@@ -62,8 +68,6 @@ class CacheManager
      */
     protected function createFileDriver(array $config): Repository
     {
-        // Giả định rằng 'files' đã được bind vào container.
-        // Nếu chưa, bạn cần tạo một FilesystemServiceProvider.
         $filesystem = $this->app->make(Filesystem::class);
 
         $store = new FileStore($filesystem, $config['path']);

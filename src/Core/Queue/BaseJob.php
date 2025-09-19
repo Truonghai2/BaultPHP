@@ -52,11 +52,11 @@ abstract class BaseJob implements JobContract, \Serializable
      * This can be overridden by the child class for custom failure logic.
      *
      * @param \Throwable|null $e
+     * @param LoggerInterface|null $logger Injected by the container.
      */
-    public function fail(Throwable $e = null): void
+    public function fail(Throwable $e = null, LoggerInterface $logger = null): void
     {
-        if ($e && app()->has(LoggerInterface::class)) {
-            $logger = app(LoggerInterface::class);
+        if ($e && $logger) {
             $logger->error(
                 static::class . ' failed: ' . $e->getMessage(),
                 ['exception' => $e],

@@ -15,35 +15,37 @@ use Throwable;
  */
 class DatabaseTransactionMiddleware implements CommandMiddleware
 {
-    private PDO $pdo;
+    private Connection $connection;
 
     /**
      * DatabaseTransactionMiddleware constructor.
      * Initializes the PDO connection for database transactions.
      */
-    public function __construct()
+    public function __construct(Connection $connection)
     {
-        $this->pdo = Connection::get();
+        $this->connection = $connection;
     }
 
     /**
      * Handle the command execution within a database transaction.
      *
-     * @param Command $command
+     * @param Command  $command
      * @param callable $next
      * @return mixed
      * @throws Throwable
      */
     public function handle(Command $command, callable $next)
     {
-        $this->pdo->beginTransaction();
+        $pdo = $this->connection->connection();
+
+        $pdo->beginTransaction();
 
         try {
             $result = $next($command);
-            $this->pdo->commit();
+            $pdo->commit();
             return $result;
         } catch (Throwable $e) {
-            $this->pdo->rollBack();
+            $pdo->rollBack();
             throw $e;
         }
     }

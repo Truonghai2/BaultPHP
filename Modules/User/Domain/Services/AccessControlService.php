@@ -2,11 +2,13 @@
 
 namespace Modules\User\Domain\Services;
 
+use Amp\Future;
+use Amp\Sync\KeyedMutex;
+use Amp\Sync\Mutex;
 use App\Exceptions\AuthorizationException;
 use Core\Application;
 use Core\Auth\Access\Response;
 use Core\Cache\CacheManager;
-use Core\ORM\Model;
 use Modules\User\Domain\Attributes\ParentContext;
 use Modules\User\Infrastructure\Models\Context;
 use Modules\User\Infrastructure\Models\RoleAssignment;
@@ -60,6 +62,9 @@ class AccessControlService
     /** @var Context|null */
     private ?Context $systemContext = null;
 
+    /** @var KeyedMutex|null */
+    private ?KeyedMutex $permissionBuildMutex = null;
+
     /**
      * @param Application $app The application container.
      * @param CacheManager|null $cacheManager The cache manager. Can be null to operate without a
@@ -70,6 +75,10 @@ class AccessControlService
         ?CacheManager $cacheManager = null,
     ) {
         $this->cacheStore = $cacheManager?->store();
+        // Chỉ khởi tạo mutex nếu chúng ta đang trong môi trường async thực sự
+        if (class_exists(Mutex::class)) {
+            $this->permissionBuildMutex = new KeyedMutex();
+        }
     }
 
     /**
@@ -93,7 +102,7 @@ class AccessControlService
      *
      * @param User $user The user to check.
      * @param string $permissionName The name of the permission.
-     * @param Model|Context|null $context The context (e.g., a Post model, a Course model).
+     * @param \Core\ORM\Model|Context|null $context The context (e.g., a Post model, a Course model).
      */
     public function check(User $user, string $permissionName, $context = null): bool
     {
@@ -167,7 +176,7 @@ class AccessControlService
      *
      * @param User $user The user to check.
      * @param string $roleName The name of the role.
-     * @param Model|Context|null $context The context.
+     * @param \Core\ORM\Model|Context|null $context The context.
      */
     public function hasRole(User $user, string $roleName, $context = null): bool
     {
@@ -287,9 +296,8 @@ class AccessControlService
      * Resolves a model, object, or null into a concrete Context instance.
      * If a context for a model does not exist, it will be created automatically.
      */
-    public function resolveContext($context): Context
+    public function resolveContext(mixed $context): Context
     {
-        // 1. Handle null/default case (system context) with caching
         if ($context === null) {
             if ($this->systemContext === null) {
                 /** @var Context $systemContext */
@@ -299,30 +307,24 @@ class AccessControlService
             return $this->systemContext;
         }
 
-        // 2. Handle if it's already a Context object
         if ($context instanceof Context) {
             return $context;
         }
 
-        // 3. Handle Model case
-        if ($context instanceof Model) {
+        if ($context instanceof \Core\ORM\Model) {
             $level = strtolower(basename(str_replace('\\', '/', get_class($context))));
             $instanceId = $context->getKey();
             $cacheKey = "{$level}:{$instanceId}";
 
-            // 3a. Check in-request cache
             if (isset($this->resolvedContextCache[$cacheKey])) {
                 return $this->resolvedContextCache[$cacheKey];
             }
 
-            // 3b. Use firstOrNew to be more atomic and avoid race conditions.
-            // This is paired with a unique DB index on [context_level, instance_id].
             $attributes = ['context_level' => $level, 'instance_id' => $instanceId];
 
             /** @var Context $foundOrNewContext */
             $foundOrNewContext = Context::firstOrNew($attributes);
 
-            // 3c. If it's a new model (doesn't exist in DB), we need to fill in parent details and save.
             if (!$foundOrNewContext->exists) {
                 $parentContext = $this->resolveParentContext($context);
 
@@ -373,7 +375,7 @@ class AccessControlService
      * Determines the parent context for a given model.
      * Uses the `#[ParentContext]` attribute for maximum flexibility.
      */
-    private function resolveParentContext(Model $model): Context
+    private function resolveParentContext(\Core\ORM\Model $model): Context
     {
         $className = get_class($model);
 
@@ -394,7 +396,7 @@ class AccessControlService
 
         if ($parentMethod) {
             $parentModel = $parentMethod->invoke($model);
-            if ($parentModel instanceof Model) {
+            if ($parentModel instanceof \Core\ORM\Model) {
                 return $this->resolveContext($parentModel);
             }
         }
@@ -427,53 +429,64 @@ class AccessControlService
             }
         }
 
-        // 2. If cache is missed, use a lock to prevent Cache Stampede.
-        // This ensures only one process rebuilds the cache at a time.
-        $lock = $this->app->make(CacheManager::class)->lock("lock:build_perms:{$user->id}", 10);
+        // 2. If cache is missed, use a non-blocking lock to prevent Cache Stampede.
+        $lock = $this->permissionBuildMutex?->acquire($user->id);
 
-        $permissionsData = $lock->block(5, function () use ($user, $cacheKey) {
-            // 2a. Double-check inside the lock in case another process built the cache while we waited.
+        try {
+            // This will pause the current Fiber without blocking the worker thread.
+            if ($lock) {
+                Future\await([$lock]);
+            }
+
+            // 2a. Double-check inside the lock in case another Fiber built the cache while we waited.
             if ($this->cacheStore) {
                 $cached = $this->cacheStore->get($cacheKey);
                 if ($cached) {
-                    return json_decode($cached, true);
+                    $this->permissionCache[$user->id] = json_decode($cached, true);
+                    return;
                 }
             }
 
-            // 2b. Tối ưu hóa: Xây dựng quyền từ CSDL bằng một truy vấn JOIN duy nhất.
-            // Điều này hiệu quả hơn nhiều so với việc eager-load nhiều quan hệ và xử lý trong PHP.
-            $results = RoleAssignment::query()
-                ->join('roles', 'role_assignments.role_id', '=', 'roles.id')
-                ->join('permission_role', 'roles.id', '=', 'permission_role.role_id')
-                ->join('permissions', 'permission_role.permission_id', '=', 'permissions.id')
-                ->where('role_assignments.user_id', '=', $user->id)
-                ->select('role_assignments.context_id', 'roles.id as role_id', 'roles.name as role_name', 'permissions.name as permission_name')
-                ->get();
+            // 2b. Build permissions from the database.
+            $permissionsData = $this->buildPermissionsFromDatabase($user);
 
-            $permissionsByContext = [];
-            foreach ($results as $row) {
-                $contextId = $row->context_id;
-
-                if (!isset($permissionsByContext[$contextId])) {
-                    $permissionsByContext[$contextId] = ['roles' => [], 'permissions' => []];
-                }
-
-                $permissionsByContext[$contextId]['roles'][$row->role_id] = $row->role_name;
-                $permissionsByContext[$contextId]['permissions'][$row->permission_name] = true;
-            }
-
-            $dataToCache = ['contexts' => $permissionsByContext];
-            // 2c. Store in the persistent cache with a configurable TTL.
+            // 2c. Store in the persistent cache.
             if ($this->cacheStore) {
                 $ttl = $this->app->make('config')->get('auth.cache.permissions_ttl', 3600);
-                $this->cacheStore->put($cacheKey, json_encode($dataToCache), $ttl);
+                $this->cacheStore->put($cacheKey, json_encode($permissionsData), $ttl);
             }
-
-            return $dataToCache;
-        });
+        } finally {
+            // 2d. Always release the lock.
+            $lock?->release();
+        }
 
         // 3. Populate the in-request cache.
         $this->permissionCache[$user->id] = $permissionsData;
+    }
+
+    private function buildPermissionsFromDatabase(User $user): array
+    {
+        $results = RoleAssignment::query()
+            ->join('roles', 'role_assignments.role_id', '=', 'roles.id')
+            ->join('permission_role', 'roles.id', '=', 'permission_role.role_id')
+            ->join('permissions', 'permission_role.permission_id', '=', 'permissions.id')
+            ->where('role_assignments.user_id', '=', $user->id)
+            ->select('role_assignments.context_id', 'roles.id as role_id', 'roles.name as role_name', 'permissions.name as permission_name')
+            ->get();
+
+        $permissionsByContext = [];
+        foreach ($results as $row) {
+            $contextId = $row->context_id;
+
+            if (!isset($permissionsByContext[$contextId])) {
+                $permissionsByContext[$contextId] = ['roles' => [], 'permissions' => []];
+            }
+
+            $permissionsByContext[$contextId]['roles'][$row->role_id] = $row->role_name;
+            $permissionsByContext[$contextId]['permissions'][$row->permission_name] = true;
+        }
+
+        return ['contexts' => $permissionsByContext];
     }
 
     /**

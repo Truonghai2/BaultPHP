@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'stack'),
+    'default' => env('LOG_CHANNEL', 'default_stack'),
 
     /*
     |--------------------------------------------------------------------------
@@ -28,15 +28,25 @@ return [
     */
 
     'channels' => [
-        'stack' => [
+        'default_stack' => [
             'driver' => 'stack',
-            'channels' => ['single'],
+            'channels' => ['async', 'sentry'],
+            'ignore_exceptions' => false,
+        ],
+        'sync_stack' => [
+            'driver' => 'stack',
+            'channels' => ['single', 'sentry'],
             'ignore_exceptions' => false,
         ],
 
         'sentry' => [
             'driver' => 'sentry',
             'level' => env('SENTRY_LOG_LEVEL', 'error'),
+        ],
+
+        'async' => [
+            'driver' => 'async', // Driver tùy chỉnh của chúng ta
+            'level' => env('LOG_LEVEL', 'debug'),
         ],
 
         'single' => [

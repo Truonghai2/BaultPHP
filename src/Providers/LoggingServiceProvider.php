@@ -3,10 +3,8 @@
 namespace App\Providers;
 
 use Core\Application;
-use Core\Logging\RequestProcessor;
+use Core\Logging\LogManager;
 use Core\Support\ServiceProvider;
-use Monolog\Processor\ProcessIdProcessor;
-use Monolog\Processor\WebProcessor;
 use Psr\Log\LoggerInterface;
 
 class LoggingServiceProvider extends ServiceProvider
@@ -19,27 +17,49 @@ class LoggingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton('log', function (Application $app) {
-            $config = $app->make('config')->get('logging');
-
-            $manager = new \Core\Logging\LogManager($app, $config ?? []);
-
-            $manager->pushProcessor(new ProcessIdProcessor());
-            $manager->pushProcessor(new WebProcessor());
-            $manager->pushProcessor($this->app->make(RequestProcessor::class));
-
-            return $manager;
+            return new LogManager($app);
         });
 
+        $this->app->alias('log', LogManager::class);
         $this->app->alias('log', LoggerInterface::class);
+
+        $this->app->singleton('log.sync', function (Application $app) {
+            $logManager = new LogManager($app);
+            $syncChannel = $this->getSyncChannel($app);
+            return $logManager->channel($syncChannel);
+        });
     }
 
     /**
-     * Boot the service provider.
+     * Lấy tên kênh log đồng bộ.
      *
-     * @return void
+     * Nó kiểm tra cấu hình kênh mặc định. Nếu mặc định là 'stack' hoặc 'async',
+     * nó sẽ tìm kênh không-phải-async đầu tiên trong stack. Mặc định là 'single'.
+     *
+     * @param Application $app
+     * @return string
      */
-    public function boot(): void
+    private function getSyncChannel(Application $app): string
     {
+        $config = $app->make('config');
+        $defaultChannel = $config->get('logging.default');
+
+        if ($defaultChannel === 'default_stack') {
+            $stackChannels = $config->get('logging.channels.default_stack.channels', []);
+            foreach ($stackChannels as $channel) {
+                $driver = $config->get("logging.channels.{$channel}.driver");
+                if ($driver !== 'async') {
+                    return $channel;
+                }
+            }
+        }
+
+        $defaultDriver = $config->get("logging.channels.{$defaultChannel}.driver");
+        if ($defaultDriver !== 'async') {
+            return $defaultChannel;
+        }
+
+        return 'single';
     }
 
     /**
@@ -49,6 +69,6 @@ class LoggingServiceProvider extends ServiceProvider
      */
     public function provides(): array
     {
-        return ['log', LoggerInterface::class];
+        return ['log', 'log.sync', LoggerInterface::class, LogManager::class];
     }
 }

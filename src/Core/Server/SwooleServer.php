@@ -4,11 +4,10 @@ namespace Core\Server;
 
 use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
-use Core\Contracts\PoolManager;
-use Core\Contracts\StatefulService;
 use Core\Contracts\Task\Task;
 use Core\Debug\DebugManager;
 use Core\Exceptions\ServiceUnavailableException;
+use Core\Foundation\StateResetter;
 use Core\Queue\DelayedJobScheduler;
 use Core\Server\Development\FileWatcher;
 use Psr\Http\Message\ResponseInterface;
@@ -30,6 +29,8 @@ class SwooleServer
     protected SwoolePsr7Bridge $psr7Bridge;
     protected HttpFoundationFactory $httpFoundationFactory;
     protected \Core\Contracts\Http\Kernel $kernel;
+    protected ?ConnectionPoolManager $poolManager = null;
+    protected StateResetter $stateResetter;
     protected ExceptionHandler $exceptionHandler;
     protected ?FileWatcher $fileWatcher = null;
     protected bool $isDebug = false;
@@ -52,7 +53,7 @@ class SwooleServer
         $this->server = new SwooleHttpServer($host, $port);
 
         $settings = $this->prepareServerSettings();
-        $ignoredKeys = ['host', 'port', 'watch', 'db_pool', 'redis_pool', 'watch_file'];
+        $ignoredKeys = ['host', 'port', 'watch', 'db_pool', 'redis_pool', 'watch_file', 'pools'];
         $validSwooleSettings = array_filter(
             $settings,
             fn ($key) => !in_array($key, $ignoredKeys, true),
@@ -123,14 +124,17 @@ class SwooleServer
         $isDevelopmentEnv = in_array($currentEnv, ['local', 'development'], true);
         $watchConfigExists = !empty($settings['watch']['directories']) && is_array($settings['watch']['directories']);
 
-        $settings['daemonize'] = false;
-
         return $settings;
     }
 
     public function start(): void
     {
         $this->registerServerEvents();
+
+        if ($this->fileWatcher && method_exists($this->fileWatcher, 'createProcess')) {
+            $this->server->addProcess($this->fileWatcher->createProcess($this->server));
+        }
+
         $this->server->start();
     }
 
@@ -150,6 +154,7 @@ class SwooleServer
     protected function registerServerEvents(): void
     {
         $this->server->on('start', [$this, 'onStart']);
+        $this->server->on('managerStart', [$this, 'onManagerStart']);
         $this->server->on('workerStart', [$this, 'onWorkerStart']);
         $this->server->on('shutdown', [$this, 'onShutdown']);
         $this->server->on('workerStop', [$this, 'onWorkerStop']);
@@ -162,7 +167,14 @@ class SwooleServer
     public function onStart(SwooleHttpServer $server): void
     {
         $this->getLogger()->info('Swoole HTTP server is started', ['url' => "http://{$server->host}:{$server->port}"]);
-        $this->fileWatcher?->start();
+    }
+
+    /**
+     * Called when the manager process starts. This is the ideal place to start custom processes.
+     */
+    public function onManagerStart(SwooleHttpServer $server): void
+    {
+        $this->getLogger()->info('Swoole Manager process has started.');
     }
 
     /**
@@ -216,10 +228,7 @@ class SwooleServer
 
             $this->transformResponse($response, $swooleResponse);
         } finally {
-            foreach ($this->app->getTagged(StatefulService::class) as $service) {
-                $service->resetState();
-            }
-
+            $this->stateResetter->reset();
             if ($this->app->bound(DebugManager::class)) {
                 /** @var DebugManager $debugManager */
                 $debugManager = $this->app->make(DebugManager::class);
@@ -237,20 +246,11 @@ class SwooleServer
                         ]);
 
                         $debugData = $debugManager->getData();
-                        /** @var \Core\Redis\FiberRedisManager $redisManager */
-                        $redisManager = $this->app->make('redis');
-                        $redisClient = null;
-                        try {
-                            $redisClient = $redisManager->get('default');
-                            $key = 'debug:requests:' . $requestId;
-                            $redisClient->set($key, json_encode($debugData), config('debug.expiration', 3600));
-                        } finally {
-                            if ($redisClient) {
-                                $redisManager->put($redisClient, 'default');
-                            }
-                        }
+                        $expiration = config('debug.expiration', 3600);
+                        $task = new \Core\Tasking\CacheDebugDataTask($requestId, $debugData, $expiration);
+                        $this->dispatchTask($task);
                     } catch (Throwable $e) {
-                        $this->getLogger()->error('Failed to save debug data to Redis.', ['exception' => $e]);
+                        $this->getLogger()->error('Failed to dispatch debug data caching task.', ['exception' => $e]);
                     }
                 }
             }
@@ -281,7 +281,11 @@ class SwooleServer
         );
 
         try {
-            $task = unserialize($data);
+            $task = unserialize($data, [
+                'allowed_classes' => [
+                    \Core\Tasking\LogTask::class,
+                ],
+            ]);
 
             if ($task instanceof Task) {
                 return $task->handle();
@@ -322,7 +326,7 @@ class SwooleServer
      */
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
-        EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
+        // Removed: EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
 
         $this->app->instance('swoole.server', $server);
 
@@ -337,12 +341,20 @@ class SwooleServer
 
             $this->kernel = $this->app->make(\Core\Contracts\Http\Kernel::class);
             $this->exceptionHandler = $this->app->make(ExceptionHandler::class);
+            $this->stateResetter = $this->app->make(StateResetter::class);
+            $this->poolManager = new ConnectionPoolManager(
+                $this->app,
+                $this->getLogger(),
+                $this->config,
+            );
 
             $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
             $this->getLogger()->info(
                 "Swoole {$workerType} started successfully",
                 ['worker_id' => $workerId, 'pid' => getmypid()],
             );
+
+            $this->poolManager->initializePools($server->taskworker);
 
             if (!$server->taskworker && $workerId === 0) {
                 if ($this->fileWatcher !== null) {
@@ -353,17 +365,16 @@ class SwooleServer
                 $checkInterval = config('queue.scheduler.check_interval', 1000);
                 if ($checkInterval > 0) {
                     $scheduler = $this->app->make(DelayedJobScheduler::class);
-                    $this->delayedJobTimerId = \Swoole\Timer::tick($checkInterval, $scheduler);
+                    $this->delayedJobTimerId = \Swoole\Timer::tick($checkInterval, function () use ($scheduler) {
+                        \Swoole\Coroutine::create(function () use ($scheduler) {
+                            // Removed: EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
+                            $scheduler();
+                        });
+                    });
                     $this->getLogger()->debug('[TRACE] Delayed job scheduler started on worker #0.', ['interval_ms' => $checkInterval]);
                 }
             }
 
-            \Swoole\Coroutine::create(function () {
-                foreach ($this->app->getTagged(PoolManager::class) as $manager) {
-                    $manager->warmup();
-                }
-                $this->getLogger()->debug('Connection pools warmed up.');
-            });
         } catch (Throwable $e) {
             try {
                 $this->getLogger()->critical(
@@ -387,11 +398,7 @@ class SwooleServer
      */
     public function onWorkerStop(SwooleHttpServer $server, int $workerId): void
     {
-        // Close all managed connection pools gracefully.
-        // This iterates through services tagged with `PoolManager`.
-        foreach ($this->app->getTagged(PoolManager::class) as $manager) {
-            $manager->close();
-        }
+        $this->poolManager?->closePools();
 
         if ($this->delayedJobTimerId !== null) {
             \Swoole\Timer::clear($this->delayedJobTimerId);
@@ -425,7 +432,6 @@ class SwooleServer
 
     protected function transformResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
-        // Thêm debug header nếu debug được bật
         if ($this->app->bound(DebugManager::class) && $this->app->make(DebugManager::class)->isEnabled()) {
             $requestId = $this->app->make('request_id');
             $response = $response->withHeader('X-Debug-ID', $requestId);

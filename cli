@@ -17,6 +17,10 @@ define('BAULT_START', microtime(true));
 
 require __DIR__.'/vendor/autoload.php';
 
+if (class_exists(\Revolt\EventLoop::class) && method_exists(\Revolt\EventLoop::class, 'disableShutdownHandling')) {
+    \Revolt\EventLoop::disableShutdownHandling();
+}
+
 /*
 |--------------------------------------------------------------------------
 | Create The Application

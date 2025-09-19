@@ -4,11 +4,7 @@ namespace Core\Session;
 
 use Core\Application;
 use Core\Contracts\StatefulService;
-use Core\Database\Swoole\SwooleRedisPool;
-use SessionHandlerInterface;
 use Symfony\Component\HttpFoundation\Session\Session;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler;
-use Symfony\Component\HttpFoundation\Session\Storage\Handler\PdoSessionHandler;
 use Symfony\Component\HttpFoundation\Session\Storage\NativeSessionStorage;
 
 class SessionManager implements StatefulService
@@ -16,6 +12,7 @@ class SessionManager implements StatefulService
     protected Application $app;
     protected array $config;
 
+    protected ?\Closure $handlerFactory = null;
     /**
      * The current session instance.
      * This is cached for the duration of a single request.
@@ -24,10 +21,11 @@ class SessionManager implements StatefulService
      */
     protected ?Session $session = null;
 
-    public function __construct(Application $app)
+    public function __construct(Application $app, ?callable $handlerFactory = null)
     {
         $this->app = $app;
         $this->config = $app->make('config')->get('session');
+        $this->handlerFactory = $handlerFactory;
     }
 
     /**
@@ -60,52 +58,13 @@ class SessionManager implements StatefulService
 
     protected function buildSession(): Session
     {
-        $handler = $this->createDriver($this->config['driver'] ?? 'file');
+        if (!$this->handlerFactory) {
+            throw new \RuntimeException('Session handler factory is not configured.');
+        }
+
+        $handler = call_user_func($this->handlerFactory);
         $storage = new NativeSessionStorage([], $handler);
 
         return new Session($storage);
-    }
-
-    protected function createDriver(string $driver): SessionHandlerInterface
-    {
-        return match ($driver) {
-            'redis' => $this->createRedisDriver(),
-            'database' => $this->createDatabaseDriver(),
-            default => $this->createFileDriver(),
-        };
-    }
-
-    protected function createFileDriver(): SessionHandlerInterface
-    {
-        return new NativeFileSessionHandler(
-            $this->config['files'] ?? storage_path('framework/sessions'),
-        );
-    }
-
-    protected function createDatabaseDriver(): SessionHandlerInterface
-    {
-        // Sử dụng PdoSessionHandler của Symfony để đảm bảo có cơ chế khóa (locking) an toàn
-        return new PdoSessionHandler(
-            $this->app->make(\PDO::class),
-            [
-                'db_table' => $this->config['table'] ?? 'sessions',
-                'db_id_col' => 'id',
-                'db_data_col' => 'payload',
-                'db_time_col' => 'last_activity',
-                'db_lifetime_col' => 'lifetime',
-            ],
-        );
-    }
-
-    protected function createRedisDriver(): SessionHandlerInterface
-    {
-        $isSwooleEnv = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
-
-        if ($isSwooleEnv && class_exists(SwooleRedisPool::class) && SwooleRedisPool::isInitialized()) {
-            // RedisSessionHandler đã được viết tốt cho môi trường Swoole
-            return new RedisSessionHandler($this->config);
-        }
-
-        throw new \RuntimeException('Redis session driver is configured but is only supported in a Swoole environment with a configured Redis pool.');
     }
 }
