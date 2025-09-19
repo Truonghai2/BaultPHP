@@ -7,7 +7,7 @@ use Core\Exceptions\Module\InvalidModuleFileException;
 use Core\Exceptions\Module\InvalidModuleSignatureException;
 use Core\Exceptions\Module\InvalidModuleStructureException;
 use Core\Exceptions\Module\ModuleAlreadyExistsException;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Core\Support\Facades\Log;
 use Illuminate\Support\Str;
 use ZipArchive;

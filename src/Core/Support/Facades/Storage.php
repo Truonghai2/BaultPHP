@@ -10,7 +10,7 @@ namespace Core\Support\Facades;
  * @method static string url(string $path)
  * @method static void delete(string|array $paths)
  *
- * @see \Core\Filesystem\FilesystemManager
+ * @see \Core\FileSystem\FilesystemManager
  */
 class Storage extends Facade
 {

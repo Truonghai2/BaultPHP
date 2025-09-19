@@ -33,6 +33,11 @@ $app = new Application(
 $dotenv = Dotenv::createImmutable($app->basePath());
 $dotenv->safeLoad();
 
+// Disable shutdown handlers for Revolt and Amphp components to prevent deprecation warnings in Swoole.
+putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_HTTP_CLIENT_DISABLE_SHUTDOWN_HANDLER=1');
+
 Facade::setFacadeApplication($app);
 
 $cachedServicesPath = $app->bootstrapPath('cache/services.php');

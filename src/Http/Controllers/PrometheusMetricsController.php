@@ -2,6 +2,7 @@
 
 namespace Http\Controllers;
 
+use Core\Metrics\SwooleMetricsService;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
 use Core\Http\Controller;
@@ -14,64 +15,20 @@ use Psr\Http\Message\ResponseInterface;
  */
 class PrometheusMetricsController extends Controller
 {
-    public function __invoke(SwooleServer $server, ResponseFactory $responseFactory): ResponseInterface
-    {
-        $metrics = [];
-
-        // --- Database Pool Metrics ---
-        if (method_exists(SwoolePdoPool::class, 'getAllStats')) {
-            $dbPoolStats = SwoolePdoPool::getAllStats();
-            foreach ($dbPoolStats as $name => $stats) {
-                if (isset($stats['pool_size'])) {
-                    $metrics[] = $this->gauge(
-                        'bault_db_pool_connections_total',
-                        'Total connections configured for the pool.',
-                        $stats['pool_size'],
-                        ['pool' => $name],
-                    );
-                }
-                if (isset($stats['connections_in_use'])) {
-                    $metrics[] = $this->gauge(
-                        'bault_db_pool_connections_in_use',
-                        'Number of connections currently in use.',
-                        $stats['connections_in_use'],
-                        ['pool' => $name],
-                    );
-                }
-            }
+    public function __invoke(
+        SwooleServer $server,
+        ResponseFactory $responseFactory,
+        ?SwooleMetricsService $metricsService = null
+    ): ResponseInterface {
+        if ($metricsService === null) {
+            return $responseFactory->make('Metrics service is not available.', 503, ['Content-Type' => 'text/plain']);
         }
 
-        // --- Redis Pool Metrics ---
-        if (method_exists(SwooleRedisPool::class, 'getAllStats')) {
-            $redisPoolStats = SwooleRedisPool::getAllStats();
-            foreach ($redisPoolStats as $name => $stats) {
-                if (isset($stats['pool_size'])) {
-                    $metrics[] = $this->gauge(
-                        'bault_redis_pool_connections_total',
-                        'Total Redis connections configured for the pool.',
-                        $stats['pool_size'],
-                        ['pool' => $name],
-                    );
-                }
-                if (isset($stats['connections_in_use'])) {
-                    $metrics[] = $this->gauge(
-                        'bault_redis_pool_connections_in_use',
-                        'Number of Redis connections currently in use.',
-                        $stats['connections_in_use'],
-                        ['pool' => $name],
-                    );
-                }
-            }
-        }
+        // --- Cập nhật các metrics động (dynamic metrics) trước khi xuất ---
+        $this->updateDynamicMetrics($server, $metricsService);
 
-        // --- Swoole Server Metrics ---
-        $swooleStats = $server->stats();
-        $metrics[] = $this->gauge('bault_swoole_connections_active', 'Number of active TCP connections.', $swooleStats['connection_num'] ?? 0);
-        $metrics[] = $this->counter('bault_swoole_requests_total', 'Total number of requests received.', $swooleStats['request_count'] ?? 0);
-        $metrics[] = $this->gauge('bault_swoole_workers_idle', 'Number of idle worker processes.', $swooleStats['idle_worker_num'] ?? 0);
-        $metrics[] = $this->gauge('bault_swoole_task_queue_num', 'Number of tasks waiting in the task queue.', $swooleStats['task_queue_num'] ?? 0);
-
-        $body = implode("\n", $metrics);
+        // Lấy tất cả metrics đã được định dạng sẵn từ service
+        $body = $metricsService->getMetricsAsPrometheus();
 
         // Trả về response dạng text với Content-Type phù hợp
         return $responseFactory->make($body, 200, [
@@ -80,29 +37,34 @@ class PrometheusMetricsController extends Controller
     }
 
     /**
-     * Formats a metric line for Prometheus.
+     * Update metrics that change on every scrape, like gauges for current states.
      */
-    private function formatMetric(string $type, string $name, string $help, float|int $value, array $labels = []): string
+    private function updateDynamicMetrics(SwooleServer $server, SwooleMetricsService $metricsService): void
     {
-        $labelStr = '';
-        if (!empty($labels)) {
-            $labelParts = [];
-            foreach ($labels as $key => $val) {
-                $labelParts[] = sprintf('%s="%s"', $key, addslashes($val));
+        // --- Database Pool Metrics ---
+        if (method_exists(SwoolePdoPool::class, 'getAllStats')) {
+            $dbPoolStats = SwoolePdoPool::getAllStats();
+            foreach ($dbPoolStats as $name => $stats) {
+                $metricsService->setGauge('bault_db_pool_connections_total', $stats['pool_size'] ?? 0, ['pool' => $name]);
+                $metricsService->setGauge('bault_db_pool_connections_in_use', $stats['connections_in_use'] ?? 0, ['pool' => $name]);
             }
-            $labelStr = '{' . implode(',', $labelParts) . '}';
         }
 
-        return sprintf("# HELP %s %s\n# TYPE %s %s\n%s%s %s", $name, $help, $name, $type, $name, $labelStr, $value);
-    }
+        // --- Redis Pool Metrics ---
+        if (method_exists(SwooleRedisPool::class, 'getAllStats')) {
+            $redisPoolStats = SwooleRedisPool::getAllStats();
+            foreach ($redisPoolStats as $name => $stats) {
+                $metricsService->setGauge('bault_redis_pool_connections_total', $stats['pool_size'] ?? 0, ['pool' => $name]);
+                $metricsService->setGauge('bault_redis_pool_connections_in_use', $stats['connections_in_use'] ?? 0, ['pool' => $name]);
+            }
+        }
 
-    private function gauge(string $name, string $help, float|int $value, array $labels = []): string
-    {
-        return $this->formatMetric('gauge', $name, $help, $value, $labels);
-    }
-
-    private function counter(string $name, string $help, float|int $value, array $labels = []): string
-    {
-        return $this->formatMetric('counter', $name, $help, $value, $labels);
+        // --- Swoole Server Metrics ---
+        $swooleStats = $server->stats();
+        $metricsService->setGauge('bault_swoole_connections_active', $swooleStats['connection_num'] ?? 0);
+        $metricsService->setGauge('bault_swoole_workers_idle', $swooleStats['idle_worker_num'] ?? 0);
+        $metricsService->setGauge('bault_swoole_task_queue_num', $swooleStats['task_queue_num'] ?? 0);
+        // `request_count` là một counter, nó nên được tăng lên ở mỗi request, không phải set ở đây.
+        // Ví dụ: $metricsService->increment('bault_swoole_requests_total'); trong middleware.
     }
 }

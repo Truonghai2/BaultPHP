@@ -3,7 +3,7 @@
 namespace Core\Services;
 
 use Core\Exceptions\Module\ModuleNotFoundException;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Core\ORM\Connection;
 use PDO;
 

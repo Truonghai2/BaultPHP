@@ -5,7 +5,7 @@ namespace Core\View;
 use Core\Contracts\StatefulService;
 use Core\Contracts\View\Factory as FactoryContract;
 use Core\Contracts\View\View as ViewContract;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 
 class ViewFactory implements FactoryContract, StatefulService
 {

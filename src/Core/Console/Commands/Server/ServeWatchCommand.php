@@ -3,7 +3,7 @@
 namespace Core\Console\Commands\Server;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Filesystem\FileSystemWatcher;
+use Core\FileSystem\FilesystemWatcher;
 use Symfony\Component\Process\PhpExecutableFinder;
 use Symfony\Component\Process\Process;
 

@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Core\Cache\CacheManager;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Core\Http\Redirector;
 use Core\ORM\Connection;
 use Core\Support\Facades\Cache;

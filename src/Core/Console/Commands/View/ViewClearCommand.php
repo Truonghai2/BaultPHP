@@ -4,7 +4,7 @@ namespace Core\Console\Commands\View;
 
 use Core\Config;
 use Core\Console\Contracts\BaseCommand;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use InvalidArgumentException;
 
 class ViewClearCommand extends BaseCommand

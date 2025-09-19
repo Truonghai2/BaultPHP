@@ -2,7 +2,7 @@
 
 namespace Core\View;
 
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 
 class Compiler
 {

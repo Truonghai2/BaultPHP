@@ -4,7 +4,7 @@ namespace Core\Cache;
 
 use Core\Application;
 use Core\Contracts\Cache\Store;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use InvalidArgumentException;
 
 class CacheManager

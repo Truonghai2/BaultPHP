@@ -6,7 +6,6 @@ use Core\BaseServiceProvider;
 use Core\Console\Commands\Queue\QueueFailedCommand;
 use Core\Console\Commands\Queue\QueueFlushCommand;
 use Core\Console\Commands\Queue\QueueForgetCommand;
-use Core\Console\Commands\Queue\QueueRetryCommand;
 use Core\Console\Commands\Queue\WorkCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
 use Core\Queue\Drivers\RabbitMQQueue;
@@ -30,7 +29,7 @@ class QueueServiceProvider extends BaseServiceProvider
         QueueFailedCommand::class,
         QueueFlushCommand::class,
         QueueForgetCommand::class,
-        QueueRetryCommand::class,
+        \Core\Console\Commands\Queue\QueueRetryCommand::class,
     ];
 
     /**
@@ -44,6 +43,18 @@ class QueueServiceProvider extends BaseServiceProvider
         $this->registerWorker();
         $this->registerFailedJobServices();
         $this->registerConnectors(); // Moved from boot to register
+
+        // Register the AMQP connection as a singleton to be reused.
+        $this->app->singleton(AMQPStreamConnection::class, function ($app) {
+            $config = $app->make('config')->get('queue.connections.rabbitmq');
+            return new AMQPStreamConnection(
+                $config['host'],
+                $config['port'],
+                $config['user'],
+                $config['password'],
+                $config['vhost'] ?? '/'
+            );
+        });
         $this->registerCommands();
     }
 
@@ -106,14 +117,7 @@ class QueueServiceProvider extends BaseServiceProvider
         });
 
         $manager->addConnector('rabbitmq', function ($config) {
-            $connection = new AMQPStreamConnection(
-                $config['host'],
-                $config['port'],
-                $config['user'],
-                $config['password'],
-                $config['vhost'] ?? '/',
-            );
-
+            $connection = $this->app->make(AMQPStreamConnection::class);
             $defaultQueue = $config['queue'] ?? 'default';
             $exchangeOptions = $config['options']['exchange'] ?? [];
 

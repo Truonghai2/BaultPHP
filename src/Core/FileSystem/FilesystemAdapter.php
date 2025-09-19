@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Filesystem;
+namespace Core\FileSystem;
 
 use Core\Contracts\Filesystem\Filesystem as FilesystemContract;
 use League\Flysystem\Filesystem as Flysystem;

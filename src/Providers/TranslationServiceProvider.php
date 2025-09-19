@@ -2,7 +2,7 @@
 
 namespace App\Providers;
 
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\Translation\FileLoader;
 use Illuminate\Translation\Translator;

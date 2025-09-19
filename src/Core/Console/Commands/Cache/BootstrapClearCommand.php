@@ -3,7 +3,7 @@
 namespace Core\Console\Commands\Cache;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 
 class BootstrapClearCommand extends BaseCommand
 {

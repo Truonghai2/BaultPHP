@@ -11,20 +11,23 @@
  * @see https://www.php.net/manual/en/opcache.preloading.php
  */
 
+// Set environment variables as early as possible to prevent deprecated shutdown handlers.
+putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
+
 if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'micro'], true)) {
     // Prevent this script from being executed in a web context.
     return;
 }
 
-echo "[Preloading] Starting BaultPHP preloading...\n";
-
-$preloadCount = 0;
 $preloadStartTime = microtime(true);
+$preloadCount = 0;
 
 // Directories to preload. Adjust this list as needed for your application.
 $paths = [
     __DIR__ . '/src',
     __DIR__ . '/config',
+    __DIR__ . '/database/seeders',
 ];
 
 foreach ($paths as $path) {
@@ -45,4 +48,6 @@ foreach ($paths as $path) {
     }
 }
 
-echo sprintf("[Preloading] Preloaded %d files in %.2fms\n", $preloadCount, (microtime(true) - $preloadStartTime) * 1000);
+$duration = (microtime(true) - $preloadStartTime) * 1000;
+
+echo sprintf("[Preloading] Preloaded %d files in %.2fms\n", $preloadCount, $duration);

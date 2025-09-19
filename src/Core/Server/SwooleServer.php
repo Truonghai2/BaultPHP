@@ -13,7 +13,6 @@ use Core\Server\Development\FileWatcher;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use Revolt\EventLoop;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Server as SwooleHttpServer;
@@ -326,8 +325,6 @@ class SwooleServer
      */
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
-        // Removed: EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
-
         $this->app->instance('swoole.server', $server);
 
         try {
@@ -366,10 +363,7 @@ class SwooleServer
                 if ($checkInterval > 0) {
                     $scheduler = $this->app->make(DelayedJobScheduler::class);
                     $this->delayedJobTimerId = \Swoole\Timer::tick($checkInterval, function () use ($scheduler) {
-                        \Swoole\Coroutine::create(function () use ($scheduler) {
-                            // Removed: EventLoop::setDriver(new EventLoop\Driver\StreamSelectDriver());
-                            $scheduler();
-                        });
+                        \Swoole\Coroutine::create($scheduler);
                     });
                     $this->getLogger()->debug('[TRACE] Delayed job scheduler started on worker #0.', ['interval_ms' => $checkInterval]);
                 }
@@ -389,6 +383,8 @@ class SwooleServer
             if (isset($this->exceptionHandler)) {
                 $this->exceptionHandler->report($e);
             }
+
+            // Stop the worker immediately to prevent it from handling requests in a broken state.
             $server->stop($workerId);
         }
     }

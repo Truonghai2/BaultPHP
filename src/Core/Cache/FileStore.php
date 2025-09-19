@@ -3,7 +3,7 @@
 namespace Core\Cache;
 
 use Core\Contracts\Cache\Store;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use DateInterval;
 use DateTimeInterface;
 

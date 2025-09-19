@@ -3,7 +3,7 @@
 namespace App\Providers;
 
 use Core\Contracts\View\Factory as ViewFactoryContract;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\View\Compiler;
 use Core\View\ViewFactory;

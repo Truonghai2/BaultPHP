@@ -5,7 +5,7 @@ namespace App\Providers;
 use Core\CLI\ConsoleKernel;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Console\Kernel as KernelContract;
-use Core\Filesystem\Filesystem;
+use Core\Contracts\Filesystem\Filesystem;
 use Core\Support\ServiceProvider;
 
 /**

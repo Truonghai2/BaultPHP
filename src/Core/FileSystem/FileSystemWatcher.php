@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Filesystem;
+namespace Core\FileSystem;
 
 use LogicException;
 use RecursiveDirectoryIterator;

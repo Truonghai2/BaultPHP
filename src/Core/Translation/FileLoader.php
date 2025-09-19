@@ -2,12 +2,12 @@
 
 namespace Core\Translation;
 
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Illuminate\Contracts\Translation\Loader;
 
 /**
  * Custom FileLoader for the translation service.
- * This loader uses the framework's own Core\Filesystem\Filesystem,
+ * This loader uses the framework's own Core\FileSystem\Filesystem,
  * removing the dependency on illuminate/filesystem.
  */
 class FileLoader implements Loader
@@ -22,7 +22,7 @@ class FileLoader implements Loader
     /**
      * Create a new file loader instance.
      *
-     * @param \Core\Filesystem\Filesystem $files
+     * @param \Core\FileSystem\Filesystem $files
      * @param string $path
      */
     public function __construct(protected Filesystem $files, protected string $path)

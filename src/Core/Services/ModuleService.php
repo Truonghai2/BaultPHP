@@ -5,7 +5,7 @@ namespace Core\Services;
 use Core\Cache\CacheManager;
 use Core\Exceptions\Module\ModuleDependencyException;
 use Core\Exceptions\Module\ModuleNotFoundException;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
 use Symfony\Component\Process\Process;

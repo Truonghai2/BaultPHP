@@ -2,12 +2,13 @@
 
 namespace App\Providers;
 
+use Core\Contracts\Support\DeferrableProvider;
 use Core\Console\Commands\ScheduleRunCommand;
 use Core\Console\ScheduleKernel;
 use Core\Console\Scheduling\Scheduler;
 use Core\Support\ServiceProvider;
 
-class ScheduleServiceProvider extends ServiceProvider
+class ScheduleServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     public function register(): void
     {
@@ -23,5 +24,19 @@ class ScheduleServiceProvider extends ServiceProvider
             $this->app->singleton(ScheduleRunCommand::class);
             $this->app->tag(ScheduleRunCommand::class, 'console.command');
         }
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [
+            Scheduler::class,
+            ScheduleKernel::class,
+            ScheduleRunCommand::class,
+        ];
     }
 }

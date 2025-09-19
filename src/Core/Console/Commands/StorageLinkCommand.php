@@ -3,7 +3,7 @@
 namespace Core\Console\Commands;
 
 use Core\Console\Contracts\BaseCommand;
-use Core\Filesystem\Filesystem;
+use Core\FileSystem\Filesystem;
 
 class StorageLinkCommand extends BaseCommand
 {
@@ -24,14 +24,14 @@ class StorageLinkCommand extends BaseCommand
     /**
      * The filesystem instance.
      *
-     * @var \Core\Filesystem\Filesystem
+     * @var \Core\FileSystem\Filesystem
      */
     protected Filesystem $files;
 
     /**
      * Create a new command instance.
      *
-     * @param  \Core\Filesystem\Filesystem  $files
+     * @param  \Core\FileSystem\Filesystem  $files
      * @return void
      */
     public function __construct(Filesystem $files)

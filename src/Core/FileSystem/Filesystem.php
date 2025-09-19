@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Filesystem;
+namespace Core\FileSystem;
 
 use Core\Filesystem\Exceptions\FileNotFoundException;
 use FilesystemIterator;
