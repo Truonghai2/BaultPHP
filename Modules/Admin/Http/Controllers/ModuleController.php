@@ -14,14 +14,17 @@ use Core\Routing\Attributes\Route;
 use Core\Services\ModuleInstallerService;
 use Core\Services\ModuleService;
 use Core\Support\Facades\Log;
+use Core\WebSocket\CentrifugoAPIService;
 use Http\JsonResponse;
 use Psr\Http\Message\RequestInterface;
+use Psr\Http\Message\ResponseInterface;
 
 class ModuleController extends Controller
 {
     public function __construct(
         private ModuleService $moduleService,
         private ModuleInstallerService $installerService,
+        private CentrifugoAPIService $centrifugo,
     ) {
     }
 
@@ -31,8 +34,16 @@ class ModuleController extends Controller
     #[Route('/admin/modules', method: 'GET')]
     public function showPage(): JsonResponse
     {
-        // Trả về view từ trong module Admin
-        return response(view('Admin::modules.index'));
+        $user = auth()->user();
+        $connectionToken = null;
+        if ($user) {
+            $connectionToken = $this->centrifugo->generateConnectionToken((string) $user->id);
+        }
+
+        return response(view('Admin::modules.index', [
+            'centrifugoUrl' => config('websocket.connections.centrifugo.public_url'),
+            'centrifugoToken' => $connectionToken,
+        ]));
     }
 
     /**
@@ -174,6 +185,15 @@ class ModuleController extends Controller
 
         // TODO: Xóa cache (route, config) sau khi cài đặt để thay đổi có hiệu lực.
 
-        return redirect('/admin/modules')->with('success', 'Các module đã được cài đặt: ' . implode(', ', $installed));
+        $flash = [];
+        if (!empty($installed)) {
+            $flash['success'] = 'Quá trình cài đặt cho các module đã được đưa vào hàng đợi: ' . implode(', ', $installed) . '. Trạng thái sẽ được cập nhật sau ít phút.';
+        }
+        if (!empty($errors)) {
+            $errorMessages = array_map(fn ($name, $msg) => "<li><strong>{$name}:</strong> " . htmlspecialchars($msg) . '</li>', array_keys($errors), $errors);
+            $flash['error'] = 'Đã có lỗi xảy ra trong quá trình cài đặt:<ul>' . implode('', $errorMessages) . '</ul>';
+        }
+
+        return redirect('/admin/modules')->with($flash);
     }
 }

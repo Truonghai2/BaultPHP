@@ -32,6 +32,7 @@ class CacheClearCommand extends BaseCommand
         $this->call('route:clear');
         $this->call('view:clear');
         $this->call('event:clear');
+        $this->call('command:clear');
         $this->call('provider:clear');
         $this->call('optimize:clear');
         $this->call('module:clear');

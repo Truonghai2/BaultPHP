@@ -24,7 +24,6 @@ return [
     | for each back-end shipped with BaultPHP. You are free to add more.
     |
     */
-
     'connections' => [
 
         'sync' => [
@@ -71,6 +70,7 @@ return [
 
     'scheduler' => [
         'check_interval' => 1000,
+        'batch_size' => 100,
     ],
 
     'failed' => [

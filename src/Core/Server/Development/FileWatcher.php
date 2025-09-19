@@ -2,164 +2,159 @@
 
 namespace Core\Server\Development;
 
+use Monolog\Handler\StreamHandler;
+use Monolog\Logger;
+use Monolog\Processor\ProcessIdProcessor;
 use Psr\Log\LoggerInterface;
-use Spatie\Watcher\Watch;
 use Swoole\Http\Server as SwooleHttpServer;
-use Symfony\Component\Process\Process;
+use Swoole\Process;
+use Symfony\Component\Finder\Finder;
 
 /**
- * Manages the file watcher for hot-reloading during development.
- * This class encapsulates the logic for starting, monitoring, and stopping
- * the file watcher process, and triggering a graceful "rolling restart"
- * of the Swoole workers when a file change is detected.
+ * A file watcher designed to run in a separate Swoole process.
+ * It polls the filesystem for changes and reloads the Swoole server.
+ * This method is reliable inside Docker containers on macOS and Windows.
  */
 class FileWatcher
 {
-    protected ?Process $process = null;
-    protected ?int $timerId = null;
-    protected bool $reloading = false;
+    private array $config;
+    private LoggerInterface $logger;
+    private SwooleHttpServer $server;
+    private array $fileStates = [];
+    private ?Process $process = null;
 
-    public function __construct(
-        protected SwooleHttpServer $server,
-        protected array $watchConfig,
-        protected LoggerInterface $logger,
-    ) {
-    }
-
-    /**
-     * Starts the file watcher process in a separate coroutine.
-     */
-    public function start(): void
+    public function __construct(SwooleHttpServer $server, array $config, LoggerInterface $logger)
     {
-        $this->logger->info('Custom hot-reload is enabled. Starting file watcher...');
-
-        \Swoole\Coroutine::create(function () {
-            try {
-                $paths = $this->getWatchablePaths();
-                if (empty($paths)) {
-                    $this->logger->warning('Hot-reload enabled, but no valid directories to watch.');
-                    return;
-                }
-
-                $this->process = Watch::paths($paths)
-                    ->ignorePaths($this->getIgnoredPaths())
-                    ->getProcess();
-
-                $this->process->start();
-
-                $this->logger->info('File watcher process started.', ['pid' => $this->process->getPid()]);
-
-                // Use a Swoole timer to check for watcher output asynchronously.
-                $this->timerId = \Swoole\Timer::tick(500, [$this, 'checkForChanges']);
-            } catch (\Throwable $e) {
-                $this->logger->error('File watcher failed to start.', ['exception' => $e]);
-            }
-        });
+        $this->server = $server;
+        $this->config = $config;
+        $this->logger = $logger;
     }
 
     /**
-     * Stops the file watcher process and clears the timer.
+     * Creates the file watcher process.
+     *
+     * @return \Swoole\Process|null
+     */
+    public function createProcess(): ?Process
+    {
+        // Chỉ chạy watcher nếu polling được bật (cần thiết cho Docker)
+        if (!($this->config['use_polling'] ?? false)) {
+            $this->logger->info('File watcher is disabled because polling is not enabled in config/server.php.');
+            return null;
+        }
+
+        $this->process = new Process(function (Process $worker) {
+            try {
+                $logPath = storage_path('logs/watcher.log');
+                $watcherLogger = new Logger('watcher');
+                $watcherLogger->pushProcessor(new ProcessIdProcessor());
+                $watcherLogger->pushHandler(new StreamHandler($logPath, Logger::DEBUG));
+                $this->logger = $watcherLogger;
+                $this->logger->info('File watcher process started.', ['pid' => $worker->pid]);
+            } catch (\Throwable $e) {
+                $this->logger = new \Psr\Log\NullLogger();
+            }
+
+            $this->fileStates = $this->scanFiles();
+
+            $interval = $this->config['interval'] ?? 1000;
+
+            \Swoole\Timer::tick($interval, function () {
+                $this->checkForChanges();
+            });
+        }, false, 0);
+
+        return $this->process;
+    }
+
+    /**
+     * Stops the file watcher process.
      */
     public function stop(): void
     {
-        if ($this->process && $this->process->isRunning()) {
-            $this->process->stop();
-            $this->logger->info('File watcher process stopped.');
+        if ($this->process) {
+            try {
+                $this->logger->info('Stopping file watcher process...');
+            } catch (\Throwable $e) {
+                // ignore
+            }
+            Process::kill($this->process->pid);
         }
-        if ($this->timerId) {
-            \Swoole\Timer::clear($this->timerId);
-            $this->timerId = null;
+    }
+
+    private function checkForChanges(): void
+    {
+        // Clear PHP's internal file stat cache to ensure we get fresh mtime.
+        clearstatcache();
+
+        $newStates = $this->scanFiles();
+
+        $createdOrModified = array_diff_assoc($newStates, $this->fileStates);
+        $deleted = array_diff_key($this->fileStates, $newStates);
+
+        if (!empty($createdOrModified) || !empty($deleted)) {
+            try {
+                $this->logger->info('Change detected. Reloading Swoole server...');
+            } catch (\Throwable $e) {
+                // ignore
+            }
+            $this->server->reload();
+            $this->fileStates = $newStates;
         }
     }
 
     /**
-     * Periodically checks for output from the watcher process.
-     * This method is called by the Swoole timer.
+     * Creates and configures the Finder instance.
+     * This is done once when the watcher starts to avoid re-parsing config on every tick.
      */
-    protected function checkForChanges(): void
+    private function createFinder(): Finder
     {
-        try {
-            if (!$this->process || !$this->process->isRunning()) {
-                $this->logger->warning('File watcher process has stopped unexpectedly.');
-                $this->stop();
-                return;
-            }
+        $directories = $this->config['directories'] ?? [];
+        $ignorePatterns = $this->config['ignore'] ?? [];
 
-            $output = $this->process->getIncrementalOutput();
-            if (!empty($output)) {
-                $lines = explode(PHP_EOL, trim($output));
-                foreach ($lines as $line) {
-                    if (empty($line)) {
-                        continue;
-                    }
-                    $eventData = json_decode($line, true);
-                    if (is_array($eventData) && isset($eventData['path'])) {
-                        $this->handleFileChange($eventData['path']);
-                        // Only need one event to trigger a reload, so break early.
-                        break;
-                    }
-                }
+        $finder = new Finder();
+
+        $filesToWatch = [];
+        $dirsToWatch = [];
+        foreach ($directories as $path) {
+            if (is_file($path)) {
+                $filesToWatch[] = $path;
+            } elseif (is_dir($path)) {
+                $dirsToWatch[] = $path;
             }
-        } catch (\Throwable $e) {
-            $this->logger->error('Error checking for file changes.', ['exception' => $e]);
         }
+
+        if (!empty($dirsToWatch)) {
+            $finder->in($dirsToWatch);
+        }
+
+        if (!empty($filesToWatch)) {
+            $finder->append($filesToWatch);
+        }
+
+        $finder->files()
+               ->ignoreDotFiles(true)
+               ->exclude($ignorePatterns);
+
+        return $finder;
     }
 
     /**
-     * Handles the file change event by triggering a rolling restart of workers.
+     * Scans the filesystem using the pre-configured Finder instance.
+     *
+     * @return array<string, int>
      */
-    protected function handleFileChange(string $path): void
+    private function scanFiles(): array
     {
-        if ($this->reloading) {
-            return;
-        }
+        $finder = $this->createFinder();
 
-        $this->reloading = true;
-        $this->logger->info('File change detected, starting rolling reload...', ['path' => $path]);
-
-        $workers = $this->server->workers;
-        if (empty($workers)) {
-            $this->reloading = false;
-            return;
-        }
-
-        // Perform a "rolling restart" in a new coroutine to avoid blocking.
-        \Swoole\Coroutine::create(function () use ($workers) {
-            foreach ($workers as $workerId => $workerPid) {
-                $this->logger->debug("Reloading worker #{$workerId} (PID: {$workerPid})");
-                if (\Swoole\Process::kill($workerPid, SIGUSR1)) {
-                    \Swoole\Coroutine::sleep(0.5); // Wait 500ms between worker reloads
-                } else {
-                    $this->logger->warning("Failed to send reload signal to worker #{$workerId}");
-                }
-            }
-            $this->logger->info('Rolling reload completed.');
-            \Swoole\Coroutine::sleep(1); // Wait 1 second before allowing another reload.
-            $this->reloading = false;
-        });
-    }
-
-    /**
-     * Gets the list of valid directories to watch from the configuration.
-     */
-    protected function getWatchablePaths(): array
-    {
-        $paths = [];
-        $directories = $this->watchConfig['directories'] ?? [];
-        foreach ($directories as $dir) {
-            if (is_dir($dir)) {
-                $paths[] = $dir;
+        $fileStates = [];
+        foreach ($finder as $file) {
+            $realPath = $file->getRealPath();
+            if (false !== $realPath) {
+                $fileStates[$realPath] = $file->getMTime();
             }
         }
-        return $paths;
-    }
-
-    /**
-     * Gets the list of paths to ignore from the configuration.
-     * @return array
-     */
-    protected function getIgnoredPaths(): array
-    {
-        return $this->watchConfig['ignore'] ?? [];
+        return $fileStates;
     }
 }

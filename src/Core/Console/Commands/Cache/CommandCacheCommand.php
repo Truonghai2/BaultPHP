@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Cache;
 
+use App\Providers\ConsoleServiceProvider;
 use Core\Console\Contracts\BaseCommand;
 
 class CommandCacheCommand extends BaseCommand
@@ -13,7 +14,7 @@ class CommandCacheCommand extends BaseCommand
 
     public function description(): string
     {
-        return 'Create a command cache file for faster command registration.';
+        return 'Discover and cache all console commands for faster startup.';
     }
 
     public function handle(): int
@@ -31,12 +32,15 @@ class CommandCacheCommand extends BaseCommand
             mkdir($cacheDir, 0777, true);
         }
 
-        $provider = $this->app->make(\App\Providers\ConsoleServiceProvider::class);
+        // Use the ConsoleServiceProvider's logic to discover commands
+        /** @var ConsoleServiceProvider $provider */
+        $provider = $this->app->make(ConsoleServiceProvider::class);
         $commands = $provider->discoverCommands();
 
-        file_put_contents($cachePath, '<?php return ' . var_export($commands, true) . ';');
+        $content = '<?php' . PHP_EOL . PHP_EOL . 'return ' . var_export($commands, true) . ';' . PHP_EOL;
+        file_put_contents($cachePath, $content);
 
         $this->info('✔ Commands cached successfully!');
-        return 0;
+        return self::SUCCESS;
     }
 }

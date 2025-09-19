@@ -28,19 +28,19 @@ class ShareMessagesFromSession implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // 1. Handle 'errors' specially to provide a helpful ErrorBag object.
-        // The getFlashBag()->get() method consumes the flash message so it's not processed again.
+        $flashData = $this->session->getFlashBag()->all();
+
         $this->view->share(
             'errors',
-            new ErrorBag($this->session->getFlashBag()->get('errors', [])),
+            new ErrorBag($flashData['errors'] ?? []),
         );
 
-        // 2. Share all other remaining flash messages (like 'success', 'info', etc.).
-        // The getFlashBag()->all() method consumes the messages and returns them in a nested array,
-        // e.g., ['success' => ['message here']]. We need to flatten this.
-        $flashMessages = $this->session->getFlashBag()->all();
-        foreach ($flashMessages as $key => $messages) {
-            // Share the first message for each key. This is the most common use case.
+        $this->view->share(
+            '_old_input',
+            $flashData['_old_input'] ?? [],
+        );
+
+        foreach ($flashData as $key => $messages) {
             $this->view->share($key, $messages[0] ?? null);
         }
 

@@ -47,8 +47,16 @@ class FiberConnectionPool
      */
     public function get(): PDO
     {
-        if (!$this->pool->isEmpty()) {
-            return $this->pool->dequeue();
+        if ($this->maxSize <= 0) {
+            throw new \LogicException('FiberConnectionPool max size must be greater than 0. Please check your server configuration.');
+        }
+
+        while (!$this->pool->isEmpty()) {
+            $connection = $this->pool->dequeue();
+            if (@$connection->getAttribute(PDO::ATTR_SERVER_INFO) !== false) {
+                return $connection; // It's good, return it.
+            }
+            $this->currentSize--;
         }
 
         if ($this->currentSize < $this->maxSize) {
@@ -64,7 +72,7 @@ class FiberConnectionPool
         $suspension = EventLoop::getSuspension();
         $this->waitQueue->enqueue($suspension);
 
-        return $suspension->await();
+        return $suspension->suspend();
     }
 
     /**
@@ -77,9 +85,7 @@ class FiberConnectionPool
      */
     public function put(PDO $connection): void
     {
-        try {
-            $connection->getAttribute(PDO::ATTR_SERVER_INFO);
-        } catch (\PDOException $e) {
+        if (@$connection->getAttribute(PDO::ATTR_SERVER_INFO) === false) {
             $this->currentSize--;
             return;
         }

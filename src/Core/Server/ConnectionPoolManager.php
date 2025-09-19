@@ -3,8 +3,6 @@
 namespace Core\Server;
 
 use Core\Application;
-use Core\Database\Swoole\SwoolePdoPool;
-use Core\Database\Swoole\SwooleRedisPool;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -14,16 +12,18 @@ use Psr\Log\LoggerInterface;
  */
 class ConnectionPoolManager
 {
-    protected array $dbPoolConfig;
-    protected array $redisPoolConfig;
+    protected array $poolsConfig;
+
+    /** @var string[] */
+    protected array $initializedPoolClasses = [];
 
     public function __construct(
         protected Application $app,
         protected LoggerInterface $logger,
         array $serverConfig,
     ) {
-        $this->dbPoolConfig = $serverConfig['db_pool'] ?? [];
-        $this->redisPoolConfig = $serverConfig['redis_pool'] ?? [];
+        // Đọc cấu trúc config 'pools' mới
+        $this->poolsConfig = $serverConfig['pools'] ?? [];
     }
 
     /**
@@ -34,14 +34,12 @@ class ConnectionPoolManager
     {
         \Swoole\Coroutine::create(function () use ($isTaskWorker) {
             $workerType = $isTaskWorker ? 'TaskWorker' : 'Worker';
-            try {
-                $this->initializeDbPool($isTaskWorker, $workerType);
-                $this->initializeRedisPool($isTaskWorker, $workerType);
-            } catch (\Throwable $e) {
-                $this->logger->error(
-                    "Failed to initialize connection pools for {$workerType}: " . $e->getMessage(),
-                    ['exception' => $e],
-                );
+
+            // Lặp qua các loại pool đã định nghĩa trong config (database, redis, ...)
+            foreach ($this->poolsConfig as $poolType => $typeConfig) {
+                if (!empty($typeConfig['enabled'])) {
+                    $this->initializePoolType($poolType, $typeConfig, $isTaskWorker, $workerType);
+                }
             }
         });
     }
@@ -52,56 +50,65 @@ class ConnectionPoolManager
      */
     public function closePools(): void
     {
-        SwoolePdoPool::close();
-        SwooleRedisPool::close();
-    }
-
-    private function initializeDbPool(bool $isTaskWorker, string $workerType): void
-    {
-        if (empty($this->dbPoolConfig['enabled'])) {
-            $this->logger->debug('DB Pool is disabled, skipping initialization.');
-            return;
-        }
-
-        // Iterate over all configured pools and initialize them by name
-        foreach ($this->dbPoolConfig['pools'] ?? [] as $name => $poolConfig) {
+        // Đóng tất cả các pool đã được khởi tạo
+        foreach (array_unique($this->initializedPoolClasses) as $poolClass) {
             try {
-                $dbConfig = $this->app->make('config')->get("database.connections.{$name}");
-                if (!$dbConfig) {
-                    throw new \InvalidArgumentException("Database connection '{$name}' is not defined in config/database.php.");
-                }
-                $poolSize = $isTaskWorker ? ($poolConfig['task_worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10) : ($poolConfig['worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10);
-                $heartbeat = $poolConfig['heartbeat'] ?? 60;
-                $circuitBreakerConfig = $poolConfig['circuit_breaker'] ?? [];
-                SwoolePdoPool::init($dbConfig, $poolSize, $circuitBreakerConfig, $this->app, $heartbeat, $name);
-                $this->logger->debug("Swoole PDO Pool '{$name}' initialized for {$workerType}", ['size' => $poolSize]);
+                $poolClass::close();
+                $this->logger->debug("Pool class {$poolClass} closed.");
             } catch (\Throwable $e) {
-                $this->logger->error("Failed to initialize DB pool '{$name}': " . $e->getMessage());
+                $this->logger->error("Failed to close pool class {$poolClass}: " . $e->getMessage());
             }
         }
+        $this->initializedPoolClasses = [];
     }
 
-    private function initializeRedisPool(bool $isTaskWorker, string $workerType): void
+    /**
+     * Khởi tạo tất cả các connection cho một loại pool cụ thể (vd: 'database').
+     */
+    private function initializePoolType(string $poolType, array $typeConfig, bool $isTaskWorker, string $workerType): void
     {
-        if (empty($this->redisPoolConfig['enabled'])) {
-            $this->logger->debug('Redis Pool is disabled, skipping initialization.');
-            return;
-        }
+        $poolClass = $typeConfig['class'];
+        $configPrefix = $typeConfig['config_prefix'];
+        $defaults = $typeConfig['defaults'] ?? [];
 
-        // Iterate over all configured pools and initialize them by name
-        foreach ($this->redisPoolConfig['pools'] ?? [] as $name => $poolConfig) {
-            try {
-                $redisConfig = $this->app->make('config')->get("database.redis.{$name}");
-                if (!$redisConfig) {
-                    throw new \InvalidArgumentException("Redis connection '{$name}' is not defined in config/database.php.");
+        foreach ($typeConfig['connections'] ?? [] as $name => $connectionConfig) {
+            // Triển khai cơ chế retry khi khởi tạo pool
+            $maxRetries = 3;
+            $retryDelay = 1; // seconds
+
+            for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+                try {
+                    // Hợp nhất cấu hình mặc định và cấu hình riêng của connection
+                    $finalConfig = array_replace_recursive($defaults, $connectionConfig);
+
+                    $connectionDetails = $this->app->make('config')->get("{$configPrefix}.{$name}");
+                    if (!$connectionDetails) {
+                        throw new \InvalidArgumentException("Connection '{$name}' for pool type '{$poolType}' not found at config key '{$configPrefix}.{$name}'.");
+                    }
+
+                    $poolSizeKey = $isTaskWorker ? 'task_worker_pool_size' : 'worker_pool_size';
+                    $poolSize = $finalConfig[$poolSizeKey] ?? 10;
+
+                    $heartbeat = $finalConfig['heartbeat'] ?? null;
+                    $circuitBreakerConfig = $finalConfig['circuit_breaker'] ?? [];
+
+                    // Gọi phương thức init một cách linh động
+                    $poolClass::init($connectionDetails, $poolSize, $circuitBreakerConfig, $this->app, $heartbeat, $name);
+
+                    // Lưu lại class đã được khởi tạo để đóng lại sau
+                    $this->initializedPoolClasses[] = $poolClass;
+
+                    $this->logger->debug("Pool '{$name}' of type '{$poolType}' initialized for {$workerType}", ['size' => $poolSize]);
+                    break; // Thoát khỏi vòng lặp nếu thành công
+                } catch (\Throwable $e) {
+                    $this->logger->warning("Attempt {$attempt}/{$maxRetries}: Failed to initialize pool '{$name}' of type '{$poolType}'. Retrying in {$retryDelay}s...", ['error' => $e->getMessage()]);
+                    if ($attempt < $maxRetries) {
+                        \Swoole\Coroutine::sleep($retryDelay);
+                        $retryDelay *= 2; // Exponential backoff
+                    } else {
+                        $this->logger->error("Failed to initialize pool '{$name}' of type '{$poolType}' after {$maxRetries} attempts.", ['exception' => $e]);
+                    }
                 }
-                $poolSize = $isTaskWorker ? ($poolConfig['task_worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10) : ($poolConfig['worker_pool_size'] ?? $poolConfig['max_connections'] ?? 10);
-                $circuitBreakerConfig = $poolConfig['circuit_breaker'] ?? [];
-
-                SwooleRedisPool::init($redisConfig, $poolSize, $circuitBreakerConfig, $this->app, null, $name);
-                $this->logger->debug("Swoole Redis Pool '{$name}' initialized for {$workerType}", ['size' => $poolSize]);
-            } catch (\Throwable $e) {
-                $this->logger->error("Failed to initialize Redis pool '{$name}': " . $e->getMessage());
             }
         }
     }

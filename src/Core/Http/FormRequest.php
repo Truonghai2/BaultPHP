@@ -4,6 +4,7 @@ namespace Core\Http;
 
 use Core\Application;
 use Core\Contracts\Auth\Authenticatable;
+use Core\Exceptions\HttpResponseException;
 use Core\Validation\Factory as ValidatorFactory;
 use Core\Validation\ValidationException;
 use Core\Validation\Validator;
@@ -16,22 +17,33 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 abstract class FormRequest
 {
-    protected ServerRequestInterface $psrRequest;
+    protected ServerRequestInterface $request;
     protected ?Authenticatable $user;
-    protected Validator $validator;
+    protected ?Validator $validator = null;
     protected array $routeParameters = [];
-    protected array $validatedData = [];
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $cachedParsedBody = null;
+
+    /**
+     * Các thuộc tính không nên được flash vào session khi có lỗi validation.
+     * @var array<int, string>
+     */
+    protected array $dontFlash = [
+        'password',
+        'password_confirmation',
+    ];
 
     public function __construct(
         protected Application $app,
         protected ValidatorFactory $validatorFactory,
     ) {
-        $this->psrRequest = $app->make(ServerRequestInterface::class);
-        $this->user = $this->psrRequest->getAttribute('user');
+        $this->request = $app->make(ServerRequestInterface::class);
+        $this->user = $this->request->getAttribute('user') ?? $this->app->make(\Core\Auth\AuthManager::class)->user();
 
-        // Giả định rằng router đã thêm các tham số của route vào request
-        // dưới dạng một attribute. 'route.params' là một tên phổ biến.
-        $this->routeParameters = $this->psrRequest->getAttribute('route.params', []);
+        $route = $this->request->getAttribute('route');
+        $this->routeParameters = $route ? $route->parameters : [];
     }
 
     /**
@@ -75,7 +87,6 @@ abstract class FormRequest
      */
     protected function prepareForValidation(): void
     {
-        // Mặc định không làm gì. Các lớp con có thể override.
     }
 
     /**
@@ -90,42 +101,105 @@ abstract class FormRequest
 
         $this->prepareForValidation();
 
-        $this->validator = $this->validatorFactory->make(
-            $this->all(),
+        $validator = $this->validatorFactory->make(
+            $this->validationData(),
             $this->rules(),
             $this->messages(),
             $this->attributes(),
         );
 
-        if ($this->validator->fails()) {
-            throw new ValidationException($this->validator);
-        }
+        $this->validator = $validator;
 
-        $this->validatedData = $this->validator->validated();
+        if ($validator->fails()) {
+            $this->failedValidation($validator);
+        }
     }
 
     /**
-     * Lấy dữ liệu đã được validate.
+     * Lấy dữ liệu đã được validate, đã loại bỏ các tham số từ route để tăng bảo mật.
      *
      * @return array
      */
     public function validated(): array
     {
-        return $this->validatedData;
+        if (empty($this->validatedData)) {
+            $this->validateResolved();
+        }
+
+        if (!$this->validator) {
+            throw new \LogicException('Validator not initialized before calling validated().');
+        }
+
+        // Cải tiến bảo mật: Loại bỏ các tham số từ route khỏi dữ liệu đã validate.
+        // Điều này ngăn chặn các lỗ hổng mass assignment.
+        return array_diff_key($this->validator->validated(), $this->routeParameters);
     }
 
     /**
-     * Lấy tất cả dữ liệu từ request (body, query, files).
+     * Lấy dữ liệu sẽ được sử dụng cho việc validation.
      *
      * @return array
      */
-    public function all(): array
+    protected function validationData(): array
     {
         return array_merge(
-            $this->psrRequest->getQueryParams(),
-            $this->psrRequest->getParsedBody() ?? [],
-            $this->psrRequest->getUploadedFiles(),
+            $this->routeParameters,
+            $this->request->getQueryParams(),
+            $this->getParsedBody(),
+            $this->request->getUploadedFiles(),
         );
+    }
+
+    /**
+     * Lấy parsed body từ request, cache lại và xử lý JSON nếu cần.
+     *
+     * @return array<string, mixed>
+     */
+    public function getParsedBody(): array
+    {
+        if (!is_null($this->cachedParsedBody)) {
+            return $this->cachedParsedBody;
+        }
+
+        $parsedBody = $this->request->getParsedBody() ?? [];
+
+        if (empty($parsedBody) && str_contains($this->request->getHeaderLine('Content-Type'), 'application/json')) {
+            $body = $this->request->getBody()->getContents();
+            if (!empty($body)) {
+                $jsonBody = json_decode($body, true);
+                if (json_last_error() === JSON_ERROR_NONE) {
+                    $parsedBody = $jsonBody;
+                }
+            }
+            // Rewind the stream in case it needs to be read again
+            $this->request->getBody()->rewind();
+        }
+
+        return $this->cachedParsedBody = is_array($parsedBody) ? $parsedBody : [];
+    }
+
+    /**
+     * Xử lý khi validation thất bại.
+     *
+     * @param \Core\Validation\Validator $validator
+     * @return void
+     * @throws \Core\Validation\ValidationException|\Core\Exceptions\HttpResponseException
+     */
+    protected function failedValidation(Validator $validator): void
+    {
+        if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+            throw new ValidationException($validator);
+        }
+
+        $redirector = $this->app->make(Redirector::class);
+        $input = $this->validationData();
+        foreach ($this->dontFlash as $key) {
+            unset($input[$key]);
+        }
+
+        $response = $redirector->back()->withErrors($validator)->withInput($input);
+
+        throw new HttpResponseException($response);
     }
 
     /**
@@ -136,7 +210,7 @@ abstract class FormRequest
      */
     public function file(string $key): ?UploadedFile
     {
-        $files = $this->psrRequest->getUploadedFiles();
+        $files = $this->request->getUploadedFiles();
         $file = $files[$key] ?? null;
 
         if ($file instanceof \Psr\Http\Message\UploadedFileInterface) {
@@ -147,11 +221,11 @@ abstract class FormRequest
     }
 
     /**
-     * Proxy các lời gọi phương thức không tồn tại đến PSR-7 request.
+     * Proxy các lời gọi phương thức không tồn tại đến đối tượng PSR-7 request gốc.
      */
     public function __call(string $method, array $parameters)
     {
-        return $this->psrRequest->{$method}(...$parameters);
+        return $this->request->{$method}(...$parameters);
     }
 
     /**

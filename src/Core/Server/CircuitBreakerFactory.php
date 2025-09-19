@@ -18,13 +18,14 @@ class CircuitBreakerFactory
      * Creates a Ganesha instance based on the provided configuration.
      *
      * @param array $config The circuit breaker configuration array.
-     * @param Application $app The application container, required if using 'redis' storage.
-     * @return Ganesha
+     * @param Application $app The application container.
+     * @param string $serviceName Tên của service (ví dụ: 'mysql', 'default_redis').
+     * @return \Ackintosh\Ganesha
      */
-    public static function create(array $config, Application $app): \Ackintosh\Ganesha
+    public static function create(array $config, Application $app, string $serviceName): \Ackintosh\Ganesha
     {
-        $serviceName = md5(json_encode($config));
-        if (isset(self::$instances[$serviceName])) {
+        $instanceKey = 'breaker_' . $serviceName;
+        if (isset(self::$instances[$instanceKey])) {
             return self::$instances[$serviceName];
         }
 
@@ -43,7 +44,7 @@ class CircuitBreakerFactory
             default => throw new InvalidArgumentException("Unsupported circuit breaker strategy: {$strategyType}"),
         };
 
-        return self::$instances[$serviceName] = $builder->adapter($adapter)->build();
+        return self::$instances[$instanceKey] = $builder->adapter($adapter)->build();
     }
 
     /**

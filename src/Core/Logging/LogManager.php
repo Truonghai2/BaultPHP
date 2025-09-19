@@ -3,8 +3,12 @@
 namespace Core\Logging;
 
 use Core\Application;
+use Core\Tasking\TaskService;
 use InvalidArgumentException;
+use Monolog\Logger;
 use Psr\Log\LoggerInterface;
+use Sentry\Monolog\Handler as SentryHandler;
+use Sentry\SentrySdk;
 
 class LogManager implements LoggerInterface
 {
@@ -43,17 +47,53 @@ class LogManager implements LoggerInterface
             throw new InvalidArgumentException("Log channel [{$name}] is not defined.");
         }
 
+        $logger = null;
+
         if (isset($this->customCreators[$config['driver']])) {
-            return $this->callCustomCreator($config);
+            $logger = $this->callCustomCreator($config);
+        } else {
+            $driverMethod = 'create' . ucfirst($config['driver']) . 'Driver';
+
+            if (method_exists($this, $driverMethod)) {
+                $logger = $this->{$driverMethod}($config);
+            } else {
+                throw new InvalidArgumentException("Driver [{$config['driver']}] for log channel [{$name}] is not supported.");
+            }
         }
 
-        $driverMethod = 'create' . ucfirst($config['driver']) . 'Driver';
-
-        if (method_exists($this, $driverMethod)) {
-            return $this->{$driverMethod}($config);
+        foreach ($this->processors as $processor) {
+            $logger->pushProcessor($processor);
         }
 
-        throw new InvalidArgumentException("Driver [{$config['driver']}] for log channel [{$name}] is not supported.");
+        return $logger;
+    }
+
+    protected function createSentryDriver(array $config): LoggerInterface
+    {
+        $handler = new SentryHandler(SentrySdk::getCurrentHub(), $this->level($config));
+
+        return new Logger(
+            $this->parseChannel($config),
+            [$handler],
+        );
+    }
+
+    protected function createAsyncDriver(array $config): LoggerInterface
+    {
+        $isSwooleEnv = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
+
+        if (! $isSwooleEnv || ! $this->app->has(TaskService::class)) {
+            $singleConfig = $this->app['config']->get('logging.channels.single');
+            $singleConfig['level'] = $config['level'] ?? $singleConfig['level'];
+            return $this->createSingleDriver($singleConfig);
+        }
+
+        $handler = new SwooleTaskHandler($this->app->make(TaskService::class));
+
+        return new Logger(
+            $this->parseChannel($config),
+            [$handler],
+        );
     }
 
     protected function callCustomCreator(array $config): LoggerInterface
@@ -90,6 +130,11 @@ class LogManager implements LoggerInterface
     public function pushProcessor($processor): self
     {
         $this->processors[] = $processor;
+
+        foreach ($this->channels as $channel) {
+            $channel->pushProcessor($processor);
+        }
+
         return $this;
     }
 
@@ -135,7 +180,7 @@ class LogManager implements LoggerInterface
 
     public function log($level, $message, array $context = []): void
     {
-        $this->channel()->log($level, $message, $context);
+        $this->channel()->log($level, $message, context);
     }
 
     public function __call(string $method, array $parameters)

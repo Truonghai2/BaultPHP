@@ -2,11 +2,12 @@
 
 namespace Core\View;
 
+use Core\Contracts\StatefulService;
 use Core\Contracts\View\Factory as FactoryContract;
 use Core\Contracts\View\View as ViewContract;
 use Core\Filesystem\Filesystem;
 
-class ViewFactory implements FactoryContract
+class ViewFactory implements FactoryContract, StatefulService
 {
     protected array $viewPaths;
     protected Filesystem $files;
@@ -262,7 +263,7 @@ class ViewFactory implements FactoryContract
      * Dọn dẹp tất cả trạng thái tạm thời của factory.
      * Rất quan trọng cho các môi trường long-running như Swoole.
      */
-    public function flushState(): void
+    public function resetState(): void
     {
         $this->sections = [];
         $this->sectionStack = [];
@@ -411,19 +412,14 @@ class ViewFactory implements FactoryContract
         ob_start();
 
         try {
-            // We'll evaluate the contents of the view inside a closure to isolate
-            // the view's scope and prevent variables from leaking.
             (function ($__path, $__data) {
                 extract($__data, EXTR_SKIP);
                 include $__path;
             })($path, $data);
         } catch (\Throwable $e) {
-            // Dọn dẹp tất cả các output buffer đã được mở trong try block
-            // để tránh rò rỉ output không mong muốn.
             while (ob_get_level() > $obLevel) {
                 ob_end_clean();
             }
-            // Ném lại exception để handler cấp cao hơn của framework xử lý.
             throw $e;
         }
 

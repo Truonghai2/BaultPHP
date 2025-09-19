@@ -8,11 +8,13 @@ services:
     image: bault-php-app:latest
     container_name: bault_app
     restart: unless-stopped
-    working_dir: /app
+    mem_reservation: 512m # Soft limit: Đảm bảo container có ít nhất 512MB RAM
+    mem_limit: 2g         # Hard limit: Giới hạn container không sử dụng quá 2GB RAM
     volumes:
-      - .:/app:cached
-      - /app/vendor   
-      - /app/node_modules 
+      - .:/app:cached # Sync your code
+      - /app/vendor # Exclude vendor directory from the sync
+      - bault-storage:/app/storage # Use a named volume for storage
+      - bault-bootstrap-cache:/app/bootstrap/cache # Use a named volume for cache
     networks:
       - bault-network
     depends_on:
@@ -33,7 +35,8 @@ services:
 
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
-      - SWOOLE_HOT_RELOAD_ENABLE=true
+      - SWOOLE_ENABLE_COROUTINE=true
+      - SWOOLE_WATCH_USE_POLLING=true
       - CHOKIDAR_USEPOLLING=true
       - NGINX_HOST_PORT=888
       - PMA_HOST_PORT=8080
@@ -62,8 +65,9 @@ services:
     image: nginx:1.25-alpine
     container_name: bault_nginx
     restart: unless-stopped
+    # Use the same volume strategy as the app service
     volumes:
-      - .:/app
+      - .:/app:cached
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./docker/nginx/gzip.conf:/etc/nginx/conf.d/gzip.conf
       - ./docker/nginx/security_headers.conf:/etc/nginx/conf.d/security_headers.conf
@@ -298,4 +302,8 @@ volumes:
   grafana_data:
     driver: local
   pgadmin-data:
+    driver: local
+  bault-storage:
+    driver: local
+  bault-bootstrap-cache:
     driver: local

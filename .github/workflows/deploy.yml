@@ -3,26 +3,39 @@ name: Deploy BaultPHP Application
 on:
   push:
     branches: [ "main" ]
+
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      APP_ENV: testing
+      APP_DEBUG: true
+      APP_KEY: base64:someRandomKeyForTestingPurposeOnly=
+      DB_CONNECTION: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_DATABASE: bault_testing
+      DB_USERNAME: root
+      DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .env file for testing
+      - name: Setup .env file
         run: |
-          echo "APP_ENV=testing" > .env
-          echo "APP_DEBUG=true" >> .env
-          echo "APP_KEY=base64:someRandomKeyForTestingPurposeOnly=" >> .env
-          echo "DB_CONNECTION=mysql" >> .env
-          echo "DB_HOST=db" >> .env
-          echo "DB_PORT=3306" >> .env
-          echo "DB_DATABASE=bault_testing" >> .env
-          echo "DB_USERNAME=root" >> .env
-          echo "DB_PASSWORD=${{ secrets.DB_ROOT_PASSWORD }}" >> .env
-          echo "REDIS_HOST=redis" >> .env
-          echo "REDIS_PORT=6379" >> .env
+          echo "APP_ENV=${APP_ENV}" > .env
+          echo "APP_DEBUG=${APP_DEBUG}" >> .env
+          echo "APP_KEY=${APP_KEY}" >> .env
+          echo "DB_CONNECTION=${DB_CONNECTION}" >> .env
+          echo "DB_HOST=${DB_HOST}" >> .env
+          echo "DB_PORT=${DB_PORT}" >> .env
+          echo "DB_DATABASE=${DB_DATABASE}" >> .env
+          echo "DB_USERNAME=${DB_USERNAME}" >> .env
+          echo "DB_PASSWORD=${DB_PASSWORD}" >> .env
+          echo "REDIS_HOST=${REDIS_HOST}" >> .env
+          echo "REDIS_PORT=${REDIS_PORT}" >> .env
 
       - name: Make entrypoint scripts executable
         run: |
@@ -31,7 +44,7 @@ jobs:
           chmod +x ./docker/php/entrypoint.sh
 
       - name: Start services
-        run: docker compose up --build
+        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
 
       - name: Run database migrations
         run: docker compose exec -T app php cli ddd:migrate --seed
@@ -39,6 +52,26 @@ jobs:
       - name: Run PHPUnit tests
         run: docker compose exec -T app ./vendor/bin/phpunit
 
+      - name: Stop services
+        if: always()
+        run: docker compose down
+
+      - name: Install Composer
+        run: |
+          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
+          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
+          php -r "unlink('composer-setup.php');"
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+
+      - name: Install Node.js dependencies
+        run: npm install
   build:
     runs-on: ubuntu-latest
     needs: test
@@ -60,7 +93,7 @@ jobs:
         with:
           context: .
           push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:latest, ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:${{ github.sha }}
+          tags: ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:latest,${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:${{ github.sha }}
           build-args: |
             APP_ENV=production
           cache-from: type=gha
@@ -77,18 +110,9 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
-            # Navigate to the application directory on the server.
             cd ${{ secrets.APP_PATH_ON_SERVER }}
-            
-            # Pull the latest image of the 'app' service from Docker Hub.
             echo ">>> Pulling latest image..."
             docker compose pull app
-
-            # Restart the container with the new image.
-            # Docker Compose will automatically perform a rolling update (create a new container before removing the old one).
-            # --remove-orphans will clean up containers that are no longer defined (if any).
             echo ">>> Deploying new container..."
             docker compose up -d --remove-orphans app
-            
-            # [Optional] Clean up old, unused images to save space.
             docker image prune -f

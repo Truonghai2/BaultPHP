@@ -3,6 +3,8 @@
 namespace Core\Redis;
 
 use Amp\Redis\RedisClient;
+use Core\Application;
+use Psr\Log\LoggerInterface;
 use Revolt\EventLoop;
 use Revolt\EventLoop\Suspension;
 use SplQueue;
@@ -25,6 +27,8 @@ class FiberRedisPool
     /** @var int Số lượng kết nối đã được tạo. */
     private int $currentSize = 0;
 
+    protected LoggerInterface $logger;
+
     /**
      * @param \Closure $factory Một hàm để tạo một instance RedisClient mới.
      * @param int $maxSize Số lượng kết nối tối đa cho phép trong pool.
@@ -33,8 +37,13 @@ class FiberRedisPool
         private readonly \Closure $factory,
         private readonly int $maxSize = 10,
     ) {
+        if ($this->maxSize <= 0) {
+            throw new \LogicException('FiberRedisPool max size must be greater than 0. Please check your server configuration.');
+        }
+
         $this->pool = new SplQueue();
         $this->waitQueue = new SplQueue();
+        $this->logger = Application::getInstance()->make(LoggerInterface::class);
     }
 
     /**
@@ -47,24 +56,44 @@ class FiberRedisPool
      */
     public function get(): RedisClient
     {
-        if (!$this->pool->isEmpty()) {
-            return $this->pool->dequeue();
+        $this->logger->debug(sprintf('FiberRedisPool: Attempting to get connection. Current size: %d, Max size: %d, Waiting Fibers: %d', $this->currentSize, $this->maxSize, $this->waitQueue->count()));
+
+        while (!$this->pool->isEmpty()) {
+            $connection = $this->pool->dequeue();
+            try {
+                $connection->ping();
+                $this->logger->debug('FiberRedisPool: Reusing existing connection.');
+                return $connection;
+            } catch (Throwable $e) {
+                $this->currentSize--;
+                $this->logger->warning(sprintf('FiberRedisPool: Discarding invalid connection. Error: %s', $e->getMessage()));
+            }
         }
 
         if ($this->currentSize < $this->maxSize) {
             $this->currentSize++;
             try {
-                return ($this->factory)()->await();
+                $this->logger->debug(sprintf('FiberRedisPool: Creating new connection. New size: %d', $this->currentSize));
+                return ($this->factory)();
             } catch (Throwable $e) {
                 $this->currentSize--;
+                $this->logger->error(sprintf('FiberRedisPool: Failed to create new connection. Error: %s', $e->getMessage()));
                 throw $e;
             }
         }
 
+        $this->logger->debug('FiberRedisPool: Pool exhausted, suspending Fiber.');
         $suspension = EventLoop::getSuspension();
         $this->waitQueue->enqueue($suspension);
 
-        return $suspension->await();
+        try {
+            $connection = $suspension->suspend();
+            $this->logger->debug('FiberRedisPool: Fiber resumed, connection obtained from wait queue.');
+            return $connection;
+        } catch (Throwable $e) {
+            $this->logger->error(sprintf('FiberRedisPool: Fiber suspended but threw exception on resume. Error: %s', $e->getMessage()));
+            throw $e;
+        }
     }
 
     /**
@@ -74,23 +103,25 @@ class FiberRedisPool
      */
     public function put(RedisClient $connection): void
     {
-        if (!$connection->isAlive()) {
-            $this->currentSize--;
-            return;
-        }
+        $this->logger->debug(sprintf('FiberRedisPool: Attempting to put connection. Current size: %d, Waiting Fibers: %d', $this->currentSize, $this->waitQueue->count()));
+
         try {
             $connection->ping();
-        } catch (Throwable) {
+        } catch (Throwable $e) {
             $this->currentSize--;
+            $this->logger->warning(sprintf('FiberRedisPool: Discarding connection on put due to ping failure. Error: %s', $e->getMessage()));
             return;
         }
+
         if (!$this->waitQueue->isEmpty()) {
             $suspension = $this->waitQueue->dequeue();
+            $this->logger->debug('FiberRedisPool: Resuming waiting Fiber.');
             $suspension->resume($connection);
             return;
         }
 
         $this->pool->enqueue($connection);
+        $this->logger->debug('FiberRedisPool: Connection returned to pool.');
     }
 
     /**
@@ -98,6 +129,7 @@ class FiberRedisPool
      */
     public function close(): void
     {
+        $this->logger->info(sprintf('FiberRedisPool: Closing pool. Waiting Fibers: %d, Connections in pool: %d', $this->waitQueue->count(), $this->pool->count()));
         while (!$this->waitQueue->isEmpty()) {
             $this->waitQueue->dequeue()->throw(new \RuntimeException('Pool is closing.'));
         }
@@ -107,5 +139,6 @@ class FiberRedisPool
             $connection->close();
         }
         $this->currentSize = 0;
+        $this->logger->info('FiberRedisPool: Pool closed.');
     }
 }

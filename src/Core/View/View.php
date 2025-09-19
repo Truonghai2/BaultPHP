@@ -46,7 +46,7 @@ class View implements ViewContract
             return $this->factory->evaluatePath($compiledPath, $this->data);
         } finally {
             // Luôn dọn dẹp tất cả trạng thái (sections, stacks, components) sau khi render xong.
-            $this->factory->flushState();
+            $this->factory->resetState();
         }
     }
 

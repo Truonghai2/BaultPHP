@@ -60,10 +60,9 @@ class SearchImportCommand extends BaseCommand
             $progressBar = $this->io->createProgressBar($count);
             $progressBar->start();
 
-            // Sử dụng chunkById để tối ưu bộ nhớ
             $query->chunkById($chunkSize, function ($models) use ($modelClass, $progressBar) {
                 $keys = $models->map(fn ($model) => $model->getKey())->all();
-                dispatch(new BulkIndexJob($modelClass, $keys));
+                BulkIndexJob::dispatch($modelClass, $keys);
                 $progressBar->advance(count($models));
             });
 

@@ -1,5 +1,6 @@
 {
   "name": "Admin",
   "version": "1.0.0",
+  "enabled": true,
   "providers": ["Modules\\Admin\\Providers\\ModuleServiceProvider"]
 }

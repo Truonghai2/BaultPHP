@@ -64,6 +64,7 @@ class Kernel implements KernelContract
      * @var array<string, class-string>
      */
     protected array $routeMiddleware = [
+        'auth' => \Http\Middleware\Authenticate::class,
         'can' => \Http\Middleware\CheckPermissionMiddleware::class,
     ];
 

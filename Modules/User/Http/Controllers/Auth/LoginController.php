@@ -29,7 +29,7 @@ class LoginController extends Controller
         method: 'POST',
         uri: '/login',
         name: 'login',
-        middleware: ['throttle:5,1'],
+        // middleware: ['throttle:5,1'],
     )]
     public function login(LoginRequest $request, LoginUserHandler $handler, LoggerInterface $logger, SessionInterface $session): ResponseInterface
     {
