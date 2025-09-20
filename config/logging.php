@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'default_stack'),
+    'default' => env('LOG_CHANNEL', 'daily'), // Tạm thời chuyển sang 'daily' để debug
 
     /*
     |--------------------------------------------------------------------------
@@ -37,6 +37,13 @@ return [
             'driver' => 'stack',
             'channels' => ['single', 'sentry'],
             'ignore_exceptions' => false,
+        ],
+
+        'task_worker' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/tasks.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
         ],
 
         'sentry' => [

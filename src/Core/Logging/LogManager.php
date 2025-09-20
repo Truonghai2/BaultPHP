@@ -3,7 +3,7 @@
 namespace Core\Logging;
 
 use Core\Application;
-use Core\Tasking\TaskService;
+use Core\Contracts\Task\TaskDispatcher;
 use InvalidArgumentException;
 use Monolog\Logger;
 use Psr\Log\LoggerInterface;
@@ -80,19 +80,28 @@ class LogManager implements LoggerInterface
 
     protected function createAsyncDriver(array $config): LoggerInterface
     {
+        // Kiểm tra xem có đang chạy trong môi trường Swoole coroutine hay không
         $isSwooleEnv = extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0;
 
-        if (! $isSwooleEnv || ! $this->app->has(TaskService::class)) {
+        // Nếu không phải môi trường Swoole, hoặc TaskDispatcher chưa được bind,
+        // thì quay về dùng 'single' driver như một phương án an toàn.
+        if (! $isSwooleEnv || ! $this->app->bound(TaskDispatcher::class)) {
+            $this->app->make(LoggerInterface::class)->warning('Async log driver is not available. Falling back to single driver. Ensure you are in a Swoole environment and TaskDispatcher is bound.');
             $singleConfig = $this->app['config']->get('logging.channels.single');
             $singleConfig['level'] = $config['level'] ?? $singleConfig['level'];
             return $this->createSingleDriver($singleConfig);
         }
 
-        $handler = new SwooleTaskHandler($this->app->make(TaskService::class));
+        // Sử dụng handler mới để gửi log đến Task Worker
+        $handler = new SwooleTaskHandler(
+            $this->app->make(TaskDispatcher::class),
+            $this->level($config),
+            $config['bubble'] ?? true,
+        );
 
         return new Logger(
             $this->parseChannel($config),
-            [$handler],
+            [$this->prepareHandler($handler, $config)],
         );
     }
 

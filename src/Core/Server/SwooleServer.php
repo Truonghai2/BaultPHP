@@ -223,6 +223,8 @@ class SwooleServer
                 $this->getLogger()->error("Request [{$requestId}]: Unhandled exception caught.", ['exception' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
             }
 
+            $response = $response->withHeader('X-Request-ID', $requestId);
+
             $this->logRequest($psr7Request, $response, $startTime);
 
             $this->transformResponse($response, $swooleResponse);
@@ -253,6 +255,7 @@ class SwooleServer
                     }
                 }
             }
+            // Dọn dẹp instance và trạng thái của request hiện tại
             $this->cleanupAfterRequest($requestId);
         }
     }
@@ -274,6 +277,25 @@ class SwooleServer
      */
     public function onTask(SwooleHttpServer $server, int $taskId, int $fromWorkerId, string $data): mixed
     {
+        if (!$this->app->bound('log.task_writer')) {
+            $this->app->singleton('log.task_writer', function (Application $app) use ($server) {
+                $logManager = new \Core\Logging\LogManager($app);
+                $config = $app->make('config')->get('logging.channels.task_worker', $app->make('config')->get('logging.channels.daily'));
+
+                $logger = $logManager->createDailyDriver($config);
+
+                if (class_exists(\Core\Logging\Processor\TaskWorkerContextProcessor::class)) {
+                    $processor = new \Core\Logging\Processor\TaskWorkerContextProcessor($server);
+                    $logger->pushProcessor($processor);
+                }
+
+                return $logger;
+            });
+        }
+
+        // DEBUG: Kiểm tra xem TaskWorker có nhận được task không.
+        error_log("[DEBUG_LOG] SwooleServer: onTask() received task #{$taskId}.");
+
         $this->getLogger()->info(
             "Received task #{$taskId} from worker #{$fromWorkerId}",
             ['worker_id' => $server->worker_id, 'task_id' => $taskId],
@@ -283,6 +305,7 @@ class SwooleServer
             $task = unserialize($data, [
                 'allowed_classes' => [
                     \Core\Tasking\LogTask::class,
+                    \Core\Tasking\CacheDebugDataTask::class,
                 ],
             ]);
 
@@ -428,11 +451,6 @@ class SwooleServer
 
     protected function transformResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
-        if ($this->app->bound(DebugManager::class) && $this->app->make(DebugManager::class)->isEnabled()) {
-            $requestId = $this->app->make('request_id');
-            $response = $response->withHeader('X-Debug-ID', $requestId);
-        }
-
         $this->psr7Bridge->toSwooleResponse($response, $swooleResponse);
     }
 

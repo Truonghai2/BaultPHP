@@ -71,6 +71,7 @@ if [ "${RUN_SEEDERS}" = "true" ]; then
     gosu $APP_USER php /app/cli db:seed
 fi
 
+
 echo "Starting main process: $@"
 
 exec "$@"
