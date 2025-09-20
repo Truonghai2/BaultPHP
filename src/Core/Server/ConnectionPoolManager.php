@@ -78,7 +78,6 @@ class ConnectionPoolManager
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                 try {
-                    // Hợp nhất cấu hình mặc định và cấu hình riêng của connection
                     $finalConfig = array_replace_recursive($defaults, $connectionConfig);
 
                     $connectionDetails = $this->app->make('config')->get("{$configPrefix}.{$name}");
@@ -87,19 +86,21 @@ class ConnectionPoolManager
                     }
 
                     $poolSizeKey = $isTaskWorker ? 'task_worker_pool_size' : 'worker_pool_size';
-                    $poolSize = $finalConfig[$poolSizeKey] ?? 10;
+                    $poolSize = (int) ($finalConfig[$poolSizeKey] ?? 10);
+
+                    $workerCount = (int) ($this->app->make('config')->get('server.swoole.worker_num') ?: swoole_cpu_num());
+                    $adjustedPoolSize = (int) ceil($poolSize / max(1, $workerCount));
+                    $poolSize = max(1, $adjustedPoolSize);
 
                     $heartbeat = $finalConfig['heartbeat'] ?? null;
                     $circuitBreakerConfig = $finalConfig['circuit_breaker'] ?? [];
 
-                    // Gọi phương thức init một cách linh động
                     $poolClass::init($connectionDetails, $poolSize, $circuitBreakerConfig, $this->app, $heartbeat, $name);
 
-                    // Lưu lại class đã được khởi tạo để đóng lại sau
                     $this->initializedPoolClasses[] = $poolClass;
 
                     $this->logger->debug("Pool '{$name}' of type '{$poolType}' initialized for {$workerType}", ['size' => $poolSize]);
-                    break; // Thoát khỏi vòng lặp nếu thành công
+                    break; 
                 } catch (\Throwable $e) {
                     $this->logger->warning("Attempt {$attempt}/{$maxRetries}: Failed to initialize pool '{$name}' of type '{$poolType}'. Retrying in {$retryDelay}s...", ['error' => $e->getMessage()]);
                     if ($attempt < $maxRetries) {

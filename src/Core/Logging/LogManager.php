@@ -39,6 +39,33 @@ class LogManager implements LoggerInterface
         return $this->channels[$name] ?? ($this->channels[$name] = $this->resolve($name));
     }
 
+    /**
+     * Create an instance of any Monolog driver.
+     *
+     * @param  array  $config
+     * @return \Psr\Log\LoggerInterface
+     */
+    protected function createMonologDriver(array $config): LoggerInterface
+    {
+        if (!isset($config['handler'])) {
+            throw new InvalidArgumentException('Log channel ' . ($config['channel'] ?? 'unknown') . ' with monolog driver must have a handler defined.');
+        }
+
+        $handlerClass = $config['handler'];
+        $handlerArgs = $config['with'] ?? [];
+
+        if (is_string($handlerClass) && $this->app->bound($handlerClass)) {
+            $handler = $this->app->make($handlerClass);
+        } else {
+            $handler = new $handlerClass(...array_values($handlerArgs));
+        }
+
+        return new Logger(
+            $this->parseChannel($config),
+            [$this->prepareHandler($handler, $config)]
+        );
+    }
+
     protected function resolve(string $name): LoggerInterface
     {
         $config = $this->configurationFor($name);

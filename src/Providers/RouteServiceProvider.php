@@ -35,16 +35,17 @@ class RouteServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
-        if ($this->app->runningInConsole()) {
-            return;
-        }
-
         $router = $this->app->make(\Core\Routing\Router::class);
 
         $cachedRoutesFile = $this->app->basePath('bootstrap/cache/routes.php');
         if (file_exists($cachedRoutesFile) && !env('APP_DEBUG', false)) {
             $cachedRoutes = require $cachedRoutesFile;
             $router->loadFromCache($cachedRoutes);
+            return;
+        }
+
+        // Do not map routes again if running in console, unless it's a caching command.
+        if ($this->app->runningInConsole() && !$this->isCachingCommand()) {
             return;
         }
 
@@ -117,5 +118,15 @@ class RouteServiceProvider extends ServiceProvider
         }
 
         return $pathsToScan;
+    }
+
+    /**
+     * Check if the current command is a route caching command.
+     *
+     * @return bool
+     */
+    private function isCachingCommand(): bool
+    {
+        return isset($_SERVER['argv']) && in_array('route:cache', $_SERVER['argv'], true);
     }
 }

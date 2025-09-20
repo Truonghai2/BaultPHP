@@ -293,9 +293,6 @@ class SwooleServer
             });
         }
 
-        // DEBUG: Kiểm tra xem TaskWorker có nhận được task không.
-        error_log("[DEBUG_LOG] SwooleServer: onTask() received task #{$taskId}.");
-
         $this->getLogger()->info(
             "Received task #{$taskId} from worker #{$fromWorkerId}",
             ['worker_id' => $server->worker_id, 'task_id' => $taskId],
@@ -303,10 +300,9 @@ class SwooleServer
 
         try {
             $task = unserialize($data, [
-                'allowed_classes' => [
-                    \Core\Tasking\LogTask::class,
-                    \Core\Tasking\CacheDebugDataTask::class,
-                ],
+                // Cho phép bất kỳ class nào implement Task interface.
+                // Điều này an toàn vì các task đều do chính ứng dụng tạo ra.
+                'allowed_classes' => fn (string $class) => is_a($class, Task::class, true),
             ]);
 
             if ($task instanceof Task) {

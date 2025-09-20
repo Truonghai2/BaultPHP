@@ -14,7 +14,7 @@ return [
     |
     */
 
-    'default' => env('LOG_CHANNEL', 'daily'), // Tạm thời chuyển sang 'daily' để debug
+    'default' => env('LOG_CHANNEL', 'default_stack'),
 
     /*
     |--------------------------------------------------------------------------
@@ -30,7 +30,7 @@ return [
     'channels' => [
         'default_stack' => [
             'driver' => 'stack',
-            'channels' => ['async', 'sentry'],
+            'channels' => array_filter(['daily', 'sentry', (env('APP_ENV') === 'local' && class_exists(\DebugBar\Bridge\MonologCollector::class)) ? 'debugbar' : null]),
             'ignore_exceptions' => false,
         ],
         'sync_stack' => [
@@ -100,6 +100,11 @@ return [
             'driver' => 'monolog',
             'handler' => NullHandler::class,
         ],
-    ],
 
+        'debugbar' => [
+            'driver' => 'monolog',
+            'handler' => class_exists(\DebugBar\Bridge\MonologCollector::class) ? \DebugBar\Bridge\MonologCollector::class : NullHandler::class,
+            'level' => 'debug',
+        ],
+    ],
 ];

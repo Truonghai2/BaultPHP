@@ -15,14 +15,16 @@ class SwoolePdoPool extends BaseSwoolePool
     protected static function createConnection(string $name): mixed
     {
         $config = static::$configs[$name];
-        $dsn = sprintf(
-            '%s:host=%s;port=%d;dbname=%s;charset=%s',
-            $config['driver'],
-            $config['write']['host'] ?? $config['host'],
-            $config['port'],
-            $config['database'],
-            $config['charset'],
-        );
+        $driver = $config['driver'];
+        $host = $config['write']['host'] ?? $config['host'];
+        $port = $config['port'];
+        $database = $config['database'];
+
+        $dsn = "{$driver}:host={$host};port={$port};dbname={$database}";
+
+        if ($driver === 'mysql' && !empty($config['charset'])) {
+            $dsn .= ';charset=' . $config['charset'];
+        }
 
         $options = [
             PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,

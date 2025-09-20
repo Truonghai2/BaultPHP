@@ -33,37 +33,15 @@ $app = new Application(
 $dotenv = Dotenv::createImmutable($app->basePath());
 $dotenv->safeLoad();
 
-// Disable shutdown handlers for Revolt and Amphp components to prevent deprecation warnings in Swoole.
-putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
-putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
-putenv('AMPHP_HTTP_CLIENT_DISABLE_SHUTDOWN_HANDLER=1');
-
 // When running the Swoole server, we must prevent certain libraries from registering
 // shutdown functions that conflict with the Swoole event loop. We detect this by
 // checking the command line arguments.
 $isSwooleServer = php_sapi_name() === 'cli' && isset($_SERVER['argv'][1]) && in_array($_SERVER['argv'][1], ['serve:start', 'serve:watch'], true);
 
-if ($isSwooleServer) {
-    // Prevent react/socket from registering its shutdown handler.
-    // This is done by setting a specific environment variable that the library checks.
-    // See: vendor/react/socket/src/SocketServer.php
-    putenv('REACT_SOCKET_DISABLE_SHUTDOWN_HANDLER=1');
-
-    /*
-    |--------------------------------------------------------------------------
-    | Patch Hoa/Stream for PsySH Compatibility
-    |--------------------------------------------------------------------------
-    |
-    | The `hoa/stream` library (a dependency of `psy/psysh`) registers a
-    | shutdown function that conflicts with Swoole. We register a custom
-    | stream wrapper here, before the application bootstraps, to patch the
-    | problematic file in-memory when it's loaded by the autoloader.
-    |
-    */
-    require_once __DIR__ . '/../src/Core/Patches/SwooleStreamWrapper.php';
-    stream_wrapper_unregister('file');
-    stream_wrapper_register('file', \Core\Patches\SwooleStreamWrapper::class);
-}
+// Disable shutdown handlers for Revolt and Amphp components to prevent deprecation warnings in Swoole.
+putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_HTTP_CLIENT_DISABLE_SHUTDOWN_HANDLER=1');
 
 Facade::setFacadeApplication($app);
 

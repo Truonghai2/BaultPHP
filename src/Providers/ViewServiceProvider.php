@@ -41,15 +41,16 @@ class ViewServiceProvider extends ServiceProvider
      */
     protected function registerFactory(): void
     {
-        $this->app->singleton(ViewFactoryContract::class, function ($app) {
+        $this->app->singleton(ViewFactory::class, function ($app) {
             $compiler = $app->make(Compiler::class);
             $files = $app->make(Filesystem::class);
             $paths = config('view.paths');
 
             return new ViewFactory($compiler, $files, $paths);
         });
-
-        $this->app->alias(ViewFactoryContract::class, 'view');
+ 
+        $this->app->alias(ViewFactory::class, ViewFactoryContract::class);
+        $this->app->alias(ViewFactory::class, 'view');
     }
 
     protected function registerBladeDirectives(): void

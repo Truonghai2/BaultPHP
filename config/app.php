@@ -38,6 +38,7 @@ return [
         \App\Providers\LoggingServiceProvider::class,
         \App\Providers\MailServiceProvider::class,
         \App\Providers\ServerServiceProvider::class,
+        \App\Providers\StatefulServiceProvider::class,
         \App\Providers\SessionServiceProvider::class,
         \Core\Queue\QueueServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,

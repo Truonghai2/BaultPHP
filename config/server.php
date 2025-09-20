@@ -173,13 +173,13 @@ return [
 
                 'connections' => [
                     'default' => [
-                        'worker_pool_size' => 15,
+                        'worker_pool_size' => 20, // Increased default pool
                     ],
                     'cache' => [
-                        'worker_pool_size' => 5,
+                        // Point 'cache' to use the 'default' Redis connection config
                     ],
                     'queue' => [
-                        'worker_pool_size' => 5,
+                        // Point 'queue' to use the 'default' Redis connection config
                     ],
                 ],
             ],

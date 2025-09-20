@@ -72,8 +72,18 @@ RUN buildDeps=" \
 # [IMPORTANT] Use resources from the framework:
 # Copy custom configuration files into the image.
 # Grouping COPY commands into one layer makes the image slightly smaller.
+ARG APP_ENV=production
 COPY docker/php/conf.d/apcu.ini /usr/local/etc/php/conf.d/zz-apcu.ini
 COPY docker/php/conf.d/custom.ini /usr/local/etc/php/conf.d/zz-bault-custom.ini
+# Copy opcache configurations into a temporary location first.
+COPY docker/php/conf.d/opcache-*.ini /tmp/
+# Now, conditionally copy the correct opcache config file based on the build argument.
+# This ensures the files exist inside the image before `cp` is called.
+RUN if [ "${APP_ENV}" = "production" ]; then \
+        cp /tmp/opcache-prod.ini /usr/local/etc/php/conf.d/zz-opcache.ini; \
+    else \
+        cp /tmp/opcache-dev.ini /usr/local/etc/php/conf.d/zz-opcache.ini; \
+    fi && rm /tmp/opcache-*.ini
 COPY docker/supervisor/app.conf /etc/supervisor/conf.d/app.conf
  
 # Create an alias 'bault' for 'php /app/cli' for more convenience when working inside the container.
@@ -84,13 +94,24 @@ WORKDIR $APP_HOME
 # Copy the vendor directory installed from the "vendor" stage.
 COPY --from=vendor --chown=$APP_USER:$APP_GROUP $APP_HOME/vendor $APP_HOME/vendor
  
+# [BAULTPHP PATCH] Disable the problematic shutdown function in psy/psysh
+# This is a robust fix for Swoole compatibility, applied during the build process.
+RUN sed -i "s#^\\s*\\\\register_shutdown_function(\[Stream::class, '_Hoa_Stream'\]);#// & // Patched by BaultPHP for Swoole compatibility#" /app/vendor/psy/psysh/src/Readline/Hoa/Stream.php
+ 
 # Copy the entrypoint script first to better leverage the cache.
 # If only the application code changes, this layer will not need to be rebuilt.
 COPY --chmod=0755 ./docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh
 
+# Copy the Composer binary from the vendor stage to be used in this stage.
+COPY --from=vendor /usr/bin/composer /usr/bin/composer
+
 # Copy the entire application source code.
 # IMPORTANT: Make sure you have created a .dockerignore file.
 COPY --chown=$APP_USER:$APP_GROUP . .
+
+# Regenerate the Composer autoloader to include the application's source files.
+# This is crucial for the application to find its own classes.
+RUN composer dump-autoload --optimize --no-dev --classmap-authoritative
  
 # Grant ownership of the application directory to the `appuser` user so that this user can
 # create subdirectories within it (e.g., storage).

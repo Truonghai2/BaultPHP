@@ -4,8 +4,6 @@ namespace Core\CQRS\Middleware;
 
 use Core\CQRS\Command;
 use Core\CQRS\CommandMiddleware;
-use Core\Server\SwooleServer;
-use Core\Tasking\LogCommandTask;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -20,10 +18,7 @@ class LoggingCommandMiddleware implements CommandMiddleware
      *
      * @var LoggerInterface
      */
-    public function __construct(
-        private readonly LoggerInterface $logger,
-        private readonly SwooleServer $server,
-    ) {
+    public function __construct(private readonly LoggerInterface $logger) {
     }
 
     /**
@@ -38,18 +33,18 @@ class LoggingCommandMiddleware implements CommandMiddleware
     {
         $commandClass = get_class($command);
 
-        $this->dispatchLog('info', "Executing command: [{$commandClass}]", [
+        $this->logger->info("Executing command: [{$commandClass}]", [
             'command' => $this->serializeCommand($command),
         ]);
 
         try {
             $result = $next($command);
 
-            $this->dispatchLog('info', "Successfully executed command: [{$commandClass}]");
+            $this->logger->info("Successfully executed command: [{$commandClass}]");
 
             return $result;
         } catch (Throwable $e) {
-            $this->dispatchLog('error', "Command execution failed: [{$commandClass}]", [
+            $this->logger->error("Command execution failed: [{$commandClass}]", [
                 'exception' => get_class($e),
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
@@ -69,18 +64,5 @@ class LoggingCommandMiddleware implements CommandMiddleware
     private function serializeCommand(Command $command): array
     {
         return json_decode(json_encode($command), true);
-    }
-
-    /**
-     * Dispatches a log message to a Swoole task worker.
-     *
-     * @param string $level
-     * @param string $message
-     * @param array  $context
-     */
-    private function dispatchLog(string $level, string $message, array $context = []): void
-    {
-        $task = new LogCommandTask($level, $message, $context);
-        $this->server->dispatchTask($task);
     }
 }
