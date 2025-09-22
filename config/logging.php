@@ -16,6 +16,8 @@ return [
 
     'default' => env('LOG_CHANNEL', 'default_stack'),
 
+    'access_log_channel' => env('ACCESS_LOG_CHANNEL', 'access'),
+
     /*
     |--------------------------------------------------------------------------
     | Log Channels
@@ -105,6 +107,13 @@ return [
             'driver' => 'monolog',
             'handler' => class_exists(\DebugBar\Bridge\MonologCollector::class) ? \DebugBar\Bridge\MonologCollector::class : NullHandler::class,
             'level' => 'debug',
+        ],
+
+        'access' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/access.log'),
+            'level' => 'info',
+            'days' => 7,
         ],
     ],
 ];

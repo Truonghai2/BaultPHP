@@ -113,34 +113,35 @@ class SwooleMetricsService
      */
     public function getMetricsAsPrometheus(): string
     {
-        $groupedMetrics = [];
+        $output = '';
+        $lastMetricName = null;
 
-        foreach ($this->metrics as $row) {
+        // Create a sorted list of keys to ensure metrics are grouped.
+        $sortedKeys = [];
+        foreach ($this->metrics as $hashedKey => $row) {
+            $sortedKeys[$row['metric_name'] . ' ' . $hashedKey] = $hashedKey;
+        }
+        ksort($sortedKeys);
+
+        foreach ($sortedKeys as $hashedKey) {
+            $row = $this->metrics->get($hashedKey);
+            if (!$row) {
+                continue;
+            }
+
             $metricName = $row['metric_name'];
-            if (!isset($groupedMetrics[$metricName])) {
-                $groupedMetrics[$metricName] = [];
+            if ($metricName !== $lastMetricName) {
+                $info = $this->metricInfo[$metricName] ?? null;
+                if ($info) {
+                    $output .= '# HELP ' . $metricName . ' ' . ($info['help'] ?? 'No help text provided.') . "\n";
+                    $output .= '# TYPE ' . $metricName . ' ' . ($info['type'] ?? 'untyped') . "\n";
+                }
+                $lastMetricName = $metricName;
             }
-            $groupedMetrics[$metricName][] = [
-                'full_key' => $row['full_key'],
-                'value' => $row['value'],
-            ];
+            $output .= sprintf("%s %s\n", $row['full_key'], $row['value']);
         }
 
-        $output = [];
-        foreach ($groupedMetrics as $name => $metrics) {
-            $info = $this->metricInfo[$name] ?? null;
-            if ($info) {
-                $output[] = '# HELP ' . $name . ' ' . ($info['help'] ?? 'No help text provided.');
-                $output[] = '# TYPE ' . $name . ' ' . ($info['type'] ?? 'untyped');
-            }
-
-            foreach ($metrics as $metric) {
-                $output[] = sprintf('%s %s', $metric['full_key'], $metric['value']);
-            }
-            $output[] = '';
-        }
-
-        return implode("\n", $output);
+        return $output;
     }
 
     /**

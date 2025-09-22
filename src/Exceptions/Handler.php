@@ -25,7 +25,7 @@ class Handler implements HandlerContract
 
     public function __construct(
         protected LoggerInterface $logger,
-        protected ViewFactory $view,
+        protected ViewFactory $view
     ) {
     }
 
@@ -44,15 +44,19 @@ class Handler implements HandlerContract
         });
     }
 
-    public function report(Throwable $e): void
+    public function report(Throwable|Request $request, Throwable $e): void
     {
         if ($this->shouldntReport($e)) {
             return;
         }
 
-        $this->logger->error($e->getMessage(), [
-            'exception' => $e,
-        ]);
+        $context = ['exception' => $e, 'status_code' => $this->getStatusCode($e)];
+        if ($request instanceof Request) {
+            $context['method'] = $request->getMethod();
+            $context['uri'] = (string) $request->getUri();
+            $context['ip'] = $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown';
+        }
+        $this->logger->error($e->getMessage(), $context);
     }
 
     protected function shouldntReport(Throwable $e): bool

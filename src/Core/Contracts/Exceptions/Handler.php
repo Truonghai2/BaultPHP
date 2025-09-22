@@ -19,10 +19,11 @@ interface Handler
     /**
      * Report or log an exception.
      *
+     * @param \Psr\Http\Message\ServerRequestInterface $request
      * @param \Throwable $e
      * @return void
      */
-    public function report(Throwable $e): void;
+    public function report(Request $request, Throwable $e): void;
 
     /**
      * Render an exception into an HTTP response.

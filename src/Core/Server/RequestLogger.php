@@ -1,7 +1,9 @@
 <?php
 
 namespace Core\Server;
+use Core\Facades\Log;
 
+use Core\Contracts\Config\Repository as Config;
 use Core\Application;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -16,10 +18,12 @@ use Throwable;
 class RequestLogger
 {
     public function __construct(
-        private Application $app,
-        private LoggerInterface $logger,
-        private bool $isDebug,
+        private Application $app
     ) {
+    }
+    private function getLogger(): LoggerInterface
+    {
+        return $this->app->make(LoggerInterface::class);
     }
 
     /**
@@ -27,59 +31,37 @@ class RequestLogger
      */
     public function log(ServerRequestInterface $request, ResponseInterface $response, float $startTime): void
     {
-        if (!$this->isDebug) {
-            return;
-        }
-
+        $logger = $this->getLogger();
         $duration = round((microtime(true) - $startTime) * 1000);
-        $requestId = $this->app->make('request_id');
-
-        $context = [
-            'request_id' => $requestId,
-            'method' => $request->getMethod(),
-            'uri' => (string) $request->getUri(),
-            'path' => $request->getUri()->getPath(),
-            'query_params' => $request->getQueryParams(),
-            'status_code' => $response->getStatusCode(),
-            'reason_phrase' => $response->getReasonPhrase(),
-            'duration_ms' => $duration,
-            'remote_addr' => $request->getServerParams()['REMOTE_ADDR'] ?? '?.?.?.?',
-            'request_headers' => $request->getHeaders(),
-            'response_headers' => $response->getHeaders(),
-        ];
-
-        $requestBody = $request->getParsedBody();
-        if ($requestBody) {
-            $context['request_body'] = $requestBody;
-        } elseif ($request->getBody()->getSize() > 0 && $request->getBody()->getSize() < 1024 * 10) {
-            try {
-                $request->getBody()->rewind();
-                $context['raw_request_body'] = $request->getBody()->getContents();
-            } catch (Throwable $e) {
-                $context['raw_request_body_error'] = $e->getMessage();
-            }
+        $request_id = $this->app->make('request_id');
+        $remote_addr = $request->getServerParams()['REMOTE_ADDR'] ?? '?.?.?.?';
+        $method = $request->getMethod();
+        $uri = $request->getUri()->getPath();
+        $query = $request->getUri()->getQuery();
+        if ($query) {
+            $uri .= '?' . $query;
         }
+        $protocol = 'HTTP/' . $request->getProtocolVersion();
+        $status = $response->getStatusCode();
+        $response_size = $response->getBody()->getSize() ?? 0;
+        $referer = $request->getHeaderLine('Referer') ?: '-';
+        $user_agent = $request->getHeaderLine('User-Agent') ?: '-';
 
-        if ($response->getBody()->getSize() > 0 && $response->getBody()->getSize() < 1024 * 10) {
-            try {
-                $response->getBody()->rewind();
-                $context['response_body'] = $response->getBody()->getContents();
-            } catch (Throwable $e) {
-                $context['response_body_error'] = $e->getMessage();
-            }
-        }
-
-        $this->logger->info(
-            sprintf(
-                'Request [ID: %s] "%s %s" %d %s (%dms)',
-                $requestId,
-                $request->getMethod(),
-                $request->getUri()->getPath(),
-                $response->getStatusCode(),
-                $response->getReasonPhrase(),
-                $duration,
-            ),
-            $context,
+        // Định dạng log theo chuẩn Apache Combined Log Format, có bổ sung request_id và duration
+        // remote_addr - - [datetime] "METHOD URI PROTOCOL" STATUS_CODE RESPONSE_SIZE "REFERER" "USER_AGENT"
+        $message = sprintf(
+            '%s - - [%s] "%s %s %s" %d %d "%s" "%s"',
+            $remote_addr,
+            date('d/M/Y:H:i:s O'),
+            $method,
+            $uri,
+            $protocol,
+            $status,
+            $response_size,
+            $referer,
+            $user_agent
         );
+
+        $logger->info($message, ['duration_ms' => $duration, 'request_id' => $request_id]);
     }
 }

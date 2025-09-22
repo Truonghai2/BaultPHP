@@ -30,9 +30,7 @@ class Kernel implements KernelContract
     protected array $middleware = [
         \App\Http\Middleware\ParseBodyMiddleware::class,
         \App\Http\Middleware\EnsureAdminUserExists::class,
-        \App\Http\Middleware\AttachRequestIdToLogs::class,
         \App\Http\Middleware\HttpMetricsMiddleware::class,
-        \App\Http\Middleware\LogRequestMiddleware::class,
         \App\Http\Middleware\TrimStrings::class,
         \App\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\SetLocaleMiddleware::class,
@@ -259,7 +257,7 @@ class Kernel implements KernelContract
     protected function renderException(ServerRequestInterface $request, Throwable $e): ResponseInterface
     {
         $handler = $this->app->make(ExceptionHandler::class);
-        $handler->report($e);
+        $handler->report($request, $e);
         return $handler->render($request, $e);
     }
 

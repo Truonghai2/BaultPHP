@@ -7,5 +7,5 @@ services:
       - /app/bootstrap/cache
       - /app/vendor
 
-    healthcheck:
-      disable: true
+    # healthcheck:
+    #   disable: true

@@ -5,14 +5,21 @@ namespace App\Http\Controllers\Admin;
 use App\Http\ResponseFactory;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
+use Core\Metrics\SwooleMetricsService;
 use Core\Routing\Attributes\Route;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class MetricsController
 {
-    #[Route('/metrics', method: 'GET', middleware: ['protect-metrics'])]
-    public function __invoke(ServerRequestInterface $request, ResponseFactory $responseFactory): ResponseInterface
+    public function __construct(
+        private ResponseFactory $responseFactory,
+        private SwooleMetricsService $metricsService,
+    ) {
+    }
+
+    #[Route('/metrics', method: 'GET', middleware: [\App\Http\Middleware\ProtectMetricsMiddleware::class])]
+    public function __invoke(ServerRequestInterface $request): ResponseInterface
     {
         $metrics = [
             'swoole_server' => app(\Core\Server\SwooleServer::class)->stats(),
@@ -59,6 +66,9 @@ class MetricsController
             }
         }
 
-        return $responseFactory->make($output, 200, ['Content-Type' => 'text/plain; version=0.0.4']);
+        // Nối các metrics từ service vào output
+        $output .= $this->metricsService->getMetricsAsPrometheus();
+
+        return $this->responseFactory->make($output, 200, ['Content-Type' => 'text/plain; version=0.0.4']);
     }
 }

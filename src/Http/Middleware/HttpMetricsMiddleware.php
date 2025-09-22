@@ -35,8 +35,9 @@ class HttpMetricsMiddleware implements MiddlewareInterface
         // Tăng bộ đếm tổng số request
         $this->metrics->increment('http_requests_total', 1.0, $labels);
 
-        // Ghi lại thời gian xử lý của request này
-        $this->metrics->setGauge('http_request_duration_seconds', $duration, $labels);
+        // Ghi nhận (observe) thời gian xử lý request vào histogram.
+        // Histogram là cách đúng đắn để theo dõi các giá trị có thể thay đổi như độ trễ.
+        $this->metrics->observe('http_request_duration_seconds', $duration, $labels);
 
         return $response;
     }

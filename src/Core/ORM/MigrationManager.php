@@ -105,15 +105,13 @@ class MigrationManager
             try {
                 $name = basename($file, '.php');
 
-                // `require_once` can return a value. For new-style migrations, it will return the instance.
-                $instance = require_once $file;
+                $instance = require $file;
 
-                // If it's not an object, it's an old-style migration. We need to find and instantiate the class.
                 if (!is_object($instance)) {
                     $class = $this->findMigrationClass($file);
                     if (!$class) {
                         $this->log("<error>Migration class not found in '{$file}' and it did not return an object.</error>");
-                        continue; // Skip this file and move to the next
+                        continue; 
                     }
                     $instance = new $class();
                 }
@@ -271,7 +269,7 @@ class MigrationManager
         foreach ($migrationsToRollback as $migrationName) {
             if (isset($filesMap[$migrationName])) {
                 $file = $filesMap[$migrationName];
-                $instance = require_once $file;
+                $instance = require $file;
 
                 if (!is_object($instance)) {
                     $class = $this->findMigrationClass($file);

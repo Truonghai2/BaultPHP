@@ -28,6 +28,8 @@ final class RequestLifecycle
     private string $requestId;
     private float $startTime;
     private ?ResponseInterface $response = null;
+    private ?DebugManager $debugManager = null;
+    private ?float $endTime = null;
 
     public function __construct(
         private Application $app,
@@ -38,7 +40,7 @@ final class RequestLifecycle
         private bool $isDebug,
     ) {
         $this->startTime = microtime(true);
-        $this->requestId = bin2hex(random_bytes(4));
+        $this->requestId = uniqid();
     }
 
     /**
@@ -79,12 +81,9 @@ final class RequestLifecycle
         $this->app->instance('request_id', $this->requestId);
         $this->app->instance(SwooleRequest::class, $swooleRequest);
 
-        if ($this->app->bound(DebugManager::class)) {
-            $this->app->make(DebugManager::class)->enable();
-        }
-
-        if ($this->isDebug) {
-            $this->getLogger()->debug("Request [{$this->requestId}] received.", ['method' => $swooleRequest->getMethod(), 'uri' => $swooleRequest->server['request_uri']]);
+        if ($this->isDebug && $this->app->bound(DebugManager::class)) {
+            $this->debugManager = $this->app->make(DebugManager::class);
+            $this->debugManager->enable();
         }
     }
 
@@ -119,7 +118,7 @@ final class RequestLifecycle
             $this->getLogger()->warning("Request [{$this->requestId}]: Service unavailable, circuit breaker is likely open.", ['exception' => $e->getMessage()]);
         } else {
             $this->getLogger()->error("Request [{$this->requestId}]: Unhandled exception caught.", ['exception' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
-            $this->exceptionHandler->report($e);
+            $this->exceptionHandler->report($e, $e);
         }
 
         return $this->exceptionHandler->render($request, $e);
@@ -154,8 +153,10 @@ final class RequestLifecycle
      */
     private function terminate(): void
     {
+        $this->endTime = microtime(true);
+
         // Handle debug data caching if enabled.
-        if ($this->app->bound(DebugManager::class)) {
+        if ($this->debugManager) {
             $this->handleDebugTermination();
         }
 
@@ -173,10 +174,7 @@ final class RequestLifecycle
      */
     private function handleDebugTermination(): void
     {
-        /** @var DebugManager $debugManager */
-        $debugManager = $this->app->make(DebugManager::class);
-
-        if ($debugManager->isEnabled() && $this->response && str_contains($this->response->getHeaderLine('Content-Type'), 'text/html')) {
+        if ($this->debugManager->isEnabled() && $this->response && str_contains($this->response->getHeaderLine('Content-Type'), 'text/html')) {
             try {
                 $configService = $this->app->make('config');
                 if (method_exists($configService, 'all')) {
@@ -185,10 +183,10 @@ final class RequestLifecycle
 
                 $debugManager->recordRequestInfo([
                     'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
-                    'duration_ms' => round((microtime(true) - $this->startTime) * 1000, 2),
+                    'duration_ms' => round(($this->endTime - $this->startTime) * 1000, 2),
                 ]);
 
-                $debugData = $debugManager->getData();
+                $debugData = $this->debugManager->getData();
                 $expiration = config('debug.expiration', 3600);
                 $task = new CacheDebugDataTask($this->requestId, $debugData, $expiration);
 

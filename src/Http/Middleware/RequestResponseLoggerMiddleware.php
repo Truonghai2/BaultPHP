@@ -15,81 +15,91 @@ class RequestResponseLoggerMiddleware implements MiddlewareInterface
     /** @var string[] */
     protected array $keysToSanitize;
 
+    protected bool $logEnabled;
+    protected bool $logBody;
+    protected int $truncateLimit;
+
     public function __construct(private LoggerInterface $logger, Config $config)
     {
         // Lấy danh sách các key cần ẩn đi từ config và chuyển thành chữ thường để so sánh
         $this->keysToSanitize = array_map('strtolower', $config->get('sanitizer.keys', []));
+
+        // Lấy cấu hình logging từ file config/logging.php
+        $this->logEnabled = (bool) $config->get('logging.access.enabled', false);
+        $this->logBody = (bool) $config->get('logging.access.log_body', false);
+        $this->truncateLimit = (int) $config->get('logging.access.truncate_limit', 1000);
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Chỉ ghi log chi tiết nếu đang ở môi trường local để tránh làm quá tải log ở production
-        if (config('app.env') !== 'local') {
+        // Chỉ xử lý nếu logging được bật trong config
+        if (!$this->logEnabled) {
             return $handler->handle($request);
         }
 
-        // Log request trước khi xử lý
-        $this->logRequest($request);
+        $startTime = microtime(true);
 
         // Chuyển request cho handler tiếp theo và nhận về response
         $response = $handler->handle($request);
 
-        // Log response sau khi đã có
-        $this->logResponse($response);
+        $duration = round((microtime(true) - $startTime) * 1000);
+
+        $context = [
+            'method' => $request->getMethod(),
+            'uri' => (string) $request->getUri(),
+            'status_code' => $response->getStatusCode(),
+            'duration_ms' => $duration,
+            'ip' => $request->getServerParams()['REMOTE_ADDR'] ?? 'unknown',
+            'request_headers' => $request->getHeaders(),
+            'response_headers' => $response->getHeaders(),
+        ];
+
+        if ($this->logBody) {
+            $context['request_body'] = $this->getSanitizedRequestBody($request);
+            $context['response_body'] = $this->getSanitizedResponseBody($response);
+        }
+
+        $this->logger->info(
+            sprintf('Request Handled: %s %s', $request->getMethod(), $request->getUri()->getPath()),
+            $context
+        );
 
         return $response;
     }
 
-    private function logRequest(ServerRequestInterface $request): void
+    private function getSanitizedRequestBody(ServerRequestInterface $request): string
     {
         $parsedBody = $request->getParsedBody();
-        $bodyContent = '';
 
         if (is_array($parsedBody)) {
-            $bodyContent = json_encode($this->sanitize($parsedBody));
-        } else {
-            $stream = $request->getBody();
-            if ($stream->isReadable()) {
-                $stream->rewind();
-                $bodyContent = $stream->getContents();
-                // Cố gắng decode json để sanitize, nếu không được thì giữ nguyên
-                try {
-                    $data = json_decode($bodyContent, true, 512, JSON_THROW_ON_ERROR);
-                    $bodyContent = json_encode($this->sanitize($data));
-                } catch (JsonException) {
-                    // Không phải body dạng JSON, giữ nguyên để truncate
-                }
-                $stream->rewind();
-            }
+            return $this->truncate(json_encode($this->sanitize($parsedBody)));
         }
 
-        $this->logger->info('Incoming Request', [
-            'method' => $request->getMethod(),
-            'uri' => (string) $request->getUri(),
-            'headers' => $request->getHeaders(),
-            'body' => $this->truncate($bodyContent),
-        ]);
+        $stream = $request->getBody();
+        if ($stream->isReadable()) {
+            $stream->rewind();
+            $bodyContent = $stream->getContents();
+            $stream->rewind();
+            return $this->truncate($this->sanitizeBodyString($bodyContent));
+        }
+
+        return '';
     }
 
-    private function logResponse(ResponseInterface $response): void
+    private function getSanitizedResponseBody(ResponseInterface $response): string
     {
         $body = $response->getBody();
         $body->rewind();
         $content = $body->getContents();
         $body->rewind();
 
-        $this->logger->info('Outgoing Response', [
-            'status_code' => $response->getStatusCode(),
-            'reason' => $response->getReasonPhrase(),
-            'headers' => $response->getHeaders(),
-            'body' => $this->truncate($this->sanitizeBodyString($content)),
-        ]);
+        return $this->truncate($this->sanitizeBodyString($content));
     }
 
     /**
      * Cắt bớt nội dung body quá dài để tránh làm đầy file log.
      */
-    private function truncate(string $string, int $limit = 1000): string
+    private function truncate(string $string, ?int $limit = null): string
     {
         if (mb_strlen($string) > $limit) {
             return mb_substr($string, 0, $limit) . '... [truncated]';
