@@ -1,12 +1,14 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
+use Core\Http\RedirectResponse;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
+use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * Middleware to ensure that at least one admin user exists in the system.
@@ -15,6 +17,13 @@ use Psr\Http\Server\RequestHandlerInterface;
  */
 class EnsureAdminUserExists implements MiddlewareInterface
 {
+    protected SessionInterface $session;
+
+    public function __construct(SessionInterface $session)
+    {
+        $this->session = $session;
+    }
+
     /**
      * The URIs that should be accessible even if no admin user has been created.
      * This list should include the admin creation form and any related assets or APIs.
@@ -41,12 +50,13 @@ class EnsureAdminUserExists implements MiddlewareInterface
 
         // If no admin exists and the current route is not in the exception list,
         // redirect the user to the admin creation page.
-        if (!$adminExists && !$this->isExceptedRoute($request)) {
-            // The `response()` helper creates a PSR-7 compatible redirect response.
-            return response()->redirect('/setup/create-admin');
+        if (! $adminExists && ! $this->isExceptedRoute($request)) {
+            $redirect = new RedirectResponse('/setup/create-admin');
+            $redirect->setSession($this->session);
+
+            return $redirect;
         }
 
-        // If an admin exists or the route is an exception, proceed with the request.
         return $handler->handle($request);
     }
 

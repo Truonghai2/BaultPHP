@@ -1,10 +1,10 @@
 <?php
 
-namespace Http\View\Components;
+namespace App\Http\View\Components;
 
+use App\Http\View\DataTransferObjects\TeamMemberData;
 use Core\Contracts\View\View;
 use Core\Frontend\Component;
-use Http\View\DataTransferObjects\TeamMemberData;
 
 class TeamMemberCard extends Component
 {

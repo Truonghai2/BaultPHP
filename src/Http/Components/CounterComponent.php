@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Components;
+namespace App\Http\Components;
 
 use Core\Frontend\Attributes\CallableMethod;
 use Core\Frontend\Component;

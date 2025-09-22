@@ -1,9 +1,8 @@
 <?php
 
-namespace Core\ORM\Relations;
+namespace Core\ORM;
 
-use Core\ORM\Model;
-use Core\ORM\QueryBuilder;
+use Core\ORM\Relations\Relation;
 
 class HasOneThrough extends Relation
 {

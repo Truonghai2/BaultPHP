@@ -1,17 +1,17 @@
 <?php
 
-namespace Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\ResponseFactory;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
 use Core\Routing\Attributes\Route;
-use Http\ResponseFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 class MetricsController
 {
-    #[Route('/_metrics', method: 'GET', middleware: ['protect-metrics'])]
+    #[Route('/metrics', method: 'GET', middleware: ['protect-metrics'])]
     public function __invoke(ServerRequestInterface $request, ResponseFactory $responseFactory): ResponseInterface
     {
         $metrics = [

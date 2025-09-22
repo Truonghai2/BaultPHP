@@ -1,9 +1,9 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
+use App\Http\ResponseFactory;
 use Core\Config;
-use Http\ResponseFactory;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

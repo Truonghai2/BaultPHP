@@ -1,16 +1,18 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use Core\Frontend\Attributes\CallableMethod;
 use Core\Frontend\ChecksumService;
+use Core\Routing\Attributes\Route;
 use Core\Validation\ValidationException;
-use Http\ResponseFactory;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ComponentController
 {
-    public function __invoke(Request $request, ResponseFactory $responseFactory, ChecksumService $checksumService): \Http\JsonResponse
+    #[Route('/bault/update', method: 'POST')]
+    public function __invoke(Request $request, ResponseFactory $responseFactory, ChecksumService $checksumService): \App\Http\JsonResponse
     {
         $snapshot = json_decode($request->input('snapshot'), true);
         $updates = $request->input('updates');

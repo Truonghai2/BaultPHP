@@ -75,11 +75,14 @@ class FiberRedisManager implements PoolManager
     /**
      * Trả một kết nối Redis về lại pool.
      *
-     * @param RedisClient $connection
+     * @param mixed $connection
      * @param string|null $name
      */
-    public function put(RedisClient $connection, ?string $name = null): void
+    public function put($connection, ?string $name = null): void
     {
+        if (!$connection instanceof RedisClient) {
+            throw new \InvalidArgumentException('Connection must be an instance of RedisClient.');
+        }
         $name = $name ?? 'default';
         $this->pool($name)->put($connection);
 

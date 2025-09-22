@@ -1,15 +1,17 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use Core\Config;
 use Core\Frontend\FileUpload\TemporaryUploadedFile;
-use Http\ResponseFactory;
-use Illuminate\Http\UploadedFile;
+use Core\Http\UploadedFile;
+use Core\Routing\Attributes\Route;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ComponentUploadController
 {
+    #[Route('/bault/upload-file', method: 'POST')]
     public function __invoke(Request $request, ResponseFactory $responseFactory, Config $config)
     {
         $uploadedFiles = $request->getUploadedFiles();

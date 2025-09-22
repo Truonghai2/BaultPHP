@@ -1,13 +1,13 @@
 <?php
 
-namespace Core\Queue;
+namespace Core\Queue\Concerns;
 
 use Core\Contracts\Queue\Job;
 
 /**
  * Trait to allow a class to dispatch jobs.
  */
-trait DispatchesJobs
+trait Dispatcher
 {
     /**
      * Dispatch a job to its appropriate handler.

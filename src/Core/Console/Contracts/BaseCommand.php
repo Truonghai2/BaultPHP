@@ -4,6 +4,7 @@ namespace Core\Console\Contracts;
 
 use Core\Console\Parser;
 use Symfony\Component\Console\Command\Command as SymfonyCommand;
+use Symfony\Component\Console\Input\ArrayInput;
 
 /**
  * The base class for all console commands in the application.
@@ -198,13 +199,40 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
     /**
      * Calls another console command by its class name.
      *
-     * @param class-string<CommandInterface> $commandClass
+     * @param class-string<CommandInterface> $commandClass The class name of the command to call.
+     * @param array $parameters An array of arguments and options to pass to the command.
+     * @return int The exit code of the called command.
      */
-    protected function callCommand(string $commandClass): void
+    protected function callCommand(string $commandClass, array $parameters = []): int
     {
         /** @var BaseCommand $command */
         $command = $this->app->make($commandClass);
-        $command->setCoreApplication($this->app);
-        $command->handle();
+        $commandName = $command->getName();
+
+        if (!$commandName) {
+            throw new \LogicException("Command {$commandClass} must have a name defined via its signature.");
+        }
+
+        return $this->call($commandName, $parameters);
+    }
+
+    /**
+     * Call another console command by name.
+     *
+     * This method allows a command to execute another command by its name,
+     * passing along arguments and options. It's a way to compose commands.
+     *
+     * @param  string  $command The name of the command to call (e.g., 'cache:clear').
+     * @param  array  $parameters An array of arguments and options to pass to the command.
+     * @return int The exit code of the called command.
+     */
+    public function call(string $command, array $parameters = []): int
+    {
+        $parameters['command'] = $command;
+
+        $input = new ArrayInput($parameters);
+        $input->setInteractive(false);
+
+        return $this->getApplication()->find($command)->run($input, $this->io);
     }
 }

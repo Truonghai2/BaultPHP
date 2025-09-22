@@ -1,43 +1,53 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Core\Features;
 
 use Core\Config;
+use Core\Contracts\StatefulService;
 
-/**
- * Manages the state of feature flags for the application.
- */
-class FeatureManager
+class FeatureManager implements StatefulService
 {
     /**
-     * A cache of all loaded feature flags.
+     * The loaded feature flag configurations.
      *
-     * @var array<string, bool>
+     * @var array
      */
     protected array $features = [];
 
+    /**
+     * The cache for resolved feature values for the current request.
+     *
+     * @var array
+     */
+    protected array $retrieved = [];
+
     public function __construct(Config $config)
     {
-        // Load features from the configuration file.
-        // In a more advanced implementation, this could load from a database or Redis.
-        $this->features = $config->get('features', []);
+        $this->features = $config->get('features.flags', []);
     }
 
     /**
      * Check if a given feature is enabled.
      *
-     * @param string $feature The name of the feature to check.
+     * @param string $feature
      * @return bool
      */
     public function isEnabled(string $feature): bool
     {
-        // Default to false if the feature is not defined.
-        if (!isset($this->features[$feature])) {
-            return false;
+        if (isset($this->retrieved[$feature])) {
+            return $this->retrieved[$feature];
         }
 
-        return $this->features[$feature] === true;
+        $value = $this->features[$feature] ?? false;
+
+        return $this->retrieved[$feature] = (bool) $value;
+    }
+
+    /**
+     * Resets the retrieved feature cache after a request.
+     */
+    public function resetState(): void
+    {
+        $this->retrieved = [];
     }
 }

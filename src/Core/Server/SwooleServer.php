@@ -5,13 +5,9 @@ namespace Core\Server;
 use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\Task\Task;
-use Core\Debug\DebugManager;
-use Core\Exceptions\ServiceUnavailableException;
 use Core\Foundation\StateResetter;
 use Core\Queue\DelayedJobScheduler;
 use Core\Server\Development\FileWatcher;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
@@ -31,9 +27,11 @@ class SwooleServer
     protected ?ConnectionPoolManager $poolManager = null;
     protected StateResetter $stateResetter;
     protected ExceptionHandler $exceptionHandler;
+    protected ?RequestLogger $requestLogger = null;
     protected ?FileWatcher $fileWatcher = null;
     protected bool $isDebug = false;
     /**
+     * @var bool
      * Bộ đếm số lượng request đã xử lý bởi worker.
      * Dùng để kích hoạt các tác vụ dọn dẹp định kỳ.
      * @var int
@@ -49,10 +47,14 @@ class SwooleServer
         $host = $this->config['host'] ?? '0.0.0.0';
         $port = $this->config['port'] ?? 9501;
 
+        if (isset($_SERVER['argv']) && \in_array('--watch', $_SERVER['argv'], true)) {
+            $this->config['watch_files'] = true;
+        }
+
         $this->server = new SwooleHttpServer($host, $port);
 
         $settings = $this->prepareServerSettings();
-        $ignoredKeys = ['host', 'port', 'watch', 'db_pool', 'redis_pool', 'watch_file', 'pools'];
+        $ignoredKeys = ['host', 'port', 'watch', 'db_pool', 'redis_pool', 'watch_files', 'watch_dir', 'watch_delay', 'watch_recursive', 'pools'];
         $validSwooleSettings = array_filter(
             $settings,
             fn ($key) => !in_array($key, $ignoredKeys, true),
@@ -105,6 +107,14 @@ class SwooleServer
             'upload_tmp_dir' => storage_path('app/uploads'),
 
             'watch' => [],
+
+            'watch_files' => false,
+            'watch_dir' => array_merge(
+                config('server.watch.directories', []),
+                [base_path()],
+            ),
+            'watch_delay' => config('server.watch.delay', 1000),
+            'watch_recursive' => true,
         ];
     }
 
@@ -119,9 +129,10 @@ class SwooleServer
 
         $settings = array_replace_recursive($settings, $this->config);
 
-        $currentEnv = config('app.env', 'production');
-        $isDevelopmentEnv = in_array($currentEnv, ['local', 'development'], true);
-        $watchConfigExists = !empty($settings['watch']['directories']) && is_array($settings['watch']['directories']);
+        if (!empty($settings['watch_files'])) {
+            $settings['reload_async'] = true;
+            $settings['worker_num'] = 1;
+        }
 
         return $settings;
     }
@@ -129,10 +140,6 @@ class SwooleServer
     public function start(): void
     {
         $this->registerServerEvents();
-
-        if ($this->fileWatcher && method_exists($this->fileWatcher, 'createProcess')) {
-            $this->server->addProcess($this->fileWatcher->createProcess($this->server));
-        }
 
         $this->server->start();
     }
@@ -181,7 +188,6 @@ class SwooleServer
      */
     public function onShutdown(SwooleHttpServer $server): void
     {
-        $this->fileWatcher?->stop();
         $this->getLogger()->info('Swoole HTTP server is shutting down gracefully.');
     }
 
@@ -192,72 +198,14 @@ class SwooleServer
 
     public function handleRequest(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse): void
     {
-        $startTime = microtime(true);
-        $requestId = bin2hex(random_bytes(4));
-        try {
-            $this->app->instance('request_id', $requestId);
-
-            $this->app->instance(SwooleRequest::class, $swooleRequest);
-
-            /** @var DebugManager $debugManager */
-            if ($this->app->bound(DebugManager::class)) {
-                $this->app->make(DebugManager::class)->enable();
-            }
-
-            if ($this->isDebug) {
-                $this->getLogger()->debug("Request [{$requestId}] received.", ['method' => $swooleRequest->getMethod(), 'uri' => $swooleRequest->server['request_uri']]);
-            }
-
-            $psr7Request = $this->transformRequest($swooleRequest);
-
-            $this->app->instance(ServerRequestInterface::class, $psr7Request);
-
-            try {
-                $response = $this->kernel->handle($psr7Request);
-            } catch (ServiceUnavailableException $e) {
-                $response = $this->exceptionHandler->render($psr7Request, $e);
-                $this->getLogger()->warning("Request [{$requestId}]: Service unavailable, circuit breaker is likely open.", ['exception' => $e->getMessage()]);
-            } catch (Throwable $e) {
-                $this->exceptionHandler->report($e);
-                $response = $this->exceptionHandler->render($psr7Request, $e);
-                $this->getLogger()->error("Request [{$requestId}]: Unhandled exception caught.", ['exception' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
-            }
-
-            $response = $response->withHeader('X-Request-ID', $requestId);
-
-            $this->logRequest($psr7Request, $response, $startTime);
-
-            $this->transformResponse($response, $swooleResponse);
-        } finally {
-            $this->stateResetter->reset();
-            if ($this->app->bound(DebugManager::class)) {
-                /** @var DebugManager $debugManager */
-                $debugManager = $this->app->make(DebugManager::class);
-                if ($debugManager->isEnabled() && isset($response) && str_contains($response->getHeaderLine('Content-Type'), 'text/html')) {
-                    try {
-                        $configService = $this->app->make('config');
-
-                        if (method_exists($configService, 'all')) {
-                            $debugManager->recordConfig($configService->all());
-                        }
-
-                        $debugManager->recordRequestInfo([
-                            'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
-                            'duration_ms' => round((microtime(true) - $startTime) * 1000, 2),
-                        ]);
-
-                        $debugData = $debugManager->getData();
-                        $expiration = config('debug.expiration', 3600);
-                        $task = new \Core\Tasking\CacheDebugDataTask($requestId, $debugData, $expiration);
-                        $this->dispatchTask($task);
-                    } catch (Throwable $e) {
-                        $this->getLogger()->error('Failed to dispatch debug data caching task.', ['exception' => $e]);
-                    }
-                }
-            }
-            // Dọn dẹp instance và trạng thái của request hiện tại
-            $this->cleanupAfterRequest($requestId);
-        }
+        (new RequestLifecycle(
+            $this->app,
+            $this->kernel,
+            $this->exceptionHandler,
+            $this->stateResetter,
+            $this->psr7Bridge,
+            $this->isDebug,
+        ))->handle($swooleRequest, $swooleResponse);
     }
 
     /**
@@ -300,8 +248,6 @@ class SwooleServer
 
         try {
             $task = unserialize($data, [
-                // Cho phép bất kỳ class nào implement Task interface.
-                // Điều này an toàn vì các task đều do chính ứng dụng tạo ra.
                 'allowed_classes' => fn (string $class) => is_a($class, Task::class, true),
             ]);
 
@@ -363,6 +309,11 @@ class SwooleServer
                 $this->getLogger(),
                 $this->config,
             );
+            $this->requestLogger = new RequestLogger(
+                $this->app,
+                $this->getLogger(),
+                $this->isDebug,
+            );
 
             $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
             $this->getLogger()->info(
@@ -421,98 +372,6 @@ class SwooleServer
 
         $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
         $this->getLogger()->info("Swoole {$workerType} #{$workerId} stopped gracefully.");
-    }
-
-    /**
-     * Cleans up application state after a request is handled.
-     *
-     * @param string $requestId
-     */
-    protected function cleanupAfterRequest(string $requestId): void
-    {
-        $this->app->forgetInstance(ServerRequestInterface::class);
-        $this->app->forgetInstance(SwooleRequest::class);
-        $this->app->forgetInstance('request_id');
-
-        if (++$this->requestCount % 1000 === 0) {
-            $this->getLogger()->debug("[TRACE] Request [{$requestId}]: State reset and garbage collection complete.");
-            gc_collect_cycles();
-        }
-    }
-
-    protected function transformRequest(SwooleRequest $swooleRequest): ServerRequestInterface
-    {
-        return $this->psr7Bridge->toPsr7Request($swooleRequest);
-    }
-
-    protected function transformResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
-    {
-        $this->psr7Bridge->toSwooleResponse($response, $swooleResponse);
-    }
-
-    /**
-     * Log an incoming request and its response to the terminal in development.
-
-     * @param ServerRequestInterface $request
-     * @param ResponseInterface $response
-     * @param float $startTime
-     */
-    protected function logRequest(ServerRequestInterface $request, ResponseInterface $response, float $startTime): void
-    {
-        if (!$this->isDebug) {
-            return;
-        }
-
-        $duration = round((microtime(true) - $startTime) * 1000);
-        $requestId = $this->app->make('request_id');
-
-        $context = [
-            'request_id' => $requestId,
-            'method' => $request->getMethod(),
-            'uri' => (string) $request->getUri(),
-            'path' => $request->getUri()->getPath(),
-            'query_params' => $request->getQueryParams(),
-            'status_code' => $response->getStatusCode(),
-            'reason_phrase' => $response->getReasonPhrase(),
-            'duration_ms' => $duration,
-            'remote_addr' => $request->getServerParams()['REMOTE_ADDR'] ?? '?.?.?.?',
-            'request_headers' => $request->getHeaders(),
-            'response_headers' => $response->getHeaders(),
-        ];
-
-        $requestBody = $request->getParsedBody();
-        if ($requestBody) {
-            $context['request_body'] = $requestBody;
-        } elseif ($request->getBody()->getSize() > 0 && $request->getBody()->getSize() < 1024 * 10) {
-            try {
-                $request->getBody()->rewind();
-                $context['raw_request_body'] = $request->getBody()->getContents();
-            } catch (Throwable $e) {
-                $context['raw_request_body_error'] = $e->getMessage();
-            }
-        }
-
-        if ($response->getBody()->getSize() > 0 && $response->getBody()->getSize() < 1024 * 10) {
-            try {
-                $response->getBody()->rewind();
-                $context['response_body'] = $response->getBody()->getContents();
-            } catch (Throwable $e) {
-                $context['response_body_error'] = $e->getMessage();
-            }
-        }
-
-        $this->getLogger()->info(
-            sprintf(
-                'Request [ID: %s] "%s %s" %d %s (%dms)',
-                $requestId,
-                $request->getMethod(),
-                $request->getUri()->getPath(),
-                $response->getStatusCode(),
-                $response->getReasonPhrase(),
-                $duration,
-            ),
-            $context,
-        );
     }
 
     /**

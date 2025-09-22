@@ -20,7 +20,7 @@ class ServerStartCommand extends BaseCommand
 
     public function signature(): string
     {
-        return 'serve:start {--host= : The host to bind the server to} {--port= : The port to bind the server to} {--daemon|-d : Run the server in daemon mode (Not recommended in Docker)}';
+        return 'serve:start {--host= : The host to bind the server to} {--port= : The port to bind the server to} {--daemon|-d : Run the server in daemon mode (Not recommended in Docker)} {--watch : Enable Swoole native file watcher (for internal use)}';
     }
 
     public function description(): string

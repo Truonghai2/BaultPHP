@@ -1,13 +1,14 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
-use Core\Metrics\SwooleMetricsService;
+use App\Http\ResponseFactory;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
 use Core\Http\Controller;
+use Core\Metrics\SwooleMetricsService;
+use Core\Routing\Attributes\Route;
 use Core\Server\SwooleServer;
-use Http\ResponseFactory;
 use Psr\Http\Message\ResponseInterface;
 
 /**
@@ -15,22 +16,20 @@ use Psr\Http\Message\ResponseInterface;
  */
 class PrometheusMetricsController extends Controller
 {
+    #[Route('/metrics', method: 'GET', middleware: [\App\Http\Middleware\ProtectMetricsMiddleware::class])]
     public function __invoke(
         SwooleServer $server,
         ResponseFactory $responseFactory,
-        ?SwooleMetricsService $metricsService = null
+        ?SwooleMetricsService $metricsService = null,
     ): ResponseInterface {
         if ($metricsService === null) {
             return $responseFactory->make('Metrics service is not available.', 503, ['Content-Type' => 'text/plain']);
         }
 
-        // --- Cập nhật các metrics động (dynamic metrics) trước khi xuất ---
         $this->updateDynamicMetrics($server, $metricsService);
 
-        // Lấy tất cả metrics đã được định dạng sẵn từ service
         $body = $metricsService->getMetricsAsPrometheus();
 
-        // Trả về response dạng text với Content-Type phù hợp
         return $responseFactory->make($body, 200, [
             'Content-Type' => 'application/openmetrics-text; version=1.0.0; charset=utf-8',
         ]);

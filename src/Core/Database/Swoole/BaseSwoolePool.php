@@ -14,6 +14,9 @@ abstract class BaseSwoolePool
     /** @var array<string, Channel> */
     protected static array $pools = [];
 
+    /** @var array<string, string> */
+    protected static array $aliases = [];
+
     /** @var array<string, array> */
     protected static array $configs = [];
 
@@ -63,39 +66,60 @@ abstract class BaseSwoolePool
      */
     public static function get(string $name = 'default', int $timeout = 3): mixed
     {
-        $breaker = static::$breakers[$name] ?? null;
+        $resolvedName = static::$aliases[$name] ?? $name;
 
-        if ($breaker && !$breaker->isAvailable()) {
-            throw new ServiceUnavailableException("Service '{$name}' is unavailable (Circuit Breaker is open).");
+        $breaker = static::$breakers[$resolvedName] ?? null;
+
+        if ($breaker && !$breaker->isAvailable($resolvedName)) {
+            throw new ServiceUnavailableException("Service '{$name}' (via '{$resolvedName}') is unavailable (Circuit Breaker is open).");
         }
 
-        $pool = static::$pools[$name] ?? null;
+        $pool = static::$pools[$resolvedName] ?? null;
         if (!$pool) {
-            throw new \RuntimeException("Connection pool '{$name}' has not been initialized.");
+            throw new \RuntimeException("Connection pool '{$name}' (via '{$resolvedName}') has not been initialized.");
         }
 
         try {
-            // Lấy kết nối từ pool
             $connection = $pool->pop($timeout);
 
-            // Kiểm tra heartbeat để đảm bảo kết nối còn sống
-            if (!static::ping($connection)) {
-                static::$connectionCounts[$name]--;
-                // Đóng kết nối hỏng và thử tạo một kết nối mới để thay thế
-                $newConnection = static::createConnection($name);
+            if (!static::ping($connection, $resolvedName)) {
+                static::$connectionCounts[$resolvedName]--;
+                $newConnection = static::createConnection($resolvedName);
                 if ($newConnection) {
-                    static::$connectionCounts[$name]++;
-                    return $newConnection; // Trả về kết nối mới
+                    static::$connectionCounts[$resolvedName]++;
+                    return $newConnection;
                 }
-                // Nếu không tạo được kết nối mới, báo lỗi
-                throw new \RuntimeException("Failed to create a new connection for pool '{$name}' after a stale one was found.");
+                throw new \RuntimeException("Failed to create a new connection for pool '{$resolvedName}' after a stale one was found.");
             }
 
-            $breaker?->success();
+            $breaker?->success($resolvedName);
             return $connection;
         } catch (Throwable $e) {
-            $breaker?->failure();
+            $breaker?->failure($resolvedName);
             throw $e;
+        }
+    }
+
+    /**
+     * Executes a callback with a connection from the pool and automatically returns it.
+     * This is the recommended, safe way to use the connection pool.
+     *
+     * @param callable $callback The function to execute, which receives the connection as its only argument.
+     * @param string $name The name of the connection pool.
+     * @param int $timeout The timeout in seconds to wait for a connection.
+     * @return mixed The return value of the callback.
+     * @throws Throwable
+     */
+    public static function withConnection(callable $callback, string $name = 'default', int $timeout = 3): mixed
+    {
+        $connection = null;
+        try {
+            $connection = static::get($name, $timeout);
+            return $callback($connection);
+        } finally {
+            if ($connection) {
+                static::put($connection, $name);
+            }
         }
     }
 
@@ -104,15 +128,15 @@ abstract class BaseSwoolePool
      */
     public static function put(mixed $connection, string $name = 'default'): void
     {
-        $pool = static::$pools[$name] ?? null;
+        $resolvedName = static::$aliases[$name] ?? $name;
+
+        $pool = static::$pools[$resolvedName] ?? null;
         if ($pool && !$pool->isFull()) {
-            // Trước khi trả vào pool, kiểm tra xem nó có hợp lệ không
             if (static::isValid($connection)) {
                 $pool->push($connection);
             } else {
-                // Nếu kết nối không hợp lệ (ví dụ: đang trong transaction lỗi), hủy nó đi
-                static::$connectionCounts[$name]--;
-                unset($connection); // Đóng kết nối
+                static::$connectionCounts[$resolvedName]--;
+                unset($connection);
             }
         }
     }
@@ -126,7 +150,6 @@ abstract class BaseSwoolePool
             while (!$pool->isEmpty()) {
                 $connection = $pool->pop(0.001);
                 if ($connection) {
-                    // Logic đóng kết nối cụ thể (PDO, Redis, ...)
                     unset($connection);
                 }
             }
@@ -135,6 +158,7 @@ abstract class BaseSwoolePool
         static::$pools = [];
         static::$configs = [];
         static::$breakers = [];
+        static::$aliases = [];
         static::$connectionCounts = [];
     }
 
@@ -167,6 +191,22 @@ abstract class BaseSwoolePool
     }
 
     /**
+     * Registers an alias for an existing connection pool.
+     *
+     * @param string $aliasName The new alias name (e.g., 'cache').
+     * @param string $targetName The name of the existing pool to alias (e.g., 'default').
+     */
+    public static function registerAlias(string $aliasName, string $targetName): void
+    {
+        if (!isset(static::$pools[$targetName])) {
+            static::$app->make(\Psr\Log\LoggerInterface::class)
+                ->warning("Cannot create alias '{$aliasName}' because target pool '{$targetName}' does not exist.");
+            return;
+        }
+        static::$aliases[$aliasName] = $targetName;
+    }
+
+    /**
      * Abstract method to create a new connection.
      *
      * @param string $name The name of the connection configuration.
@@ -178,9 +218,10 @@ abstract class BaseSwoolePool
      * Abstract method to check if a connection is still alive.
      *
      * @param mixed $connection The connection to check.
+     * @param string $name The resolved name of the pool.
      * @return bool True if alive, false otherwise.
      */
-    abstract protected static function ping(mixed $connection): bool;
+    abstract protected static function ping(mixed $connection, string $name): bool;
 
     /**
      * Checks if the connection is in a valid state to be returned to the pool.

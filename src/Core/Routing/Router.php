@@ -2,263 +2,240 @@
 
 namespace Core\Routing;
 
-use App\Exceptions\MethodNotAllowedException;
-use App\Exceptions\NotFoundException;
+use Closure;
 use Core\Application;
-use Core\Http\Response;
-use Psr\Http\Message\ResponseInterface;
+use Core\Contracts\Http\Kernel;
+use Core\Contracts\StatefulService;
+use Core\Exceptions\RouteNotFoundException;
+use Core\Http\Request;
+use Psr\Http\Message\ServerRequestInterface;
 
-class Router
+class Router implements StatefulService
 {
+    protected Application $app;
     protected array $routes = [];
     protected array $namedRoutes = [];
-    protected array $routePatterns = [];
+    protected ?Route $currentRoute = null;
+    protected ?ServerRequestInterface $currentRequest = null;
+    protected array $middleware = [];
+    protected array $middlewareGroups = [];
+    protected array $routeMiddleware = [];
 
-    public function __construct(protected Application $app)
+    public function __construct(Application $app)
     {
+        $this->app = $app;
     }
 
-    public function get(string $uri, callable|array $action): Route
+    public function get(string $uri, $handler): Route
     {
-        return $this->addRoute('GET', $uri, $action);
+        return $this->addRoute('GET', $uri, $handler);
     }
 
-    public function post(string $uri, callable|array $action): Route
+    public function post(string $uri, $handler): Route
     {
-        return $this->addRoute('POST', $uri, $action);
+        return $this->addRoute('POST', $uri, $handler);
     }
 
-    public function put(string $uri, callable|array $action): Route
+    public function put(string $uri, $handler): Route
     {
-        return $this->addRoute('PUT', $uri, $action);
+        return $this->addRoute('PUT', $uri, $handler);
     }
 
-    public function patch(string $uri, callable|array $action): Route
+    public function patch(string $uri, $handler): Route
     {
-        return $this->addRoute('PATCH', $uri, $action);
+        return $this->addRoute('PATCH', $uri, $handler);
     }
 
-    public function delete(string $uri, callable|array $action): Route
+    public function delete(string $uri, $handler): Route
     {
-        return $this->addRoute('DELETE', $uri, $action);
+        return $this->addRoute('DELETE', $uri, $handler);
     }
 
-    public function addRoute(string $method, string $uri, callable|array $action, ?string $name = null): Route
+    public function addRoute(string $method, string $uri, $handler): Route
     {
-        $route = new Route($method, $uri, $action);
+        $route = new Route($method, $uri, $handler);
         $this->routes[$method][$uri] = $route;
-        if ($name) {
-            $this->namedRoutes[$name] = $uri;
-        }
         return $route;
     }
 
     /**
-     * Thêm một route vào bộ sưu tập các route có tên.
-     * Phương thức này được gọi bởi đối tượng Route khi một tên được gán.
+     * Dispatch the request to the matched route's handler through the middleware pipeline.
      *
-     * @param string $name
-     * @param string $uri
+     * @throws RouteNotFoundException
+     * @return Route
      */
-    public function addNamedRoute(string $name, string $uri): void
+    public function dispatch(ServerRequestInterface $request): Route
     {
-        $this->namedRoutes[$name] = $uri;
-    }
-    /**
-     * Finds a route that matches the given request.
-     *
-     * @throws \App\Exceptions\NotFoundException
-     * @throws \App\Exceptions\MethodNotAllowedException
-     */
-    public function dispatch(\Psr\Http\Message\ServerRequestInterface $request): ResponseInterface
-    {
-        $route = $this->findRoute($request);
+        $this->currentRequest = $request;
+        $method = $request->getMethod();
+        $uri = $request->getUri()->getPath();
 
-        $response = $this->process($route);
+        $route = $this->findRoute($method, $uri);
 
-        return $this->prepareResponse($response);
-    }
-
-    protected function findRoute(\Psr\Http\Message\ServerRequestInterface $request): Route
-    {
-        $requestMethod = $request->getMethod();
-        $requestPath = rtrim($request->getUri()->getPath(), '/');
-        if ($requestPath === '') {
-            $requestPath = '/';
+        if (!$route) {
+            throw new RouteNotFoundException("Route not found for {$method} {$uri}");
         }
 
-        foreach ($this->routes[$requestMethod] ?? [] as $uri => $route) {
-            $pattern = $this->compileRoutePattern($uri);
+        $this->currentRoute = $route;
+        $this->app->instance(Route::class, $route);
+        return $route;
+    }
 
-            if (preg_match($pattern, $requestPath, $matches)) {
-                $parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
-                return $route->setParameters($parameters);
+    protected function findRoute(string $method, string $uri): ?Route
+    {
+        if (isset($this->routes[$method])) {
+            foreach ($this->routes[$method] as $routeUri => $route) {
+                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routeUri);
+                if (preg_match('#^' . $pattern . '$#', $uri, $matches)) {
+                    $parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
+                    $route->setParameters($parameters);
+                    return $route;
+                }
             }
         }
+        return null;
+    }
 
-        // Check for 405 Method Not Allowed
-        foreach ($this->routes as $method => $routes) {
-            if ($method === $requestMethod) {
-                continue;
-            }
-            foreach ($routes as $uri => $route) {
-                if (preg_match($this->compileRoutePattern($uri), $requestPath)) {
-                    throw new MethodNotAllowedException('Method Not Allowed', 405);
+    public function runRoute(ServerRequestInterface $request, $handler, array $parameters)
+    {
+        if ($handler instanceof Closure) {
+            return $this->app->call($handler, $parameters);
+        }
+
+        if (is_array($handler) && count($handler) === 2 && is_string($handler[0]) && is_string($handler[1])) {
+            $controller = $this->app->make($handler[0]);
+            $method = $handler[1];
+
+            // Inject route parameters and other dependencies into the controller method
+            $dependencies = $this->resolveMethodDependencies($request, $controller, $method, $parameters);
+
+            return $this->app->call([$controller, $method], $dependencies);
+        }
+
+        throw new \RuntimeException('Invalid route handler.');
+    }
+
+    protected function resolveMethodDependencies(ServerRequestInterface $request, $controller, $method, array $routeParameters): array
+    {
+        $reflector = new \ReflectionMethod($controller, $method);
+        $dependencies = [];
+
+        foreach ($reflector->getParameters() as $parameter) {
+            $paramName = $parameter->getName();
+            $paramType = $parameter->getType();
+
+            if (array_key_exists($paramName, $routeParameters)) {
+                $dependencies[$paramName] = $routeParameters[$paramName];
+            } elseif ($paramType && !$paramType->isBuiltin()) {
+                $typeName = $paramType->getName();
+                if ($typeName === ServerRequestInterface::class || is_subclass_of($typeName, ServerRequestInterface::class)) {
+                    $dependencies[$paramName] = $this->app->make($typeName);
+                } else {
+                    $dependencies[$paramName] = $this->app->make($typeName);
                 }
             }
         }
 
-        throw new NotFoundException('Not Found', 404);
+        return $dependencies;
     }
 
-    protected function process(Route $route)
+    public function gatherRouteMiddleware(Route $route): array
     {
-        $handler = $route->handler;
+        $kernel = $this->app->make(Kernel::class);
+        $this->middlewareGroups = $kernel->getMiddlewareGroups();
+        $this->routeMiddleware = $kernel->getRouteMiddleware();
 
-        if (is_callable($handler)) {
-            return call_user_func_array($handler, $route->parameters);
-        }
+        $middleware = [];
 
-        if (is_array($handler) && count($handler) === 2) {
-            [$class, $method] = $handler;
-            if (class_exists($class) && method_exists($class, $method)) {
-                $controller = $this->app->make($class);
-                // CẢI TIẾN: Sử dụng app()->call() thay vì call_user_func_array().
-                // Việc này cho phép DI Container tự động inject các dependency vào phương thức
-                // của controller (ví dụ: Request, Service,...) cùng với các tham số từ route.
-                return $this->app->call([$controller, $method], $route->parameters);
+        foreach ($route->middleware as $name) {
+            if (isset($this->middlewareGroups[$name])) {
+                $middleware = array_merge($middleware, $this->middlewareGroups[$name]);
+            } elseif (isset($this->routeMiddleware[$name])) {
+                $middleware[] = $this->routeMiddleware[$name];
+            } else {
+                $middleware[] = $name;
             }
         }
 
-        throw new \RuntimeException('Invalid route handler');
+        return array_unique($middleware);
     }
 
-    protected function prepareResponse($response): ResponseInterface
+    public function loadFromCache(array $cachedRoutes): void
     {
-        if ($response instanceof ResponseInterface) {
-            return $response;
+        foreach ($cachedRoutes as $method => $routes) {
+            foreach ($routes as $uri => $routeData) {
+                $route = $this->addRoute($method, $uri, $routeData['handler']);
+                if (!empty($routeData['middleware'])) {
+                    $route->middleware($routeData['middleware']);
+                }
+                if (!empty($routeData['name'])) {
+                    $route->name($routeData['name']);
+                    $this->namedRoutes[$routeData['name']] = $route;
+                }
+            }
         }
-
-        if (is_array($response) || $response instanceof \JsonSerializable) {
-            return Response::json($response);
-        }
-
-        return new Response((string) $response);
     }
 
-    protected function compileRoutePattern(string $uri): string
-    {
-        $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $uri);
-        return '#^' . $pattern . '$#';
-    }
-
-    /**
-     * Tạo URL từ tên route và các tham số.
-     *
-     * @param string $name Tên của route.
-     * @param array $parameters Mảng các tham số cho route.
-     * @return string URL đã được tạo.
-     * @throws \Exception Nếu không tìm thấy route.
-     */
-    public function url(string $name, array $parameters = []): string
-    {
-        if (!isset($this->namedRoutes[$name])) {
-            throw new \Exception("Route [{$name}] not defined.");
-        }
-
-        $uri = $this->namedRoutes[$name];
-
-        foreach ($parameters as $key => $value) {
-            $uri = str_replace('{' . $key . '}', (string) $value, $uri);
-        }
-
-        return preg_replace('/\/\{(\w+)\?\}/', '', $uri);
-    }
-
-    /**
-     * Lấy một representation của routes có thể cache được.
-     */
     public function getRoutesForCaching(): array
     {
         $export = [];
         foreach ($this->routes as $method => $routes) {
             foreach ($routes as $uri => $route) {
                 $export[$method][$uri] = [
-                    'handler'    => $route->handler,
+                    'handler' => $route->handler,
                     'middleware' => $route->middleware,
-                    'bindings'   => $route->bindings,
-                    'name'       => $route->name,
-                    'group'      => $route->group ?? null,
+                    'name' => $route->name,
                 ];
             }
         }
         return $export;
     }
 
+    public function current(): ?Route
+    {
+        return $this->currentRoute;
+    }
+
     /**
-     * Populate the router with routes from a cached array.
+     * Add a route to the collection of named routes.
+     *
+     * @param  string  $name
+     * @param  \Core\Routing\Route  $route
+     * @return void
      */
-    public function loadFromCache(array $cachedRoutes): void
+    public function addNamedRoute(string $name, Route $route): void
     {
-        $this->routes = [];
-        foreach ($cachedRoutes as $method => $routes) {
-            foreach ($routes as $uri => $data) {
-                $route           = new Route($method, $uri, $data['handler']);
-                $route->middleware = $data['middleware'] ?? [];
-                $route->bindings   = $data['bindings'] ?? [];
-                $route->group      = $data['group'] ?? null;
-                if (!empty($data['name'])) {
-                    $route->name($data['name']);
-                }
-                $this->routes[$method][$uri] = $route;
-            }
-        }
+        $this->namedRoutes[$name] = $route;
     }
-
-    public function resource(string $uri, string $controller, array $options = []): void
+    /**
+     * Get all of the registered routes for the `route:list` command.
+     *
+     * @return \Core\Routing\Route[]
+     */
+    public function listRoutes(): array // @phpstan-ignore-line
     {
-        $base = trim($uri, '/');
-        $id = '{id}';
-
-        $map = [
-            'index'   => ['GET', "/$base"],
-            'create'  => ['GET', "/$base/create"],
-            'store'   => ['POST', "/$base"],
-            'show'    => ['GET', "/$base/$id"],
-            'edit'    => ['GET', "/$base/$id/edit"],
-            'update'  => ['PUT', "/$base/$id"],
-            'destroy' => ['DELETE', "/$base/$id"],
-        ];
-
-        // Apply only/except
-        if (!empty($options['only'])) {
-            $map = array_filter($map, fn ($k) => in_array($k, $options['only']), ARRAY_FILTER_USE_KEY);
-        }
-        if (!empty($options['except'])) {
-            $map = array_filter($map, fn ($k) => !in_array($k, $options['except']), ARRAY_FILTER_USE_KEY);
-        }
-
-        foreach ($map as $action => [$method, $uri]) {
-            $this->addRoute($method, $uri, [$controller, $action]);
-        }
-    }
-
-    public function listRoutes(): array
-    {
-        $routes = [];
-        foreach ($this->routes as $methodGroup) {
-            foreach ($methodGroup as $route) {
-                $routes[] = [
+        $allRoutes = [];
+        foreach ($this->routes as $methodRoutes) {
+            foreach ($methodRoutes as $route) {
+                $allRoutes[] = [
                     'method' => $route->method,
-                    'uri'    => $route->uri,
-                    'name'   => $route->name,
-                    'action' => is_array($route->handler)
-                        ? implode('@', $route->handler)
-                        : 'Closure',
-                    'middleware' => $route->middleware ?? [],
+                    'uri' => $route->uri,
+                    'name' => $route->name,
+                    'handler' => $route->handler,
+                    'middleware' => $route->middleware,
                 ];
             }
         }
-        return $routes;
+        return $allRoutes;
+    }
+
+    /**
+     * Resets the router's state after a request.
+     */
+    public function resetState(): void
+    {
+        $this->currentRoute = null;
+        $this->currentRequest = null;
+        $this->app->forgetInstance(Route::class);
     }
 }

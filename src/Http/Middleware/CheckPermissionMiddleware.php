@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
 use Core\Support\Facades\Auth;
 use Psr\Http\Message\ResponseInterface;

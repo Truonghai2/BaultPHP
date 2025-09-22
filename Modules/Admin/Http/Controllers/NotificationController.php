@@ -2,10 +2,10 @@
 
 namespace Modules\Admin\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use Core\Routing\Attributes\Route;
 use Core\WebSocket\CentrifugoAPIService;
 use Http\JsonResponse;
-use Http\ResponseFactory;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ServerRequestInterface;
 

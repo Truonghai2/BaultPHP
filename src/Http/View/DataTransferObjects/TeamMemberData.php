@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\View\DataTransferObjects;
+namespace App\Http\View\DataTransferObjects;
 
 /**
  * A simple Data Transfer Object to hold team member information.

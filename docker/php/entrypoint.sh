@@ -28,7 +28,7 @@ if [ "${APP_ENV}" = "production" ]; then
     gosu $APP_USER php /app/cli config:cache
     gosu $APP_USER php /app/cli route:cache
 else
-    echo "Running in development mode. Clearing caches..."
+    echo "Running in development mode. Clearing caches for hot-reload..."
     gosu $APP_USER php /app/cli config:clear
     gosu $APP_USER php /app/cli route:clear
     gosu $APP_USER php /app/cli view:clear

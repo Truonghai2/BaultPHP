@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Support\Facades;
+namespace Core\Logging;
 
 use Core\Support\Facade;
 

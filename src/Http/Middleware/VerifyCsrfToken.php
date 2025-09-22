@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
 use Core\Security\CsrfManager;
 use Psr\Http\Message\ResponseInterface;

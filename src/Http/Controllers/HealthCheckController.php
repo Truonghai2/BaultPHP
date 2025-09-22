@@ -1,10 +1,10 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use Core\Routing\Attributes\Route;
 use Core\Services\HealthCheckService;
-use Http\ResponseFactory;
 use Psr\Http\Message\ResponseInterface;
 
 class HealthCheckController

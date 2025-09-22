@@ -11,16 +11,21 @@ use Psr\SimpleCache\CacheInterface;
 
 class ThrottleRequests implements MiddlewareInterface
 {
+    protected array $parameters = [];
+
     public function __construct(protected CacheInterface $cache)
     {
     }
 
+    public function setParameters(array $parameters): void
+    {
+        $this->parameters = $parameters;
+    }
+
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Lấy cấu hình từ route, ví dụ: ->middleware('throttle:60,1')
-        // Ở đây chúng ta sẽ hard-code để minh họa
-        $maxAttempts = 60;
-        $decayMinutes = 1;
+        $maxAttempts = $this->parameters[0] ?? 60;
+        $decayMinutes = $this->parameters[1] ?? 1;
 
         $key = $this->resolveRequestSignature($request);
 

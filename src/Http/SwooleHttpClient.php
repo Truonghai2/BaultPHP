@@ -1,6 +1,6 @@
 <?php
 
-namespace Http;
+namespace App\Http;
 
 use Core\Contracts\Http\HttpClientInterface;
 use Core\Http\Response;

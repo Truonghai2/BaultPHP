@@ -1,10 +1,10 @@
 <?php
 
-namespace Http\Controllers\Admin;
+namespace App\Http\Controllers\Admin;
 
+use App\Http\ResponseFactory;
 use Core\Routing\Attributes\Route;
 use Core\WebSocket\CentrifugoAPIService;
-use Http\ResponseFactory;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
@@ -19,7 +19,7 @@ class NotificationController
     }
 
     #[Route('/user/{userId}', method: 'POST')]
-    public function sendToUser(int $userId, Request $request, ResponseFactory $responseFactory): \Http\JsonResponse
+    public function sendToUser(int $userId, Request $request, ResponseFactory $responseFactory): \App\Http\JsonResponse
     {
         $user = User::find($userId);
         if (!$user) {
@@ -43,7 +43,7 @@ class NotificationController
     }
 
     #[Route('/broadcast', method: 'POST')]
-    public function broadcastToAll(Request $request, ResponseFactory $responseFactory): \Http\JsonResponse
+    public function broadcastToAll(Request $request, ResponseFactory $responseFactory): \App\Http\JsonResponse
     {
         $payload = [
             'event' => 'global_announcement',

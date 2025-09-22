@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\View\Composers;
+namespace App\Http\View\Composers;
 
 use Core\Auth\AuthManager;
 use Core\Contracts\View\View;

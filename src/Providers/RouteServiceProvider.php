@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Exceptions\Handler;
 use Core\Contracts\Exceptions\Handler as ExceptionHandlerContract;
+use Core\Contracts\StatefulService;
 use Core\Routing\RouteRegistrar;
 use Core\Support\ServiceProvider;
 
@@ -24,6 +25,8 @@ class RouteServiceProvider extends ServiceProvider
             return new \Core\Routing\Router($app);
         });
 
+        $this->app->tag(\Core\Routing\Router::class, StatefulService::class);
+
         $this->app->singleton(RouteRegistrar::class);
 
         $this->app->singleton(\Core\Http\Redirector::class, function ($app) {
@@ -36,20 +39,14 @@ class RouteServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $router = $this->app->make(\Core\Routing\Router::class);
+        $cachedRoutesPath = $this->app->basePath('bootstrap/cache/routes.php');
 
-        $cachedRoutesFile = $this->app->basePath('bootstrap/cache/routes.php');
-        if (file_exists($cachedRoutesFile) && !env('APP_DEBUG', false)) {
-            $cachedRoutes = require $cachedRoutesFile;
-            $router->loadFromCache($cachedRoutes);
-            return;
+        if (file_exists($cachedRoutesPath)) {
+            $routes = require $cachedRoutesPath;
+            $router->loadFromCache($routes);
+        } else {
+            $this->mapRoutes($router);
         }
-
-        // Do not map routes again if running in console, unless it's a caching command.
-        if ($this->app->runningInConsole() && !$this->isCachingCommand()) {
-            return;
-        }
-
-        $this->mapRoutes($router);
     }
 
     /**
@@ -68,18 +65,6 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapRoutes(\Core\Routing\Router $router): void
     {
         $this->mapAttributeRoutes($router);
-        $router->post('/bault/upload-file', [\Http\Controllers\ComponentUploadController::class, '__invoke']);
-        $router->post('/bault/update', [\Http\Controllers\ComponentController::class, '__invoke']);
-
-        $router->get('/dev/perf-test/db', [\Http\Controllers\PerformanceTestController::class, 'testDb']);
-
-        // Route for real-time server and connection pool status
-        $router->get('/_/status', [\Http\Controllers\ServerStatusController::class, '__invoke'])
-               ->middleware([\Http\Middleware\ProtectMetricsMiddleware::class]);
-
-        // Route for Prometheus metrics scraping
-        $router->get('/metrics', [\Http\Controllers\PrometheusMetricsController::class, '__invoke'])
-               ->middleware([\Http\Middleware\ProtectMetricsMiddleware::class]);
     }
 
     /**

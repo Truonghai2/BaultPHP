@@ -1,9 +1,9 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\View\DataTransferObjects\TeamMemberData;
 use Core\Routing\Attributes\Route;
-use Http\View\DataTransferObjects\TeamMemberData;
 use Psr\Http\Message\ResponseInterface;
 
 class AboutController extends \Core\Http\Controller

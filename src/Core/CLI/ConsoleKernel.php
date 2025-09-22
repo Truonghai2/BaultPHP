@@ -145,8 +145,7 @@ class ConsoleKernel implements KernelContract
                         $command->setCoreApplication($this->app);
                     }
 
-                    $decoratedCommand = new LoggingCommandDecorator($command, $logger);
-                    $this->console->add($decoratedCommand);
+                    $this->console->add($command);
                 } catch (Throwable $e) {
                     $this->console->add(new FailedCommand($class, $e));
                     $logger->error("Failed to load command '{$class}': {$e->getMessage()}");

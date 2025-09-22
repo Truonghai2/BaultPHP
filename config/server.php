@@ -137,22 +137,34 @@ return [
                 ],
 
                 'connections' => [
-                    'mysql' => [
-                        'worker_pool_size' => 15,
-                        'circuit_breaker' => [
-                            'rate' => [ 'failure_rate' => 30, 'minimum_requests' => 5 ],
-                        ],
-                    ],
-                    'pgsql' => [
-                        'worker_pool_size' => 5,
-                    ],
+                    ...(function () {
+                        $allPoolConfigs = [
+                            'mysql' => [
+                                'worker_pool_size' => 15,
+                                'circuit_breaker' => [
+                                    'rate' => ['failure_rate' => 30, 'minimum_requests' => 5],
+                                ],
+                            ],
+                            'pgsql' => [
+                                'worker_pool_size' => 5,
+                            ],
+                        ];
+
+                        $enabledPoolsStr = env('DB_POOLS_ENABLED');
+                        $enabledPoolNames = $enabledPoolsStr
+                            ? array_map('trim', explode(',', $enabledPoolsStr))
+                            : [env('DB_CONNECTION', 'mysql')];
+
+                        // Lọc và trả về chỉ các pool đã được kích hoạt
+                        return array_intersect_key($allPoolConfigs, array_flip($enabledPoolNames));
+                    })(),
                 ],
             ],
 
             'redis' => [
                 'enabled' => env('REDIS_POOL_ENABLED', true),
                 'class' => \Core\Database\Swoole\SwooleRedisPool::class,
-                'config_prefix' => 'database.redis',
+                'config_prefix' => 'redis.connections',
 
                 'defaults' => [
                     'worker_pool_size' => env('REDIS_POOL_WORKER_SIZE', 10),
@@ -173,13 +185,13 @@ return [
 
                 'connections' => [
                     'default' => [
-                        'worker_pool_size' => 20, // Increased default pool
+                        'worker_pool_size' => 20,
                     ],
                     'cache' => [
-                        // Point 'cache' to use the 'default' Redis connection config
+                        'alias' => 'default',
                     ],
                     'queue' => [
-                        // Point 'queue' to use the 'default' Redis connection config
+                        'alias' => 'default',
                     ],
                 ],
             ],

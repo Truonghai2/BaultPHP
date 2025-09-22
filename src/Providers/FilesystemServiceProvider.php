@@ -22,7 +22,9 @@ class FilesystemServiceProvider extends ServiceProvider
             return new Filesystem();
         });
 
-        $this->app->alias(Filesystem::class, FilesystemContract::class);
+        $this->app->singleton(FilesystemContract::class, function ($app) {
+            return $app->make(Filesystem::class);
+        });
 
         // Tạo một alias 'files' để có thể resolve bằng app('files') nếu cần,
         // và cũng để tương thích với các phần khác có thể đang dùng alias này.

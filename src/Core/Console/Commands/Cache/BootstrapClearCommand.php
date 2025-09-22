@@ -14,7 +14,7 @@ class BootstrapClearCommand extends BaseCommand
 
     public function description(): string
     {
-        return 'Remove the cached framework bootstrap file.';
+        return 'Remove the cached framework bootstrap files (services and modules).';
     }
 
     public function handle(): int
@@ -22,13 +22,20 @@ class BootstrapClearCommand extends BaseCommand
         /** @var Filesystem $files */
         $files = $this->app->make(Filesystem::class);
 
-        $cacheFile = $this->app->bootstrapPath('cache/services.php');
-
-        if ($files->exists($cacheFile)) {
-            $files->delete($cacheFile);
-            $this->info('✔ Framework bootstrap cache cleared!');
+        $servicesCache = $this->app->bootstrapPath('cache/services.php');
+        if ($files->exists($servicesCache)) {
+            $files->delete($servicesCache);
+            $this->info('✔ Framework service provider cache cleared!');
         } else {
-            $this->comment('› Framework bootstrap cache not found. Nothing to clear.');
+            $this->comment('› Framework service provider cache not found. Nothing to clear.');
+        }
+
+        $modulesCache = $this->app->bootstrapPath('cache/modules.php');
+        if ($files->exists($modulesCache)) {
+            $files->delete($modulesCache);
+            $this->info('✔ Enabled module list cache cleared!');
+        } else {
+            $this->comment('› Enabled module list cache not found. Nothing to clear.');
         }
 
         return self::SUCCESS;

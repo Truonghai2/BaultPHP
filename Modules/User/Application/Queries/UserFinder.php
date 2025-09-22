@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\User\Application;
+namespace Modules\User\Application\Queries;
 
 use Core\ORM\QueryBuilder;
 use Modules\User\Application\DTOs\UserDTO;

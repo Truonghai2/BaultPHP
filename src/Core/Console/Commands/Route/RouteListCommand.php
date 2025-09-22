@@ -80,7 +80,7 @@ class RouteListCommand extends BaseCommand
                 strtoupper($route['method']),
                 $route['uri'],
                 $route['name'] ?? '',
-                $route['action'],
+                $this->formatAction($route['handler'] ?? null),
             ];
         }
 

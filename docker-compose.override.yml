@@ -1,20 +1,11 @@
 services:
   app:
-    # Ghi đè lệnh mặc định để chạy server ở chế độ watch.
-    # Lệnh này sẽ theo dõi các thay đổi trong file và tự động khởi động lại server.
-    command: php cli serve:start
+    command: php cli serve:watch
 
-    # Ghi đè cấu hình volume.
     volumes:
-      # Sử dụng "bind mount" để đồng bộ trực tiếp thư mục dự án hiện tại (.)
-      # trên máy của bạn vào thư mục /app trong container.
       - .:/app
-      # Giữ lại volume này để loại trừ thư mục vendor, giúp sử dụng các package
-      # đã được cài đặt sẵn trong image, tránh xung đột và tăng tốc độ.
+      - /app/bootstrap/cache
       - /app/vendor
 
-    # Ghi đè healthcheck.
-    # Trong môi trường development, server sẽ thường xuyên khởi động lại,
-    # việc vô hiệu hóa healthcheck sẽ tránh container bị báo lỗi không cần thiết.
     healthcheck:
       disable: true

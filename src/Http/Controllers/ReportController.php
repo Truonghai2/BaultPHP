@@ -1,14 +1,14 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use App\Tasks\GenerateReportTask;
 use Core\Server\SwooleServer;
-use Http\ResponseFactory;
 
 class ReportController
 {
-    public function generate(SwooleServer $server, ResponseFactory $responseFactory): \Http\JsonResponse
+    public function generate(SwooleServer $server, ResponseFactory $responseFactory): \App\Http\JsonResponse
     {
         $userId = 123;
         $reportType = 'monthly_sales';

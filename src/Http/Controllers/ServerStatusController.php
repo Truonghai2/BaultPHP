@@ -1,12 +1,13 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\JsonResponse;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
 use Core\Http\Controller;
+use Core\Routing\Attributes\Route;
 use Core\Server\SwooleServer;
-use Http\JsonResponse;
 
 /**
  * Provides real-time status information about the running server,
@@ -14,6 +15,7 @@ use Http\JsonResponse;
  */
 class ServerStatusController extends Controller
 {
+    #[Route('/_/status', method: 'GET', middleware: [\App\Http\Middleware\ProtectMetricsMiddleware::class])]
     public function __invoke(SwooleServer $server): JsonResponse
     {
         $dbPoolStats = [];

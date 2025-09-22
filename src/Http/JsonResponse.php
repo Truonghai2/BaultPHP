@@ -1,6 +1,6 @@
 <?php
 
-namespace Http;
+namespace App\Http;
 
 use InvalidArgumentException;
 use Nyholm\Psr7\Response;

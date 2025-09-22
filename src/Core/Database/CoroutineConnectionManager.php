@@ -50,7 +50,7 @@ class CoroutineConnectionManager
             return $context[$contextKey];
         }
 
-        $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwoolePdoPool::stats($name)]);
+        $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $this->getPoolStats($name)]);
         $connection = SwoolePdoPool::get($name);
 
         $context[$contextKey] = $connection;
@@ -68,6 +68,21 @@ class CoroutineConnectionManager
     public function release(PDO|PDOProxy $connection, string $name, int $cid): void
     {
         SwoolePdoPool::put($connection, $name);
-        $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwoolePdoPool::stats($name)]);
+        $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $this->getPoolStats($name)]);
+    }
+
+    /**
+     * Get stats for a specific pool, handling API inconsistencies gracefully.
+     *
+     * @param string $name The name of the pool.
+     * @return array|null
+     */
+    private function getPoolStats(string $name): ?array
+    {
+        if (method_exists(SwoolePdoPool::class, 'getAllStats')) {
+            return SwoolePdoPool::getAllStats()[$name] ?? null;
+        }
+
+        return null;
     }
 }

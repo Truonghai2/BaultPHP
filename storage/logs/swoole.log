@@ -322,3 +322,112 @@
 [2025-09-20 22:42:39 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=49, id=15) abnormal exit, status=255, signal=0
 [2025-09-20 22:42:39 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=49, id=15) abnormal exit, status=255, signal=0
 [2025-09-20 22:44:57 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=54, id=1) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=45, id=8) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=53, id=0) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=55, id=2) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=56, id=3) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=57, id=4) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=46, id=9) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=58, id=5) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=59, id=6) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=47, id=10) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=48, id=11) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=49, id=12) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=50, id=13) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=51, id=14) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:16 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=52, id=15) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=78, id=5) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=71, id=1) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=72, id=8) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=73, id=0) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=74, id=2) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=75, id=3) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=76, id=4) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=77, id=9) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=79, id=6) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=80, id=10) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=81, id=11) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=82, id=12) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=83, id=13) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=84, id=14) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=85, id=15) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=87, id=1) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=86, id=5) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=88, id=8) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=89, id=0) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=90, id=2) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=91, id=3) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=92, id=4) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=93, id=9) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=94, id=6) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=95, id=10) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=96, id=11) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=97, id=12) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=98, id=13) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=99, id=14) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=100, id=15) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=101, id=1) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=104, id=0) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=103, id=8) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=102, id=5) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=105, id=2) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=106, id=3) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=107, id=4) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=108, id=9) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=109, id=6) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=110, id=10) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=111, id=11) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=112, id=12) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=113, id=13) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=114, id=14) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=115, id=15) abnormal exit, status=255, signal=0
+[2025-09-21 10:57:46 *60.7]	WARNING	Worker_reactor_try_to_exit() (ERRNO 9101): worker exit timeout, forced termination
+[2025-09-21 10:57:46 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=60, id=7) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=56, id=3) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=45, id=8) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=53, id=0) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=55, id=2) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=57, id=4) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=58, id=5) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=46, id=9) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=59, id=6) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=60, id=7) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=47, id=10) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=48, id=11) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=49, id=12) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=50, id=13) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=51, id=14) abnormal exit, status=255, signal=0
+[2025-09-21 11:35:01 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=52, id=15) abnormal exit, status=255, signal=0
+[2025-09-21 11:37:10 *57.1]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Swoole\Error: API must be called in the coroutine in /app/src/Core/Database/Swoole/BaseSwoolePool.php:134
+Stack trace:
+#0 /app/src/Core/Database/Swoole/BaseSwoolePool.php(134): Swoole\Coroutine\Channel->pop(0.001)
+#1 /app/src/Core/Server/ConnectionPoolManager.php(56): Core\Database\Swoole\BaseSwoolePool::close()
+#2 /app/src/Core/Server/SwooleServer.php(416): Core\Server\ConnectionPoolManager->closePools()
+#3 [internal function]: Core\Server\SwooleServer->onWorkerStop(Object(Swoole\Http\Server), 1)
+#4 /app/src/Core/Server/SwooleServer.php(137): Swoole\Server->start()
+#5 /app/src/Core/Console/Commands/Server/ServerStartCommand.php(64): Core\Server\SwooleServer->start()
+#6 /app/vendor/symfony/console/Command/Command.php(318): Core\Console\Commands\Server\ServerStartCommand->execute(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#7 /app/src/Core/CLI/LoggingCommandDecorator.php(77): Symfony\Component\Console\Command\Command->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#8 /app/vendor/symfony/console/Application.php(1092): Core\CLI\LoggingCommandDecorator->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#9 /app/vendor/symfony/console/Application.php(359): Symfony\Component\Console\Application->doRunCommand(Object(Core\CLI\LoggingCommandDecorator), Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#10 /app/vendor/symfony/console/Application.php(194): Symfony\Component\Console\Application->doRun(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#11 /app/src/Core/CLI/ConsoleKernel.php(64): Symfony\Component\Console\Application->run(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#12 /app/cli(52): Core\CLI\ConsoleKernel->handle(Object(Symfony\Component\Console\Input\ArgvInput), Object(Symfony\Component\Console\Output\ConsoleOutput))
+#13 {main}
+  thrown in /app/src/Core/Database/Swoole/BaseSwoolePool.php on line 134
+[2025-09-21 17:08:31 *68.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\NotFoundException: Class or interface [Http\ResponseFactory] not found. in /app/src/Core/Application.php:391
+Stack trace:
+#0 /app/src/Core/Application.php(282): Core\Application->getReflector('Http\\ResponseFa...')
+#1 /app/src/Core/Application.php(243): Core\Application->build('Http\\ResponseFa...', Array)
+#2 /app/src/Core/helpers.php(28): Core\Application->make('Http\\ResponseFa...', Array)
+#3 /app/src/Core/helpers.php(257): app('Http\\ResponseFa...')
+#4 /app/src/Exceptions/Handler.php(108): response('<!DOCTYPE html>...', 500)
+#5 /app/src/Exceptions/Handler.php(82): App\Exceptions\Handler->renderExceptionForDebug(Object(Nyholm\Psr7\ServerRequest), Object(Core\Exceptions\NotFoundException))
+#6 /app/src/Core/Server/RequestLifecycle.php(125): App\Exceptions\Handler->render(Object(Nyholm\Psr7\ServerRequest), Object(Core\Exceptions\NotFoundException))
+#7 /app/src/Core/Server/RequestLifecycle.php(66): Core\Server\RequestLifecycle->handleException(Object(Nyholm\Psr7\ServerRequest), Object(Core\Exceptions\NotFoundException))
+#8 /app/src/Core/Server/SwooleServer.php(208): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#9 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#10 {main}
+  thrown in /app/src/Core/Application.php on line 391
+[2025-09-21 17:08:31 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=68, id=0) abnormal exit, status=255, signal=0

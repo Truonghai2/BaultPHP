@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
 use Core\Cookie\CookieManager;
 use Psr\Http\Message\ResponseInterface;

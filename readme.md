@@ -36,7 +36,7 @@
 1.  Khi có một HTTP request đến, Swoole server chuyển nó đến một Worker Process đang rảnh.
 2.  Sự kiện `request` của `SwooleServer` được kích hoạt.
 3.  Request của Swoole được chuyển đổi thành một PSR-7 Request.
-4.  Request được xử lý bởi `Application->handle()` (thông qua `Http\Kernel`).
+4.  Request được xử lý bởi `Application->handle()` (thông qua `App\Http\Kernel`).
 5.  `Router` tìm kiếm route phù hợp, thực thi Controller, và nhận về một PSR-7 Response.
 6.  PSR-7 Response được chuyển đổi ngược lại thành Swoole Response và gửi về cho client.
 7.  Worker được dọn dẹp (reset các stateful service) và sẵn sàng cho request tiếp theo mà không cần khởi động lại framework.

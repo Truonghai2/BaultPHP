@@ -1,6 +1,6 @@
 <?php
 
-namespace Core\Contracts;
+namespace Core\Console\Contracts\Console;
 
 /**
  * Interface for services that hold state within a single request-response cycle.

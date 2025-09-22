@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Http\Middleware\FeatureMiddleware;
+use Core\Contracts\StatefulService;
 use Core\Features\FeatureManager;
 use Core\Support\ServiceProvider;
 use Core\View\Compiler;
@@ -14,14 +15,14 @@ class FeatureServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // Register the FeatureManager as a singleton.
         $this->app->singleton('features', function ($app) {
             return new FeatureManager($app->make('config'));
         });
 
         $this->app->alias('features', FeatureManager::class);
 
-        // Register the middleware for use in routing.
+        $this->app->tag(FeatureManager::class, StatefulService::class);
+
         $this->app->singleton(FeatureMiddleware::class);
     }
 

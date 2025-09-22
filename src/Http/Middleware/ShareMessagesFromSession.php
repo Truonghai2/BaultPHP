@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
 use Core\Contracts\View\Factory as ViewFactory;
 use Core\Validation\ErrorBag;

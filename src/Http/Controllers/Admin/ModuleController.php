@@ -1,16 +1,13 @@
 <?php
 
-namespace Core\Services;
+namespace App\Http\Controllers\Admin;
 
 use Core\Exceptions\Module\ModuleNotFoundException;
 use Core\FileSystem\Filesystem;
 use Core\ORM\Connection;
 use PDO;
 
-/**
- * Handles business logic for managing modules.
- */
-class ModuleService
+class ModuleController
 {
     protected string $modulesPath;
     protected PDO $pdo;

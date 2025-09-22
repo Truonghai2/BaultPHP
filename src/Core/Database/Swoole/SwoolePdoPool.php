@@ -12,8 +12,11 @@ use Throwable;
  */
 class SwoolePdoPool extends BaseSwoolePool
 {
+    private static ?\WeakMap $lastUsedTimes = null;
+
     protected static function createConnection(string $name): mixed
     {
+        self::$lastUsedTimes ??= new \WeakMap();
         $config = static::$configs[$name];
         $driver = $config['driver'];
         $host = $config['write']['host'] ?? $config['host'];
@@ -34,7 +37,7 @@ class SwoolePdoPool extends BaseSwoolePool
 
         try {
             $pdo = new PDO($dsn, $config['username'], $config['password'], $options);
-            $pdo->lastUsedTime = time();
+            self::$lastUsedTimes[$pdo] = time();
             return $pdo;
         } catch (Throwable $e) {
             static::$app->make(\Psr\Log\LoggerInterface::class)
@@ -43,22 +46,22 @@ class SwoolePdoPool extends BaseSwoolePool
         }
     }
 
-    protected static function ping(mixed $connection): bool
+    protected static function ping(mixed $connection, string $name): bool
     {
         if (!$connection instanceof PDO) {
             return false;
         }
 
-        $config = static::$configs[static::getConnectionName($connection)] ?? [];
+        $config = static::$configs[$name] ?? [];
         $heartbeat = $config['heartbeat'] ?? 60;
 
-        if (isset($connection->lastUsedTime) && time() - $connection->lastUsedTime < $heartbeat) {
+        if (isset(self::$lastUsedTimes[$connection]) && time() - self::$lastUsedTimes[$connection] < $heartbeat) {
             return true;
         }
 
         try {
             $connection->query('SELECT 1');
-            $connection->lastUsedTime = time();
+            self::$lastUsedTimes[$connection] = time();
             return true;
         } catch (Throwable) {
             return false;
@@ -71,10 +74,5 @@ class SwoolePdoPool extends BaseSwoolePool
             return !$connection->inTransaction();
         }
         return false;
-    }
-
-    private static function getConnectionName(PDO $pdo): ?string
-    {
-        return 'default';
     }
 }

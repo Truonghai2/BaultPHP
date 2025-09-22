@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Controllers\Debug;
+namespace App\Http\Controllers\Debug;
 
 use Core\Http\Controller;
 use Core\Redis\RedisManager;

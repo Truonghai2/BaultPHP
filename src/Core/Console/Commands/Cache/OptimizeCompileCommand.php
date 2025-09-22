@@ -84,7 +84,11 @@ class OptimizeCompileCommand extends BaseCommand
         $dependencies = [];
         foreach ($constructor->getParameters() as $parameter) {
             $type = $parameter->getType();
-            if ($type && !$type->isBuiltin()) {
+
+            if ($type instanceof \ReflectionUnionType || $type instanceof \ReflectionIntersectionType) {
+                throw new \Exception("Cannot compile services with union or intersection types like for parameter \${$parameter->getName()}.");
+            }
+            if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
                 $typeName = $type->getName();
                 $dependencies[] = '$app->make(\\' . $typeName . '::class)';
             } elseif ($parameter->isDefaultValueAvailable()) {

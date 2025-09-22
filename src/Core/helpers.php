@@ -1,8 +1,8 @@
 <?php
 
+use App\Http\ResponseFactory;
 use Core\Application;
 use Core\Debug\SwooleDumpException;
-use Http\ResponseFactory;
 use Symfony\Component\VarDumper\Cloner\VarCloner;
 use Symfony\Component\VarDumper\Dumper\HtmlDumper;
 
@@ -249,7 +249,7 @@ if (!function_exists('response')) {
      * @param  string|null  $content
      * @param  int  $status
      * @param  array  $headers
-     * @return \Core\Http\ResponseFactory|\Psr\Http\Message\ResponseInterface
+     * @return \App\Http\ResponseFactory|\Psr\Http\Message\ResponseInterface
      */
     function response(string $content = null, int $status = 200, array $headers = []): ResponseFactory|ResponseInterface
     {

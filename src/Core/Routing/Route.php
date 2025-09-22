@@ -55,7 +55,7 @@ class Route
     public function name(string $name): self
     {
         $this->name = $name;
-        app(Router::class)->addNamedRoute($name, $this->uri);
+        app(Router::class)->addNamedRoute($name, $this);
         return $this;
     }
 

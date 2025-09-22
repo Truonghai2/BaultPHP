@@ -1,8 +1,8 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
-use Http\JsonResponse;
+use App\Http\JsonResponse;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;

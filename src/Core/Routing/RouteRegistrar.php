@@ -45,7 +45,6 @@ class RouteRegistrar
         $reflectionClass = new ReflectionClass($className);
         $classAttributes = $reflectionClass->getAttributes(RouteAttribute::class);
 
-        // Get prefix, middleware, name prefix, and group from class-level attribute
         $classPrefix = '';
         $classMiddleware = [];
         $classNamePrefix = '';
@@ -54,17 +53,13 @@ class RouteRegistrar
         if (!empty($classAttributes)) {
             /** @var RouteAttribute $classRouteAttribute */
             $classRouteAttribute = $classAttributes[0]->newInstance();
-            // A class-level attribute can define a prefix using either 'prefix' or 'uri'
             $classPrefix = $classRouteAttribute->prefix ?? $classRouteAttribute->uri ?? '';
             $classMiddleware = (array) ($classRouteAttribute->middleware ?? []);
-            // A class-level name can be used as a prefix for method-level names
             $classNamePrefix = $classRouteAttribute->name ?? '';
             $classGroup = $classRouteAttribute->group ?? null;
         }
 
-        // Scan all public methods for route attributes
         foreach ($reflectionClass->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
-            // A method can have multiple Route attributes (IS_REPEATABLE)
             $methodAttributes = $method->getAttributes(RouteAttribute::class);
 
             if (empty($methodAttributes)) {
@@ -75,26 +70,19 @@ class RouteRegistrar
                 /** @var RouteAttribute $methodRouteAttribute */
                 $methodRouteAttribute = $methodAttribute->newInstance();
 
-                // 1. Combine URI
-                // Ensure there's exactly one slash between prefix and uri
                 $uri = rtrim($classPrefix, '/') . '/' . ltrim($methodRouteAttribute->uri, '/');
-                // Avoid trailing slash on the final URI, except for the root '/'
                 $uri = ($uri !== '/') ? rtrim($uri, '/') : '/';
                 if (empty($uri)) {
-                    $uri = '/'; // Handle case where both are empty strings
+                    $uri = '/';
                 }
 
-                // 2. Combine Middleware
                 $middleware = array_merge($classMiddleware, (array) $methodRouteAttribute->middleware);
 
-                // 3. Combine Name
                 $name = $methodRouteAttribute->name;
                 if ($name && $classNamePrefix) {
-                    // If class has a name "auth." and method has "login", result is "auth.login"
                     $name = rtrim($classNamePrefix, '.') . '.' . ltrim($name, '.');
                 }
 
-                // Add the route to the router
                 $route = $router->addRoute($methodRouteAttribute->method, $uri, [$className, $method->getName()]);
 
                 if ($name) {
@@ -104,7 +92,6 @@ class RouteRegistrar
                     $route->middleware($middleware);
                 }
 
-                // 4. Apply Group (method group overrides class group)
                 $group = $methodRouteAttribute->group ?? $classGroup;
                 if ($group) {
                     $route->group($group);
@@ -134,6 +121,8 @@ class RouteRegistrar
     /**
      * Parses a PHP file to get the fully qualified class name without including the file.
      */
+    // This method uses tokenization, which is faster than `require` or `include`,
+    // to extract class and namespace information without executing the file's code.
     protected function getClassesFromFile(string $filePath): array
     {
         $tokens = token_get_all(file_get_contents($filePath));
@@ -148,10 +137,8 @@ class RouteRegistrar
                 continue;
             }
 
-            // Find the namespace
             if ($token[0] === T_NAMESPACE) {
                 $namespace = '';
-                // Look ahead to find the namespace name
                 for ($j = $i + 2; $j < count($tokens); $j++) {
                     if (is_array($tokens[$j]) && in_array($tokens[$j][0], [T_STRING, T_NAME_QUALIFIED])) {
                         $namespace .= $tokens[$j][1];
@@ -162,7 +149,6 @@ class RouteRegistrar
                 $namespaceFound = true;
             }
 
-            // Find the class definition
             if ($token[0] === T_CLASS && isset($tokens[$i + 2]) && is_array($tokens[$i + 2]) && $tokens[$i + 2][0] === T_STRING) {
                 $className = $tokens[$i + 2][1];
                 $classes[] = $namespaceFound ? $namespace . '\\' . $className : $className;

@@ -2,9 +2,11 @@
 
 namespace App\Providers;
 
+use Core\Contracts\StatefulService;
 use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\Translation\FileLoader;
+use Core\Translation\TranslatorResetter;
 use Illuminate\Translation\Translator;
 
 class TranslationServiceProvider extends ServiceProvider
@@ -21,6 +23,9 @@ class TranslationServiceProvider extends ServiceProvider
 
             return $translator;
         });
+
+        $this->app->singleton(TranslatorResetter::class);
+        $this->app->tag(TranslatorResetter::class, StatefulService::class);
     }
 
     public function boot(): void

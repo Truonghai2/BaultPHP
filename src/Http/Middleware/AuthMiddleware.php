@@ -1,9 +1,9 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
+use App\Http\ResponseFactory;
 use Core\Support\Facades\Auth;
-use Http\ResponseFactory;
 use Psr\Http\Message\ServerRequestInterface;
 
 class AuthMiddleware

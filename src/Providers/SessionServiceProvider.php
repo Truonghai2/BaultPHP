@@ -63,7 +63,7 @@ class SessionServiceProvider extends ServiceProvider
         $config = $app->make('config');
         $driver = $config->get('session.driver');
 
-        return match ($driver) {
+        return match (strtolower($driver)) {
             'database' => $this->createDatabaseHandler($app, $config),
             'redis' => $this->createRedisHandler($app, $config),
             'file' => new \Symfony\Component\HttpFoundation\Session\Storage\Handler\NativeFileSessionHandler(),
@@ -128,6 +128,9 @@ class SessionServiceProvider extends ServiceProvider
             return new DirectSessionTokenStorage($app->make('session'));
         });
 
-        $this->app->singleton(CsrfTokenManagerInterface::class, CsrfTokenManager::class);
+        $this->app->singleton(CsrfTokenManagerInterface::class, function ($app) {
+            return new CsrfTokenManager($app->make(TokenGeneratorInterface::class), $app->make(TokenStorageInterface::class));
+        });
+        $this->app->alias(CsrfTokenManagerInterface::class, CsrfTokenManager::class);
     }
 }

@@ -60,7 +60,7 @@
       "App\\Logging\\": "src/Logging/",
       "App\\Cache\\": "src/Cache/",
       "Core\\": "src/Core/",
-      "Http\\": "src/Http/",
+      "App\\Http\\": "src/Http/",
       "Modules\\": "Modules/",
       "Database\\Seeders\\": "database/Seeders/"
     },

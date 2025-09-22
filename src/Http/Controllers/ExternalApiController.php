@@ -1,9 +1,9 @@
 <?php
 
-namespace Http\Controllers;
+namespace App\Http\Controllers;
 
+use App\Http\ResponseFactory;
 use Core\Contracts\Http\HttpClientInterface;
-use Http\ResponseFactory;
 use Swoole\Coroutine;
 use Swoole\Coroutine\WaitGroup;
 

@@ -12,8 +12,12 @@ use Throwable;
  */
 class SwooleRedisPool extends BaseSwoolePool
 {
+    private static ?\WeakMap $lastUsedTimes = null;
+
     protected static function createConnection(string $name): mixed
     {
+        self::$lastUsedTimes ??= new \WeakMap();
+
         $config = static::$configs[$name];
         $redis = new Redis();
 
@@ -32,7 +36,7 @@ class SwooleRedisPool extends BaseSwoolePool
                 $redis->select($config['database']);
             }
 
-            $redis->lastUsedTime = time();
+            self::$lastUsedTimes[$redis] = time();
             return $redis;
         } catch (Throwable $e) {
             static::$app->make(\Psr\Log\LoggerInterface::class)
@@ -41,25 +45,22 @@ class SwooleRedisPool extends BaseSwoolePool
         }
     }
 
-    protected static function ping(mixed $connection): bool
+    protected static function ping(mixed $connection, string $name): bool
     {
         if (!$connection instanceof Redis) {
             return false;
         }
 
-        // Giả sử tên pool là 'default' nếu không có cách nào xác định.
-        // Một cải tiến trong tương lai có thể là truyền tên pool vào hàm ping.
-        $config = static::$configs['default'] ?? [];
+        $config = static::$configs[$name] ?? [];
         $heartbeat = $config['heartbeat'] ?? 60;
 
-        if (isset($connection->lastUsedTime) && time() - $connection->lastUsedTime < $heartbeat) {
+        if (isset(self::$lastUsedTimes[$connection]) && time() - self::$lastUsedTimes[$connection] < $heartbeat) {
             return true;
         }
 
         try {
-            // Lệnh PING của Redis sẽ trả về "+PONG" hoặc ném exception nếu thất bại.
             $connection->ping();
-            $connection->lastUsedTime = time();
+            self::$lastUsedTimes[$connection] = time();
             return true;
         } catch (Throwable) {
             return false;
@@ -69,7 +70,6 @@ class SwooleRedisPool extends BaseSwoolePool
     protected static function isValid(mixed $connection): bool
     {
         if ($connection instanceof Redis) {
-            // Không trả về pool nếu đang trong một transaction.
             return !$connection->getMode() == Redis::MULTI;
         }
         return false;

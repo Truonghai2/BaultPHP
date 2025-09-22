@@ -22,20 +22,16 @@ class CacheClearCommand extends BaseCommand
         /** @var CacheFactory $cache */
         $cache = $this->app->make(CacheFactory::class);
 
-        // Xóa cache ứng dụng (Redis, file, etc.)
         $cache->store()->clear();
         $this->info('✔ Application cache flushed.');
 
-        // Xóa các cache khởi động
         $this->comment('› Clearing bootstrap caches...');
         $this->call('config:clear');
         $this->call('route:clear');
         $this->call('view:clear');
         $this->call('event:clear');
         $this->call('command:clear');
-        $this->call('provider:clear');
         $this->call('optimize:clear');
-        $this->call('module:clear');
         $this->call('bootstrap:clear');
 
         $this->info('✔ All caches cleared successfully!');

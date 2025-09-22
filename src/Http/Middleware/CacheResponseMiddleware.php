@@ -1,6 +1,6 @@
 <?php
 
-namespace Http\Middleware;
+namespace App\Http\Middleware;
 
 use Core\Routing\Attributes\Cache;
 use Psr\Http\Message\ResponseInterface;

@@ -38,7 +38,7 @@ class QueueFailedCommand extends BaseCommand
                 $job->uuid,
                 $job->connection,
                 $job->queue,
-                $job->created_at->format('Y-m-d H:i:s'), // Assuming you have `created_at`
+                $job->created_at->format('Y-m-d H:i:s'),
                 $this->formatException($job->exception),
             ];
         })->toArray();
@@ -49,8 +49,7 @@ class QueueFailedCommand extends BaseCommand
 
     private function formatException(string $exception): string
     {
-        // Limit exception message length for table display
-        $exception = preg_replace('/\s+/', ' ', $exception); // Collapse whitespace
+        $exception = preg_replace('/\s+/', ' ', $exception);
         return mb_strlen($exception) > 100 ? mb_substr($exception, 0, 97) . '...' : $exception;
     }
 }

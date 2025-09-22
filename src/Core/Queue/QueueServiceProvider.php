@@ -52,7 +52,7 @@ class QueueServiceProvider extends BaseServiceProvider
                 $config['port'],
                 $config['user'],
                 $config['password'],
-                $config['vhost'] ?? '/'
+                $config['vhost'] ?? '/',
             );
         });
         $this->registerCommands();
@@ -143,5 +143,23 @@ class QueueServiceProvider extends BaseServiceProvider
         }
 
         $this->app->tag($this->commands, 'console.command');
+    }
+
+    /**
+     * Get the services provided by the provider.
+     *
+     * This provider will only be loaded when one of these services is requested from the container.
+     *
+     * @return array<int, string>
+     */
+    public function provides(): array
+    {
+        return [
+            QueueManager::class,
+            'queue',
+            \Core\Contracts\Queue\Queue::class,
+            QueueWorker::class,
+            AMQPStreamConnection::class,
+        ];
     }
 }

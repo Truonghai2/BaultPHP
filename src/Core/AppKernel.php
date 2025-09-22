@@ -16,7 +16,7 @@ class AppKernel
 
         Facade::setFacadeApplication($this->app);
 
-        $this->app->singleton(\Core\Contracts\Http\Kernel::class, \Http\Kernel::class);
+        $this->app->singleton(\Core\Contracts\Http\Kernel::class, \App\Http\Kernel::class);
 
         $cachedProvidersPath = $this->app->getCachedProvidersPath();
         if (file_exists($cachedProvidersPath) && !config('app.debug')) {

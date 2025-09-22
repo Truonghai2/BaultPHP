@@ -3,65 +3,71 @@
 namespace Core\Console\Commands\Cache;
 
 use Core\Console\Contracts\BaseCommand;
+use Core\Foundation\ProviderRepository;
 
 class BootstrapCacheCommand extends BaseCommand
 {
     public function signature(): string
     {
-        return 'bootstrap:cache';
+        return 'bootstrap:cache {--modules-only : Only cache the enabled modules list}';
     }
 
     public function description(): string
     {
-        return "Cache the framework's service provider bootstrap file for faster loading.";
+        return "Cache the framework's service provider and module list for faster loading.";
     }
 
     public function handle(): int
     {
-        $this->comment('Caching framework bootstrap file...');
+        if ($this->option('modules-only')) {
+            $this->cacheModuleList();
+            return self::SUCCESS;
+        }
 
-        $coreProviders = $this->getCoreProviders();
-        $moduleProviders = $this->getModuleProviders();
+        $this->comment('Caching framework bootstrap files...');
 
-        $allProviders = array_values(array_unique(array_merge($coreProviders, $moduleProviders)));
-        sort($allProviders);
+        // Use the centralized repository to discover all providers.
+        $repository = new ProviderRepository($this->app);
+        $allProviders = $repository->discover();
 
-        $cachePath = $this->app->bootstrapPath('cache/services.php');
-        $content = '<?php return ' . var_export($allProviders, true) . ';';
-        file_put_contents($cachePath, $content);
+        $this->cacheServiceProviders($allProviders);
+        $enabledModuleNames = $this->getEnabledModuleNames();
+        $this->cacheModuleList($enabledModuleNames);
 
         $this->info('✔ Framework bootstrap file cached successfully!');
 
         return self::SUCCESS;
     }
 
-    protected function getCoreProviders(): array
+    protected function cacheServiceProviders(array $providers): void
     {
-        $appConfigPath = $this->app->basePath('config/app.php');
-        $appConfig = file_exists($appConfigPath) ? require $appConfigPath : [];
-        return $appConfig['providers'] ?? [];
+        $cachePath = $this->app->bootstrapPath('cache/services.php');
+        $content = '<?php return ' . var_export($providers, true) . ';';
+        file_put_contents($cachePath, $content);
+        $this->info('› Service providers cached.');
     }
 
-    protected function getModuleProviders(): array
+    protected function cacheModuleList(?array $enabledModuleNames = null): void
     {
-        $providers = [];
-        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
+        $namesToCache = $enabledModuleNames ?? $this->getEnabledModuleNames();
 
-        if ($moduleJsonPaths === false) {
-            return [];
-        }
+        $cachePath = $this->app->bootstrapPath('cache/modules.php');
+        $content = "<?php\n\nreturn " . var_export($namesToCache, true) . ";\n";
+        file_put_contents($cachePath, $content);
+        $this->info('› Enabled module list cached.');
+    }
+
+    protected function getEnabledModuleNames(): array
+    {
+        $enabledModuleNames = [];
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
 
         foreach ($moduleJsonPaths as $path) {
             $data = json_decode(file_get_contents($path), true);
             if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
-                foreach ($data['providers'] ?? [] as $providerClass) {
-                    if (class_exists($providerClass)) {
-                        $providers[] = $providerClass;
-                    }
-                }
+                $enabledModuleNames[] = $data['name'];
             }
         }
-
-        return $providers;
+        return $enabledModuleNames;
     }
 }

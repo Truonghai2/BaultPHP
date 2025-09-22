@@ -3,11 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\CreateAdminRequest;
+use App\Http\ResponseFactory;
 use Core\Events\EventDispatcherInterface;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Hash;
-use Http\ResponseFactory;
 use Modules\User\Domain\Events\UserWasCreated;
 use Modules\User\Infrastructure\Models\Role;
 use Modules\User\Infrastructure\Models\RoleAssignment;

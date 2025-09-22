@@ -13,7 +13,7 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(KernelContract::class, \Http\Kernel::class);
+        $this->app->singleton(KernelContract::class, \App\Http\Kernel::class);
 
         $this->app->singleton(CentrifugoAPIService::class, function () {
             $apiUrl = config('services.centrifugo.api_url', 'http://127.0.0.1:8000');
