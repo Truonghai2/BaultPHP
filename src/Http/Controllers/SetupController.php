@@ -30,7 +30,7 @@ class SetupController extends Controller
     public function showCreateAdminForm(): ResponseInterface
     {
         if (User::query()->exists()) {
-            return $this->responseFactory->redirect('/');
+            return redirect('/');
         }
 
         $errors = app('session')->get('errors', new ErrorBag());
@@ -42,7 +42,7 @@ class SetupController extends Controller
     public function processCreateAdmin(CreateAdminRequest $request): ResponseInterface
     {
         if (User::query()->exists()) {
-            return $this->responseFactory->redirect('/');
+            return redirect('/');
         }
 
         $validated = $request->validated();
@@ -67,6 +67,6 @@ class SetupController extends Controller
             'context_id' => 1,
         ]);
 
-        return $this->responseFactory->redirect('/');
+        return redirect('/');
     }
 }

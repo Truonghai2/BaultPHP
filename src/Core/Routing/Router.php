@@ -207,6 +207,18 @@ class Router implements StatefulService
     {
         $this->namedRoutes[$name] = $route;
     }
+
+    /**
+     * Get a route instance by its name.
+     *
+     * @param string $name
+     * @return \Core\Routing\Route|null
+     */
+    public function getByName(string $name): ?Route
+    {
+        return $this->namedRoutes[$name] ?? null;
+    }
+    
     /**
      * Get all of the registered routes for the `route:list` command.
      *

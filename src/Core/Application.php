@@ -221,7 +221,7 @@ class Application implements ContainerInterface, \ArrayAccess
         $abstract = $this->getAlias($abstract);
 
         if (isset($this->deferredServices[$abstract]) && !isset($this->instances[$abstract])) {
-            $this->register($this->deferredServices[$abstract]);
+            $this->loadDeferredProvider($this->deferredServices[$abstract]);
         }
 
         if (empty($parameters) && isset($this->compiledFactories[$abstract])) {
@@ -432,6 +432,24 @@ class Application implements ContainerInterface, \ArrayAccess
     }
 
     /**
+     * Load and register a deferred service provider.
+     *
+     * @param string $providerClass
+     * @return void
+     */
+    protected function loadDeferredProvider(string $providerClass): void
+    {
+        if (!$this->isProviderRegistered($providerClass)) {
+            // This should not happen in normal flow, but as a safeguard.
+            $this->register($providerClass);
+            return;
+        }
+
+        $provider = $this->getProvider($providerClass);
+        $provider?->register();
+    }
+
+    /**
      * Defer the registration of a service provider.
      *
      * @param \Core\Contracts\Support\DeferrableProvider $provider
@@ -447,6 +465,22 @@ class Application implements ContainerInterface, \ArrayAccess
     protected function isProviderRegistered(string $providerClass): bool
     {
         return isset($this->registeredProviders[$providerClass]);
+    }
+
+    /**
+     * Get the service provider instance.
+     *
+     * @param string $providerClass
+     * @return \Core\Support\ServiceProvider|null
+     */
+    protected function getProvider(string $providerClass): ?\Core\Support\ServiceProvider
+    {
+        foreach ($this->serviceProviders as $provider) {
+            if (get_class($provider) === $providerClass) {
+                return $provider;
+            }
+        }
+        return null;
     }
 
     /**

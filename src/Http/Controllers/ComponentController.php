@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 class ComponentController
 {
-    #[Route('/bault/update', method: 'POST')]
+    #[Route('/bault/update', method: 'POST', middleware: ['web'])]
     public function __invoke(Request $request, ResponseFactory $responseFactory, ChecksumService $checksumService): \App\Http\JsonResponse
     {
         $snapshot = json_decode($request->input('snapshot'), true);

@@ -363,7 +363,7 @@ if (!function_exists('route')) {
      */
     function route(string $name, array $parameters = []): string
     {
-        return app(\Core\Routing\Router::class)->url($name, $parameters);
+        return app(UrlGenerator::class)->route($name, $parameters);
     }
 }
 
