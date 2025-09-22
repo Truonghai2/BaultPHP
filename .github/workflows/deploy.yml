@@ -44,7 +44,7 @@ jobs:
           chmod +x ./docker/php/entrypoint.sh
 
       - name: Start services
-        run: docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+        run: docker compose -f docker-compose.yml -f docker-compose.override.yml up -d
 
       - name: Run database migrations
         run: docker compose exec -T app php cli ddd:migrate --seed
