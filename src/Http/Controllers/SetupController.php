@@ -11,6 +11,7 @@ use Core\Support\Facades\Hash;
 use Modules\User\Domain\Events\UserWasCreated;
 use Modules\User\Infrastructure\Models\Role;
 use Modules\User\Infrastructure\Models\RoleAssignment;
+use Core\Validation\ErrorBag;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ResponseInterface;
 
@@ -32,7 +33,9 @@ class SetupController extends Controller
             return $this->responseFactory->redirect('/');
         }
 
-        return $this->responseFactory->make(view('setup.create-admin'));
+        $errors = app('session')->get('errors', new ErrorBag());
+
+        return $this->responseFactory->make(view('setup.create-admin', compact('errors')));
     }
 
     #[Route('/setup/create-admin', method: 'POST', group: 'web')]

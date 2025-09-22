@@ -55,7 +55,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
     public function read(string $sessionId): string|false
     {
         return $this->withConnection(function (PDO $pdo) use ($sessionId) {
-            $sql = "SELECT sess_data FROM {$this->table} WHERE sess_id = :id AND sess_lifetime + sess_time >= :time";
+            $sql = "SELECT payload FROM {$this->table} WHERE id = :id AND lifetime + last_activity >= :time";
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
             $stmt->bindValue(':time', time(), PDO::PARAM_INT);
@@ -63,7 +63,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
 
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            return $result ? $result['sess_data'] : '';
+            return $result ? $result['payload'] : '';
         });
     }
 
@@ -71,7 +71,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
     {
         return $this->withConnection(function (PDO $pdo) use ($sessionId, $data) {
             // First, try to update an existing session
-            $sql = "UPDATE {$this->table} SET sess_data = :data, sess_time = :time, sess_lifetime = :lifetime WHERE sess_id = :id";
+            $sql = "UPDATE {$this->table} SET payload = :data, last_activity = :time, lifetime = :lifetime WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
             $stmt->bindParam(':data', $data, PDO::PARAM_STR);
@@ -82,7 +82,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
             // If no rows were affected, it means the session ID doesn't exist, so insert it.
             if ($stmt->rowCount() === 0) {
                 try {
-                    $sql = "INSERT INTO {$this->table} (sess_id, sess_data, sess_time, sess_lifetime) VALUES (:id, :data, :time, :lifetime)";
+                    $sql = "INSERT INTO {$this->table} (id, payload, last_activity, lifetime) VALUES (:id, :data, :time, :lifetime)";
                     $stmt = $pdo->prepare($sql);
                     $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
                     $stmt->bindParam(':data', $data, PDO::PARAM_STR);

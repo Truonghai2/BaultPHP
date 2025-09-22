@@ -25,7 +25,7 @@ class AppServiceProvider extends ServiceProvider
 
             return new CentrifugoAPIService($apiUrl, $apiKey);
         });
-
+        
         $this->app->singleton(FiberRedisManager::class);
 
         $this->app->singleton(HealthCheckService::class);

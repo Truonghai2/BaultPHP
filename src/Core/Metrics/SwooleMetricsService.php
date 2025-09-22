@@ -96,15 +96,15 @@ class SwooleMetricsService
 
         foreach ($buckets as $bucket) {
             if ($value <= $bucket) {
-                $this->increment($name . '_bucket', array_merge($labels, ['le' => (string)$bucket]));
+                $this->increment($name . '_bucket', 1.0, array_merge($labels, ['le' => (string)$bucket]));
             }
         }
 
-        $this->increment($name . '_bucket', array_merge($labels, ['le' => '+Inf']));
+        $this->increment($name . '_bucket', 1.0, array_merge($labels, ['le' => '+Inf']));
 
-        $this->increment($name . '_sum', $labels, $value);
+        $this->increment($name . '_sum', $value, $labels);
 
-        $this->increment($name . '_count', $labels);
+        $this->increment($name . '_count', 1.0, $labels);
     }
 
     /**

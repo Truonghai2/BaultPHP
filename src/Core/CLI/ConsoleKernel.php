@@ -44,10 +44,6 @@ class ConsoleKernel implements KernelContract
         $this->app = $app;
         $this->console = new SymfonyApplication('BaultPHP', '1.0.0');
 
-        // QUAN TRỌNG: Đặt application instance cho tất cả các Facade.
-        // Việc này phải được thực hiện trước khi bất kỳ command nào được đăng ký hoặc
-        // khởi tạo, vì chúng có thể sử dụng Facade trong quá trình khởi tạo.
-        // Lỗi "A facade root has not been set" xảy ra do bước này bị thiếu.
         Facade::setFacadeApplication($this->app);
     }
 
@@ -58,7 +54,6 @@ class ConsoleKernel implements KernelContract
     {
         try {
             $this->bootstrap();
-            // We set auto-exit to false to allow the main `cli` script to control the exit status.
             $this->console->setAutoExit(false);
 
             return $this->console->run($input, $output);
@@ -66,13 +61,12 @@ class ConsoleKernel implements KernelContract
             /** @var ExceptionHandler $handler */
             $handler = $this->app->make(ExceptionHandler::class);
             try {
-                $handler->report($e);
+                $handler->report(null, $e);
             } catch (Throwable $loggingException) {
-                // If logging fails, render the logging exception first for context.
                 $handler->renderForConsole($output, $loggingException);
             }
             $handler->renderForConsole($output, $e);
-            return 1; // Return a non-zero exit code for errors.
+            return 1; 
         }
     }
 
@@ -168,10 +162,10 @@ class ConsoleKernel implements KernelContract
             foreach (new DirectoryIterator($modulesPath) as $moduleInfo) {
                 if ($moduleInfo->isDir() && !$moduleInfo->isDot()) {
                     $moduleName = $moduleInfo->getFilename();
-                    $moduleCommandPath = $moduleInfo->getPathname() . '/Console/Commands';
+                    $moduleCommandPath = $moduleInfo->getPathname() . '/Console';
 
                     if (is_dir($moduleCommandPath)) {
-                        $paths['Modules\\' . $moduleName . '\\Console\\Commands'] = $moduleCommandPath;
+                        $paths['Modules\\' . $moduleName . '\\Console'] = $moduleCommandPath;
                     }
                 }
             }

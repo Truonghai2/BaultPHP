@@ -66,11 +66,8 @@ fi
 echo "Running database migrations as $APP_USER user..."
 gosu $APP_USER php /app/cli ddd:migrate --force
 
-if [ "${RUN_SEEDERS}" = "true" ]; then
-    echo "RUN_SEEDERS is true. Running database seeder..."
-    gosu $APP_USER php /app/cli db:seed
-fi
-
+echo "RUN_SEEDERS is true. Running database seeder..."
+gosu $APP_USER php /app/cli db:seed
 
 echo "Starting main process: $@"
 

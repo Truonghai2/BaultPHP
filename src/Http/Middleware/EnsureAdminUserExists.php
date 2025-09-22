@@ -31,7 +31,10 @@ class EnsureAdminUserExists implements MiddlewareInterface
      * @var array<int, string>
      */
     protected array $except = [
-        '/setup/create-admin',
+        'setup/create-admin',
+        'ping',
+        'api/health',
+        'metrics',
         // Example: '/setup/assets/*' to allow CSS/JS for the setup page.
     ];
 
@@ -69,12 +72,11 @@ class EnsureAdminUserExists implements MiddlewareInterface
      */
     protected function isExceptedRoute(ServerRequestInterface $request): bool
     {
-        $path = $request->getUri()->getPath();
+        $path = trim($request->getUri()->getPath(), '/');
 
         foreach ($this->except as $except) {
-            $pattern = '/' . ltrim($except, '/');
-
-            if (fnmatch($pattern, $path, FNM_PATHNAME)) {
+            $except = trim($except, '/');
+            if ($except !== '' && fnmatch($except, $path, FNM_PATHNAME)) {
                 return true;
             }
         }

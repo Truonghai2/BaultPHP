@@ -4,6 +4,7 @@ namespace Core\Database;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
+use Core\ORM\Connection;
 
 /**
  * Seeder is an abstract class that provides a base for database seeders.
@@ -77,5 +78,27 @@ abstract class Seeder
     {
         $this->command = $command;
         return $this;
+    }
+
+    /**
+     * Truncates a list of tables.
+     *
+     * @param array $tables
+     * @return void
+     */
+    protected function truncateTables(array $tables): void
+    {
+        if (!isset($this->container)) {
+            return;
+        }
+
+        /** @var \PDO $pdo */
+        $pdo = $this->container->make(Connection::class)->connection();
+
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=0;');
+        foreach ($tables as $table) {
+            $pdo->exec("TRUNCATE TABLE {$table}");
+        }
+        $pdo->exec('SET FOREIGN_KEY_CHECKS=1;');
     }
 }
