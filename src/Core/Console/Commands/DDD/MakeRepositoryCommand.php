@@ -4,12 +4,18 @@ declare(strict_types=1);
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Illuminate\Support\Str;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
 class MakeRepositoryCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'ddd:make-repository {module : The name of the module.} {name : The name of the repository class (e.g., UserRepository).}';

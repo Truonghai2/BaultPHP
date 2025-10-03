@@ -8,10 +8,15 @@ use Core\Contracts\Task\Task;
 use Core\Foundation\StateResetter;
 use Core\Queue\DelayedJobScheduler;
 use Core\Server\Development\FileWatcher;
+use Core\Server\Processes\QueueProcess;
+use Core\Server\Processes\StatsMonitorProcess;
+use Nyholm\Psr7\ServerRequest;
+use Nyholm\Psr7\Uri;
 use Psr\Log\LoggerInterface;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
 use Swoole\Http\Server as SwooleHttpServer;
+use Swoole\Process;
 use Symfony\Bridge\PsrHttpMessage\Factory\HttpFoundationFactory;
 use Throwable;
 
@@ -71,6 +76,8 @@ class SwooleServer
         if ($isDevelopmentEnv && $watchConfigExists) {
             $this->fileWatcher = new FileWatcher($this->server, $this->config['watch'], $this->getLogger());
         }
+
+        $this->registerCustomProcesses();
     }
 
     /**
@@ -145,6 +152,33 @@ class SwooleServer
     }
 
     /**
+     * Đăng ký các custom process do người dùng định nghĩa.
+     * Phải được gọi trước khi server->start().
+     */
+    protected function registerCustomProcesses(): void
+    {
+        if (!$this->app->hasBeenBootstrapped()) {
+            $this->app->bootstrap();
+        }
+
+        $processesToRegister = [
+            StatsMonitorProcess::class,
+            QueueProcess::class,
+        ];
+
+        foreach ($processesToRegister as $processClass) {
+            $processInstance = new $processClass(
+                $this->app,
+                $this->server,
+                $this->getLogger(),
+            );
+
+            $process = new Process($processInstance, false, 2, true);
+            $this->server->addProcess($process);
+        }
+    }
+
+    /**
      * Get statistics from the running Swoole server.
      *
      * @return array|false
@@ -168,11 +202,30 @@ class SwooleServer
         $this->server->on('request', [$this, 'handleRequest']);
         $this->server->on('task', [$this, 'onTask']);
         $this->server->on('finish', [$this, 'onFinish']);
+        $this->server->on('pipeMessage', [$this, 'onPipeMessage']);
     }
 
     public function onStart(SwooleHttpServer $server): void
     {
         $this->getLogger()->info('Swoole HTTP server is started', ['url' => "http://{$server->host}:{$server->port}"]);
+
+        try {
+            $this->app->bootstrap();
+
+            $this->isDebug = $this->app->make('config')->get('app.debug', false);
+
+            $this->poolManager = new ConnectionPoolManager(
+                $this->app,
+                $this->getLogger(),
+                $this->config,
+            );
+            $this->poolManager->initializePools(false);
+            $this->poolManager->initializePools(true);
+
+        } catch (Throwable $e) {
+            $this->getLogger()->critical('Failed to bootstrap application in master process: ' . $e->getMessage(), ['exception' => $e]);
+            $server->shutdown();
+        }
     }
 
     /**
@@ -206,6 +259,18 @@ class SwooleServer
             $this->psr7Bridge,
             $this->isDebug,
         ))->handle($swooleRequest, $swooleResponse);
+    }
+
+    /**
+     * Gửi một thông điệp từ một worker process đến master process.
+     * Master process sau đó có thể quyết định làm gì với nó.
+     *
+     * @param string $message Dữ liệu đã được serialize.
+     * @return bool
+     */
+    public function sendMessageToMaster(string $message): bool
+    {
+        return $this->server->worker_id !== -1 && $this->server->sendMessage($message, -1);
     }
 
     /**
@@ -252,13 +317,13 @@ class SwooleServer
             ]);
 
             if ($task instanceof Task) {
-                return $task->handle();
+                return $this->app->call([$task, 'handle'], ['logger' => $this->getLogger()]);
             }
 
             throw new \InvalidArgumentException('Data received is not a valid Task object.');
         } catch (Throwable $e) {
             $this->getLogger()->error(
-                "Task #{$taskId} failed: " . $e->getMessage(),
+                "Task #{$taskId} failed in onTask: " . $e->getMessage(),
                 ['exception' => $e, 'worker_id' => $server->worker_id, 'task_id' => $taskId],
             );
 
@@ -293,35 +358,31 @@ class SwooleServer
         $this->app->instance('swoole.server', $server);
 
         try {
-            if (function_exists('opcache_reset')) {
+            if (function_exists('opcache_reset') && !$this->isProduction()) {
                 opcache_reset();
             }
-
-            $this->app->bootstrap();
-
-            $this->isDebug = $this->app->make('config')->get('app.debug', false);
 
             $this->kernel = $this->app->make(\Core\Contracts\Http\Kernel::class);
             $this->exceptionHandler = $this->app->make(ExceptionHandler::class);
             $this->stateResetter = $this->app->make(StateResetter::class);
-            $this->poolManager = new ConnectionPoolManager(
-                $this->app,
-                $this->getLogger(),
-                $this->config,
-            );
-            $this->requestLogger = new RequestLogger(
-                $this->app,
-                $this->getLogger(),
-                $this->isDebug,
-            );
+
+            if ($this->poolManager === null) {
+                $this->poolManager = new ConnectionPoolManager(
+                    $this->app,
+                    $this->getLogger(),
+                    $this->config,
+                );
+                // Khởi tạo pool cho worker hiện tại
+                $this->poolManager->initializePools($server->taskworker);
+            }
+
+            $this->requestLogger = new RequestLogger($this->app, $this->getLogger());
 
             $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
             $this->getLogger()->info(
                 "Swoole {$workerType} started successfully",
                 ['worker_id' => $workerId, 'pid' => getmypid()],
             );
-
-            $this->poolManager->initializePools($server->taskworker);
 
             if (!$server->taskworker && $workerId === 0) {
                 if ($this->fileWatcher !== null) {
@@ -351,11 +412,48 @@ class SwooleServer
             }
 
             if (isset($this->exceptionHandler)) {
-                $this->exceptionHandler->report($e);
+                // Create a simple PSR-7 request for logging, bypassing the bridge.
+                $mockRequest = new ServerRequest('GET', new Uri('/'));
+                $this->app->instance(\Psr\Http\Message\ServerRequestInterface::class, $mockRequest);
+                $this->exceptionHandler->report($mockRequest, $e);
             }
 
-            // Stop the worker immediately to prevent it from handling requests in a broken state.
             $server->stop($workerId);
+        }
+    }
+
+    /**
+     * Xử lý thông điệp được gửi từ các custom process.
+     *
+     * @param SwooleHttpServer $server
+     * @param int $fromWorkerId ID của process gửi thông điệp.
+     * @param string $message Dữ liệu được gửi.
+     */
+    public function onPipeMessage(SwooleHttpServer $server, int $fromWorkerId, string $message): void
+    {
+        if (isset($server->worker_id)) {
+            $this->handleMessageInWorker($message, $server->worker_id);
+            return;
+        }
+
+        $data = @unserialize($message);
+        if (is_array($data) && isset($data['type'])) {
+            // Logic cũ gửi đến QueueProcess đã bị loại bỏ.
+            // Giờ đây, chúng ta có thể broadcast message đến tất cả các worker nếu cần.
+            for ($i = 0; $i < $server->setting['worker_num']; $i++) {
+                $server->sendMessage($message, $i);
+            }
+        }
+    }
+
+    /**
+     * Logic thực thi khi một worker nhận được thông điệp.
+     */
+    private function handleMessageInWorker(string $message, int $workerId): void
+    {
+        $data = @unserialize($message);
+        if (is_array($data) && isset($data['type'])) {
+            $this->getLogger()->info("Worker #{$workerId} received a message of type '{$data['type']}'", ['payload' => $data['payload'] ?? null]);
         }
     }
 
@@ -364,14 +462,23 @@ class SwooleServer
      */
     public function onWorkerStop(SwooleHttpServer $server, int $workerId): void
     {
-        $this->poolManager?->closePools();
-
         if ($this->delayedJobTimerId !== null) {
             \Swoole\Timer::clear($this->delayedJobTimerId);
         }
 
         $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
         $this->getLogger()->info("Swoole {$workerType} #{$workerId} stopped gracefully.");
+    }
+
+    /**
+     * Kiểm tra xem server có đang chạy trong môi trường production không.
+     */
+    private function isProduction(): bool
+    {
+        if ($this->isDebug === null) {
+            $this->isDebug = $this->app->make('config')->get('app.debug', false);
+        }
+        return !$this->isDebug;
     }
 
     /**

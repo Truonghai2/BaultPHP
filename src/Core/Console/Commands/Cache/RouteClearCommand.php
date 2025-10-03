@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class RouteClearCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'route:clear';

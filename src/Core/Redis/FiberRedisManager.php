@@ -35,29 +35,7 @@ class FiberRedisManager implements PoolManager
      */
     public function get(?string $name = null): RedisClient
     {
-        $name = $name ?? 'default';
-        $breaker = $this->circuitBreaker($name);
-
-        if ($breaker && !$breaker->isAvailable($name)) {
-            throw new ServiceUnavailableException(
-                "Redis service '{$name}' is currently unavailable (circuit is open).",
-            );
-        }
-
-        try {
-            $connection = $this->pool($name)->get();
-            $breaker?->success($name);
-
-            $cid = Coroutine::getCid();
-            if ($cid > 0) {
-                $this->checkedOutConnections[$cid][$name][spl_object_id($connection)] = $connection;
-            }
-
-            return $connection;
-        } catch (\Throwable $e) {
-            $breaker?->failure($name);
-            throw $e;
-        }
+        return $this->getInternal($name ?? 'default');
     }
 
     /**

@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Cache\Factory as CacheFactory;
 
 class CacheClearCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'cache:clear';

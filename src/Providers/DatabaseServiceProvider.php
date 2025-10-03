@@ -26,29 +26,33 @@ class DatabaseServiceProvider extends ServiceProvider
         // Bất cứ khi nào có yêu cầu cho một instance \PDO, container sẽ nhờ Connection
         // class để cung cấp kết nối 'write' mặc định.
         // Connection class sẽ tự quyết định lấy kết nối từ pool (Swoole) hay tạo mới (CLI).
-        $this->app->singleton(\PDO::class, function ($app) {
-            // Tham số thứ hai 'write' là mặc định trong Connection::connection()
-            // nhưng được ghi rõ ở đây để tường minh.
-            return $app->make(Connection::class)->connection(null, 'write');
+        $this->app->singleton(\PDO::class, function ($app) { // This is the default 'write' connection
+            $connection = $app->make(Connection::class);
+            $pdo = $connection->connection(null, 'write');
+
+            // Nếu debug được bật và debugbar tồn tại, hãy bọc PDO lại
+            if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
+                /** @var \DebugBar\DebugBar $debugbar */
+                $debugbar = $app->make('debugbar');
+                /** @var \DebugBar\DataCollector\PDO\PDOCollector $pdoCollector */
+                $pdoCollector = $debugbar->getCollector('pdo');
+
+                $traceablePdo = new \DebugBar\DataCollector\PDO\TraceablePDO($pdo);
+                $pdoCollector->addConnection($traceablePdo, $connection->getDefaultConnection());
+                return $traceablePdo;
+            }
+            return $pdo;
         });
 
-        // Đăng ký kết nối ĐỌC (read).
-        // Connection::connection() đã chứa logic để tự động fallback về kết nối 'write'
-        // nếu một read replica riêng biệt không được cấu hình.
         $this->app->singleton('pdo.read', function ($app) {
             return $app->make(Connection::class)->connection(null, 'read');
         });
 
-        // Register the Schema utility so it can be injected.
         $this->app->singleton(\Core\Schema\Schema::class, function ($app) {
             return new \Core\Schema\Schema($app->make(\PDO::class));
         });
 
-        // The MigrationManager now automatically detects the default migration path.
-        // This provider is the perfect place to register database-related services.
-
         $this->app->singleton(MigrationManager::class, function ($app) {
-            // Bây giờ chúng ta có thể resolve PDO trực tiếp từ container.
             $config = $app->make('config');
             $pdo = $app->make(\PDO::class);
             $schema = $app->make(\Core\Schema\Schema::class);

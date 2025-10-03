@@ -43,8 +43,8 @@ class CoroutineRedisManager
             return $context[$contextKey];
         }
 
-        // Assumes SwooleRedisPool is updated to accept a pool name
-        $this->logger->debug('Fetching new Redis connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwooleRedisPool::stats($name)]);
+        $poolStats = method_exists(SwooleRedisPool::class, 'getAllStats') ? (SwooleRedisPool::getAllStats()[$name] ?? null) : null;
+        $this->logger->debug('Fetching new Redis connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $poolStats]);
         $connection = SwooleRedisPool::get($name);
         $context[$contextKey] = $connection;
 
@@ -60,8 +60,8 @@ class CoroutineRedisManager
      */
     public function release(\Swoole\Coroutine\Client|\Redis $connection, string $name, int $cid): void
     {
-        // Assumes SwooleRedisPool is updated to accept a pool name
         SwooleRedisPool::put($connection, $name);
-        $this->logger->debug('Released Redis connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => SwooleRedisPool::stats($name)]);
+        $poolStats = method_exists(SwooleRedisPool::class, 'getAllStats') ? (SwooleRedisPool::getAllStats()[$name] ?? null) : null;
+        $this->logger->debug('Released Redis connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $poolStats]);
     }
 }

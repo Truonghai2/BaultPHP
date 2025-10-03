@@ -1,14 +1,12 @@
 <?php
 
 namespace Core\Server;
-use Core\Facades\Log;
 
-use Core\Contracts\Config\Repository as Config;
 use Core\Application;
+use Core\Facades\Log;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
-use Throwable;
 
 /**
  * Handles logging of HTTP requests and responses.
@@ -18,12 +16,9 @@ use Throwable;
 class RequestLogger
 {
     public function __construct(
-        private Application $app
+        private Application $app,
+        private LoggerInterface $logger,
     ) {
-    }
-    private function getLogger(): LoggerInterface
-    {
-        return $this->app->make(LoggerInterface::class);
     }
 
     /**
@@ -31,37 +26,19 @@ class RequestLogger
      */
     public function log(ServerRequestInterface $request, ResponseInterface $response, float $startTime): void
     {
-        $logger = $this->getLogger();
-        $duration = round((microtime(true) - $startTime) * 1000);
-        $request_id = $this->app->make('request_id');
-        $remote_addr = $request->getServerParams()['REMOTE_ADDR'] ?? '?.?.?.?';
-        $method = $request->getMethod();
-        $uri = $request->getUri()->getPath();
-        $query = $request->getUri()->getQuery();
-        if ($query) {
-            $uri .= '?' . $query;
-        }
-        $protocol = 'HTTP/' . $request->getProtocolVersion();
-        $status = $response->getStatusCode();
-        $response_size = $response->getBody()->getSize() ?? 0;
-        $referer = $request->getHeaderLine('Referer') ?: '-';
-        $user_agent = $request->getHeaderLine('User-Agent') ?: '-';
-
-        // Định dạng log theo chuẩn Apache Combined Log Format, có bổ sung request_id và duration
-        // remote_addr - - [datetime] "METHOD URI PROTOCOL" STATUS_CODE RESPONSE_SIZE "REFERER" "USER_AGENT"
         $message = sprintf(
-            '%s - - [%s] "%s %s %s" %d %d "%s" "%s"',
-            $remote_addr,
-            date('d/M/Y:H:i:s O'),
-            $method,
-            $uri,
-            $protocol,
-            $status,
-            $response_size,
-            $referer,
-            $user_agent
+            '%s - - "%s %s HTTP/%s" %d %d "%s" "%s"',
+            $request->getServerParams()['REMOTE_ADDR'] ?? '?.?.?.?',
+            $request->getMethod(),
+            $request->getUri()->getPath() . ($request->getUri()->getQuery() ? '?' . $request->getUri()->getQuery() : ''),
+            $request->getProtocolVersion(),
+            $response->getStatusCode(),
+            $response->getBody()->getSize() ?? 0,
+            $request->getHeaderLine('Referer') ?: '-',
+            $request->getHeaderLine('User-Agent') ?: '-',
         );
 
-        $logger->info($message, ['duration_ms' => $duration, 'request_id' => $request_id]);
+        $duration = round((microtime(true) - $startTime) * 1000);
+        $this->logger->info($message, ['duration_ms' => $duration, 'request_id' => $this->app->make('request_id')]);
     }
 }

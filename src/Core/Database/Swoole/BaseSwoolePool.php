@@ -4,6 +4,9 @@ namespace Core\Database\Swoole;
 
 use Ackintosh\Ganesha;
 use Core\Application;
+use Core\Debug\DebugManager;
+use Core\Debug\Proxy\DebugPdoProxy;
+use Core\Debug\Proxy\DebugRedisProxy;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Server\CircuitBreakerFactory;
 use Swoole\Coroutine\Channel;
@@ -33,10 +36,6 @@ abstract class BaseSwoolePool
      */
     public static function init(array $config, int $poolSize, array $circuitBreakerConfig, Application $app, ?int $heartbeat = 60, string $name = 'default'): void
     {
-        if (isset(static::$pools[$name])) {
-            return;
-        }
-
         static::$app = $app;
         static::$configs[$name] = array_merge($config, [
             'pool_size' => $poolSize,
@@ -80,20 +79,35 @@ abstract class BaseSwoolePool
         }
 
         try {
-            $connection = $pool->pop($timeout);
-
-            if (!static::ping($connection, $resolvedName)) {
-                static::$connectionCounts[$resolvedName]--;
-                $newConnection = static::createConnection($resolvedName);
-                if ($newConnection) {
-                    static::$connectionCounts[$resolvedName]++;
-                    return $newConnection;
+            $maxAttempts = $pool->length();
+            for ($i = 0; $i < $maxAttempts; $i++) {
+                $rawConnection = $pool->pop(0.001);
+                if ($rawConnection === false) {
+                    continue;
                 }
-                throw new \RuntimeException("Failed to create a new connection for pool '{$resolvedName}' after a stale one was found.");
+
+                if (static::ping($rawConnection, $resolvedName)) {
+                    $breaker?->success($resolvedName);
+                    return static::wrapConnectionForDebug($rawConnection);
+                }
+
+                $breaker?->failure($resolvedName);
+                if (isset(static::$connectionCounts[$resolvedName])) {
+                    static::$connectionCounts[$resolvedName]--;
+                }
+                unset($rawConnection);
+
+                \Swoole\Coroutine::create(function () use ($resolvedName, $pool) {
+                    if (static::$connectionCounts[$resolvedName] < $pool->capacity) {
+                        if ($newConnection = static::createConnection($resolvedName)) {
+                            $pool->push($newConnection);
+                        }
+                    }
+                });
             }
 
-            $breaker?->success($resolvedName);
-            return $connection;
+            $rawConnection = $pool->pop($timeout);
+            return static::wrapConnectionForDebug($rawConnection);
         } catch (Throwable $e) {
             $breaker?->failure($resolvedName);
             throw $e;
@@ -131,11 +145,16 @@ abstract class BaseSwoolePool
         $resolvedName = static::$aliases[$name] ?? $name;
 
         $pool = static::$pools[$resolvedName] ?? null;
+        $rawConnection = static::unwrapConnection($connection);
+
         if ($pool && !$pool->isFull()) {
-            if (static::isValid($connection)) {
-                $pool->push($connection);
+            // Luôn put raw connection trở lại pool
+            if (static::isValid($rawConnection)) {
+                $pool->push($rawConnection);
             } else {
+                // Nếu connection không hợp lệ (ví dụ: đang trong transaction), hủy nó
                 static::$connectionCounts[$resolvedName]--;
+                // Hủy đối tượng connection để đóng kết nối vật lý
                 unset($connection);
             }
         }
@@ -221,7 +240,7 @@ abstract class BaseSwoolePool
      * @param string $name The resolved name of the pool.
      * @return bool True if alive, false otherwise.
      */
-    abstract protected static function ping(mixed $connection, string $name): bool;
+    abstract protected static function ping(mixed $rawConnection, string $name): bool;
 
     /**
      * Checks if the connection is in a valid state to be returned to the pool.
@@ -233,5 +252,40 @@ abstract class BaseSwoolePool
     protected static function isValid(mixed $connection): bool
     {
         return true;
+    }
+
+    /**
+     * Wraps a raw connection in a debug proxy if debugging is enabled.
+     */
+    protected static function wrapConnectionForDebug(mixed $connection): mixed
+    {
+        if (
+            static::$app->bound(DebugManager::class) &&
+            ($debugManager = static::$app->make(DebugManager::class)) &&
+            $debugManager->isEnabled()
+        ) {
+            if ($connection instanceof \PDO) {
+                return new DebugPdoProxy($connection, $debugManager);
+            }
+            if ($connection instanceof \Redis) {
+                return new DebugRedisProxy($connection, $debugManager);
+            }
+        }
+
+        return $connection;
+    }
+
+    /**
+     * Gets the original raw connection from a potential proxy object.
+     */
+    protected static function unwrapConnection(mixed $connection): mixed
+    {
+        if ($connection instanceof DebugPdoProxy) {
+            return $connection->getOriginalConnection();
+        }
+        if ($connection instanceof DebugRedisProxy) {
+            return $connection->getOriginalConnection();
+        }
+        return $connection;
     }
 }

@@ -3,100 +3,98 @@
 namespace Core\Database;
 
 use DebugBar\DataCollector\PDO\PDOCollector;
-use DebugBar\DataCollector\PDO\TraceablePDO;
 use PDO;
+use PDOStatement;
+use Throwable;
 
 /**
  * Class TraceablePdo
  *
- * Lớp này mở rộng TraceablePDO của Debugbar để tương thích với cách BaultPHP
- * sử dụng PDO. Nó đảm bảo rằng tất cả các phương thức gọi đến PDO đều được
- * ghi lại bởi Debugbar.
+ * Lớp này kế thừa PDO và thêm vào khả năng theo dõi (tracing) các truy vấn
+ * để tích hợp với PHP Debugbar.
  *
- * @mixin PDO
+ * Nó ghi đè các phương thức thực thi truy vấn chính (`query`, `prepare`, `exec`)
+ * để đo lường thời gian và ghi lại thông tin.
  */
-class TraceablePdo extends TraceablePDO
+class TraceablePdo extends PDO
 {
-    /**
-     * Ghi đè constructor để chỉ nhận vào một đối tượng PDO đã được kết nối.
-     *
-     * @param PDO $pdo Đối tượng PDO thật để bao bọc.
-     */
-    public function __construct(PDO $pdo)
-    {
-        // Không gọi parent constructor vì nó sẽ cố gắng tạo kết nối mới.
-        // Chúng ta chỉ bao bọc một kết nối đã tồn tại.
-        $this->pdo = $pdo;
-    }
+    protected ?PDOCollector $collector = null;
 
     /**
-     * Thêm một collector để theo dõi các truy vấn.
-     *
-     * @param PDOCollector $collector
-     */
-    public function addCollector(PDOCollector $collector): void
-    {
-        $this->pdo_collector = $collector;
-    }
-
-    /**
-     * Ghi đè phương thức __call để đảm bảo tất cả các lời gọi phương thức
-     * không được định nghĩa rõ ràng trong lớp này (như getAttribute, setAttribute, etc.)
-     * đều được chuyển tiếp đến đối tượng PDO thật.
-     *
-     * @param string $method
-     * @param array $args
-     * @return mixed
-     */
-    public function __call($method, $args)
-    {
-        return call_user_func_array([$this->pdo, $method], $args);
-    }
-
-    /**
-     * Ghi đè phương thức __get để truy cập các thuộc tính của đối tượng PDO thật.
-     *
-     * @param string $key
-     * @return mixed
-     */
-    public function __get($key)
-    {
-        return $this->pdo->{$key};
-    }
-
-    /**
-     * Ghi đè phương thức __set để thiết lập các thuộc tính của đối tượng PDO thật.
-     *
-     * @param string $key
-     * @param mixed $value
-     */
-    public function __set($key, $value)
-    {
-        $this->pdo->{$key} = $value;
-    }
-
-    /**
-     * Trả về đối tượng PDO gốc bên trong.
-     *
-     * @return PDO
-     */
-    public function getPdo(): PDO
-    {
-        return $this->pdo;
-    }
-
-    /**
-     * Cần triển khai phương thức này vì nó là abstract trong TraceablePDO,
-     * mặc dù chúng ta không sử dụng nó trực tiếp trong logic của mình.
-     *
      * @param string $dsn
      * @param string|null $username
      * @param string|null $password
      * @param array|null $options
-     * @return void
      */
-    public function connect(string $dsn, ?string $username = null, ?string $password = null, ?array $options = null)
+    public function __construct(string $dsn, ?string $username = null, ?string $password = null, ?array $options = null)
     {
-        // Không làm gì cả vì chúng ta đã có một kết nối được truyền vào.
+        parent::__construct($dsn, $username, $password, $options);
+    }
+
+    /**
+     * Thêm một collector để theo dõi các truy vấn.
+     */
+    public function addCollector(PDOCollector $collector): void
+    {
+        $this->collector = $collector;
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function beginTransaction(): bool
+    {
+        return $this->traceCall(fn () => parent::beginTransaction(), 'beginTransaction');
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function exec(string $statement): int|false
+    {
+        return $this->traceCall(fn () => parent::exec($statement), $statement);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function query(string $query, ?int $fetchMode = null, ...$fetch_mode_args): PDOStatement|false
+    {
+        return $this->traceCall(fn () => parent::query($query, $fetchMode, ...$fetch_mode_args), $query);
+    }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function prepare(string $query, array $options = []): PDOStatement|false
+    {
+        $stmt = $this->traceCall(fn () => parent::prepare($query, $options), $query);
+
+        if ($stmt && $this->collector) {
+            return new TraceablePdoStatement($stmt, $this->collector);
+        }
+
+        return $stmt;
+    }
+
+    /**
+     * Bọc một lời gọi đến PDO để theo dõi.
+     */
+    private function traceCall(\Closure $callback, string $sql)
+    {
+        if (!$this->collector) {
+            return $callback();
+        }
+
+        $this->collector->startQuery($sql);
+        try {
+            $result = $callback();
+        } catch (Throwable $e) {
+            $this->collector->failQuery($e);
+            throw $e;
+        }
+        $this->collector->endQuery();
+
+        return $result;
     }
 }

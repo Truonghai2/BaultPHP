@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\JsonResponse;
 use App\Http\ResponseFactory;
 use Core\Database\Swoole\SwoolePdoPool;
 use Core\Database\Swoole\SwooleRedisPool;
@@ -16,6 +17,10 @@ use Psr\Http\Message\ResponseInterface;
  */
 class PrometheusMetricsController extends Controller
 {
+    /**
+     * Trả về metrics ở định dạng Prometheus.
+     * Được bảo vệ bởi token.
+     */
     #[Route('/metrics', method: 'GET', middleware: [\App\Http\Middleware\ProtectMetricsMiddleware::class])]
     public function __invoke(
         SwooleServer $server,
@@ -33,6 +38,32 @@ class PrometheusMetricsController extends Controller
         return $responseFactory->make($body, 200, [
             'Content-Type' => 'application/openmetrics-text; version=1.0.0; charset=utf-8',
         ]);
+    }
+
+    /**
+     * Trả về trạng thái của server và các pool dưới dạng JSON.
+     * Được bảo vệ bằng IP whitelist.
+     */
+    #[Route('/stats', method: 'GET', middleware: [\App\Http\Middleware\VerifyDeveloperIpMiddleware::class])]
+    public function jsonStats(SwooleServer $server): JsonResponse
+    {
+        $dbPoolStats = [];
+        if (class_exists(SwoolePdoPool::class) && method_exists(SwoolePdoPool::class, 'getAllStats')) {
+            $dbPoolStats = SwoolePdoPool::getAllStats();
+        }
+        $redisPoolStats = [];
+        if (class_exists(SwooleRedisPool::class) && method_exists(SwooleRedisPool::class, 'getAllStats')) {
+            $redisPoolStats = SwooleRedisPool::getAllStats();
+        }
+        $swooleStats = $server->stats();
+
+        $stats = array_filter([
+            'swoole_server' => $swooleStats,
+            'database_pools' => $dbPoolStats,
+            'redis_pools' => $redisPoolStats,
+        ]);
+
+        return new JsonResponse($stats);
     }
 
     /**

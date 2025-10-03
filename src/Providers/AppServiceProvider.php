@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use Core\Contracts\Http\Kernel as KernelContract;
 use Core\Http\FormRequest;
+use Core\Queue\QueueManager;
 use Core\Redis\FiberRedisManager;
 use Core\Services\HealthCheckService;
 use Core\Support\ServiceProvider;
@@ -25,10 +26,12 @@ class AppServiceProvider extends ServiceProvider
 
             return new CentrifugoAPIService($apiUrl, $apiKey);
         });
-        
+
         $this->app->singleton(FiberRedisManager::class);
 
         $this->app->singleton(HealthCheckService::class);
+
+        $this->app->singleton(QueueManager::class);
 
         $this->configureFormRequestValidation();
     }

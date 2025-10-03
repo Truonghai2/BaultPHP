@@ -3,6 +3,7 @@
 namespace Core\Console\Commands;
 
 use App\Console\ScheduleKernel;
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Support\Facades\Queue;
 use Throwable;
@@ -12,6 +13,11 @@ class ScheduleRunCommand extends BaseCommand
     protected string $signature = 'schedule:run';
     protected string $description = 'Run the scheduled commands.';
     protected bool $shouldQuit = false;
+
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
 
     public function signature(): string
     {

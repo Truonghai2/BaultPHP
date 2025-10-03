@@ -26,14 +26,14 @@ class CircuitBreakerFactory
     {
         $instanceKey = 'breaker_' . $serviceName;
         if (isset(self::$instances[$instanceKey])) {
-            return self::$instances[$serviceName];
+            return self::$instances[$instanceKey];
         }
 
         $storageType = $config['storage'] ?? 'redis';
         $strategyType = strtolower($config['strategy'] ?? 'count');
 
         $adapter = match ($storageType) {
-            'redis' => self::createRedisAdapter($app),
+            'redis' => self::createRedisAdapter($app, $config),
             'apcu' => self::createApcuAdapter(),
             default => throw new InvalidArgumentException("Unsupported circuit breaker storage: {$storageType}. Only 'redis' is supported."),
         };
@@ -76,26 +76,26 @@ class CircuitBreakerFactory
     /**
      * Creates a Redis adapter for Ganesha.
      *
+     * @param Application $app The application container.
+     * @param array $config The circuit breaker configuration, used to find the redis_pool name.
      * @throws RuntimeException If the Redis service cannot be resolved.
      */
-    private static function createRedisAdapter(Application $app): RedisAdapter
+    private static function createRedisAdapter(Application $app, array $config): RedisAdapter
     {
         try {
-            $config = $app->make('config')->get('database.redis.default', []);
+            $redisPoolNameForConfig = $config['redis_pool'] ?? 'default';
+            $redisConfig = $app->make('config')->get("redis.connections.{$redisPoolNameForConfig}");
+
+            if (!$redisConfig) {
+                throw new \InvalidArgumentException("Redis connection configuration '{$redisPoolNameForConfig}' not found for circuit breaker.");
+            }
 
             $redis = new \Redis();
             $redis->connect(
-                $config['host'] ?? '127.0.0.1',
-                $config['port'] ?? 6379,
-                1.0,
+                $redisConfig['host'],
+                $redisConfig['port'],
+                $redisConfig['timeout'] ?? 1.0,
             );
-
-            if (!empty($config['password'])) {
-                $redis->auth($config['password']);
-            }
-
-            $redis->select($config['database'] ?? 0);
-
             return new RedisAdapter($redis);
         } catch (\Throwable $e) {
             throw new RuntimeException(

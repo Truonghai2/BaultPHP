@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Core\Debug\EventCollector;
 use Core\Events\Dispatcher;
 use Core\Events\EventDispatcherInterface;
 use Core\Events\ModuleChanged;
@@ -25,6 +26,17 @@ class EventServiceProvider extends ServiceProvider
     {
         $this->app->singleton(EventDispatcherInterface::class, function ($app) {
             return new Dispatcher($app);
+        });
+
+        // Bọc (wrap) dispatcher bằng một phiên bản có thể theo dõi (traceable) nếu debug được bật.
+        // Đây là cách tiếp cận sạch sẽ để tích hợp với Debugbar.
+        $this->app->extend(EventDispatcherInterface::class, function (EventDispatcherInterface $dispatcher, $app) {
+            if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
+                /** @var EventCollector $collector */
+                $collector = $app->make(EventCollector::class);
+                return new \Core\Debug\TraceableEventDispatcher($dispatcher, $collector);
+            }
+            return $dispatcher;
         });
 
         $this->app->alias(EventDispatcherInterface::class, 'events');

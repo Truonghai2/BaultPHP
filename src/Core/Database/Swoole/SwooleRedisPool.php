@@ -45,33 +45,62 @@ class SwooleRedisPool extends BaseSwoolePool
         }
     }
 
-    protected static function ping(mixed $connection, string $name): bool
+    protected static function ping(mixed $rawConnection, string $name): bool
     {
-        if (!$connection instanceof Redis) {
+        if (!$rawConnection instanceof Redis) {
             return false;
         }
 
         $config = static::$configs[$name] ?? [];
         $heartbeat = $config['heartbeat'] ?? 60;
 
-        if (isset(self::$lastUsedTimes[$connection]) && time() - self::$lastUsedTimes[$connection] < $heartbeat) {
+        if (isset(self::$lastUsedTimes[$rawConnection]) && time() - self::$lastUsedTimes[$rawConnection] < $heartbeat) {
             return true;
         }
 
         try {
-            $connection->ping();
-            self::$lastUsedTimes[$connection] = time();
+            $rawConnection->ping();
+            self::$lastUsedTimes[$rawConnection] = time();
             return true;
         } catch (Throwable) {
             return false;
         }
     }
 
-    protected static function isValid(mixed $connection): bool
+    protected static function isValid(mixed $rawConnection): bool
     {
-        if ($connection instanceof Redis) {
-            return !$connection->getMode() == Redis::MULTI;
+        if ($rawConnection instanceof Redis) {
+            return !$rawConnection->getMode() == Redis::MULTI;
         }
         return false;
+    }
+
+    /**
+     * Lấy thông tin trạng thái của một pool cụ thể.
+     *
+     * @param string $name Tên của pool.
+     * @return array|null
+     */
+    public static function stats(string $name): ?array
+    {
+        if (!isset(static::$pools[$name])) {
+            return null;
+        }
+
+        return [
+            'pool_size' => static::$pools[$name]->capacity,
+            'connections_in_use' => static::$pools[$name]->capacity - static::$pools[$name]->length(),
+            'connections_idle' => static::$pools[$name]->length(),
+        ];
+    }
+
+    /** @return array<string, array> */
+    public static function getAllStats(): array
+    {
+        $stats = [];
+        foreach (array_keys(static::$pools) as $name) {
+            $stats[$name] = static::stats($name);
+        }
+        return $stats;
     }
 }

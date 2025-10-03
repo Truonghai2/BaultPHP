@@ -53,6 +53,10 @@ class CoroutineConnectionManager
         $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $this->getPoolStats($name)]);
         $connection = SwoolePdoPool::get($name);
 
+        if ($connection === false) {
+            throw new \RuntimeException("Failed to get a database connection from the pool for '{$name}'. The pool might be exhausted or the connection failed.");
+        }
+
         $context[$contextKey] = $connection;
 
         Coroutine::defer(function () use ($connection, $name, $cid) {

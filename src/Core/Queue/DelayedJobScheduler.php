@@ -4,9 +4,10 @@ namespace Core\Queue;
 
 use Amp\Future;
 use Core\Application;
-use Core\Contracts\Queue\Job;
-use Core\Queue\Jobs\ProcessJobTask;
+use Core\Logging\Processor\ContextProcessor;
+use Core\Queue\Jobs\ProcessDelayedJobBatchTask;
 use Core\Redis\FiberRedisManager;
+use Monolog\Logger;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -27,10 +28,14 @@ class DelayedJobScheduler
         protected LoggerInterface $logger,
     ) {
         $this->config = $this->app->make('config')->get('queue');
-        $this->redisConnectionName = $this->config['connections']['redis']['connection'] ?? 'default';
+        $this->redisConnectionName = $this->config['connections']['redis']['connection'] ?? 'queue';
         $this->queueName = $this->config['connections']['redis']['delayed_queue'] ?? 'queues:delayed:' . $this->redisConnectionName;
         $this->batchSize = $this->config['scheduler']['batch_size'] ?? 100;
-        $this->redisManager = $this->app->make('redis');
+        $this->redisManager = $this->app->make(FiberRedisManager::class);
+
+        if ($this->logger instanceof Logger) {
+            $this->logger->pushProcessor(new ContextProcessor(['source' => 'scheduler']));
+        }
     }
 
     /**
@@ -39,47 +44,48 @@ class DelayedJobScheduler
      */
     public function __invoke(): void
     {
-        $redis = null;
+        $jobsToProcess = [];
 
+        $redis = null;
         try {
             $this->logger->debug('Attempting to get Redis connection for DelayedJobScheduler.');
             $redis = $this->redisManager->getForScheduler($this->redisConnectionName);
+
+            if (!$redis) {
+                $this->logger->warning('Could not obtain Redis connection for scheduler. Skipping this run.');
+                return;
+            }
+
             $this->logger->debug('Successfully obtained Redis connection.');
 
-            try {
-                $jobsToProcess = $this->fetchAndRemoveDueJobs($redis);
-                $this->logger->debug('fetchAndRemoveDueJobs completed.');
-            } catch (Throwable $e) {
-                $this->logger->error('Error during fetchAndRemoveDueJobs: ' . $e->getMessage(), ['exception' => $e]);
-                throw $e; // Re-throw to be caught by the outer catch
-            }
-
-            if (empty($jobsToProcess)) {
-                $this->logger->debug('No delayed jobs to process.');
-                return; // Không có job nào, kết thúc lần chạy này. `finally` sẽ dọn dẹp.
-            }
-
-            $this->logger->info(sprintf('Processing %d delayed jobs.', count($jobsToProcess)));
-
-            foreach ($jobsToProcess as $serializedJob) {
-                $job = unserialize($serializedJob);
-                if ($job instanceof Job) {
-                    /** @var \Core\Server\SwooleServer $server */
-                    $server = $this->app->make(\Core\Server\SwooleServer::class);
-                    $server->dispatchTask(new ProcessJobTask($job));
-                }
-            }
+            $jobsToProcess = $this->fetchAndRemoveDueJobs($redis);
+            $this->logger->debug('fetchAndRemoveDueJobs completed.');
         } catch (Throwable $e) {
-            $this->logger->error('Delayed job scheduler error: ' . $e->getMessage(), ['exception' => $e]);
+            $this->logger->error('Failed to fetch delayed jobs from Redis: ' . $e->getMessage(), ['exception' => $e]);
         } finally {
             if ($redis) {
                 $this->logger->debug('Returning Redis connection to pool.', ['connection_name' => $this->redisConnectionName]);
                 $this->redisManager->put($redis, $this->redisConnectionName);
                 $this->logger->debug('Redis connection returned to pool.');
             } else {
-                $this->logger->warning('Redis connection was null in finally block for DelayedJobScheduler.');
+                $this->logger->debug('Redis connection was null, no need to return to pool.');
             }
         }
+
+        if (empty($jobsToProcess)) {
+            $this->logger->debug('No delayed jobs to process.');
+            return;
+        }
+
+        $this->logger->info(sprintf('Dispatching a batch of %d delayed jobs to a task worker.', count($jobsToProcess)));
+
+        /** @var \Core\Server\SwooleServer $server */
+        $server = $this->app->make(\Core\Server\SwooleServer::class);
+
+        // Cải tiến hiệu năng: Thay vì lặp và dispatch từng job,
+        // chúng ta dispatch cả lô job cho một task worker duy nhất xử lý.
+        // Điều này giải phóng scheduler để nó có thể đi lấy lô tiếp theo ngay lập tức.
+        $server->dispatchTask(new ProcessDelayedJobBatchTask($jobsToProcess));
     }
 
     /**

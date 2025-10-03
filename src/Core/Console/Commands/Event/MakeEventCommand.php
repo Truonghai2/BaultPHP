@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\Event;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeEventCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'make:event {name : The name of the event class} {--module= : The module to create the event in}';

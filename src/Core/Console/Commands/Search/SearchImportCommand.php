@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Search;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\ORM\Model;
 use Core\Search\Jobs\BulkIndexJob;
@@ -10,6 +11,11 @@ use Throwable;
 
 class SearchImportCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'search:import 

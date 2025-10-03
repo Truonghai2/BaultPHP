@@ -10,12 +10,9 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ServerStartCommand extends BaseCommand
 {
-    protected Application $app;
-
     public function __construct(Application $app)
     {
-        parent::__construct();
-        $this->app = $app;
+        parent::__construct($app);
     }
 
     public function signature(): string

@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class ParserShowcaseCommand extends BaseCommand
@@ -42,6 +43,11 @@ class ParserShowcaseCommand extends BaseCommand
      * @var string
      */
     protected string $description = 'Demonstrates all capabilities of the advanced command signature parser.';
+
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
 
     public function signature(): string
     {

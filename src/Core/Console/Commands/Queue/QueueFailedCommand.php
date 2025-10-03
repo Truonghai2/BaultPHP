@@ -2,15 +2,16 @@
 
 namespace Core\Console\Commands\Queue;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
 use Core\Queue\FailedJob; // The model is still needed for mapping
 
 class QueueFailedCommand extends BaseCommand
 {
-    public function __construct(protected FailedJobProviderInterface $failedJobProvider)
+    public function __construct(Application $app, protected FailedJobProviderInterface $failedJobProvider)
     {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     public function signature(): string

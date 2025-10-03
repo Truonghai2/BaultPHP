@@ -3,9 +3,15 @@
 namespace {{ namespace }};
 
 use Core\Console\Contracts\BaseCommand;
+use Core\Application;
 
 class {{ class_name }} extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return '{{ command_signature }}';

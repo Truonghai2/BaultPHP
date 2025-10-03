@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\ORM\Model;
 use Core\Support\Collection;
@@ -37,6 +38,11 @@ class TinkerCommand extends BaseCommand
     public function description(): string
     {
         return $this->description;
+    }
+
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
     }
 
     /**

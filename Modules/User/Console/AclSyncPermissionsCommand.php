@@ -2,6 +2,7 @@
 
 namespace Modules\User\Console;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Modules\User\Infrastructure\Models\Permission;
 use Modules\User\Infrastructure\Models\Role;
@@ -9,6 +10,11 @@ use Throwable;
 
 class AclSyncPermissionsCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'acl:sync-permissions';

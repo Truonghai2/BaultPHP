@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\FileSystem\Filesystem;
 
@@ -31,12 +32,12 @@ class StorageLinkCommand extends BaseCommand
     /**
      * Create a new command instance.
      *
-     * @param  \Core\FileSystem\Filesystem  $files
-     * @return void
+     * @param Application $app
+     * @param Filesystem $files
      */
-    public function __construct(Filesystem $files)
+    public function __construct(Application $app, Filesystem $files)
     {
-        parent::__construct();
+        parent::__construct($app);
         $this->files = $files;
     }
 

@@ -3,6 +3,7 @@
 namespace Modules\User\Console;
 
 use Carbon\Carbon;
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Modules\User\Infrastructure\Models\OAuth\AccessToken;
 use Modules\User\Infrastructure\Models\OAuth\AuthCode;
@@ -10,6 +11,11 @@ use Modules\User\Infrastructure\Models\OAuth\RefreshToken;
 
 class OAuthTokenPruneCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The name and signature of the console command.
      *

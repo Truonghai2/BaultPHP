@@ -16,7 +16,6 @@
     <div class="mt-10 sm:mx-auto sm:w-full sm:max-w-sm">
         <form class="space-y-6" action="{{ route('auth.login') }}" method="POST">
             @csrf
-
             <div>
                 <label for="email" class="block text-sm font-medium leading-6 text-white">Email address</label>
                 <div class="mt-2">

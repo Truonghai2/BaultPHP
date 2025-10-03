@@ -71,6 +71,11 @@ class ConsoleServiceProvider extends ServiceProvider
             $paths = array_merge($paths, $modulePaths);
         }
 
+        $moduleConsolePaths = glob($basePath . '/Modules/*/Console', GLOB_ONLYDIR);
+        if ($moduleConsolePaths) {
+            $paths = array_merge($paths, $moduleConsolePaths);
+        }
+
         $discoveredCommands = [];
 
         foreach ($paths as $path) {

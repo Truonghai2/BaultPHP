@@ -37,6 +37,17 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
     protected \Core\Application $app;
 
     /**
+     * Create a new command instance.
+     *
+     * @param \Core\Application $app
+     */
+    public function __construct(\Core\Application $app)
+    {
+        parent::__construct();
+        $this->app = $app;
+    }
+
+    /**
      * The signature of the command.
      * This defines the command name, arguments, and options.
      *
@@ -183,17 +194,6 @@ abstract class BaseCommand extends SymfonyCommand implements CommandInterface
             return;
         }
         $this->io->listing($elements);
-    }
-
-    /**
-     * Set the application instance.
-     * This is used by the ConsoleKernel to inject the core application container.
-     *
-     * @param \Core\Application $app
-     */
-    public function setCoreApplication(\Core\Application $app): void
-    {
-        $this->app = $app;
     }
 
     /**

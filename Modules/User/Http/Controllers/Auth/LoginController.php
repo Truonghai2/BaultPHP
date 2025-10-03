@@ -19,6 +19,7 @@ class LoginController extends Controller
     #[Route(method: 'GET', uri: '/login', name: 'login.view')]
     public function view(): View
     {
+        sdd('ok');
         return view('user::auth.login');
     }
 

@@ -66,7 +66,7 @@ class ConsoleKernel implements KernelContract
                 $handler->renderForConsole($output, $loggingException);
             }
             $handler->renderForConsole($output, $e);
-            return 1; 
+            return 1;
         }
     }
 
@@ -108,6 +108,19 @@ class ConsoleKernel implements KernelContract
      */
     protected function registerCommands(): void
     {
+        // In production, load commands from the cached file for performance.
+        $cachePath = $this->app->bootstrapPath('cache/commands.php');
+        if (file_exists($cachePath)) {
+            $commands = require $cachePath;
+            foreach ($commands as $commandClass) {
+                if ($this->isInstantiableCommand($commandClass)) {
+                    $this->console->add($this->app->make($commandClass));
+                }
+            }
+            return;
+        }
+
+        // In development, discover commands by scanning directories.
         $paths = $this->getCommandPaths();
         $logger = $this->app->make(LoggerInterface::class);
 
@@ -133,13 +146,7 @@ class ConsoleKernel implements KernelContract
                 }
 
                 try {
-                    $command = $this->app->make($class);
-
-                    if (method_exists($command, 'setCoreApplication')) {
-                        $command->setCoreApplication($this->app);
-                    }
-
-                    $this->console->add($command);
+                    $this->console->add($this->app->make($class));
                 } catch (Throwable $e) {
                     $this->console->add(new FailedCommand($class, $e));
                     $logger->error("Failed to load command '{$class}': {$e->getMessage()}");

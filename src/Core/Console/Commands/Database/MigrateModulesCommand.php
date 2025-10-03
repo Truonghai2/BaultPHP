@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Database;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\ORM\MigrationManager;
 
@@ -20,9 +21,9 @@ class MigrateModulesCommand extends BaseCommand
      * The MigrationManager is injected by the service container. We also inject
      * the Application container to resolve the configuration.
      */
-    public function __construct(private MigrationManager $manager)
+    public function __construct(Application $app, private MigrationManager $manager)
     {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     public function signature(): string

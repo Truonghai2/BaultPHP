@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakePolicyCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'ddd:make-policy {module : The name of the module.} {model : The name of the model.}';

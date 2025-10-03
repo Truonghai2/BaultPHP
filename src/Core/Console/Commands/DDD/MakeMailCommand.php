@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeMailCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The name and signature of the console command.
      *

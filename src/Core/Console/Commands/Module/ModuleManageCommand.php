@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\Module;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class ModuleManageCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function description(): string
     {
         return 'Manage application modules (list, enable, disable)';

@@ -94,10 +94,6 @@ WORKDIR $APP_HOME
 # Copy the vendor directory installed from the "vendor" stage.
 COPY --from=vendor --chown=$APP_USER:$APP_GROUP $APP_HOME/vendor $APP_HOME/vendor
  
-# [BAULTPHP PATCH] Disable the problematic shutdown function in psy/psysh
-# This is a robust fix for Swoole compatibility, applied during the build process.
-RUN sed -i "s#^\\s*\\\\register_shutdown_function(\[Stream::class, '_Hoa_Stream'\]);#// & // Patched by BaultPHP for Swoole compatibility#" /app/vendor/psy/psysh/src/Readline/Hoa/Stream.php
- 
 # Copy the entrypoint script first to better leverage the cache.
 # If only the application code changes, this layer will not need to be rebuilt.
 COPY --chmod=0755 ./docker/php/entrypoint.sh /usr/local/bin/entrypoint.sh

@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\WebSocket\CentrifugoAPIService;
 use Throwable;
@@ -9,11 +10,11 @@ use Throwable;
 class AppHealthCheckCommand extends BaseCommand
 {
     /**
-     * Create a new command instance.
+     * @param Application $app
      */
-    public function __construct()
+    public function __construct(Application $app)
     {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     /**

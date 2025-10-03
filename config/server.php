@@ -72,6 +72,9 @@ return [
         |
         */
         'watch' => [
+            'files' => [
+                base_path('.env'),
+            ],
             'directories' => [
                 base_path('src'),
                 base_path('Modules'),
@@ -79,7 +82,6 @@ return [
                 base_path('resources'),
                 base_path('database'),
                 base_path('routes'),
-                base_path('.env'),
             ],
             /*
             |--------------------------------------------------------------------------
@@ -111,21 +113,70 @@ return [
          |
          */
         'pools' => [
-            // Cấu hình cho loại pool 'database'
+            'redis' => [
+                'enabled' => env('REDIS_POOL_ENABLED', true),
+                'class' => \Core\Database\Swoole\SwooleRedisPool::class,
+                'config_prefix' => 'redis.connections',
+
+                'defaults' => [
+                    'worker_pool_size' => env('REDIS_POOL_WORKER_SIZE', 10),
+                    'task_worker_pool_size' => env('REDIS_POOL_TASK_SIZE', 10),
+                    'scheduler_pool_size' => env('REDIS_POOL_SCHEDULER_SIZE', 1),
+                    'retry' => [
+                        'max_attempts' => env('REDIS_POOL_RETRY_ATTEMPTS', 5),
+                        'initial_delay_ms' => env('REDIS_POOL_RETRY_DELAY_MS', 500),
+                        'backoff_multiplier' => env('REDIS_POOL_RETRY_BACKOFF', 1.5),
+                        'max_delay_ms' => env('REDIS_POOL_RETRY_MAX_DELAY_MS', 10000),
+                    ],
+                    'circuit_breaker' => [
+                        'enabled'  => env('REDIS_CIRCUIT_BREAKER_ENABLED', true),
+                        'storage'  => env('REDIS_CIRCUIT_BREAKER_STORAGE', 'redis'),
+                        'redis_pool' => env('REDIS_CIRCUIT_BREAKER_REDIS_POOL', 'default'),
+                        'strategy' => env('REDIS_CIRCUIT_BREAKER_STRATEGY', 'rate'),
+                        'rate' => [
+                            'failure_rate'    => (int) env('REDIS_CIRCUIT_BREAKER_FAILURE_RATE', 50),
+                            'minimum_requests'  => (int) env('REDIS_CIRCUIT_BREAKER_MIN_REQUESTS', 10),
+                            'time_window'       => (int) env('REDIS_CIRCUIT_BREAKER_TIME_WINDOW', 60),
+                            'interval_to_half_open'   => (int) env('REDIS_CIRCUIT_BREAKER_TIMEOUT', 30),
+                        ],
+                    ],
+                ],
+
+                'connections' => [
+                    'default' => [
+                        'worker_pool_size' => 20,
+                    ],
+                    'cache' => [
+                        'alias' => 'default',
+                    ],
+                    'queue' => [
+                        'alias' => 'default',
+                    ],
+                ],
+            ],
+
             'database' => [
                 'enabled' => env('DB_POOL_ENABLED', true),
-                // Class quản lý pool tương ứng.
                 'class' => \Core\Database\Swoole\SwoolePdoPool::class,
-                // Tiền tố để tìm cấu hình kết nối trong config/database.php
                 'config_prefix' => 'database.connections',
 
                 'defaults' => [
                     'worker_pool_size' => env('DB_POOL_WORKER_SIZE', 10),
                     'task_worker_pool_size' => env('DB_POOL_TASK_SIZE', 10),
+
+                    'retry' => [
+                        'max_attempts' => env('DB_POOL_RETRY_ATTEMPTS', 3),
+                        'initial_delay_ms' => env('DB_POOL_RETRY_DELAY_MS', 1000),
+                        'backoff_multiplier' => env('DB_POOL_RETRY_BACKOFF', 2.0),
+                        'max_delay_ms' => env('DB_POOL_RETRY_MAX_DELAY_MS', 30000),
+                    ],
+
                     'heartbeat' => env('DB_POOL_HEARTBEAT', 60),
+
                     'circuit_breaker' => [
                         'enabled'  => env('DB_CIRCUIT_BREAKER_ENABLED', true),
                         'storage'  => env('DB_CIRCUIT_BREAKER_STORAGE', 'redis'),
+                        'redis_pool' => env('DB_CIRCUIT_BREAKER_REDIS_POOL', 'default'),
                         'strategy' => 'rate',
                         'rate' => [
                             'failure_rate'    => (int) env('DB_CIRCUIT_BREAKER_FAILURE_RATE', 50),
@@ -155,44 +206,8 @@ return [
                             ? array_map('trim', explode(',', $enabledPoolsStr))
                             : [env('DB_CONNECTION', 'mysql')];
 
-                        // Lọc và trả về chỉ các pool đã được kích hoạt
                         return array_intersect_key($allPoolConfigs, array_flip($enabledPoolNames));
                     })(),
-                ],
-            ],
-
-            'redis' => [
-                'enabled' => env('REDIS_POOL_ENABLED', true),
-                'class' => \Core\Database\Swoole\SwooleRedisPool::class,
-                'config_prefix' => 'redis.connections',
-
-                'defaults' => [
-                    'worker_pool_size' => env('REDIS_POOL_WORKER_SIZE', 10),
-                    'task_worker_pool_size' => env('REDIS_POOL_TASK_SIZE', 10),
-                    'scheduler_pool_size' => env('REDIS_POOL_SCHEDULER_SIZE', 1),
-                    'circuit_breaker' => [
-                        'enabled'  => env('REDIS_CIRCUIT_BREAKER_ENABLED', true),
-                        'storage'  => env('REDIS_CIRCUIT_BREAKER_STORAGE', 'redis'),
-                        'strategy' => env('REDIS_CIRCUIT_BREAKER_STRATEGY', 'rate'),
-                        'rate' => [
-                            'failure_rate'    => (int) env('REDIS_CIRCUIT_BREAKER_FAILURE_RATE', 50),
-                            'minimum_requests'  => (int) env('REDIS_CIRCUIT_BREAKER_MIN_REQUESTS', 10),
-                            'time_window'       => (int) env('REDIS_CIRCUIT_BREAKER_TIME_WINDOW', 60),
-                            'interval_to_half_open'   => (int) env('REDIS_CIRCUIT_BREAKER_TIMEOUT', 30),
-                        ],
-                    ],
-                ],
-
-                'connections' => [
-                    'default' => [
-                        'worker_pool_size' => 20,
-                    ],
-                    'cache' => [
-                        'alias' => 'default',
-                    ],
-                    'queue' => [
-                        'alias' => 'default',
-                    ],
                 ],
             ],
         ],

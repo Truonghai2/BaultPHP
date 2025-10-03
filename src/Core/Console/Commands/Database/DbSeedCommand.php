@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\Database;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Database\Seeder;
 
 class DbSeedCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function description(): string
     {
         return 'Seed the database with records from a specific seeder or the default DatabaseSeeder.';

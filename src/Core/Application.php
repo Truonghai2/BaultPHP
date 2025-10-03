@@ -192,7 +192,6 @@ class Application implements ContainerInterface, \ArrayAccess
         $abstract = $this->getAlias($abstract);
 
         if (isset($this->instances[$abstract])) {
-            // If the instance is already resolved, we apply the extension immediately.
             $this->instances[$abstract] = $closure($this->instances[$abstract], $this);
             return;
         }
@@ -793,5 +792,15 @@ class Application implements ContainerInterface, \ArrayAccess
     public function offsetUnset($key): void
     {
         unset($this->bindings[$key], $this->instances[$key], $this->aliases[$key]);
+    }
+
+    /**
+     * Get the application's encryption key.
+     *
+     * @return string
+     */
+    public function getAppKey(): string
+    {
+        return $this->make('config')->get('app.key');
     }
 }

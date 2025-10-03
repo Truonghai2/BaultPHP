@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeRuleCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'make:rule {name : The name of the rule class}';

@@ -4,11 +4,17 @@ declare(strict_types=1);
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Illuminate\Support\Str;
 
 class MakeListenerCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'ddd:make-listener {module : The name of the module.} {name : The name of the listener class.} {--e|event= : The event class to listen for.}';

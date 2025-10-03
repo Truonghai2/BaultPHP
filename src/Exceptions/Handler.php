@@ -25,7 +25,7 @@ class Handler implements HandlerContract
 
     public function __construct(
         protected LoggerInterface $logger,
-        protected ViewFactory $view
+        protected ViewFactory $view,
     ) {
     }
 
@@ -44,7 +44,7 @@ class Handler implements HandlerContract
         });
     }
 
-    public function report(Throwable|Request $request, Throwable $e): void
+    public function report(Throwable|Request|null $request, Throwable $e): void
     {
         if ($this->shouldntReport($e)) {
             return;
@@ -146,26 +146,36 @@ class Handler implements HandlerContract
      */
     protected function getCodeSnippet(string $path, int $errorLine, int $contextLines = 10): ?array
     {
-        if (!file_exists($path) || !is_readable($path)) {
+        if (!is_readable($path)) {
             return null;
         }
 
-        $lines = file($path, FILE_IGNORE_NEW_LINES);
-        $totalLines = count($lines);
-        $startLine = max(1, $errorLine - $contextLines);
-        $endLine = min($totalLines, $errorLine + $contextLines);
-
-        $snippet = [];
-        for ($i = $startLine - 1; $i < $endLine; $i++) {
-            if (!isset($lines[$i])) {
-                continue;
-            }
-            $snippet[] = [
-                'number' => $i + 1,
-                'content' => htmlspecialchars($lines[$i], ENT_QUOTES, 'UTF-8'),
-            ];
+        // Tối ưu hóa: Thay vì đọc toàn bộ file bằng file(), chúng ta chỉ đọc các dòng cần thiết.
+        // Điều này ngăn ngừa lỗi hết bộ nhớ khi file gây lỗi rất lớn.
+        $handle = @fopen($path, 'r');
+        if (!$handle) {
+            return null;
         }
 
+        $startLine = max(1, $errorLine - $contextLines);
+        $endLine = $errorLine + $contextLines;
+        $currentLine = 0;
+        $snippet = [];
+
+        while (($lineContent = fgets($handle)) !== false) {
+            $currentLine++;
+            if ($currentLine >= $startLine && $currentLine <= $endLine) {
+                $snippet[] = [
+                    'number' => $currentLine,
+                    'content' => htmlspecialchars(rtrim($lineContent, "\r\n"), ENT_QUOTES, 'UTF-8'),
+                ];
+            }
+            if ($currentLine > $endLine) {
+                break;
+            }
+        }
+
+        fclose($handle);
         return $snippet;
     }
 

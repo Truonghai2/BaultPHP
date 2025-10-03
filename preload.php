@@ -14,6 +14,7 @@
 // Set environment variables as early as possible to prevent deprecated shutdown handlers.
 putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
 putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
+putenv('AMPHP_HTTP_CLIENT_DISABLE_SHUTDOWN_HANDLER=1');
 
 if (!in_array(PHP_SAPI, ['cli', 'phpdbg', 'micro'], true)) {
     // Prevent this script from being executed in a web context.

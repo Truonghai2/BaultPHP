@@ -4,6 +4,7 @@ namespace Core\Server;
 
 use Core\Application;
 use Psr\Log\LoggerInterface;
+use Swoole\Coroutine\Barrier;
 
 /**
  * Manages the initialization and shutdown of database and Redis connection pools
@@ -28,20 +29,18 @@ class ConnectionPoolManager
 
     /**
      * Initializes all configured connection pools in a non-blocking coroutine.
-     * This allows the worker to start faster.
+     * This method registers its initialization logic into a barrier to ensure
+     * the worker process waits for it to complete.
      */
     public function initializePools(bool $isTaskWorker): void
     {
-        \Swoole\Coroutine::create(function () use ($isTaskWorker) {
-            $workerType = $isTaskWorker ? 'TaskWorker' : 'Worker';
+        $workerType = $isTaskWorker ? 'TaskWorker' : 'Worker';
 
-            // Lặp qua các loại pool đã định nghĩa trong config (database, redis, ...)
-            foreach ($this->poolsConfig as $poolType => $typeConfig) {
-                if (!empty($typeConfig['enabled'])) {
-                    $this->initializePoolType($poolType, $typeConfig, $isTaskWorker, $workerType);
-                }
+        foreach ($this->poolsConfig as $poolType => $typeConfig) {
+            if (!empty($typeConfig['enabled'])) {
+                $this->initializePoolType($poolType, $typeConfig, $isTaskWorker, $workerType);
             }
-        });
+        }
     }
 
     /**
@@ -50,7 +49,6 @@ class ConnectionPoolManager
      */
     public function closePools(): void
     {
-        // Đóng tất cả các pool đã được khởi tạo
         foreach (array_unique($this->initializedPoolClasses) as $poolClass) {
             try {
                 $poolClass::close();
@@ -73,24 +71,29 @@ class ConnectionPoolManager
         $connections = $typeConfig['connections'] ?? [];
 
         foreach ($typeConfig['connections'] ?? [] as $name => $connectionConfig) {
-            $maxRetries = 3;
-            $retryDelay = 1;
+            if (!empty($connectionConfig['alias'])) {
+                $this->logger->debug("Skipping alias '{$name}' in initial pool creation.");
+                continue;
+            }
+
+            $finalConfig = array_replace_recursive($defaults, $connectionConfig);
+
+            $retryConfig = $finalConfig['retry'] ?? [];
+            $maxRetries = (int) ($retryConfig['max_attempts'] ?? 3);
+            $initialDelayMs = (int) ($retryConfig['initial_delay_ms'] ?? 1000);
+            $backoffMultiplier = (float) ($retryConfig['backoff_multiplier'] ?? 2.0);
+            $maxDelayMs = (int) ($retryConfig['max_delay_ms'] ?? 30000);
+
+            $currentDelayMs = $initialDelayMs;
 
             for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
                 try {
-                    if (!empty($connectionConfig['alias'])) {
-                        $this->logger->debug("Skipping alias '{$name}' in initial pool creation.");
-                        break;
-                    }
-
-                    $finalConfig = array_replace_recursive($defaults, $connectionConfig);
                     $connectionName = $name;
 
                     $connectionDetails = $this->app->make('config')->get("{$configPrefix}.{$connectionName}");
                     if (!$connectionDetails) {
                         throw new \InvalidArgumentException("Connection '{$connectionName}' (for '{$name}') for pool type '{$poolType}' not found at config key '{$configPrefix}.{$connectionName}'.");
                     }
-
                     $poolSizeKey = $isTaskWorker ? 'task_worker_pool_size' : 'worker_pool_size';
                     $poolSize = (int) ($finalConfig[$poolSizeKey] ?? 10);
 
@@ -108,17 +111,16 @@ class ConnectionPoolManager
                     $this->logger->debug("Pool '{$name}' of type '{$poolType}' initialized for {$workerType}", ['size' => $poolSize]);
                     break;
                 } catch (\Throwable $e) {
-                    $this->logger->warning("Attempt {$attempt}/{$maxRetries}: Failed to initialize pool '{$name}' of type '{$poolType}'. Retrying in {$retryDelay}s...", ['error' => $e->getMessage()]);
+                    $this->logger->warning("Attempt {$attempt}/{$maxRetries}: Failed to initialize pool '{$name}' of type '{$poolType}'. Retrying in {$currentDelayMs}ms...", ['error' => $e->getMessage()]);
                     if ($attempt < $maxRetries) {
-                        \Swoole\Coroutine::sleep($retryDelay);
-                        $retryDelay *= 2;
+                        \Swoole\Coroutine::sleep($currentDelayMs / 1000);
+                        $currentDelayMs = min($maxDelayMs, (int)($currentDelayMs * $backoffMultiplier));
                     } else {
                         $this->logger->error("Failed to initialize pool '{$name}' of type '{$poolType}' after {$maxRetries} attempts.", ['exception' => $e]);
                     }
                 }
             }
         }
-
         foreach ($connections as $name => $connectionConfig) {
             if (!empty($connectionConfig['alias'])) {
                 $aliasTarget = $connectionConfig['alias'];

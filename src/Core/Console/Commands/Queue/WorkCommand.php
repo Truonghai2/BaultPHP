@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Queue;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Queue\QueueWorker;
 use Throwable;
@@ -24,9 +25,9 @@ class WorkCommand extends BaseCommand
      */
     protected bool $shouldQuit = false;
 
-    public function __construct(protected QueueWorker $worker)
+    public function __construct(Application $app, protected QueueWorker $worker)
     {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     public function signature(): string

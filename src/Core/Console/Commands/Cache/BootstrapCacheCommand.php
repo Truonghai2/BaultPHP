@@ -26,7 +26,6 @@ class BootstrapCacheCommand extends BaseCommand
 
         $this->comment('Caching framework bootstrap files...');
 
-        // Use the centralized repository to discover all providers.
         $repository = new ProviderRepository($this->app);
         $allProviders = $repository->discover();
 

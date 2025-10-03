@@ -13,31 +13,16 @@ class TraceableEventDispatcher implements EventDispatcherInterface
 {
     public function __construct(
         private readonly EventDispatcherInterface $dispatcher,
-        private readonly DebugManager $debugManager,
+        private readonly EventCollector $collector,
     ) {
     }
 
     /**
-     * Ghi lại event, sau đó dispatch nó bằng dispatcher gốc.
+     * Ghi lại event vào collector, sau đó dispatch nó bằng dispatcher gốc.
      */
     public function dispatch(object $event): void
     {
-        if ($this->debugManager->isEnabled()) {
-            $payload = 'null';
-            try {
-                $payload = json_encode($event, \JSON_PARTIAL_OUTPUT_ON_ERROR | \JSON_INVALID_UTF8_SUBSTITUTE);
-                if (json_last_error() !== JSON_ERROR_NONE) {
-                    $payload = '"Could not serialize event payload: ' . json_last_error_msg() . '"';
-                }
-            } catch (\Throwable $e) {
-                $payload = '"Could not serialize event payload: ' . $e->getMessage() . '"';
-            }
-
-            $this->debugManager->add('events', [
-                'name' => get_class($event),
-                'payload' => $payload,
-            ]);
-        }
+        $this->collector->addEvent(get_class($event), $event);
 
         $this->dispatcher->dispatch($event);
     }

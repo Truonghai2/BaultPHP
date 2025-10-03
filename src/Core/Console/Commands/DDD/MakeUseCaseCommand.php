@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use InvalidArgumentException;
 
 class MakeUseCaseCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'ddd:make-usecase {module : The name of the module} {name : The name of the use case} {--query : Generate a Query and Handler instead of a Command}';

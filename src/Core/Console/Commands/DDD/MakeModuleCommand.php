@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\DDD;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeModuleCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'ddd:make-module {name : The name of the module (e.g., Post, User)}';

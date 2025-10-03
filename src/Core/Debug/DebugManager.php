@@ -88,4 +88,16 @@ class DebugManager implements StatefulService
         }
         $this->data['info'] = array_merge($this->data['info'], $info);
     }
+
+    public function recordQuery(string $query, array $bindings = [], float $time = 0.0): void
+    {
+        if (!$this->isEnabled()) {
+            return;
+        }
+        $this->data['queries'][] = [
+            'query' => $query,
+            'bindings' => $bindings,
+            'time' => $time,
+        ];
+    }
 }

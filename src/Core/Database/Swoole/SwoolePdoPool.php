@@ -46,33 +46,64 @@ class SwoolePdoPool extends BaseSwoolePool
         }
     }
 
-    protected static function ping(mixed $connection, string $name): bool
+    protected static function ping(mixed $rawConnection, string $name): bool
     {
-        if (!$connection instanceof PDO) {
+        if (!$rawConnection instanceof PDO) {
             return false;
         }
 
         $config = static::$configs[$name] ?? [];
         $heartbeat = $config['heartbeat'] ?? 60;
 
-        if (isset(self::$lastUsedTimes[$connection]) && time() - self::$lastUsedTimes[$connection] < $heartbeat) {
+        // Luôn kiểm tra với raw connection
+        if (isset(self::$lastUsedTimes[$rawConnection]) && time() - self::$lastUsedTimes[$rawConnection] < $heartbeat) {
             return true;
         }
 
         try {
-            $connection->query('SELECT 1');
-            self::$lastUsedTimes[$connection] = time();
+            $rawConnection->query('SELECT 1');
+            self::$lastUsedTimes[$rawConnection] = time();
             return true;
         } catch (Throwable) {
             return false;
         }
     }
 
-    protected static function isValid(mixed $connection): bool
+    protected static function isValid(mixed $rawConnection): bool
     {
-        if ($connection instanceof PDO) {
-            return !$connection->inTransaction();
+        if ($rawConnection instanceof PDO) {
+            // Kiểm tra xem kết nối có đang trong một transaction không
+            return !$rawConnection->inTransaction();
         }
         return false;
+    }
+
+    /**
+     * Lấy thông tin trạng thái của một pool cụ thể.
+     *
+     * @param string $name Tên của pool.
+     * @return array|null
+     */
+    public static function stats(string $name): ?array
+    {
+        if (!isset(static::$pools[$name])) {
+            return null;
+        }
+
+        return [
+            'pool_size' => static::$pools[$name]->capacity,
+            'connections_in_use' => static::$pools[$name]->capacity - static::$pools[$name]->length(),
+            'connections_idle' => static::$pools[$name]->length(),
+        ];
+    }
+
+    /** @return array<string, array> */
+    public static function getAllStats(): array
+    {
+        $stats = [];
+        foreach (array_keys(static::$pools) as $name) {
+            $stats[$name] = static::stats($name);
+        }
+        return $stats;
     }
 }

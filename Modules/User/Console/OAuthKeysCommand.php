@@ -2,12 +2,18 @@
 
 namespace Modules\User\Console;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Defuse\Crypto\Key;
 use Throwable;
 
 class OAuthKeysCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'oauth:keys';

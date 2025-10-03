@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Symfony\Component\Process\Process;
 
@@ -11,6 +12,11 @@ use Symfony\Component\Process\Process;
  */
 class OptimizeCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'optimize';
@@ -32,6 +38,7 @@ class OptimizeCommand extends BaseCommand
         $this->call('view:cache');
         $this->call('command:cache');
         $this->call('bootstrap:cache');
+        // $this->call('cache:blocks');
 
         $this->comment('Dumping optimized class-map...');
         $this->dumpAutoload();

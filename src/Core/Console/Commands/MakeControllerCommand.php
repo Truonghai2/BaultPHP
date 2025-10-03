@@ -2,14 +2,21 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeControllerCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'make:controller {module} {name} {--api : Create an API controller}';
     }
+
     public function description(): string
     {
         return 'Create a new controller in the specified module.';

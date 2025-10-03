@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\Database;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use InvalidArgumentException;
 
 class MakeSeederCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'make:seeder {name : The name of the seeder class}';

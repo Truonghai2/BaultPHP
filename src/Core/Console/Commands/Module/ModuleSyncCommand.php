@@ -2,12 +2,18 @@
 
 namespace Core\Console\Commands\Module;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Module\ModuleSynchronizer;
 use Throwable;
 
 class ModuleSyncCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'module:sync';

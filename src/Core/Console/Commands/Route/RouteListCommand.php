@@ -4,6 +4,7 @@ namespace Core\Console\Commands\Route;
 
 use App\Providers\RouteServiceProvider;
 use Closure;
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Routing\Router;
 
@@ -21,9 +22,9 @@ class RouteListCommand extends BaseCommand
      * Create a new command instance.
      * The Router will be injected by the DI container.
      */
-    public function __construct(Router $router, RouteServiceProvider $routeServiceProvider)
+    public function __construct(Application $app, Router $router, RouteServiceProvider $routeServiceProvider)
     {
-        parent::__construct();
+        parent::__construct($app);
         $this->router = $router;
         $this->routeServiceProvider = $routeServiceProvider;
     }

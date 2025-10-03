@@ -2,43 +2,47 @@
 
 namespace Core\Queue\Jobs;
 
-use Core\Application;
 use Core\Contracts\Queue\Job;
 use Core\Contracts\Task\Task;
-use Core\Database\Fiber\FiberConnectionManager;
 use Core\Queue\QueueWorker;
-use Core\Redis\FiberRedisManager;
+use Psr\Log\LoggerInterface;
 
 /**
- * A specific Task for processing a queue Job.
- * This class acts as a wrapper that is sent to the Swoole task worker.
+ * Class ProcessJobTask
+ *
+ * This task acts as a mini-worker responsible for executing a job.
+ * It contains the logic for handling job execution, retries, and failures.
  */
 class ProcessJobTask implements Task
 {
-    public function __construct(public Job $job)
+    /**
+     * The job instance to be processed.
+     *
+     * @var Job|BaseJob
+     */
+    public Job $job;
+
+    /**
+     * @param Job $job The job to process.
+     */
+    public function __construct(Job $job)
     {
+        $this->job = $job;
     }
 
     /**
-     * The logic executed by the Swoole Task Worker.
-     * It wraps the job's handle method with a try/finally block
-     * to ensure any leaked connections are released.
+     * Handles the execution of the job within a Swoole Task Worker.
+     * This method now delegates the entire processing logic to the QueueWorker,
+     * unifying job handling for both Swoole tasks and traditional CLI workers.
+     *
+     * @param QueueWorker $worker The queue worker instance, injected by the container.
+     * @param LoggerInterface $logger
+     * @return void
      */
-    public function handle(): void
+    public function handle(QueueWorker $worker, LoggerInterface $logger): void
     {
-        $app = Application::getInstance();
-        /** @var QueueWorker $worker */
-        $worker = $app->make(QueueWorker::class);
-
-        try {
-            $worker->process('swoole', $this->job);
-        } finally {
-            if ($app->bound(FiberRedisManager::class)) {
-                $app->make(FiberRedisManager::class)->releaseUnmanaged();
-            }
-            if ($app->bound(FiberConnectionManager::class)) {
-                $app->make(FiberConnectionManager::class)->releaseUnmanaged();
-            }
-        }
+        $logger->debug('Handing off job to QueueWorker inside ProcessJobTask.', ['job' => get_class($this->job)]);
+        // The connection name 'swoole' is a logical name for jobs processed via tasks.
+        $worker->process('swoole', $this->job);
     }
 }

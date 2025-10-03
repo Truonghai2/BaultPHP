@@ -3,10 +3,16 @@
 namespace Core\Console\Commands\Cache;
 
 use App\Providers\EventServiceProvider;
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class EventCacheCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The signature of the command.
      */

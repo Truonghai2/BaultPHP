@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\View;
 
+use Core\Application;
 use Core\Config;
 use Core\Console\Contracts\BaseCommand;
 use Core\FileSystem\Filesystem;
@@ -15,9 +16,9 @@ class ViewClearCommand extends BaseCommand
      * Tạo một instance command mới.
      * Framework sẽ tự động inject các dependency (Filesystem, Config) vào đây.
      */
-    public function __construct(protected Filesystem $files, Config $config)
+    public function __construct(Application $app, protected Filesystem $files, Config $config)
     {
-        parent::__construct();
+        parent::__construct($app);
 
         $path = $config->get('view.compiled');
         if (empty($path)) {

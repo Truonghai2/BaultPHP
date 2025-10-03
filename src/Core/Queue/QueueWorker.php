@@ -6,6 +6,7 @@ use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\Queue\FailedJobProviderInterface;
 use Core\Contracts\Queue\Job;
+use Core\Contracts\Queue\Queue;
 use Core\Events\Dispatcher;
 use Throwable;
 
@@ -65,7 +66,6 @@ class QueueWorker
         $this->raiseBeforeJobEvent($connectionName, $job);
 
         try {
-            // Sử dụng container để gọi, cho phép method injection.
             $this->app->call([$job, 'handle']);
 
             $job->delete();
@@ -94,8 +94,23 @@ class QueueWorker
         if ($this->hasExceededMaxTries($job)) {
             $this->failJob($connectionName, $job, $e);
         } else {
-            $job->release();
+            if ($connectionName === 'swoole') {
+                $this->releaseSwooleJob($job);
+            } else {
+                $job->release();
+            }
         }
+    }
+
+    /**
+     * Release a job back to the Swoole delayed queue.
+     */
+    protected function releaseSwooleJob(Job $job): void
+    {
+        /** @var Queue $queue */
+        $queue = $this->app->make(Queue::class);
+        $delay = ($job->attempts() ** 2) * 5;
+        $queue->later($delay, $job);
     }
 
     /**
@@ -124,10 +139,8 @@ class QueueWorker
      */
     protected function logFailedJob(string $connectionName, Job $job, Throwable $e): void
     {
-        // Report the exception to the application's central handler first.
         $this->exceptionHandler->report($e);
 
-        // Now, log the job to the failed job provider.
         $this->failer->log(
             $connectionName,
             method_exists($job, 'getQueue') ? $job->getQueue() : 'default',
@@ -147,7 +160,6 @@ class QueueWorker
         $maxTries = $job->maxTries();
         $attempts = $job->attempts();
 
-        // Nếu maxTries không được set (null), job sẽ được thử lại vô hạn.
         return !is_null($maxTries) && $attempts >= $maxTries;
     }
 

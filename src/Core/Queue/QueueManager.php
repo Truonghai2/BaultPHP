@@ -2,111 +2,39 @@
 
 namespace Core\Queue;
 
-use Closure;
 use Core\Application;
-use Core\Contracts\Queue\Queue as QueueContract;
-use InvalidArgumentException;
+use Core\Contracts\Queue\Job;
+use Core\Server\SwooleServer;
 
+/**
+ * Cung cấp một giao diện đơn giản để gửi job đến custom queue process.
+ */
 class QueueManager
 {
-    /**
-     * The application instance.
-     *
-     * @var \Core\Application
-     */
-    protected Application $app;
-
-    /**
-     * The array of resolved queue connections.
-     *
-     * @var array
-     */
-    protected array $connections = [];
-
-    /**
-     * The array of queue connectors.
-     *
-     * @var array
-     */
-    protected array $connectors = [];
-
-    public function __construct(Application $app)
+    public function __construct(protected Application $app)
     {
-        $this->app = $app;
     }
 
     /**
-     * Get a queue connection instance.
-     *
-     * @param  string|null  $name
-     * @return \Core\Contracts\Queue\Queue
+     * Gửi một job đến queue process.
      */
-    public function connection(?string $name = null): QueueContract
+    public function dispatch(Job $job): bool
     {
-        $name = $name ?: $this->getDefaultDriver();
-
-        // If the connection has not been resolved yet, we will resolve it now.
-        if (!isset($this->connections[$name])) {
-            $this->connections[$name] = $this->resolve($name);
+        $server = $this->getServer();
+        if (!$server) {
+            return false;
         }
 
-        return $this->connections[$name];
+        $message = serialize(['type' => 'queue_job', 'payload' => $job]);
+
+        return $server->sendMessageToMaster($message);
     }
 
     /**
-     * Resolve a queue connection.
-     *
-     * @param  string  $name
-     * @return \Core\Contracts\Queue\Queue
+     * Lazily resolve the SwooleServer instance from the container.
      */
-    protected function resolve(string $name): QueueContract
+    protected function getServer(): ?SwooleServer
     {
-        $config = $this->getConfig($name);
-
-        if (!isset($this->connectors[$config['driver']])) {
-            throw new InvalidArgumentException("No connector for [{$config['driver']}].");
-        }
-
-        return $this->connectors[$config['driver']]($config);
-    }
-
-    /**
-     * Add a queue connector.
-     *
-     * @param  string  $driver
-     * @param  \Closure  $resolver
-     * @return void
-     */
-    public function addConnector(string $driver, Closure $resolver): void
-    {
-        $this->connectors[$driver] = $resolver;
-    }
-
-    /**
-     * Get the queue connection configuration.
-     *
-     * @param  string  $name
-     * @return array
-     */
-    protected function getConfig(string $name): array
-    {
-        return $this->app->make('config')->get("queue.connections.{$name}");
-    }
-
-    public function getDefaultDriver(): string
-    {
-        return $this->app->make('config')->get('queue.default');
-    }
-
-    /**
-     * Dynamically pass calls to the default connection.
-     *
-     * @param  string  $method
-     * @param  array  $parameters
-     * @return mixed
-     */
-    public function __call(string $method, array $parameters)
-    {
-        return $this->connection()->{$method}(...$parameters);
+        return $this->app->bound(SwooleServer::class) ? $this->app->make(SwooleServer::class) : null;
     }
 }

@@ -2,13 +2,14 @@
 
 namespace Core\Console\Commands\Database;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class CheckConnectionCommand extends BaseCommand
 {
-    public function __construct()
+    public function __construct(Application $app)
     {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     public function signature(): string

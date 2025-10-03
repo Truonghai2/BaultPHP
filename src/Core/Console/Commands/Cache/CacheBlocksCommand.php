@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Modules\Cms\Domain\Services\BlockRegistry;
 
 class CacheBlocksCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     protected string $signature = 'cache:blocks';
     protected string $description = 'Cache the list of registered CMS blocks for faster loading.';
 

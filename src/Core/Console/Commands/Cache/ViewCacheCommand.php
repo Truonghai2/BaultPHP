@@ -2,12 +2,18 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\View\Compiler;
 use Throwable;
 
 class ViewCacheCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The signature of the command.
      */

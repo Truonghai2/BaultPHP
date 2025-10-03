@@ -31,7 +31,7 @@ $app = new Application(
 | This is done once at the beginning of the bootstrap process.
 |
 */
-$dotenv = Dotenv::createImmutable($app->basePath());
+$dotenv = Dotenv::createImmutable($app->basePath(), ['.env']);
 $dotenv->safeLoad();
 
 // When running the Swoole server, we must prevent certain libraries from registering
@@ -39,10 +39,19 @@ $dotenv->safeLoad();
 // checking the command line arguments.
 $isSwooleServer = php_sapi_name() === 'cli' && isset($_SERVER['argv'][1]) && in_array($_SERVER['argv'][1], ['serve:start', 'serve:watch'], true);
 
-// Disable shutdown handlers for Revolt and Amphp components to prevent deprecation warnings in Swoole.
-putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
-putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');
-putenv('AMPHP_HTTP_CLIENT_DISABLE_SHUTDOWN_HANDLER=1');
+/*
+|--------------------------------------------------------------------------
+| Initialize Sentry
+|--------------------------------------------------------------------------
+|
+| Initialize the Sentry SDK early in the bootstrap process to catch
+| as many errors as possible.
+|
+*/
+$sentryConfig = $app->make('config')->get('sentry');
+if (!empty($sentryConfig['dsn'])) {
+    \Sentry\init($sentryConfig);
+}
 
 Facade::setFacadeApplication($app);
 

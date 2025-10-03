@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\WebSocket\WebSocketServer;
 
 class WebSocketServerCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The signature of the command.
      */

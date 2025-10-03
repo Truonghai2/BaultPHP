@@ -59,17 +59,13 @@ class SwoolePsr7Bridge
 
     public function toSwooleResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
-        // Prevent "headers already sent" warning
         if (!$swooleResponse->isWritable()) {
             return;
         }
 
-        // Set status code and reason phrase
         $swooleResponse->status($response->getStatusCode(), $response->getReasonPhrase());
 
-        // Set headers
         foreach ($response->getHeaders() as $name => $values) {
-            // The 'Connection' header is managed by Swoole, so we skip it.
             if (strtolower($name) === 'connection') {
                 continue;
             }
@@ -80,10 +76,6 @@ class SwoolePsr7Bridge
             }
         }
 
-        // TỐI ƯU HÓA: Kiểm tra xem body có phải là một stream của file không.
-        // Nếu có, sử dụng hàm `sendfile` cực kỳ hiệu quả của Swoole để stream nó
-        // trực tiếp từ ổ đĩa, tránh việc tải toàn bộ file vào bộ nhớ của PHP.
-        // Đây là cách lý tưởng để phục vụ các file download lớn.
         $body = $response->getBody();
         $file = $body->getMetadata('uri');
         if (is_string($file) && is_file($file)) {
@@ -92,15 +84,19 @@ class SwoolePsr7Bridge
             return;
         }
 
-        // Rewind the stream before reading its content to ensure we send the full body,
-        // even if it has been read before.
         if ($body->isSeekable()) {
             $body->rewind();
         }
 
-        // Phương án dự phòng cho các response body thông thường, không phải file.
-        // Lệnh này sẽ đọc toàn bộ body vào bộ nhớ trước khi gửi đi.
-        // Nó an toàn cho các body rỗng và phù hợp cho các response HTML/JSON điển hình.
-        $swooleResponse->end($body->getContents());
+        if ($body->isReadable()) {
+            while (!$body->eof()) {
+                $chunk = $body->read(8192);
+                if (!$swooleResponse->write($chunk)) {
+                    break;
+                }
+            }
+        }
+
+        $swooleResponse->end();
     }
 }

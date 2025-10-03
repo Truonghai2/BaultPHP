@@ -2,11 +2,17 @@
 
 namespace Core\Console\Commands\Database;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use InvalidArgumentException;
 
 class MakeMigrationCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     /**
      * The name and signature of the console command.
      *

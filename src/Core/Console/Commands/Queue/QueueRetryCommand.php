@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Queue;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
 use Core\Queue\QueueManager;
@@ -10,10 +11,11 @@ use Throwable;
 class QueueRetryCommand extends BaseCommand
 {
     public function __construct(
+        Application $app,
         private QueueManager $queue,
         private FailedJobProviderInterface $failedJobProvider,
     ) {
-        parent::__construct();
+        parent::__construct($app);
     }
 
     public function signature(): string

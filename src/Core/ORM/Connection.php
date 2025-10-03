@@ -55,10 +55,6 @@ class Connection
         $configRepo = $this->app->make('config');
         $name ??= $configRepo->get('database.default', 'mysql');
 
-        // === SWOOLE CONNECTION POOL INTEGRATION ===
-        // If the application is running in a Swoole environment and the pool is initialized,
-        // we use the CoroutineConnectionManager to handle the connection lifecycle.
-        // This is crucial for efficient and safe connection management in an async context.
         if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
             /** @var CoroutineConnectionManager $manager */
             $manager = $this->app->make(CoroutineConnectionManager::class);
@@ -92,10 +88,6 @@ class Connection
 
             $this->connections[$poolKey] = $pdo;
         } catch (PDOException $e) {
-            // In a containerized environment, the application should not interactively
-            // create the database. The database should be provisioned by the
-            // infrastructure (e.g., via docker-compose environment variables).
-            // If the database is not found, we throw a clear, fatal exception.
             if (str_contains($e->getMessage(), 'Unknown database')) {
                 throw new \RuntimeException(
                     "Database `{$config['database']}` does not exist. Please ensure it is created before starting the application. Check your docker-compose.yml and .env files.",

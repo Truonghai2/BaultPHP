@@ -1,6 +1,6 @@
 services:
   app:
-    command: php cli serve:watch
+    command: php cli serve:start
 
     volumes:
       - .:/app

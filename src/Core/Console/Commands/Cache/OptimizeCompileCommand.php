@@ -2,21 +2,36 @@
 
 namespace Core\Console\Commands\Cache;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Throwable;
 
 class OptimizeCompileCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
+    /**
+     * The name and signature of the console command.
+     */
     public function signature(): string
     {
         return 'optimize:compile';
     }
 
+    /**
+     * The console command description.
+     */
     public function description(): string
     {
         return 'Compile the service container for a performance boost.';
     }
 
+    /**
+     * Execute the console command.
+     */
     public function handle(): int
     {
         $this->info('Compiling service container...');

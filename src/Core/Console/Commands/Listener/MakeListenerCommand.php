@@ -2,10 +2,16 @@
 
 namespace Core\Console\Commands\Listener;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 
 class MakeListenerCommand extends BaseCommand
 {
+    public function __construct(Application $app)
+    {
+        parent::__construct($app);
+    }
+
     public function signature(): string
     {
         return 'make:listener {name : The name of the listener class} {--module= : The module to create the listener in}';

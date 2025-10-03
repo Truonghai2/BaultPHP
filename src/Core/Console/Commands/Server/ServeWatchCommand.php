@@ -2,6 +2,7 @@
 
 namespace Core\Console\Commands\Server;
 
+use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Symfony\Component\Process\PhpExecutableFinder;
 
@@ -24,9 +25,9 @@ class ServeWatchCommand extends BaseCommand
      */
     private string|false $phpPath;
 
-    public function __construct()
+    public function __construct(Application $app)
     {
-        parent::__construct();
+        parent::__construct($app);
         $this->phpPath = (new PhpExecutableFinder())->find();
         if ($this->phpPath === false) {
             $this->error('Could not find the PHP executable.');

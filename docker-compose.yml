@@ -4,7 +4,7 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        - APP_ENV=${APP_ENV:-local}
+        - APP_ENV=${APP_ENV:-production}
     image: bault-php-app:latest
     container_name: bault_app
     restart: unless-stopped

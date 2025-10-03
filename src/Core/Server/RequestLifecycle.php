@@ -114,11 +114,10 @@ final class RequestLifecycle
      */
     private function handleException(ServerRequestInterface $request, Throwable $e): ResponseInterface
     {
+        $this->exceptionHandler->report($request, $e);
+
         if ($e instanceof ServiceUnavailableException) {
             $this->getLogger()->warning("Request [{$this->requestId}]: Service unavailable, circuit breaker is likely open.", ['exception' => $e->getMessage()]);
-        } else {
-            $this->getLogger()->error("Request [{$this->requestId}]: Unhandled exception caught.", ['exception' => $e->getMessage(), 'file' => $e->getFile(), 'line' => $e->getLine()]);
-            $this->exceptionHandler->report($e, $e);
         }
 
         return $this->exceptionHandler->render($request, $e);
@@ -129,7 +128,13 @@ final class RequestLifecycle
      */
     private function finalizeResponse(ResponseInterface $response): ResponseInterface
     {
-        return $response->withHeader('X-Request-ID', $this->requestId);
+        $response = $response->withHeader('X-Request-ID', $this->requestId);
+
+        if ($this->isDebug) {
+            $response = $response->withHeader('X-Debug-ID', $this->requestId);
+        }
+
+        return $response;
     }
 
     /**
@@ -155,15 +160,16 @@ final class RequestLifecycle
     {
         $this->endTime = microtime(true);
 
-        // Handle debug data caching if enabled.
-        if ($this->debugManager) {
+        if ($this->isDebug && $this->response && str_contains($this->response->getHeaderLine('Content-Type'), 'text/html')) {
+            $this->injectDebugBar();
+        }
+
+        if ($this->isDebug && $this->debugManager) {
             $this->handleDebugTermination();
         }
 
-        // Reset all stateful services.
         $this->stateResetter->reset();
 
-        // Clean up request-specific instances from the container.
         $this->app->forgetInstance(ServerRequestInterface::class);
         $this->app->forgetInstance(SwooleRequest::class);
         $this->app->forgetInstance('request_id');
@@ -174,14 +180,17 @@ final class RequestLifecycle
      */
     private function handleDebugTermination(): void
     {
-        if ($this->debugManager->isEnabled() && $this->response && str_contains($this->response->getHeaderLine('Content-Type'), 'text/html')) {
+        if ($this->debugManager->isEnabled()) {
             try {
                 $configService = $this->app->make('config');
                 if (method_exists($configService, 'all')) {
-                    $debugManager->recordConfig($configService->all());
+                    $this->debugManager->recordConfig([
+                        'app' => $configService->get('app', []),
+                        'database' => $configService->get('database', []),
+                    ]);
                 }
 
-                $debugManager->recordRequestInfo([
+                $this->debugManager->recordRequestInfo([
                     'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
                     'duration_ms' => round(($this->endTime - $this->startTime) * 1000, 2),
                 ]);
@@ -193,6 +202,7 @@ final class RequestLifecycle
                 /** @var SwooleServer $server */
                 $server = $this->app->make(SwooleServer::class);
                 $server->dispatchTask($task);
+
             } catch (Throwable $e) {
                 $this->getLogger()->error('Failed to dispatch debug data caching task.', ['exception' => $e]);
             }
@@ -202,5 +212,24 @@ final class RequestLifecycle
     private function getLogger(): LoggerInterface
     {
         return $this->app->make(LoggerInterface::class);
+    }
+
+    /**
+     * Injects a simple debug bar into the HTML response.
+     */
+    private function injectDebugBar(): void
+    {
+        $body = $this->response?->getBody();
+        if (!$body->isWritable()) {
+            return;
+        }
+
+        $debugUrl = '/_debug/' . $this->requestId;
+        $duration = round(($this->endTime - $this->startTime) * 1000, 2);
+        $memory = round(memory_get_peak_usage(true) / 1024 / 1024, 2);
+
+        $debugBarHtml = "<div style='position:fixed;bottom:0;left:0;right:0;padding:5px 10px;background:black;color:white;font-family:sans-serif;font-size:14px;z-index:99999;'>BaultPHP Debug | Request ID: <a href='{$debugUrl}' target='_blank' style='color:cyan'>{$this->requestId}</a> | Duration: {$duration}ms | Memory: {$memory}MB</div>";
+
+        $body->write($debugBarHtml);
     }
 }
