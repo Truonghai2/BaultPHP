@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Exceptions\Handler;
 use Core\Contracts\Exceptions\Handler as HandlerContract;
+use Core\Contracts\StatefulService;
 use Core\Support\ServiceProvider;
 
 class ExceptionServiceProvider extends ServiceProvider
@@ -16,6 +17,7 @@ class ExceptionServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(HandlerContract::class, Handler::class);
+        $this->app->tag(HandlerContract::class, StatefulService::class);
     }
 
     /**

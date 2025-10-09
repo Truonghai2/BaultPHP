@@ -2,6 +2,7 @@
 
 namespace Core\Encryption;
 
+use Core\Encryption\Exceptions\DecryptException;
 use RuntimeException;
 
 /**
@@ -72,7 +73,7 @@ class Encrypter
         $payload = json_decode(base64_decode($payload), true);
 
         if (!$this->isValidPayload($payload)) {
-            throw new RuntimeException('The payload is invalid.');
+            throw new DecryptException('The payload is invalid.');
         }
 
         $decrypted = \openssl_decrypt(
@@ -85,7 +86,7 @@ class Encrypter
         );
 
         if ($decrypted === false) {
-            throw new RuntimeException('Could not decrypt the data.');
+            throw new DecryptException('Could not decrypt the data.');
         }
 
         return $unserialize ? unserialize($decrypted) : $decrypted;

@@ -53,20 +53,18 @@ if (!empty($sentryConfig['dsn'])) {
     \Sentry\init($sentryConfig);
 }
 
-Facade::setFacadeApplication($app);
-
 /*
 |--------------------------------------------------------------------------
 | Register Service Providers
 |--------------------------------------------------------------------------
 |
-| Now we will register all of the application's service providers.
-| The ProviderRepository handles loading from cache in production
-| or discovering them on-the-fly in development environments.
+| Now we will register all of the application's service providers. This
+| is done here to ensure the container is fully configured before either
+| the HTTP or Console kernels are instantiated.
 |
 */
-(new ProviderRepository($app))->load(
-    $app->bootstrapPath('cache/services.php'),
-);
+(new ProviderRepository($app))->load($app->getCachedProvidersPath());
+
+Facade::setFacadeApplication($app);
 
 return $app;

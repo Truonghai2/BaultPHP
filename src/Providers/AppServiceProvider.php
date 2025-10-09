@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Core\Contracts\Http\Kernel as KernelContract;
+use Core\Contracts\StatefulService;
 use Core\Http\FormRequest;
 use Core\Queue\QueueManager;
 use Core\Redis\FiberRedisManager;
@@ -14,7 +15,10 @@ class AppServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        date_default_timezone_set($this->app['config']->get('app.timezone', 'UTC'));
+
         $this->app->singleton(KernelContract::class, \App\Http\Kernel::class);
+        $this->app->tag(KernelContract::class, StatefulService::class);
 
         $this->app->singleton(CentrifugoAPIService::class, function () {
             $apiUrl = config('services.centrifugo.api_url', 'http://127.0.0.1:8000');

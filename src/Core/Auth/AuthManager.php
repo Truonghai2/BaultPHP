@@ -2,102 +2,158 @@
 
 namespace Core\Auth;
 
-use Core\Application;
 use Core\Cache\CacheManager;
 use Core\Contracts\Auth\Guard;
 use Core\Contracts\Auth\UserProvider;
 use Core\Contracts\StatefulService;
+use Core\Manager;
 use InvalidArgumentException;
 use League\OAuth2\Server\ResourceServer;
 
 /**
  * @mixin \Core\Contracts\Auth\Guard
  */
-class AuthManager implements StatefulService
+class AuthManager extends Manager implements StatefulService
 {
-    protected Application $app;
-    protected array $guards = [];
-
-    public function __construct(Application $app)
+    /**
+     * Get the default authentication driver name.
+     *
+     * @return string
+     */
+    public function getDefaultDriver(): string
     {
-        $this->app = $app;
+        return $this->app->make('config')->get('auth.defaults.guard');
     }
 
+    /**
+     * Get a guard instance.
+     *
+     * @param string|null $name
+     * @return Guard
+     */
     public function guard(string $name = null): Guard
     {
-        $name = $name ?: $this->getDefaultDriver();
-
-        return $this->guards[$name] ??= $this->resolve($name);
+        return $this->driver($name);
     }
 
-    protected function resolve(string $name): Guard
+    /**
+     * Create a new driver instance.
+     *
+     * @param string $name
+     * @return mixed
+     */
+    protected function createDriver($name)
     {
-        $config = $this->getGuardConfig($name);
+        $method = 'create' . ucfirst($this->getDriverConfig($name)) . 'Driver';
 
-        if (!isset($config['driver'])) {
-            throw new InvalidArgumentException("Auth guard [{$name}] is not defined.");
+        if (method_exists($this, $method)) {
+            return $this->$method($name, $this->getGuardConfig($name));
         }
 
-        $driver = $config['driver'];
-
-        switch ($driver) {
-            case 'session':
-                $provider = $this->createUserProvider($config['provider'] ?? null);
-                return new SessionGuard(
-                    $this->app,
-                    $this->app->make('session'),
-                    $provider,
-                );
-
-            case 'token':
-                return new TokenGuard(
-                    $this->app,
-                    $this->app->make(ResourceServer::class),
-                    $this->app->make(CacheManager::class),
-                );
-
-            default:
-                throw new InvalidArgumentException("Auth driver [{$driver}] for guard [{$name}] is not supported.");
-        }
+        throw new InvalidArgumentException("Driver [{$this->getDriverConfig($name)}] for guard [{$name}] is not supported.");
     }
 
-    protected function createUserProvider(?string $providerName): UserProvider
+    /**
+     * Create a new driver instance for the 'session' guard.
+     *
+     * @param array $config
+     * @return SessionGuard
+     */
+    protected function createSessionDriver(string $name, array $config): SessionGuard
+    {
+        $provider = $this->createUserProvider($config['provider'] ?? null);
+
+        return new SessionGuard(
+            $name,
+            $this->app,
+            $this->app->make('session'),
+            $provider,
+        );
+    }
+
+    /**
+     * Create a new driver instance for the 'token' guard.
+     *
+     * @param array $config
+     * @return TokenGuard
+     */
+    protected function createTokenDriver(string $name, array $config): TokenGuard
+    {
+        return new TokenGuard(
+            $name,
+            $this->app,
+            $this->app->make(ResourceServer::class),
+            $this->app->make(CacheManager::class),
+        );
+    }
+
+    /**
+     * Create the user provider implementation for a guard.
+     *
+     * @param string|null $providerName
+     * @return UserProvider
+     * @throws \InvalidArgumentException
+     */
+    public function createUserProvider(?string $providerName): UserProvider
     {
         if (is_null($providerName)) {
             throw new InvalidArgumentException('Auth provider not defined for guard.');
         }
 
-        $config = $this->app->make('config')->get("auth.providers.{$providerName}");
+        $config = $this->getProviderConfig($providerName);
 
-        if ($config['driver'] === 'orm') {
-            return new EloquentUserProvider($config['model']);
+        if (!isset($config['driver'])) {
+            throw new InvalidArgumentException("Auth provider driver not configured for [{$providerName}].");
         }
 
-        throw new InvalidArgumentException("Auth provider driver [{$config['driver']}] is not supported.");
+        switch ($config['driver']) {
+            case 'orm':
+                return new EloquentUserProvider($config['model']);
+            default:
+                throw new InvalidArgumentException("Auth provider driver [{$config['driver']}] is not supported.");
+        }
     }
 
+    /**
+     * Get the configuration for a specific guard.
+     *
+     * @param string $name
+     * @return array
+     */
     protected function getGuardConfig(string $name): array
     {
-        return $this->app->make('config')->get("auth.guards.{$name}");
+        return $this->app->make('config')->get("auth.guards.{$name}", []);
     }
 
-    public function getDefaultDriver(): string
+    /**
+     * Get the driver name for a specific guard.
+     *
+     * @param string $name
+     * @return string
+     */
+    protected function getDriverConfig(string $name): string
     {
-        return $this->app->make('config')->get('auth.defaults.guard', 'web');
+        return $this->app->make('config')->get("auth.guards.{$name}.driver");
+    }
+
+    /**
+     * Get the configuration for a specific provider.
+     *
+     * @param string $name
+     * @return array
+     */
+    protected function getProviderConfig(string $name): array
+    {
+        return $this->app->make('config')->get("auth.providers.{$name}", []);
     }
 
     /**
      * Reset the state of the manager by clearing all resolved guard instances.
-     * This is crucial in long-running applications like Swoole to prevent
-     * user state from leaking between requests.
+     * This is crucial in long-running applications to prevent user state
+     * from leaking between requests.
      */
     public function resetState(): void
     {
-        $this->guards = [];
-    }
-
-    public function __call(string $method, array $arguments)
-    {
-        return $this->guard()->$method(...$arguments);
+        $this->drivers = [];
     }
 }

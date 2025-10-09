@@ -11,8 +11,7 @@ use Laminas\Diactoros\Uri;
 
 class PerformanceTestCommand extends BaseCommand
 {
-    public function __construct(Application
-     $app)
+    public function __construct(Application $app)
     {
         parent::__construct($app);
     }

@@ -3,6 +3,7 @@
 namespace App\Exceptions;
 
 use Core\Contracts\Exceptions\Handler as HandlerContract;
+use Core\Contracts\StatefulService;
 use Core\Contracts\View\Factory as ViewFactory;
 use Core\Http\Redirector;
 use Core\Validation\ValidationException;
@@ -13,7 +14,7 @@ use Symfony\Component\Console\Formatter\OutputFormatter;
 use Symfony\Component\Console\Output\OutputInterface;
 use Throwable;
 
-class Handler implements HandlerContract
+class Handler implements HandlerContract, StatefulService
 {
     protected array $dontReport = [
         AuthorizationException::class,
@@ -22,6 +23,11 @@ class Handler implements HandlerContract
         TokenMismatchException::class,
         MethodNotAllowedException::class,
     ];
+
+    /**
+     * @var array<int, array<string, mixed>>
+     */
+    protected array $reportedExceptions = [];
 
     public function __construct(
         protected LoggerInterface $logger,
@@ -49,6 +55,15 @@ class Handler implements HandlerContract
         if ($this->shouldntReport($e)) {
             return;
         }
+
+        $this->reportedExceptions[] = [
+            'class' => get_class($e),
+            'message' => $e->getMessage(),
+            'code' => $e->getCode(),
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString(),
+        ];
 
         $context = ['exception' => $e, 'status_code' => $this->getStatusCode($e)];
         if ($request instanceof Request) {
@@ -263,5 +278,25 @@ class Handler implements HandlerContract
         $output->writeln('');
         $output->writeln('<comment>Stack trace:</comment>');
         $output->writeln(OutputFormatter::escape($e->getTraceAsString()));
+    }
+
+    public function hasExceptions(): bool
+    {
+        return !empty($this->reportedExceptions);
+    }
+
+    public function getExceptions(): array
+    {
+        return $this->reportedExceptions;
+    }
+
+    /**
+     * Reset the state of the handler.
+     *
+     * @return void
+     */
+    public function resetState(): void
+    {
+        $this->reportedExceptions = [];
     }
 }

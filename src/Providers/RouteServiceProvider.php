@@ -19,21 +19,10 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->app->singleton(ExceptionHandlerContract::class, Handler::class);
 
-        $this->app->singleton(static::class, fn () => $this);
-
         $this->app->singleton(\Core\Routing\Router::class, function ($app) {
             return new \Core\Routing\Router($app);
         });
-
         $this->app->tag(\Core\Routing\Router::class, StatefulService::class);
-
-        $this->app->singleton(RouteRegistrar::class);
-
-        $this->app->singleton(\Core\Http\Redirector::class, function ($app) {
-            $router = $app->make(\Core\Routing\Router::class);
-            $session = $app->make(\Symfony\Component\HttpFoundation\Session\SessionInterface::class);
-            return new \Core\Http\Redirector($app, $router, $session);
-        });
     }
 
     public function boot(): void
@@ -65,6 +54,20 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapRoutes(\Core\Routing\Router $router): void
     {
         $this->mapAttributeRoutes($router);
+
+        $router->get('/{any}', function (Request $request) {
+            $path = $request->getUri()->getPath();
+            // ignore api routes
+            if (str_starts_with($path, '/api/')) {
+                throw new RouteNotFoundException("Route not found for GET {$path}");
+            }
+            // ignore file assets
+            if (preg_match('/\\.[a-zA-Z0-9]+$/', $path)) {
+                throw new RouteNotFoundException("Route not found for GET {$path}");
+            }
+
+            return view('layouts.app');
+        });
     }
 
     /**

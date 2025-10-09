@@ -13,10 +13,9 @@ class CommandDecoratorServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        // Decorate console commands with a logger, if a logger is available.
         $this->app->afterResolving(Command::class, function (Command $command) {
             if (!$command instanceof FailedCommand &&
-                $command instanceof CommandInterface && // Đảm bảo CommandInterface được implement
+                $command instanceof CommandInterface &&
                 $this->app->bound(LoggerInterface::class)
             ) {
                 $logger = $this->app->make(LoggerInterface::class);
@@ -25,6 +24,4 @@ class CommandDecoratorServiceProvider extends ServiceProvider
             return $command;
         });
     }
-
-    // No boot method is needed as decoration happens on resolution.
 }

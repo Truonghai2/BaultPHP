@@ -22,7 +22,6 @@
         <div class="mt-12">
             <h2 class="text-3xl font-bold tracking-tight text-white">Đội ngũ của chúng tôi</h2>
             <div class="mt-8 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                {{-- Sử dụng Blade Component để tái sử dụng code và làm cho view gọn gàng hơn. --}}
                 @foreach ($company['team'] as $member)
                     <x-team-member-card :member="$member" />
                 @endforeach

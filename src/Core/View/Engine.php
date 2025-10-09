@@ -27,7 +27,6 @@ class Engine
      */
     public function get(string $path, array $data, ViewFactory $factory): string
     {
-        // Nếu file là .blade.php, chúng ta sẽ biên dịch nó.
         if (str_ends_with($path, '.blade.php')) {
             if ($this->compiler->isExpired($path)) {
                 $this->compiler->compile($path);
@@ -35,19 +34,16 @@ class Engine
             $path = $this->compiler->getCompiledPath($path);
         }
 
-        // Make ViewFactory instance available as $factory inside the view
         $data['factory'] = $factory;
 
-        // Extract data variables into the local scope
         extract($data);
 
         try {
             ob_start();
-            include $path; // Include the compiled view file
+            include $path;
         } catch (Throwable $e) {
-            // Clean up and re-throw exception
             $factory->flush();
-            ob_end_clean(); // Ensure buffer is cleaned on error
+            ob_end_clean();
             throw $e;
         }
 

@@ -17,6 +17,7 @@ use Symfony\Component\HttpFoundation\Session\Session;
 
 class SessionGuard implements Guard
 {
+    protected string $name;
     protected Application $app;
     /**
      * @var CookieManager
@@ -28,8 +29,9 @@ class SessionGuard implements Guard
     protected ?EventDispatcherInterface $dispatcher;
     protected bool $userResolved = false;
 
-    public function __construct(Application $app, Session $session, UserProvider $provider)
+    public function __construct(string $name, Application $app, Session $session, UserProvider $provider)
     {
+        $this->name = $name;
         $this->app = $app;
         $this->cookieManager = $app->make(CookieManager::class);
         $this->session = $session;
@@ -152,12 +154,12 @@ class SessionGuard implements Guard
 
     protected function getName(): string
     {
-        return 'login_web_' . sha1(static::class);
+        return 'login_' . $this->name . '_' . sha1(static::class);
     }
 
     protected function getRememberMeCookieName(): string
     {
-        return 'remember_web_' . sha1(static::class);
+        return 'remember_' . $this->name . '_' . sha1(static::class);
     }
 
     protected function updateSession(string|int $id): void

@@ -2,7 +2,6 @@
 
 namespace Core\ORM;
 
-use Core\Schema\Migration;
 use Core\Schema\Schema;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
@@ -111,7 +110,7 @@ class MigrationManager
                     $class = $this->findMigrationClass($file);
                     if (!$class) {
                         $this->log("<error>Migration class not found in '{$file}' and it did not return an object.</error>");
-                        continue; 
+                        continue;
                     }
                     $instance = new $class();
                 }
@@ -125,9 +124,12 @@ class MigrationManager
                 $this->recordMigration($name, $batch);
                 $this->log("Migrated: <comment>$name</comment>");
             } catch (\Throwable $e) {
-                $this->log("<error>FATAL ERROR in migration file: {$file}</error>");
-                // Re-throw the exception to be handled by the calling command, which will stop the process.
-                throw $e;
+                if ($e instanceof \PDOException && isset($e->errorInfo[1]) && $e->errorInfo[1] == 1050) {
+                    $this->log('<warn>Skipped: ' . basename($file, '.php') . ' (Table already exists)</warn>');
+                } else {
+                    $this->log("<error>FATAL ERROR in migration file: {$file}</error>");
+                    throw $e;
+                }
             }
         }
     }

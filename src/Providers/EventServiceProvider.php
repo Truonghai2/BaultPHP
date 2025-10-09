@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Events\ResponsePrepared;
+use App\Listeners\InjectDebugbar;
 use Core\Debug\EventCollector;
 use Core\Events\Dispatcher;
 use Core\Events\EventDispatcherInterface;
@@ -28,8 +30,6 @@ class EventServiceProvider extends ServiceProvider
             return new Dispatcher($app);
         });
 
-        // Bọc (wrap) dispatcher bằng một phiên bản có thể theo dõi (traceable) nếu debug được bật.
-        // Đây là cách tiếp cận sạch sẽ để tích hợp với Debugbar.
         $this->app->extend(EventDispatcherInterface::class, function (EventDispatcherInterface $dispatcher, $app) {
             if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
                 /** @var EventCollector $collector */
@@ -56,6 +56,10 @@ class EventServiceProvider extends ServiceProvider
         }
 
         $this->registerListeners($dispatcher, $events);
+
+        if (config('app.debug', false) && !$this->app->runningInConsole()) {
+            $dispatcher->listen(ResponsePrepared::class, InjectDebugbar::class);
+        }
     }
 
     /**

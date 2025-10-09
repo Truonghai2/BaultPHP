@@ -42,4 +42,8 @@ interface Handler
      * @return void
      */
     public function renderForConsole(OutputInterface $output, Throwable $e): void;
+
+    public function hasExceptions(): bool;
+
+    public function getExceptions(): array;
 }

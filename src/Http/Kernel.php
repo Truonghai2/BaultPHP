@@ -3,7 +3,7 @@
 namespace App\Http;
 
 use App\Exceptions\Handler as ExceptionHandler;
-use Core\Application;
+use Core\{Application, Contracts\StatefulService};
 use Core\Contracts\Http\Kernel as KernelContract;
 use Core\Exceptions\HttpResponseException;
 use Core\Http\FormRequest;
@@ -17,10 +17,16 @@ use ReflectionMethod;
 use ReflectionParameter;
 use Throwable;
 
-class Kernel implements KernelContract
+class Kernel implements KernelContract, StatefulService
 {
     protected Application $app;
     protected Router $router;
+
+    /**
+     * Cache for resolved middleware instances to avoid re-instantiation on every request.
+     * @var array<string, MiddlewareInterface>
+     */
+    protected array $middlewareInstances = [];
 
     /**
      * The application's global HTTP middleware stack.
@@ -28,6 +34,7 @@ class Kernel implements KernelContract
      * @var array
      */
     protected array $middleware = [
+        \App\Http\Middleware\CollectDebugDataMiddleware::class,
         \App\Http\Middleware\ParseBodyMiddleware::class,
         \App\Http\Middleware\EnsureAdminUserExists::class,
         \App\Http\Middleware\HttpMetricsMiddleware::class,
@@ -47,7 +54,6 @@ class Kernel implements KernelContract
     protected array $middlewarePriority = [
         \App\Http\Middleware\EncryptCookies::class,
         \App\Http\Middleware\StartSession::class,
-        \App\Http\Middleware\ShareMessagesFromSession::class,
         \App\Http\Middleware\VerifyCsrfToken::class,
         \App\Http\Middleware\SubstituteBindings::class,
         \App\Http\Middleware\AddQueuedCookiesToResponse::class,
@@ -72,12 +78,12 @@ class Kernel implements KernelContract
     protected array $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
+            \App\Http\Middleware\AddQueuedCookiesToResponse::class, // Di chuyển lên đây
             \App\Http\Middleware\StartSession::class,
             \App\Http\Middleware\ShareMessagesFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\TerminateSession::class,
-            \App\Http\Middleware\AddQueuedCookiesToResponse::class,
         ],
         'api' => [
             \App\Http\Middleware\SubstituteBindings::class,
@@ -171,6 +177,11 @@ class Kernel implements KernelContract
         return $pipeline->process($request, $finalHandler);
     }
 
+    /**
+     * Resolve a middleware instance from the container.
+     * This method now caches resolved instances to improve performance.
+     * @param string|callable|\Psr\Http\Server\MiddlewareInterface $middleware
+     */
     protected function resolveMiddleware($middleware)
     {
         if ($middleware instanceof \Closure) {
@@ -178,6 +189,10 @@ class Kernel implements KernelContract
         }
 
         if (is_string($middleware)) {
+            if (isset($this->middlewareInstances[$middleware])) {
+                return $this->middlewareInstances[$middleware];
+            }
+
             [$name, $parameters] = array_pad(explode(':', $middleware, 2), 2, null);
             $parameters = $parameters ? explode(',', $parameters) : [];
 
@@ -193,10 +208,16 @@ class Kernel implements KernelContract
                 $instance->setParameters($parameters);
             }
 
+            if (empty($parameters)) {
+                $this->middlewareInstances[$middleware] = $instance;
+            }
+
             return $instance;
         }
 
-        return $this->app->make($middleware);
+        // For object instances, we assume they are stateless and can be cached by class name
+        $class = get_class($middleware);
+        return $this->middlewareInstances[$class] ??= $this->app->make($class);
     }
 
     /**
@@ -263,6 +284,14 @@ class Kernel implements KernelContract
 
     public function terminate(ServerRequestInterface $request, ResponseInterface $response): void
     {
+    }
+
+    /**
+     * Reset the state of the kernel after a request.
+     */
+    public function resetState(): void
+    {
+        // We keep the middleware instances cache as they are mostly stateless.
     }
 
     /**

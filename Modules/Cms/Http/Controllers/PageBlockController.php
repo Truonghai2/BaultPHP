@@ -2,7 +2,7 @@
 
 namespace Modules\Cms\Http\Controllers;
 
-use Core\CQRS\DispatchesCommands;
+use Core\CQRS\Command\DispatchesCommands;
 use Modules\Cms\Application\Commands\DeleteBlockCommand;
 use Modules\Cms\Infrastructure\Models\PageBlock;
 

@@ -3,8 +3,10 @@
 namespace Modules\Centrifugo\Providers;
 
 use Core\Support\ServiceProvider;
+use GuzzleHttp\Client as GuzzleClient;
 use InvalidArgumentException;
 use Modules\Centrifugo\Infrastructure\Services\CentrifugoAPIService;
+use Psr\Log\LoggerInterface;
 
 class CentrifugoServiceProvider extends ServiceProvider
 {
@@ -15,7 +17,7 @@ class CentrifugoServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->app->singleton(CentrifugoAPIService::class, function () {
+        $this->app->singleton(CentrifugoAPIService::class, function ($app) {
             $apiUrl = config('centrifugo.api_url');
             $apiKey = config('centrifugo.api_key');
 
@@ -23,7 +25,12 @@ class CentrifugoServiceProvider extends ServiceProvider
                 throw new InvalidArgumentException('Centrifugo API URL or API Key is not configured in config/centrifugo.php or .env file.');
             }
 
-            return new CentrifugoAPIService($apiUrl, $apiKey);
+            return new CentrifugoAPIService(
+                $apiUrl,
+                $apiKey,
+                $app->make(GuzzleClient::class),
+                $app->make(LoggerInterface::class),
+            );
         });
     }
 

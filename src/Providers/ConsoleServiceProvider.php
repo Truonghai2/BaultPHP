@@ -2,10 +2,8 @@
 
 namespace App\Providers;
 
-use Core\CLI\ConsoleKernel;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Console\Kernel as KernelContract;
-use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 
 /**
@@ -20,7 +18,7 @@ class ConsoleServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(KernelContract::class, function ($app) {
-            return new ConsoleKernel($app);
+            return new \Core\CLI\ConsoleKernel($app);
         });
 
         $this->registerCommands();
@@ -29,8 +27,6 @@ class ConsoleServiceProvider extends ServiceProvider
     /**
      * Đăng ký các lệnh console cốt lõi.
      *
-     * Chúng ta sử dụng pattern `singleton` và `tag` để cho phép Kernel của console
-     * tự động phát hiện và nạp các lệnh này.
      */
     protected function registerCommands(): void
     {
@@ -44,8 +40,10 @@ class ConsoleServiceProvider extends ServiceProvider
             }
 
             foreach ($commands as $command) {
-                $this->app->singleton($command);
-                $this->app->tag($command, 'console.command');
+                if (class_exists($command) && (is_subclass_of($command, BaseCommand::class) || is_subclass_of($command, \Symfony\Component\Console\Command\Command::class))) {
+                    $this->app->singleton($command);
+                    $this->app->tag($command, 'console.command');
+                }
             }
         }
     }
@@ -57,69 +55,77 @@ class ConsoleServiceProvider extends ServiceProvider
      */
     public function discoverCommands(): array
     {
-        /** @var Filesystem $files */
-        $files = $this->app->make(Filesystem::class);
-        $basePath = $this->app->basePath();
+        // We can't use the config service here as it might not be registered yet.
+        // We must load the app config file directly.
+        $appConfig = require $this->app->configPath('app.php');
+        $coreProviders = $appConfig['providers'] ?? [];
 
-        $paths = [
-            $basePath . '/src/Console/Commands',
-            $basePath . '/src/Core/Console/Commands',
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
+        if ($moduleJsonPaths === false) {
+            $moduleJsonPaths = [];
+        }
+
+        $commandPaths = [
+            'Core\\Console\\Commands' => $this->app->basePath('src/Core/Console/Commands'),
+            'App\\Console\\Commands' => $this->app->basePath('src/App/Console/Commands'),
         ];
 
-        $modulePaths = glob($basePath . '/Modules/*/Console/Commands', GLOB_ONLYDIR);
-        if ($modulePaths) {
-            $paths = array_merge($paths, $modulePaths);
+        foreach ($moduleJsonPaths as $path) {
+            $data = json_decode(file_get_contents($path), true);
+            if (!empty($data['name']) && ($data['enabled'] ?? false) === true) {
+                $moduleName = $data['name'];
+                $moduleCommandPath = $this->app->basePath("Modules/{$moduleName}/Console");
+                if (is_dir($moduleCommandPath)) {
+                    $commandPaths["Modules\\{$moduleName}\\Console"] = $moduleCommandPath;
+                }
+            }
         }
 
-        $moduleConsolePaths = glob($basePath . '/Modules/*/Console', GLOB_ONLYDIR);
-        if ($moduleConsolePaths) {
-            $paths = array_merge($paths, $moduleConsolePaths);
+        // Filter out paths that don't actually exist to prevent Finder exceptions.
+        $existingPaths = array_filter($commandPaths, 'is_dir');
+
+        if (empty($existingPaths)) {
+            return [];
         }
+
+        $finder = new \Symfony\Component\Finder\Finder();
+        $finder->files()->in(array_values($existingPaths))->name('*.php');
 
         $discoveredCommands = [];
 
-        foreach ($paths as $path) {
-            if (!$files->isDirectory($path)) {
-                continue;
-            }
-
-            foreach ($files->allFiles($path) as $file) {
-                if ($file->getExtension() !== 'php') {
-                    continue;
-                }
-
-                $class = $this->classFromFile($file, $basePath);
-
-                if ($class && is_subclass_of($class, BaseCommand::class) && !(new \ReflectionClass($class))->isAbstract()) {
-                    $discoveredCommands[] = $class;
-                }
+        foreach ($finder as $file) {
+            $class = $this->getClassFromFile($file, $commandPaths);
+            if ($class && $this->isInstantiableCommand($class)) {
+                $discoveredCommands[] = $class;
             }
         }
 
-        return array_values(array_unique($discoveredCommands));
+        return array_unique($discoveredCommands);
     }
 
-    /**
-     * Derives the full class name from a file path based on project structure.
-     */
-    protected function classFromFile(\SplFileInfo $file, string $basePath): ?string
+    private function getClassFromFile(\SplFileInfo $file, array $commandPaths): ?string
     {
-        $path = str_replace([$basePath, '.php'], '', $file->getRealPath());
-        $path = trim($path, DIRECTORY_SEPARATOR);
-
-        if (str_starts_with($path, 'src' . DIRECTORY_SEPARATOR . 'Core')) {
-            // src\Core\Console\Commands\TinkerCommand -> Core\Console\Commands\TinkerCommand
-            $class = 'Core' . substr($path, strlen('src' . DIRECTORY_SEPARATOR . 'Core'));
-        } elseif (str_starts_with($path, 'src')) {
-            // src\Console\Commands\MyCommand -> App\Console\Commands\MyCommand
-            $class = 'App' . substr($path, strlen('src'));
-        } elseif (str_starts_with($path, 'Modules')) {
-            // Modules\User\Console\Commands\UserCommand -> Modules\User\Console\Commands\UserCommand
-            $class = $path;
-        } else {
-            return null;
+        foreach ($commandPaths as $namespace => $path) {
+            if (str_starts_with($file->getRealPath(), realpath($path))) {
+                $relativePath = ltrim(substr($file->getPathname(), strlen($path)), DIRECTORY_SEPARATOR);
+                $class = $namespace . '\\' . str_replace(
+                    ['/', '.php'],
+                    ['\\', ''],
+                    $relativePath,
+                );
+                return $class;
+            }
         }
+        return null;
+    }
 
-        return str_replace(DIRECTORY_SEPARATOR, '\\', $class);
+    private function isInstantiableCommand(string $class): bool
+    {
+        try {
+            $reflection = new \ReflectionClass($class);
+            return !$reflection->isAbstract() && $reflection->isSubclassOf(\Symfony\Component\Console\Command\Command::class);
+        } catch (\ReflectionException $e) {
+            return false;
+        }
     }
 }

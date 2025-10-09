@@ -3,13 +3,14 @@
 namespace App\Providers;
 
 use Core\Contracts\StatefulService;
+use Core\Contracts\Support\DeferrableProvider;
 use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\Translation\FileLoader;
 use Core\Translation\TranslatorResetter;
 use Illuminate\Translation\Translator;
 
-class TranslationServiceProvider extends ServiceProvider
+class TranslationServiceProvider extends ServiceProvider implements DeferrableProvider
 {
     public function register(): void
     {

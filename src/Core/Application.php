@@ -23,7 +23,7 @@ class Application implements ContainerInterface, \ArrayAccess
     /** @var array<string, array<int, \Closure>> The registered extenders for services. */
     protected array $extenders = [];
 
-    /** @var array<string, array<int, string>> Mảng lưu trữ các tag và các abstract được gán. */
+    /** @var array<string, array<int, string>> The array of tags and their assigned abstracts. */
     protected array $tags = [];
 
     /** @var array The compiled container factories. */
@@ -630,6 +630,11 @@ class Application implements ContainerInterface, \ArrayAccess
         return $this->basePath('bootstrap' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
     }
 
+    public function configPath(string $path = ''): string
+    {
+        return $this->basePath('config' . ($path ? DIRECTORY_SEPARATOR . $path : ''));
+    }
+
     public function getCachedRoutesPath(): string
     {
         return $this->basePath('bootstrap/cache/routes.php');
@@ -666,7 +671,7 @@ class Application implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * Gán một tag cho một hoặc nhiều abstract.
+     * Assign a tag to one or more abstracts.
      *
      * @param  string|array  $abstracts
      * @param  string  $tag
@@ -695,7 +700,7 @@ class Application implements ContainerInterface, \ArrayAccess
     }
 
     /**
-     * Resolve tất cả các binding đã được gán một tag nhất định.
+     * Resolve all bindings that have been assigned a given tag.
      *
      * @param  string  $tag
      * @return array<object>

@@ -4,13 +4,6 @@ namespace Core\Foundation;
 
 use Core\Application;
 
-/**
- * Manages the discovery, caching, and registration of service providers.
- *
- * This class centralizes the logic for finding all service providers from the core configuration
- * and from all enabled modules. It ensures that this discovery logic is not duplicated
- * between the application bootstrap process and the caching commands.
- */
 class ProviderRepository
 {
     public function __construct(protected Application $app)
@@ -65,10 +58,9 @@ class ProviderRepository
      */
     public function discover(): array
     {
-        // Must register config provider first to be able to read other configs.
-        $this->app->register(\App\Providers\ConfigServiceProvider::class);
-
-        $coreProviders = $this->app->make('config')->get('app.providers', []);
+        // We can't use the config service here as it's not registered yet.
+        // We must load the app config file directly.
+        $coreProviders = $this->getProvidersFromAppConfig();
 
         $moduleProviders = [];
         $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
@@ -88,9 +80,44 @@ class ProviderRepository
             }
         }
 
-        $allProviders = array_values(array_unique(array_merge($coreProviders, $moduleProviders)));
-        sort($allProviders);
+        $frameworkProviders = [];
+        $otherProviders = [];
 
-        return $allProviders;
+        // Get all unique providers from core and modules.
+        $allProviders = array_unique(array_merge($coreProviders, $moduleProviders));
+
+        // Separate framework providers from application providers to control load order.
+        foreach ($allProviders as $provider) {
+            if (str_starts_with($provider, 'Core\\')) {
+                $frameworkProviders[] = $provider;
+            } else {
+                $otherProviders[] = $provider;
+            }
+        }
+
+        sort($frameworkProviders);
+        sort($otherProviders);
+
+        // Ensure ConfigServiceProvider is always first.
+        $configProvider = \App\Providers\ConfigServiceProvider::class;
+        $otherProviders = array_filter($otherProviders, fn ($p) => $p !== $configProvider); // Remove it from its current position
+
+        // Rebuild the array with the correct, stable order.
+        return array_values(array_merge([$configProvider], $frameworkProviders, $otherProviders));
+    }
+
+    /**
+     * Get the providers from the main app config file.
+     *
+     * @return array
+     */
+    private function getProvidersFromAppConfig(): array
+    {
+        $configPath = $this->app->basePath('config/app.php');
+        if (!file_exists($configPath)) {
+            return [];
+        }
+        $appConfig = require $configPath;
+        return $appConfig['providers'] ?? [];
     }
 }

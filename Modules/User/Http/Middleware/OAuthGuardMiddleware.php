@@ -22,11 +22,8 @@ class OAuthGuardMiddleware extends Middleware
     public function handle(RequestInterface $request, Closure $next, ...$scopes): ResponseInterface
     {
         try {
-            // TokenGuard (được resolve từ auth('api')) sẽ xử lý việc xác thực.
-            // Phương thức validate() sẽ ném OAuthServerException nếu thất bại.
             auth()->guard('api')->validate();
 
-            // Lấy các scope đã được xác thực từ guard
             $tokenScopes = auth()->guard('api')->getScopes();
 
             if (count($scopes) > 0) {

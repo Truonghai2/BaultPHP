@@ -4,31 +4,32 @@ declare(strict_types=1);
 
 namespace Modules\User\Http\Controllers;
 
-use Core\CQRS\CommandBus;
+use Core\CQRS\Command\CommandBus;
+use Core\CQRS\Query\QueryBus;
 use Core\Routing\Attributes\Route;
 use Modules\User\Application\Commands\DeleteUserCommand;
 use Modules\User\Application\Commands\UpdateUserProfileCommand;
-use Modules\User\Application\UserFinder;
 use Modules\User\Http\Requests\UpdateUserRequest;
 use Psr\Http\Message\ResponseInterface;
 
 #[Route('/api/users')]
 class UserController
 {
-    // Inject service Query và CommandBus chung
     public function __construct(
-        private readonly UserFinder $userFinder,
         private readonly CommandBus $commandBus,
+        private readonly QueryBus $queryBus,
     ) {
     }
 
     /**
-     * QUERY: Lấy một user theo ID. Sử dụng UserFinder đã được tối ưu cho việc đọc.
+     * QUERY: Lấy một user theo ID. Sử dụng QueryBus.
      */
     #[Route('/{id}', method: 'GET')]
     public function show($id): ResponseInterface
     {
-        $userDto = $this->userFinder->findById((int)$id);
+        // Tạo và dispatch query
+        $query = new \Modules\User\Application\Queries\FindUserByIdQuery((int)$id);
+        $userDto = $this->queryBus->dispatch($query);
 
         if (!$userDto) {
             return response()->json(['message' => 'User not found'], 404);

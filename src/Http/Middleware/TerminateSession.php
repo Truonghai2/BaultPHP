@@ -31,18 +31,23 @@ class TerminateSession implements MiddlewareInterface
         if ($session->isStarted()) {
             $session->save();
 
+            $config = $this->app->make('config')->get('session');
+
+            $lifetime = $config['expire_on_close'] ? 0 : $config['lifetime'];
+
             $this->cookieManager->queue(
                 $session->getName(),
                 $session->getId(),
-                $this->getCookieLifetimeInMinutes(),
+                $lifetime,
+                $config['path'],
+                $config['domain'],
+                $config['secure'],
+                $config['http_only'],
+                false,
+                $config['same_site'],
             );
         }
 
         return $response;
-    }
-
-    protected function getCookieLifetimeInMinutes(): int
-    {
-        return $this->app->make('config')->get('session.lifetime', 120);
     }
 }

@@ -2,13 +2,13 @@
 
 namespace Modules\User\Http\Controllers\Auth;
 
-use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Modules\User\Application\Commands\LoginUserCommand;
 use Modules\User\Application\Handlers\LoginUserHandler;
 use Modules\User\Application\Handlers\LogoutUserHandler;
 use Modules\User\Http\Requests\LoginRequest;
+use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
@@ -17,10 +17,9 @@ use Symfony\Component\HttpFoundation\Session\SessionInterface;
 class LoginController extends Controller
 {
     #[Route(method: 'GET', uri: '/login', name: 'login.view')]
-    public function view(): View
+    public function view(): ResponseInterface
     {
-        sdd('ok');
-        return view('user::auth.login');
+        return new Response(200, ['Content-Type' => 'text/html'], view('user::auth.login')->render());
     }
 
     /**

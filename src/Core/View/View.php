@@ -21,31 +21,26 @@ class View implements ViewContract
     public function render(): string
     {
         try {
-            // Biên dịch file view hiện tại (view con)
             if ($this->compiler->isExpired($this->path)) {
                 $this->compiler->compile($this->path);
             }
 
-            // Lấy đường dẫn file đã biên dịch của view con
             $compiledPath = $this->compiler->getCompiledPath($this->path);
 
-            // Thực thi file đã biên dịch của view con để thu thập các section
             $this->factory->evaluatePath($compiledPath, $this->data);
 
-            // Kiểm tra xem view con có kế thừa từ layout nào không
             if ($layout = $this->factory->popLayout()) {
-                // Nếu có, tìm và biên dịch layout cha
                 $layoutPath = $this->factory->findView(trim($layout, "'\""));
+
                 if ($this->compiler->isExpired($layoutPath)) {
                     $this->compiler->compile($layoutPath);
                 }
+
                 $compiledPath = $this->compiler->getCompiledPath($layoutPath);
             }
 
-            // Thực thi file đã biên dịch cuối cùng (layout cha hoặc chính nó)
             return $this->factory->evaluatePath($compiledPath, $this->data);
         } finally {
-            // Luôn dọn dẹp tất cả trạng thái (sections, stacks, components) sau khi render xong.
             $this->factory->resetState();
         }
     }

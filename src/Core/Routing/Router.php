@@ -85,7 +85,13 @@ class Router implements StatefulService
     {
         if (isset($this->routes[$method])) {
             foreach ($this->routes[$method] as $routeUri => $route) {
-                $pattern = preg_replace('/\{([a-zA-Z0-9_]+)\}/', '(?P<$1>[^/]+)', $routeUri);
+                $pattern = preg_replace_callback('/\{([a-zA-Z0-9_]+)\}/', static function ($matches) {
+                    if ($matches[1] === 'any') {
+                        return '(?P<any>.*)';
+                    }
+
+                    return '(?P<' . $matches[1] . '>[^/]+)';
+                }, $routeUri);
                 if (preg_match('#^' . $pattern . '$#', $uri, $matches)) {
                     $parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
                     $route->setParameters($parameters);
@@ -218,7 +224,7 @@ class Router implements StatefulService
     {
         return $this->namedRoutes[$name] ?? null;
     }
-    
+
     /**
      * Get all of the registered routes for the `route:list` command.
      *

@@ -50,25 +50,16 @@ final class RequestLifecycle
     {
         try {
             $this->initialize($swooleRequest);
-
             $psr7Request = $this->transformRequest($swooleRequest);
-
             $this->response = $this->executeKernel($psr7Request);
-
-            $this->response = $this->finalizeResponse($this->response);
-
-            $this->sendResponse($this->response, $swooleResponse);
         } catch (Throwable $e) {
-            // If an exception occurs before the kernel is even called, handle it.
-            if (!$this->response) {
-                $psr7Request = $this->app->bound(ServerRequestInterface::class)
-                    ? $this->app->make(ServerRequestInterface::class)
-                    : $this->psr7Bridge->toPsr7Request($swooleRequest);
-
-                $this->response = $this->handleException($psr7Request, $e);
-                $this->sendResponse($this->response, $swooleResponse);
-            }
+            $psr7Request = $this->app->bound(ServerRequestInterface::class)
+                ? $this->app->make(ServerRequestInterface::class)
+                : $this->psr7Bridge->toPsr7Request($swooleRequest);
+            $this->response = $this->handleException($psr7Request, $e);
         } finally {
+            $this->response = $this->finalizeResponse($this->response);
+            $this->sendResponse($this->response, $swooleResponse);
             $this->terminate();
         }
     }
@@ -160,10 +151,6 @@ final class RequestLifecycle
     {
         $this->endTime = microtime(true);
 
-        if ($this->isDebug && $this->response && str_contains($this->response->getHeaderLine('Content-Type'), 'text/html')) {
-            $this->injectDebugBar();
-        }
-
         if ($this->isDebug && $this->debugManager) {
             $this->handleDebugTermination();
         }
@@ -182,12 +169,24 @@ final class RequestLifecycle
     {
         if ($this->debugManager->isEnabled()) {
             try {
+                /** @var \Core\Contracts\Config\Repository $configService */
                 $configService = $this->app->make('config');
-                if (method_exists($configService, 'all')) {
-                    $this->debugManager->recordConfig([
-                        'app' => $configService->get('app', []),
-                        'database' => $configService->get('database', []),
-                    ]);
+                $this->debugManager->recordConfig($configService->all());
+
+                if ($this->app->bound(ServerRequestInterface::class)) {
+                    $request = $this->app->make(ServerRequestInterface::class);
+                    $this->debugManager->add('cookies', $request->getCookieParams());
+                }
+
+                if ($this->app->bound(\Symfony\Component\HttpFoundation\Session\SessionInterface::class)) {
+                    /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
+                    $session = $this->app->make(\Symfony\Component\HttpFoundation\Session\SessionInterface::class);
+                    if ($session->isStarted()) {
+                        $this->debugManager->add('session', $session->all());
+                    }
+                }
+                if ($this->exceptionHandler->hasExceptions()) {
+                    $this->debugManager->add('exceptions', $this->exceptionHandler->getExceptions());
                 }
 
                 $this->debugManager->recordRequestInfo([
@@ -212,24 +211,5 @@ final class RequestLifecycle
     private function getLogger(): LoggerInterface
     {
         return $this->app->make(LoggerInterface::class);
-    }
-
-    /**
-     * Injects a simple debug bar into the HTML response.
-     */
-    private function injectDebugBar(): void
-    {
-        $body = $this->response?->getBody();
-        if (!$body->isWritable()) {
-            return;
-        }
-
-        $debugUrl = '/_debug/' . $this->requestId;
-        $duration = round(($this->endTime - $this->startTime) * 1000, 2);
-        $memory = round(memory_get_peak_usage(true) / 1024 / 1024, 2);
-
-        $debugBarHtml = "<div style='position:fixed;bottom:0;left:0;right:0;padding:5px 10px;background:black;color:white;font-family:sans-serif;font-size:14px;z-index:99999;'>BaultPHP Debug | Request ID: <a href='{$debugUrl}' target='_blank' style='color:cyan'>{$this->requestId}</a> | Duration: {$duration}ms | Memory: {$memory}MB</div>";
-
-        $body->write($debugBarHtml);
     }
 }

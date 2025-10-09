@@ -8,6 +8,7 @@ use Core\Console\Commands\Queue\QueueFlushCommand;
 use Core\Console\Commands\Queue\QueueForgetCommand;
 use Core\Console\Commands\Queue\WorkCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
+use Core\Contracts\Support\DeferrableProvider;
 use PhpAmqpLib\Connection\AMQPStreamConnection;
 
 /**
@@ -15,7 +16,7 @@ use PhpAmqpLib\Connection\AMQPStreamConnection;
  *
  * Registers all queue related services into the container.
  */
-class QueueServiceProvider extends BaseServiceProvider
+class QueueServiceProvider extends BaseServiceProvider implements DeferrableProvider
 {
     /**
      * All of the console commands that should be registered.
@@ -130,6 +131,7 @@ class QueueServiceProvider extends BaseServiceProvider
             \Core\Contracts\Queue\Queue::class,
             QueueWorker::class,
             AMQPStreamConnection::class,
+            FailedJobProviderInterface::class,
         ];
     }
 }

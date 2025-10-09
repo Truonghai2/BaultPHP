@@ -51,6 +51,19 @@ class DebugManager implements StatefulService
     }
 
     /**
+     * Sets the debug data, merging it with existing data.
+     * This is used to import data from the main DebugBar service.
+     */
+    public function setData(array $data): void
+    {
+        if (!$this->enabled) {
+            return;
+        }
+        // Recursively replace data to ensure nested arrays are merged correctly.
+        $this->data = array_replace_recursive($this->data, $data);
+    }
+
+    /**
      * Reset trạng thái của manager, sẵn sàng cho request tiếp theo.
      */
     public function resetState(): void
@@ -89,6 +102,24 @@ class DebugManager implements StatefulService
         $this->data['info'] = array_merge($this->data['info'], $info);
     }
 
+    /**
+     * Ghi lại một event đã được dispatched.
+     *
+     * @param string $name Tên của event.
+     * @param mixed $payload Dữ liệu của event.
+     */
+    public function recordEvent(string $name, mixed $payload): void
+    {
+        if (!$this->isEnabled()) {
+            return;
+        }
+        $this->data['events'][] = [
+            'name' => $name,
+            'payload' => is_string($payload) ? $payload : json_encode($payload, JSON_PRETTY_PRINT),
+            'timestamp' => microtime(true),
+        ];
+    }
+
     public function recordQuery(string $query, array $bindings = [], float $time = 0.0): void
     {
         if (!$this->isEnabled()) {
@@ -98,6 +129,19 @@ class DebugManager implements StatefulService
             'query' => $query,
             'bindings' => $bindings,
             'time' => $time,
+        ];
+    }
+
+    public function recordBrowserEvent(string $event, mixed $payload = null): void
+    {
+        if (!$this->isEnabled()) {
+            return;
+        }
+
+        $this->data['browser_events'][] = [
+            'event' => $event,
+            'payload' => $payload,
+            'timestamp' => microtime(true),
         ];
     }
 }

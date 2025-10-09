@@ -13,7 +13,10 @@
     <div class="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40">
         <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-xl lg:flex-shrink-0 lg:pt-8">
             <div class="flex items-center gap-x-4">
-                <img class="h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
+                <picture>
+                    {{-- <source srcset="{{ asset('images/logo/BaultPHP.webp') }}" type="image/webp"> --}}
+                    <img class="h-12" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
+                </picture>
                 <div class="rounded-full px-3 py-1 text-sm leading-6 text-gray-300 ring-1 ring-gray-700/10">
                     Just Released <a href="#" class="font-semibold text-indigo-400">v1.0.0 <span aria-hidden="true">&rarr;</span></a>
                 </div>
@@ -196,112 +199,19 @@ class CreateUser implements CommandHandler
 @endsection
 
 @push('styles')
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.css">
-<style>
-    /* Code container styling */
-    .code-with-line-numbers {
-        background: #1e1e1e !important;
-        border-radius: 0.5rem;
-        margin: 0 !important;
-        padding: 1.5rem 0 !important;
-    }
-
-    /* Base code styling */
-    pre[class*="language-"] {
-        background: transparent !important;
-        margin: 0 !important;
-        padding: 0 !important;
-    }
-
-    code[class*="language-"] {
-        text-shadow: none !important;
-        font-family: 'JetBrains Mono', Consolas, Monaco, monospace !important;
-        font-size: 0.875rem !important;
-        line-height: 1.6 !important;
-        tab-size: 4;
-    }
-
-    /* Line numbers container */
-    .line-numbers .line-numbers-rows {
-        top: -1.5rem !important;
-        left: 0 !important;
-        min-width: 3rem !important;
-        border-right: 1px solid #404040 !important;
-        padding: 1.5rem 0 !important;
-        background: rgba(0, 0, 0, 0.2) !important;
-    }
-
-    /* Line number styling */
-    .line-numbers-rows > span:before {
-        color: #858585 !important;
-        text-align: center !important;
-        padding-right: 0.8em !important;
-    }
-
-    /* Token colors */
-    .token.comment { color: #6A9955 !important; }
-    .token.keyword { color: #569CD6 !important; }
-    .token.string { color: #CE9178 !important; }
-    .token.function { color: #DCDCAA !important; }
-    .token.class-name { color: #4EC9B0 !important; }
-    .token.variable { color: #9CDCFE !important; }
-    .token.operator { color: #D4D4D4 !important; }
-    .token.punctuation { color: #D4D4D4 !important; }
-
-    /* Code block scrollbar */
-    .code-with-line-numbers::-webkit-scrollbar {
-        width: 8px;
-        height: 8px;
-    }
-
-    .code-with-line-numbers::-webkit-scrollbar-track {
-        background: #1e1e1e;
-        border-radius: 4px;
-    }
-
-    .code-with-line-numbers::-webkit-scrollbar-thumb {
-        background: #424242;
-        border-radius: 4px;
-        border: 2px solid #1e1e1e;
-    }
-
-    .code-with-line-numbers::-webkit-scrollbar-thumb:hover {
-        background: #4f4f4f;
-    }
-
-    /* Code block padding */
-    .code-with-line-numbers code {
-        padding: 0 1.5rem 0 4rem !important;
-        display: block;
-    }
-
-    /* Fix Firefox scrollbar */
-    .code-with-line-numbers {
-        scrollbar-width: thin;
-        scrollbar-color: #424242 #1e1e1e;
-    }
-
-    /* Add some space between line numbers and code */
-    .line-numbers-rows {
-        margin-right: 1rem;
-    }
-
-    /* Override Prism default padding */
-    pre[class*="language-"].line-numbers {
-        padding-left: 0 !important;
-    }
-</style>
+{{-- Tất cả CSS cho Prism đã được chuyển vào app.css --}}
 @endpush
 
 @push('scripts')
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-php.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/line-numbers/prism-line-numbers.min.js"></script>
 <script>
-    // Reinitialize Prism after page load
     document.addEventListener('DOMContentLoaded', (event) => {
         Prism.highlightAll();
+    });
+
+    document.addEventListener('spa:content-replaced', () => {
+        if (window.Prism) {
+            Prism.highlightAll();
+        }
     });
 </script>
 @endpush

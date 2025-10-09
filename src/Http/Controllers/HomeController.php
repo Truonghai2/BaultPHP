@@ -22,4 +22,11 @@ class HomeController extends \Core\Http\Controller
 
         return response(view('welcome', $data));
     }
+
+    #[Route('/test/cookie', method: 'GET', name: 'test.cookie', group: 'web')]
+    public function testCookie(): ResponseInterface
+    {
+        cookie('bault_test_cookie', 'Xin chào từ BaultFrame! Thời gian: ' . time(), 3600);
+        return response('Cookie test route. Check your browser cookies.');
+    }
 }

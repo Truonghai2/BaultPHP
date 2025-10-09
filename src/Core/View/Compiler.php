@@ -43,6 +43,8 @@ class Compiler
         $value = $this->compileVerbatim($value);
 
         $value = $this->compileIncludes($value);
+        $value = $this->compileProps($value);
+        $value = $this->compileSlots($value);
         $value = $this->compileStacks($value);
         $value = $this->compileComponents($value);
 
@@ -211,10 +213,31 @@ class Compiler
      */
     protected function compileComponents(string $value): string
     {
-        $value = preg_replace('/@component\s*\((.*)\)/', '<?php $__env->startComponent($1); ?>', $value);
-        $value = str_replace('@endcomponent', '<?php echo $__env->renderComponent(); ?>', $value);
-        $value = preg_replace('/@slot\s*\(\s*\'(.*?)\'\s*\)/', '<?php $__env->slot(\'$1\'); ?>', $value);
+        // This regex handles x-component syntax
+        $value = preg_replace_callback('/<x-([a-zA-Z0-9\.-]+::)?([a-zA-Z0-9\.-]+)([^>]*)>/', function ($matches) {
+            $module = $matches[1]; // e.g., "user::"
+            $component = $matches[2]; // e.g., "alert"
+            $attributes = $matches[3];
+            $viewName = $module ? str_replace('::', '::components.', $module) . $component : 'components.' . $component;
+            return "<?php \$__env->startComponent('{$viewName}', {$this->compileAttributes($attributes)}); ?>";
+        }, $value);
+
+        $value = preg_replace('/<\/x-([a-zA-Z0-9\.-]+::)?[a-zA-Z0-9\.-]+>/', '<?php echo $__env->renderComponent(); ?>', $value);
+
+        return $value;
+    }
+
+    /**
+     * Compile Blade slot statements.
+     *
+     * @param string $value
+     * @return string
+     */
+    protected function compileSlots(string $value): string
+    {
+        $value = preg_replace('/@slot\s*\((.*?)\)/', '<?php $__env->slot($1); ?>', $value);
         $value = str_replace('@endslot', '<?php $__env->endSlot(); ?>', $value);
+
         return $value;
     }
 
@@ -315,46 +338,144 @@ class Compiler
     }
 
     /**
-     * Compile Blade extra directives.
+     * Compile the props statement into valid PHP.
      *
      * @param string $value
      * @return string
      */
+    protected function compileProps(string $value): string
+    {
+        return preg_replace_callback('/@props\s*\((.*?)\)/s', function ($matches) {
+            $expression = $matches[1];
+            $arrayExpression = '[' . trim($expression, '[]') . ']';
+
+            try {
+                $props = eval("return {$arrayExpression};");
+            } catch (\Throwable) {
+                return $matches[0];
+            }
+
+            $output = '';
+            foreach ($props as $key => $defaultValue) {
+                if (is_numeric($key)) {
+                    $propName = $defaultValue;
+                    $output .= "<?php \${$propName} = \${$propName} ?? null; ?>";
+                } else {
+                    $propName = $key;
+                    $exportedValue = var_export($defaultValue, true);
+                    $output .= "<?php \${$propName} = \${$propName} ?? {$exportedValue}; ?>";
+                }
+            }
+
+            return $output;
+        }, $value);
+    }
+
+    /**
+     * Compile component attributes.
+     *
+     * @param string $attributeString
+     * @return string
+     */
+    protected function compileAttributes(string $attributeString): string
+    {
+        $pattern = '/
+            (?<attribute>
+                :?
+                [\w\-:]+
+            )
+            (
+                =
+                (?<value>
+                    (
+                        "([^"]*)"
+                        |
+                        \'([^\']*)\'
+                        |
+                        [^\s>]+
+                    )
+                )
+            )?
+        /x';
+
+        preg_match_all($pattern, $attributeString, $matches, PREG_SET_ORDER);
+
+        $attributes = [];
+        foreach ($matches as $match) {
+            $name = $match['attribute'];
+            $value = $match['value'] ?? null;
+
+            $attributes[$name] = $value;
+        }
+
+        return '[' . collect($attributes)->map(function ($value, $name) {
+            return $this->compileAttribute($name, $value);
+        })->implode(',') . ']';
+    }
+
+    /**
+     * Compile Blade extra directives.
+     *
+     * @param string $value
+     * @return stringd
+     */
     protected function compileExtraDirectives(string $value): string
     {
-        // @auth / @endauth
         $value = str_replace('@auth', '<?php if(auth()->check()): ?>', $value);
         $value = str_replace('@endauth', '<?php endif; ?>', $value);
 
-        // @guest / @endguest
         $value = str_replace('@guest', '<?php if(auth()->guest()): ?>', $value);
         $value = str_replace('@endguest', '<?php endif; ?>', $value);
 
-        // @once / @endonce
         $value = preg_replace('/@once/', '<?php if (! $__env->hasRenderedOnce($once = Str::random())): $__env->markAsRenderedOnce($once); ?>', $value);
         $value = str_replace('@endonce', '<?php endif; ?>', $value);
 
-        // @switch / @case / @break / @default / @endswitch
         $value = preg_replace('/@switch\s*\((.*)\)/', '<?php switch($1):', $value);
         $value = preg_replace('/@case\s*\((.*)\)/', 'case $1:', $value);
         $value = str_replace('@break', '<?php break; ?>', $value);
         $value = str_replace('@default', 'default:', $value);
         $value = str_replace('@endswitch', '<?php endswitch; ?>', $value);
 
-        // @dump / @dd
         $value = preg_replace('/@dump\s*\((.*)\)/', '<?php dump($1); ?>', $value);
         $value = preg_replace('/@dd\s*\((.*)\)/', '<?php dd($1); ?>', $value);
 
-        // Compile custom directives
         foreach ($this->customDirectives as $name => $handler) {
-            // Pattern to match @directive(expression) or @directive
             $pattern = '/@' . preg_quote($name, '/') . '(?:\s*\((.*?)\))?/';
             $value = preg_replace_callback($pattern, function ($matches) use ($handler) {
-                // Pass the expression inside the parentheses (or null if not present) to the handler
                 return $handler($matches[1] ?? null);
             }, $value);
         }
 
         return $value;
+    }
+
+    /**
+     * Compile a single component attribute.
+     *
+     * @param string $name
+     * @param string|null $value
+     * @return string
+     */
+    protected function compileAttribute(string $name, ?string $value): string
+    {
+        // wire:* attributes are passed through directly.
+        if (str_starts_with($name, 'wire:')) {
+            return "'{$name}' => " . ($value ?? 'true');
+        }
+
+        // Dynamic-value attribute (e.g., :message="$message")
+        if (str_starts_with($name, ':')) {
+            $name = substr($name, 1);
+            $value = trim($value, '"\''); // Remove quotes to pass the expression directly
+        }
+        // Boolean attribute (e.g., `disabled`) or normal string attribute
+        else {
+            $value = $value === null ? 'true' : $value;
+        }
+
+        // Convert kebab-case to camelCase for prop names
+        $propName = \Illuminate\Support\Str::camel($name);
+
+        return "'{$propName}' => {$value}";
     }
 }

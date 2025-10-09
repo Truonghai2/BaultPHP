@@ -1,49 +1,124 @@
 @if(config('debug.enabled', false))
 <style>
     #debug-bar {
+        font-family: monospace;
+        font-size: 14px;
+        color: var(--color-text);
+    }
+
+    #debug-bar[data-theme="light"] {
+        --color-primary: #007bff;
+        --color-text: #212529;
+        --color-bg-darkest: #f8f9fa;
+        --color-bg-darker: #e9ecef;
+        --color-bg-dark: #dee2e6;
+        --color-bg-hover: #ced4da;
+        --color-pre-bg: #e0e0e0;
+        --color-border: #ced4da;
+        --color-danger: #c53030;
+        --color-danger-dark: #dc3545;
+        --color-success: #2f855a;
+        --color-info: #2b6cb0;
+        --color-warning: #b7791f;
+        --color-muted: #6c757d;
+        --color-primary-highlight: rgba(0, 123, 255, 0.2);
+    }
+
+    #debug-bar[data-theme="dark"] {
+        --color-primary: #f80;
+        --color-text: #eee;
+        --color-bg-darkest: #1a1a1a;
+        --color-bg-darker: #222;
+        --color-bg-dark: #333;
+        --color-bg-hover: #444;
+        --color-pre-bg: #282c34;
+        --color-border: #444;
+        --color-danger: #c53030;
+        --color-danger-dark: #8b1a1a;
+        --color-success: #2f855a;
+        --color-info: #2b6cb0;
+        --color-warning: #b7791f;
+        --color-muted: #6c757d;
+        --color-primary-highlight: rgba(255, 136, 0, 0.3);
+    }
+
+    #debug-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         width: 100%;
-        background-color: #222;
-        color: #eee;
-        font-family: monospace;
-        font-size: 14px;
         z-index: 99999;
-        border-top: 2px solid #f80;
-        max-height: 50vh;
         display: flex;
         flex-direction: column;
+        background-color: var(--color-bg-darker);
+        border-top: 2px solid var(--color-primary);
+        max-height: 90vh;
+        min-height: 30px;
+        resize: vertical;
     }
+
+    #debug-bar-resize-handle {
+        width: 100%;
+        height: 5px;
+        background-color: var(--color-bg-dark);
+        cursor: ns-resize;
+        position: absolute;
+        top: -3px;
+        transition: background-color 0.2s ease-in-out;
+    }
+    #debug-bar-resize-handle:hover {
+        background-color: var(--color-primary);
+    }
+
     #debug-bar-header {
         display: flex;
         padding: 5px 10px;
-        background-color: #333;
+        background-color: var(--color-bg-dark);
         cursor: pointer;
+        align-items: center;
+    }
+    #debug-bar-header .debug-tab-link {
+        padding: 5px 10px;
+        margin-right: 5px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s ease-in-out;
+        white-space: nowrap;
+    }
+    #debug-bar-header .debug-tab-link:hover {
+        background-color: var(--color-bg-hover);
+    }
+    #debug-bar-header .debug-tab-link.active {
+        background-color: var(--color-bg-darkest);
+        border-bottom-color: var(--color-primary);
     }
     #debug-bar-header span {
         margin-right: 20px;
     }
     #debug-bar-header span b {
-        color: #f80;
+        color: var(--color-primary);
     }
+
+    /* --- Vùng nội dung --- */
     #debug-bar-content {
         overflow: auto;
         padding: 10px;
-        background-color: #1a1a1a;
+        background-color: var(--color-bg-darkest);
         display: none;
+        flex-grow: 1;
     }
     #debug-bar-content h3 {
-        color: #f80;
-        border-bottom: 1px solid #444;
+        color: var(--color-primary);
+        border-bottom: 1px solid var(--color-border);
         padding-bottom: 5px;
+        margin-top: 0;
     }
     #debug-bar-content pre {
         white-space: pre-wrap;
         word-wrap: break-word;
-        background: #282c34;
+        background: var(--color-pre-bg);
         padding: 10px;
         border-radius: 5px;
+        margin-top: 5px;
     }
     #debug-bar-content dl {
         margin: 10px 0;
@@ -51,129 +126,731 @@
     }
     #debug-bar-content dt {
         font-weight: bold;
-        color: #f80;
+        color: var(--color-primary);
     }
     #debug-bar-content dd {
         margin-left: 20px;
         margin-bottom: 10px;
     }
-    #debug-bar-content dd pre { margin-top: 5px; }
+
+    /* --- Badges --- */
+    .debug-badge {
+        color: white;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: bold;
+        display: inline-block;
+        text-align: center;
+    }
+    .debug-duplicate-badge {
+        background-color: var(--color-danger-dark);
+        margin-left: 10px;
+    }
+    .debug-cache-badge { /* Lớp này vẫn giữ lại để tương thích với các selector khác */
+        margin-right: 10px;
+        min-width: 45px;
+    }
+    .badge-hit { background-color: var(--color-success); }
+    .badge-miss { background-color: var(--color-danger); }
+    .badge-write { background-color: var(--color-info); }
+    .badge-forget { background-color: var(--color-warning); }
+    .badge-default { background-color: var(--color-muted); }
+
+    /* Route Badges */
+    .badge-route-get { background-color: var(--color-info); }
+    .badge-route-post { background-color: var(--color-success); }
+    .badge-route-put,
+    .badge-route-patch { background-color: var(--color-warning); }
+    .badge-route-delete { background-color: var(--color-danger); }
+    .badge-route-options,
+    .badge-route-head { background-color: var(--color-muted); }
+
+    /* --- Input tìm kiếm --- */
+    .debug-search-input {
+        width: 100%;
+        padding: 5px 8px;
+        margin-bottom: 15px;
+        background-color: var(--color-bg-darkest);
+        color: var(--color-text);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        box-sizing: border-box;
+        font-family: monospace;
+    }
+
+    /* --- Panel Exceptions --- */
+    #debug-content-exceptions .exception-item {
+        margin-bottom: 20px;
+        border-left: 3px solid var(--color-danger);
+        padding-left: 15px;
+    }
+    #debug-content-exceptions summary {
+        cursor: pointer;
+        color: var(--color-primary);
+    }
+
+    /* --- Timeline Events --- */
+    .debug-timeline-container {
+        position: relative;
+        width: 100%;
+        height: 30px;
+        background-color: var(--color-bg-dark);
+        border-radius: 4px;
+        margin: 20px 0;
+    }
+    .debug-timeline-event {
+        position: absolute;
+        top: 0;
+        height: 100%;
+        width: 2px;
+        background-color: var(--color-primary);
+        cursor: pointer;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .debug-timeline-event:hover {
+        transform: scaleY(1.5);
+        background-color: #ffc107; /* a brighter color on hover */
+    }
+    .debug-timeline-tooltip {
+        display: none;
+        position: absolute;
+        bottom: 120%; /* Position above the event marker */
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: var(--color-bg-hover);
+        color: var(--color-text);
+        padding: 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        white-space: nowrap;
+        z-index: 100000;
+        pointer-events: none;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.5);
+    }
+    .debug-timeline-event:hover .debug-timeline-tooltip {
+        display: block;
+    }
+
+    /* --- Hiệu ứng highlight --- */
+    .debug-item-highlight {
+        animation: debug-highlight-fade 2s ease-out;
+    }
+
+    @keyframes debug-highlight-fade {
+        from { background-color: var(--color-primary-highlight); }
+        to { background-color: transparent; }
+    }
+
+    /* --- Theme Switcher --- */
+    #debug-theme-switcher {
+        position: relative;
+        margin-left: auto;
+    }
+    #debug-theme-switcher-btn {
+        background: none;
+        border: 1px solid var(--color-border);
+        color: var(--color-text);
+        padding: 2px 8px;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+    #debug-theme-switcher-menu {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        right: 0;
+        background-color: var(--color-bg-darkest);
+        border: 1px solid var(--color-border);
+        border-radius: 4px;
+        padding: 5px;
+        min-width: 100px;
+        z-index: 100001;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+    #debug-theme-switcher-menu a {
+        display: block;
+        padding: 5px 10px;
+        color: var(--color-text);
+        text-decoration: none;
+        border-radius: 3px;
+    }
+    #debug-theme-switcher-menu a:hover {
+        background-color: var(--color-bg-hover);
+    }
+    #debug-theme-switcher:hover #debug-theme-switcher-menu {
+        display: block;
+    }
 </style>
 
-<div id="debug-bar">
+<div id="debug-bar" data-theme="light">
+    <div id="debug-bar-resize-handle"></div>
     <div id="debug-bar-header">
-        <span>Bault Debug</span>
+        <span class="debug-tab-link" data-tab="info" id="debug-info-request">Bault</span>
+        <span class="debug-tab-link" data-tab="queries" id="debug-info-queries"></span>
+        <span class="debug-tab-link" data-tab="events" id="debug-info-events"></span>
+        <span class="debug-tab-link" data-tab="cache" id="debug-info-cache"></span>
+        <span class="debug-tab-link" data-tab="session" id="debug-info-session"></span>
+        <span class="debug-tab-link" data-tab="cookies" id="debug-info-cookies"></span>
+        <span class="debug-tab-link" data-tab="exceptions" id="debug-info-exceptions"></span>
+        <span class="debug-tab-link" data-tab="routes" id="debug-info-routes"></span>
+        <span class="debug-tab-link" data-tab="config" id="debug-info-config"></span>
+        <span class="debug-tab-link" data-tab="auth" id="debug-info-auth"></span>
         <span id="debug-info-duration"></span>
         <span id="debug-info-memory"></span>
-        <span id="debug-info-queries"></span>
-        <span id="debug-info-events"></span>
-        <span id="debug-info-config"></span>
+        <div id="debug-theme-switcher">
+            <button id="debug-theme-switcher-btn">Theme</button>
+            <div id="debug-theme-switcher-menu">
+                <a href="#" data-theme="light">Light</a>
+                <a href="#" data-theme="dark">Dark</a>
+            </div>
+        </div>
     </div>
     <div id="debug-bar-content">
-        <div id="debug-content-queries"></div>
-        <div id="debug-content-events"></div>
-        <div id="debug-content-info"></div>
-        <div id="debug-content-config"></div>
+        <div class="debug-content-panel" id="debug-content-info"></div>
+        <div class="debug-content-panel" id="debug-content-queries" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-events" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-cache" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-session" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-cookies" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-exceptions" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-routes" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-config" style="display: none;"></div>
+        <div class="debug-content-panel" id="debug-content-auth" style="display: none;"></div>
     </div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const originalFetch = window.fetch;
-    window.fetch = function(...args) {
-        const promise = originalFetch.apply(this, args);
-        promise.then(response => {
-            if (response.headers.has('X-Debug-ID')) {
-                const debugId = response.headers.get('X-Debug-ID');
-                fetchDebugData(debugId);
+    const BaultDebugBar = {
+        elements: {},
+        state: {
+            startY: 0,
+            startHeight: 0,
+            lastRequestId: null,
+            isFetching: false,
+        },
+
+        init() {
+            this.cacheElements();
+            // Lấy ID request ban đầu từ dữ liệu được nhúng
+            this.state.lastRequestId = sessionStorage.getItem('bault-debug-last-id');
+            this.initEventListeners();
+            this.loadFromSession();
+            this.initTheme();
+        },
+
+        loadFromSession() {
+            try {
+                const lastData = sessionStorage.getItem('bault-debug-bar-data');
+                if (lastData) {
+                    const parsedData = JSON.parse(lastData);
+                    this.update(parsedData);
+                    this.state.lastRequestId = parsedData?.info?.id || null;
+                }
+            } catch (err) {
+                // ignore corrupted session storage
+                console.warn('BaultDebugBar: invalid session data', err);
             }
-        });
-        return promise;
+        },
+
+        cacheElements() {
+            const ids = [
+                'debug-bar', 'debug-bar-header', 'debug-bar-content', 'debug-bar-resize-handle',
+                'debug-info-request', 'debug-info-duration', 'debug-info-memory', 'debug-info-queries', 'debug-info-events',
+                'debug-info-config', 'debug-info-cache', 'debug-info-routes', 'debug-info-session', 'debug-info-cookies', 'debug-info-exceptions', 'debug-info-auth',
+                'debug-content-queries', 'debug-content-events', 'debug-content-info', 'debug-content-config', 
+                'debug-content-cache', 'debug-content-routes', 'debug-content-session', 'debug-content-cookies', 'debug-content-exceptions', 'debug-content-auth'
+            ];
+            ids.forEach(id => {
+                const camelCaseId = id.replace(/-(\w)/g, (_, c) => c.toUpperCase());
+                this.elements[camelCaseId] = document.getElementById(id);
+            });
+        },
+
+        initEventListeners() {
+            const header = this.elements.debugBarHeader;
+            if (header) {
+                header.addEventListener('click', (e) => {
+                    const target = e.target.closest('.debug-tab-link');
+                    if (target && target.dataset && target.dataset.tab) {
+                        this.switchTab(target.dataset.tab);
+                    }
+                });
+            }
+
+            if (this.elements.debugInfoRequest) {
+                this.elements.debugInfoRequest.addEventListener('dblclick', () => this.toggleContent());
+            }
+            if (this.elements.debugBarResizeHandle) {
+                this.elements.debugBarResizeHandle.addEventListener('mousedown', (e) => this.initResize(e));
+            }
+
+            // Open content when click any tab link (safe guard if elements are missing)
+            document.querySelectorAll('.debug-tab-link').forEach(tab => {
+                tab.addEventListener('click', () => this.openContent());
+            });
+
+            document.addEventListener('bault:debug-data-updated', (e) => {
+                const data = e.detail;
+                if (data) {
+                    this.processNewData(data);
+                }
+            });
+
+            document.addEventListener('bault:spa-navigated', () => {
+                this.fetchDebugData();
+            });
+        },
+
+        fetchDebugData() {
+            if (this.state.isFetching) return;
+            this.state.isFetching = true;
+
+            fetch('/bault-debug/data')
+                .then(response => response.json())
+                .then(data => {
+                    if (data && data.info && data.info.id !== this.state.lastRequestId) {
+                        this.processNewData(data);
+                    }
+                })
+                .catch(err => console.warn('BaultDebugBar: failed to fetch debug data', err))
+                .finally(() => {
+                    this.state.isFetching = false;
+                });
+        },
+
+        processNewData(data) {
+            if (!data || !data.info || !data.info.id) return;
+            this.state.lastRequestId = data.info.id;
+            try {
+                sessionStorage.setItem('bault-debug-bar-data', JSON.stringify(data));
+                sessionStorage.setItem('bault-debug-last-id', data.info.id);
+            } catch (err) {
+                console.warn('BaultDebugBar: failed to save session', err);
+            }
+            this.update(data);
+        },
+        
+        initTheme() {
+            const savedTheme = localStorage.getItem('bault-debug-theme') || 'light';
+            this.applyTheme(savedTheme);
+
+            document.getElementById('debug-theme-switcher-menu').addEventListener('click', (e) => {
+                e.preventDefault();
+                const target = e.target.closest('[data-theme]');
+                if (target) {
+                    this.applyTheme(target.dataset.theme);
+                }
+            });
+        },
+
+        applyTheme(themeName) {
+            if (this.elements.debugBar) {
+                this.elements.debugBar.dataset.theme = themeName;
+            }
+            localStorage.setItem('bault-debug-theme', themeName);
+        },
+
+        update(data) {
+            if (!data) return;
+            const { info = {}, queries = [], events = [], config = {}, cache = null, routes = [], session = {}, cookies = {}, exceptions = [], auth = null, browser_events = [] } = data;
+            const el = this.elements;
+
+            if (el.debugInfoDuration) el.debugInfoDuration.innerHTML = `Time: <b>${info.duration_ms || '?' }ms</b>`;
+            if (el.debugInfoMemory) el.debugInfoMemory.innerHTML = `Memory: <b>${info.memory_peak || '?'}</b>`;
+            if (el.debugInfoQueries) el.debugInfoQueries.innerHTML = `Queries: <b>${queries.length || 0}</b>`;
+            if (el.debugInfoEvents) el.debugInfoEvents.innerHTML = `Events: <b>${(events || []).length}</b>`;
+            if (el.debugInfoSession) el.debugInfoSession.innerHTML = `Session: <b>${Object.keys(session || {}).length}</b>`;
+            if (el.debugInfoCookies) el.debugInfoCookies.innerHTML = `Cookies: <b>${Object.keys(cookies || {}).length}</b>`;
+            if (el.debugInfoExceptions) el.debugInfoExceptions.innerHTML = `Exceptions: <b style="color: ${exceptions.length > 0 ? '#c53030' : '#f80'}">${exceptions.length}</b>`;
+            if (el.debugInfoConfig) el.debugInfoConfig.innerHTML = `Config: <b>Loaded</b>`;
+            if (el.debugInfoRoutes) el.debugInfoRoutes.innerHTML = `Routes: <b>${(routes || []).length}</b>`;
+
+            if (el.debugContentInfo) el.debugContentInfo.innerHTML = `<h3>Request Info</h3><pre><code>${this.safeStringify(info)}</code></pre>`;
+            if (el.debugContentConfig) el.debugContentConfig.innerHTML = `<h3>Application Configuration</h3><pre><code>${this.safeStringify(config)}</code></pre>`;
+
+            if (el.debugContentQueries) this.renderQueries(queries, el.debugContentQueries);
+            if (el.debugContentEvents) this.renderEvents(events, el.debugContentEvents, info);
+            if (el.debugContentCache) this.renderCache(cache, el.debugInfoCache, el.debugContentCache);
+            if (el.debugContentRoutes) this.renderRoutes(routes, el.debugContentRoutes);
+            if (el.debugContentSession) this.renderSession(session, el.debugContentSession);
+            if (el.debugContentCookies) this.renderCookies(cookies, el.debugContentCookies);
+            if (el.debugContentAuth) this.renderAuth(auth, el.debugInfoAuth, el.debugContentAuth);
+            if (el.debugContentExceptions) this.renderExceptions(exceptions, el.debugContentExceptions);
+
+            // Dispatch browser events if any
+            this.dispatchBrowserEvents(browser_events);
+
+            // Setup search filters (only creates listeners if inputs exist)
+            this.setupSearchFilter('debug-search-queries', '#debug-content-queries dl dt, #debug-content-queries dl dd');
+            this.setupSearchFilter('debug-search-events', '#debug-content-events dl dt, #debug-content-events dl dd');
+            this.setupSearchFilter('debug-search-cache', '#debug-content-cache dl dt, #debug-content-cache dl dd');
+            this.setupSearchFilter('debug-search-routes', '#debug-content-routes dl dt, #debug-content-routes dl dd');
+            this.setupSearchFilter('debug-search-session', '#debug-content-session dl dt, #debug-content-session dl dd');
+            this.setupSearchFilter('debug-search-cookies', '#debug-content-cookies dl dt, #debug-content-cookies dl dd');
+            this.setupSearchFilter('debug-search-auth', '#debug-content-auth dl dt, #debug-content-auth dl dd');
+            this.setupSearchFilter('debug-search-exceptions', '#debug-content-exceptions .exception-item');
+        },
+
+        safeStringify(obj) {
+            try {
+                return JSON.stringify(obj, null, 2);
+            } catch (err) {
+                return String(obj);
+            }
+        },
+
+        dispatchBrowserEvents(browserEvents) {
+            if (!Array.isArray(browserEvents) || browserEvents.length === 0) {
+                return;
+            }
+            browserEvents.forEach(event => {
+                try {
+                    console.log(`BaultDebugBar: Dispatching event '${event.event}'`, event.payload);
+                    document.dispatchEvent(new CustomEvent(event.event, { detail: event.payload }));
+                } catch (err) {
+                    console.warn('BaultDebugBar: failed dispatch event', err);
+                }
+            });
+        },
+
+        renderQueries(queries, container) {
+            container.innerHTML = '<h3>SQL Queries</h3>';
+
+            if (queries && queries.length > 0) {
+                const queryCounts = queries.reduce((acc, q) => {
+                    const normalized = (q.sql || '').trim();
+                    acc[normalized] = (acc[normalized] || 0) + 1;
+                    return acc;
+                }, {});
+        
+                const searchInput = document.createElement('input');
+                searchInput.type = 'text';
+                searchInput.id = 'debug-search-queries';
+                searchInput.className = 'debug-search-input';
+                searchInput.placeholder = 'Search queries (e.g., SELECT, users, DUPLICATE)...';
+                container.appendChild(searchInput);
+
+                const dl = document.createElement('dl');
+                const fragment = document.createDocumentFragment();
+
+                queries.forEach(q => {
+                    const normalizedSql = (q.sql || '').trim();
+                    const count = queryCounts[normalizedSql] || 0;
+                    const duplicateBadge = count > 1 ? `<span class="debug-duplicate-badge">DUPLICATE x${count}</span>` : '';
+                    dl.innerHTML += `<dt>[${q.duration_ms || 0}ms]${duplicateBadge}</dt><dd><pre><code>${this.escapeHtml(normalizedSql)}</code></pre></dd>`;
+                });
+                container.appendChild(dl);
+            } else {
+                container.innerHTML += '<p>No queries recorded.</p>';
+            }
+        },
+
+        renderEvents(events, container, requestInfo) {
+            let html = '<h3>Dispatched Events</h3>';
+
+            // Timeline Chart
+            if (events && events.length > 0 && requestInfo && requestInfo.start_time && requestInfo.duration_ms) {
+                html += '<h4>Events Timeline</h4>';
+                html += '<div class="debug-timeline-container">';
+                const startTime = requestInfo.start_time;
+                const totalDuration = requestInfo.duration_ms;
+
+                events.forEach((event, index) => {
+                    if (!event.timestamp) return;
+                    const timeOffset = (event.timestamp - startTime) * 1000; // in ms (assumes timestamp in seconds)
+                    const leftPercentage = (timeOffset / totalDuration) * 100;
+                    const targetId = `debug-event-item-${index}`;
+
+                    if (leftPercentage >= 0 && leftPercentage <= 100) {
+                        html += `
+                            <div class="debug-timeline-event" data-target-id="${targetId}" style="left: ${leftPercentage.toFixed(2)}%;"><div class="debug-timeline-tooltip"><strong>${this.escapeHtml(event.name)}</strong><br>Time: ${timeOffset.toFixed(2)} ms</div></div>
+                        `;
+                    }
+                });
+                html += '</div>';
+            }
+
+            if (events && events.length > 0) {
+                html += '<input type="text" id="debug-search-events" class="debug-search-input" placeholder="Search event names or payload...">';
+                html += '<dl>';
+                events.forEach((e, index) => {
+                    const itemId = `debug-event-item-${index}`;
+                    let payloadHtml = '';
+                    if (e.payload && typeof e.payload === 'string') {
+                        try {
+                            const parsed = JSON.parse(e.payload);
+                            payloadHtml = `<pre><code>${this.escapeHtml(JSON.stringify(parsed, null, 2))}</code></pre>`;
+                        } catch (err) {
+                            payloadHtml = `<pre><code>${this.escapeHtml(e.payload)}</code></pre>`;
+                        }
+                    } else if (e.payload) {
+                        payloadHtml = `<pre><code>${this.escapeHtml(this.safeStringify(e.payload))}</code></pre>`;
+                    } else {
+                        payloadHtml = `<pre><code>Not available</code></pre>`;
+                    }
+                    html += `<dt id="${itemId}">${this.escapeHtml(e.name)}</dt><dd>${payloadHtml}</dd>`;
+                });
+                html += '</dl>';
+            } else {
+                html += '<p>No events recorded.</p>';
+            }
+            container.innerHTML = html;
+        },
+
+        renderCache(cacheData, headerEl, contentEl) {
+            if (!headerEl || !contentEl) return;
+
+            if (!cacheData) {
+                headerEl.innerHTML = 'Cache: <b>—</b>';
+                contentEl.innerHTML = '<h3>Cache Events</h3><p>No cache data available.</p>';
+                return;
+            }
+
+            const { hits = 0, misses = 0, writes = 0, events = [] } = cacheData;
+            headerEl.innerHTML = `Cache: <b>H:${hits} M:${misses} W:${writes}</b>`;
+
+            let html = '<h3>Cache Events</h3>';
+            html += '<input type="text" id="debug-search-cache" class="debug-search-input" placeholder="Search cache keys or event type (HIT, MISS)...">';
+
+            if (events.length > 0) {
+                html += '<dl>';
+                events.forEach(c => {
+                    const eventType = (c.event || 'default').toString().toUpperCase();
+                    const badgeClass = `badge-${eventType.toLowerCase()}`;
+                    const badge = `<span class="debug-cache-badge ${badgeClass}">${eventType}</span>`;
+                    html += `<dt>${badge}${this.escapeHtml(c.key || '')}</dt>`;
+
+                    let valueHtml = '<em>Value not shown.</em>';
+                    if (c.value !== undefined && c.value !== null && eventType !== 'MISS' && eventType !== 'FORGET') {
+                        const safeValue = typeof c.value === 'string' ? this.escapeHtml(c.value) : this.escapeHtml(this.safeStringify(c.value));
+                        valueHtml = `<pre><code>${safeValue}</code></pre>`;
+                    }
+                    html += `<dd>${valueHtml}</dd>`;
+                });
+                html += '</dl>';
+            } else {
+                html += '<p>No cache events recorded for this request.</p>';
+            }
+            contentEl.innerHTML = html;
+        },
+
+        renderRoutes(routes, container) {
+            let html = '<h3>Registered Routes</h3>';
+            if (routes && routes.length > 0) {
+                html += '<input type="text" id="debug-search-routes" class="debug-search-input" placeholder="Search routes by URI or action...">';
+                html += '<dl>';
+                routes.forEach(r => {
+                    const methodClass = `badge-route-${(r.method || '').toString().toLowerCase()}`;
+                    const methodBadge = `<span class="debug-cache-badge ${methodClass}">${this.escapeHtml(r.method || '')}</span>`;
+                    html += `<dt>${methodBadge}${this.escapeHtml(r.uri || '')}</dt>`;
+                    html += `<dd><pre><code>${this.escapeHtml(r.action || '')}</code></pre></dd>`;
+                });
+                html += '</dl>';
+            } else {
+                html += '<p>No routes to display.</p>';
+            }
+            container.innerHTML = html;
+        },
+
+        renderSession(session, container) {
+            let html = '<h3>Session Data</h3>';
+            if (session && Object.keys(session).length > 0) {
+                html += '<input type="text" id="debug-search-session" class="debug-search-input" placeholder="Search session keys or values...">';
+                html += '<dl>';
+                for (const key in session) {
+                    html += `<dt>${this.escapeHtml(key)}</dt>`;
+                    const value = typeof session[key] === 'object' ? this.safeStringify(session[key]) : String(session[key]);
+                    html += `<dd><pre><code>${this.escapeHtml(value)}</code></pre></dd>`;
+                }
+                html += '</dl>';
+            } else {
+                html += '<p>No session data for this request.</p>';
+            }
+            container.innerHTML = html;
+        },
+
+        renderCookies(cookies, container) {
+            let html = '<h3>Cookie Data</h3>';
+            if (cookies && Object.keys(cookies).length > 0) {
+                html += '<input type="text" id="debug-search-cookies" class="debug-search-input" placeholder="Search cookie names or values...">';
+                html += '<dl>';
+                for (const key in cookies) {
+                    html += `<dt>${this.escapeHtml(key)}</dt>`;
+                    html += `<dd><pre><code>${this.escapeHtml(String(cookies[key]))}</code></pre></dd>`;
+                }
+                html += '</dl>';
+            } else {
+                html += '<p>No cookies for this request.</p>';
+            }
+            container.innerHTML = html;
+        },
+
+        renderAuth(authData, headerEl, contentEl) {
+            if (!headerEl || !contentEl) return;
+
+            headerEl.style.display = '';
+            if (!authData) {
+                headerEl.style.display = 'none';
+                return;
+            }
+
+            if (authData.authenticated) {
+                headerEl.innerHTML = `Auth: <b>ID ${this.escapeHtml(String(authData.id || ''))}</b>`;
+                let html = '<h3>Authenticated User</h3>';
+                html += '<input type="text" id="debug-search-auth" class="debug-search-input" placeholder="Search user attributes...">';
+                html += '<dl>';
+                html += `<dt>Guard</dt><dd><pre><code>${this.escapeHtml(String(authData.guard || ''))}</code></pre></dd>`;
+                html += `<dt>User Class</dt><dd><pre><code>${this.escapeHtml(String(authData.class || ''))}</code></pre></dd>`;
+                html += `<dt>User Data</dt><dd><pre><code>${this.escapeHtml(this.safeStringify(authData.user || {}))}</code></pre></dd>`;
+                html += '</dl>';
+                contentEl.innerHTML = html;
+            } else {
+                headerEl.innerHTML = `Auth: <b>Guest</b>`;
+                contentEl.innerHTML = '<h3>Authentication</h3><p>No user is authenticated for this request.</p>';
+            }
+        },
+
+        renderExceptions(exceptions, container) {
+            let html = '<h3>Exceptions</h3>';
+            if (exceptions && exceptions.length > 0) {
+                html += '<input type="text" id="debug-search-exceptions" class="debug-search-input" placeholder="Search exception message, file...">';
+                exceptions.forEach((ex) => {
+                    html += `<div class="exception-item">`;
+                    html += `<h4>${this.escapeHtml(ex.class || 'Exception')}</h4>`;
+                    html += `<p><strong>Message:</strong> ${this.escapeHtml(ex.message || '')}</p>`;
+                    html += `<p><strong>File:</strong> ${this.escapeHtml((ex.file || '') + ':' + (ex.line || ''))}</p>`;
+                    html += `<details><summary>Stack Trace</summary><pre><code>${this.escapeHtml(ex.trace || '')}</code></pre></details>`;
+                    html += `</div>`;
+                });
+            } else {
+                html += '<p>No exceptions recorded for this request.</p>';
+            }
+            container.innerHTML = html;
+        },
+
+        setupSearchFilter(inputId, itemSelector) {
+            const searchInput = document.getElementById(inputId);
+            if (!searchInput) return;
+
+            // Remove existing listener if any to avoid duplication
+            const newInput = searchInput.cloneNode(true);
+            searchInput.parentNode.replaceChild(newInput, searchInput);
+
+            newInput.addEventListener('keyup', function() {
+                const searchTerm = this.value.toLowerCase();
+                const items = document.querySelectorAll(itemSelector);
+                
+                // Handle paired dt/dd items (assumes selector returns dt then dd pairs)
+                if (itemSelector.includes('dl')) {
+                    for (let i = 0; i < items.length; i += 2) {
+                        const dt = items[i];
+                        const dd = items[i + 1];
+                        const combinedText = (dt ? dt.textContent : '') + (dd ? dd.textContent : '');
+                        const isVisible = combinedText.toLowerCase().includes(searchTerm);
+                        if (dt) dt.style.display = isVisible ? '' : 'none';
+                        if (dd) dd.style.display = isVisible ? '' : 'none';
+                    }
+                } else {
+                    items.forEach(item => {
+                        const isVisible = item.textContent.toLowerCase().includes(searchTerm);
+                        item.style.display = isVisible ? '' : 'none';
+                    });
+                }
+            });
+        },
+
+        switchTab(tabId) {
+            // hide all panels
+            document.querySelectorAll('.debug-content-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+            // deactivate all tabs
+            document.querySelectorAll('.debug-tab-link').forEach(link => {
+                link.classList.remove('active');
+            });
+
+            const panel = document.getElementById(`debug-content-${tabId}`);
+            const tab = document.querySelector(`[data-tab="${tabId}"]`);
+            if (panel) panel.style.display = 'block';
+            if (tab) tab.classList.add('active');
+        },
+
+        toggleContent() {
+            const content = this.elements.debugBarContent;
+            if (!content) return;
+            // Toggle display
+            content.style.display = (content.style.display && content.style.display !== 'none') ? 'none' : 'block';
+        },
+
+        openContent() {
+            if (this.elements.debugBarContent) this.elements.debugBarContent.style.display = 'block';
+        },
+
+        initResize(e) {
+            e.preventDefault();
+            this.state.startY = e.clientY;
+            this.state.startHeight = parseInt(document.defaultView.getComputedStyle(this.elements.debugBar).height, 10) || 200;
+            
+            // Bind `this` to ensure correct context in event handlers
+            this.boundResize = this.resize.bind(this);
+            this.boundStopResize = this.stopResize.bind(this);
+
+            document.documentElement.addEventListener('mousemove', this.boundResize);
+            document.documentElement.addEventListener('mouseup', this.boundStopResize);
+        },
+
+        resize(e) {
+            const newHeight = this.state.startHeight - (e.clientY - this.state.startY);
+            const minHeight = 30;
+            const maxHeight = window.innerHeight * 0.9;
+
+            if (this.elements.debugBar && newHeight > minHeight && newHeight < maxHeight) {
+                this.elements.debugBar.style.height = newHeight + 'px';
+            }
+        },
+
+        stopResize() {
+            document.documentElement.removeEventListener('mousemove', this.boundResize);
+            document.documentElement.removeEventListener('mouseup', this.boundStopResize);
+        },
+
+        scrollToAndHighlight(elementId) {
+            const targetElement = document.getElementById(elementId);
+            if (!targetElement) return;
+
+            targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            // Thêm class highlight và xóa sau 2 giây
+            targetElement.classList.add('debug-item-highlight');
+            setTimeout(() => {
+                targetElement.classList.remove('debug-item-highlight');
+            }, 2000);
+        },
+
+        escapeHtml(str) {
+            if (str === null || str === undefined) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        }
     };
 
-    function fetchDebugData(id) {
-        fetch(`/_debug/${id}`)
-            .then(res => res.json())
-            .then(data => {
-                if (data.error) {
-                    console.warn('DebugBar:', data.error);
-                    return;
-                }
-                updateDebugBar(data);
-            })
-            .catch(err => console.error('Failed to fetch debug data:', err));
-    }
+    BaultDebugBar.init();
 
-    function updateDebugBar(data) {
-        const durationEl = document.getElementById('debug-info-duration');
-        const memoryEl = document.getElementById('debug-info-memory');
-        const queriesEl = document.getElementById('debug-info-queries');
-        const eventsEl = document.getElementById('debug-info-events');
-        const configEl = document.getElementById('debug-info-config');
-        const queriesContentEl = document.getElementById('debug-content-queries');
-        const eventsContentEl = document.getElementById('debug-content-events');
-        const infoContentEl = document.getElementById('debug-content-info');
-        const configContentEl = document.getElementById('debug-content-config');
+    @php
+        $debugData = app()->has('debug_manager') ? app('debug_manager')->getData() : null;
+    @endphp
 
-        durationEl.innerHTML = `Time: <b>${data.info.duration_ms || '?'}ms</b>`;
-        memoryEl.innerHTML = `Memory: <b>${data.info.memory_peak || '?'}</b>`;
-        queriesEl.innerHTML = `Queries: <b>${data.queries.length || 0}</b>`;
-        eventsEl.innerHTML = `Events: <b>${(data.events || []).length}</b>`;
-
-        let queriesHtml = '<h3>SQL Queries</h3>';
-        if (data.queries && data.queries.length > 0) {
-            data.queries.forEach(q => {
-                queriesHtml += `<pre><code>[${q.duration_ms}ms] ${q.sql}</code></pre>`;
-            });
-        } else {
-            queriesHtml += '<p>No queries recorded.</p>';
+    try {
+        const initialDebugData = {!! json_encode($debugData) !!};
+        if (initialDebugData) {
+            // Chỉ dispatch nếu có dữ liệu thực sự, tránh ghi đè dữ liệu từ sessionStorage
+            if (initialDebugData.info && initialDebugData.info.id) {
+                document.dispatchEvent(new CustomEvent('bault:debug-data-updated', { detail: initialDebugData }));
+            }
         }
-        queriesContentEl.innerHTML = queriesHtml;
-
-        let eventsHtml = '<h3>Dispatched Events</h3>';
-        if (data.events && data.events.length > 0) {
-            eventsHtml += '<dl>';
-            data.events.forEach(e => {
-                // Safely parse and format the payload
-                let payloadHtml = '';
-                try {
-                    // The payload is a JSON string, so we parse and re-stringify it for pretty printing.
-                    payloadHtml = e.payload && e.payload !== 'null' ? `<pre><code>${JSON.stringify(JSON.parse(e.payload), null, 2)}</code></pre>` : '';
-                } catch (err) { payloadHtml = `<pre><code>${e.payload || 'Not available'}</code></pre>`; } // Fallback for non-JSON payloads
-                eventsHtml += `<dt>${e.name}</dt><dd>${payloadHtml}</dd>`;
-            });
-            eventsHtml += '</dl>';
-        } else {
-            eventsHtml += '<p>No events recorded.</p>';
-        }
-        eventsContentEl.innerHTML = eventsHtml;
-
-        configEl.innerHTML = `Config: <b>Loaded</b>`;
-        let configHtml = '<h3>Application Configuration</h3>';
-        if (data.config && Object.keys(data.config).length > 0) {
-            // Pretty print the JSON object
-            configHtml += `<pre><code>${JSON.stringify(data.config, null, 2)}</code></pre>`;
-        } else {
-            configHtml += '<p>No configuration data recorded.</p>';
-        }
-        configContentEl.innerHTML = configHtml;
-
-        infoContentEl.innerHTML = `<h3>Request Info</h3><pre>${JSON.stringify(data.info, null, 2)}</pre>`;
-    }
-
-    const header = document.getElementById('debug-bar-header');
-    const content = document.getElementById('debug-bar-content');
-    header.addEventListener('click', () => {
-        if (content.style.display === 'none' || content.style.display === '') {
-            content.style.display = 'block';
-        } else {
-            content.style.display = 'none';
-        }
-    });
-
-    const initialDebugId = '{{ app("request_id") ?? "" }}';
-    if (initialDebugId) {
-        setTimeout(() => fetchDebugData(initialDebugId), 100);
+    } catch (err) {
+        console.warn('BaultDebugBar: initial debug data invalid', err);
     }
 });
 </script>

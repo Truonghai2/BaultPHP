@@ -105,6 +105,10 @@ COPY --from=vendor /usr/bin/composer /usr/bin/composer
 # IMPORTANT: Make sure you have created a .dockerignore file.
 COPY --chown=$APP_USER:$APP_GROUP . .
 
+# Ensure any cached command files from the host are removed
+RUN rm -f bootstrap/cache/commands.php
+
+
 # Regenerate the Composer autoloader to include the application's source files.
 # This is crucial for the application to find its own classes.
 RUN composer dump-autoload --optimize --no-dev --classmap-authoritative

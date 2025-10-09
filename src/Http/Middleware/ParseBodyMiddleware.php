@@ -28,62 +28,57 @@ class ParseBodyMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $method = $request->getMethod();
+
+        if (!in_array($method, ['POST', 'PUT', 'PATCH']) || $request->getParsedBody()) {
+            return $handler->handle($request);
+        }
+
         $contentType = $request->getHeaderLine('Content-Type');
+        $parsedBody = null;
 
-        // Only parse for these methods and if the body hasn't been parsed yet.
-        if (in_array($method, ['POST', 'PUT', 'PATCH']) && !$request->getParsedBody()) {
-            $parsedBody = null;
+        if ($this->app->has(\Swoole\Http\Request::class)) {
+            /** @var \Swoole\Http\Request $swooleRequest */
+            $swooleRequest = $this->app->get(\Swoole\Http\Request::class);
 
-            if ($this->app->has(\Swoole\Http\Request::class)) {
-                /** @var \Swoole\Http\Request $swooleRequest */
-                $swooleRequest = $this->app->get(\Swoole\Http\Request::class);
-
-                if (str_contains($contentType, 'application/json')) {
-                    $rawContent = $swooleRequest->rawContent();
-                    if ($rawContent) {
-                        $jsonBody = json_decode($rawContent, true);
+            if (str_contains($contentType, 'application/json')) {
+                $rawContent = $swooleRequest->rawContent();
+                if ($rawContent) {
+                    $jsonBody = json_decode($rawContent, true);
+                    if (json_last_error() === JSON_ERROR_NONE) {
+                        $parsedBody = $jsonBody;
+                    }
+                }
+            } elseif (str_contains($contentType, 'application/x-www-form-urlencoded') || str_contains($contentType, 'multipart/form-data')) {
+                $parsedBody = $swooleRequest->post ?? null;
+                if (empty($parsedBody) && ($rawContent = $swooleRequest->rawContent())) {
+                    parse_str($rawContent, $parsedBody);
+                }
+            }
+        } else {
+            $body = $request->getBody();
+            if ($body->isReadable()) {
+                $bodyContents = $body->getContents();
+                if ($bodyContents) {
+                    $parsedData = [];
+                    if (str_contains($contentType, 'application/json')) {
+                        $jsonBody = json_decode($bodyContents, true);
                         if (json_last_error() === JSON_ERROR_NONE) {
-                            $parsedBody = $jsonBody;
+                            $parsedData = $jsonBody;
                         }
+                    } else {
+                        parse_str($bodyContents, $parsedData);
                     }
-                } elseif (str_contains($contentType, 'application/x-www-form-urlencoded') || str_contains($contentType, 'multipart/form-data')) {
-                    // Prefer Swoole's built-in parser's result.
-                    $parsedBody = $swooleRequest->post;
-
-                    // Fallback for cases where Swoole might not have parsed the body.
-                    if (empty($parsedBody)) {
-                        $rawContent = $swooleRequest->rawContent();
-                        if ($rawContent) {
-                            parse_str($rawContent, $parsedBody);
-                        }
-                    }
+                    $parsedBody = $parsedData;
                 }
-            } else {
-                // FPM/non-Swoole logic
-                $body = $request->getBody();
-                if ($body->isReadable()) {
-                    $bodyContents = $body->getContents();
-                    if ($bodyContents) {
-                        $parsedData = [];
-                        if (str_contains($contentType, 'application/json')) {
-                            $jsonBody = json_decode($bodyContents, true);
-                            if (json_last_error() === JSON_ERROR_NONE) {
-                                $parsedData = $jsonBody;
-                            }
-                        } else { // Assume form-urlencoded as default for POST
-                            parse_str($bodyContents, $parsedData);
-                        }
-                        $parsedBody = $parsedData;
-                    }
-                    if ($body->isSeekable()) {
-                        $body->rewind();
-                    }
+
+                if ($body->isSeekable()) {
+                    $body->rewind();
                 }
             }
+        }
 
-            if ($parsedBody !== null) {
-                $request = $request->withParsedBody((array) $parsedBody);
-            }
+        if ($parsedBody !== null) {
+            $request = $request->withParsedBody((array) $parsedBody);
         }
 
         return $handler->handle($request);

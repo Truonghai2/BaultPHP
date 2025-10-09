@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Modules\User\Infrastructure\Models\Permission;
 use Core\Database\Seeder;
 use Core\Support\Facades\Hash;
+use Modules\User\Infrastructure\Models\Permission;
 use Modules\User\Infrastructure\Models\Role;
 use Modules\User\Infrastructure\Models\RoleAssignment;
 use Modules\User\Infrastructure\Models\User;
@@ -32,18 +32,18 @@ class UserSeeder extends Seeder
 
         $this->command?->info('Admin user "admin@bault.dev" created or already exists.');
 
-        $superAdminRole = Role::firstOrCreate(['name' => 'super-admin']);
+        $superAdminRole = Role::where('name', 'super-admin')->firstOrFail();
 
         $allPermissionIds = Permission::all()->pluck('id')->all();
         $superAdminRole->permissions()->sync($allPermissionIds);
         $this->command?->info('Synced all permissions to super-admin role.');
 
-        RoleAssignment::firstOrCreate([
+        RoleAssignment::updateOrCreate([
             'user_id' => $user->id,
             'role_id' => $superAdminRole->id,
-            'context_id' => 1, 
             'context_id' => 1,
         ]);
+
         $this->command?->info('Ensured "admin@bault.dev" has the "super-admin" role.');
     }
 

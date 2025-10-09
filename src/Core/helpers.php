@@ -473,26 +473,33 @@ if (!function_exists('cookie')) {
      * @param  string|null  $sameSite
      * @return \Core\Cookie\CookieManager|mixed|void
      */
-    function cookie(
-        ?string $name = null,
-        ?string $value = null,
-        int $minutes = 0,
-        ?string $path = null,
-        ?string $domain = null,
-        ?bool $secure = null,
-        bool $httpOnly = true,
-        bool $raw = false,
-        ?string $sameSite = null,
-    ) {
+    function cookie(...$args)
+    {
         /** @var \Core\Cookie\CookieManager $cookieManager */
         $cookieManager = app(\Core\Cookie\CookieManager::class);
 
-        if (is_null($name)) {
+        if (empty($args)) {
             return $cookieManager;
         }
 
+        $name = $args[0];
+        $value = $args[1] ?? null;
+
         if (is_null($value)) {
-            return $cookieManager->get($name);
+            return $cookieManager->get($name, $args[2] ?? null);
+        }
+
+        if (is_array($args[2] ?? null)) {
+            $options = $args[2];
+            $minutes = $options['minutes'] ?? 0;
+            $path = $options['path'] ?? null;
+            $domain = $options['domain'] ?? null;
+            $secure = $options['secure'] ?? null;
+            $httpOnly = $options['httpOnly'] ?? true;
+            $raw = $options['raw'] ?? false;
+            $sameSite = $options['sameSite'] ?? null;
+        } else {
+            [$minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite] = array_slice($args, 2) + [0, null, null, null, true, false, null];
         }
 
         $cookieManager->queue($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite);

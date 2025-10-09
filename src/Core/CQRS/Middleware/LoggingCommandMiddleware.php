@@ -2,8 +2,7 @@
 
 namespace Core\CQRS\Middleware;
 
-use Core\CQRS\Command;
-use Core\CQRS\CommandMiddleware;
+use Core\CQRS\Command\Command;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
@@ -13,14 +12,10 @@ use Throwable;
  */
 class LoggingCommandMiddleware implements CommandMiddleware
 {
-    /**
-     * Logger instance for logging command execution details.
-     *
-     * @var LoggerInterface
-     */
-    public function __construct(private readonly LoggerInterface $logger) {
+    public function __construct(
+        private readonly LoggerInterface $logger,
+    ) {
     }
-
     /**
      * Handle the command execution and log the command details.
      *

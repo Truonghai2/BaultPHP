@@ -21,10 +21,8 @@ class RequestResponseLoggerMiddleware implements MiddlewareInterface
 
     public function __construct(private LoggerInterface $logger, Config $config)
     {
-        // Lấy danh sách các key cần ẩn đi từ config và chuyển thành chữ thường để so sánh
         $this->keysToSanitize = array_map('strtolower', $config->get('sanitizer.keys', []));
 
-        // Lấy cấu hình logging từ file config/logging.php
         $this->logEnabled = (bool) $config->get('logging.access.enabled', false);
         $this->logBody = (bool) $config->get('logging.access.log_body', false);
         $this->truncateLimit = (int) $config->get('logging.access.truncate_limit', 1000);
@@ -32,14 +30,12 @@ class RequestResponseLoggerMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Chỉ xử lý nếu logging được bật trong config
         if (!$this->logEnabled) {
             return $handler->handle($request);
         }
 
         $startTime = microtime(true);
 
-        // Chuyển request cho handler tiếp theo và nhận về response
         $response = $handler->handle($request);
 
         $duration = round((microtime(true) - $startTime) * 1000);
@@ -61,7 +57,7 @@ class RequestResponseLoggerMiddleware implements MiddlewareInterface
 
         $this->logger->info(
             sprintf('Request Handled: %s %s', $request->getMethod(), $request->getUri()->getPath()),
-            $context
+            $context,
         );
 
         return $response;

@@ -275,25 +275,43 @@ class ViewFactory implements FactoryContract, StatefulService
     }
 
     /**
+     * Alias for resetState() for backward compatibility or convenience.
+     *
+     * @return void
+     */
+    public function flush(): void
+    {
+        $this->resetState();
+    }
+
+    /**
      * Bắt đầu render một component.
      */
     public function startComponent(string $view, array $data = []): void
     {
         ob_start();
 
+        $componentData = [
+            'attributes' => new ComponentAttributeBag($data),
+        ];
+
         $this->componentStack[] = [
             'view' => $view,
-            'data' => $data,
+            'data' => $componentData,
             'slots' => [],
         ];
     }
 
     /**
      * Render component cuối cùng trong stack.
+     *
+     * @return string
+     * @throws \Exception
      */
     public function renderComponent(): string
     {
         $component = array_pop($this->componentStack);
+        $data = $component['data'];
 
         $component['slots']['slot'] = ob_get_clean();
 
@@ -319,7 +337,6 @@ class ViewFactory implements FactoryContract, StatefulService
         $slotName = array_pop($this->slots);
         $content = ob_get_clean();
 
-        // Thêm nội dung slot vào component hiện tại.
         if (!empty($this->componentStack)) {
             $this->componentStack[count($this->componentStack) - 1]['slots'][$slotName] = $content;
         }
@@ -328,7 +345,7 @@ class ViewFactory implements FactoryContract, StatefulService
     public function startPush(string $stack): void
     {
         ob_start();
-        $this->sectionStack[] = $stack; // Tái sử dụng sectionStack cho push
+        $this->sectionStack[] = $stack;
     }
 
     public function stopPush(): void

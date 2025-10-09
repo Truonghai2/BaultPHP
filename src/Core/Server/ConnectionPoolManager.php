@@ -97,10 +97,6 @@ class ConnectionPoolManager
                     $poolSizeKey = $isTaskWorker ? 'task_worker_pool_size' : 'worker_pool_size';
                     $poolSize = (int) ($finalConfig[$poolSizeKey] ?? 10);
 
-                    $workerCount = (int) ($this->app->make('config')->get('server.swoole.worker_num') ?: swoole_cpu_num());
-                    $adjustedPoolSize = (int) ceil($poolSize / max(1, $workerCount));
-                    $poolSize = max(1, $adjustedPoolSize);
-
                     $heartbeat = $finalConfig['heartbeat'] ?? null;
                     $circuitBreakerConfig = $finalConfig['circuit_breaker'] ?? [];
 
@@ -116,7 +112,9 @@ class ConnectionPoolManager
                         \Swoole\Coroutine::sleep($currentDelayMs / 1000);
                         $currentDelayMs = min($maxDelayMs, (int)($currentDelayMs * $backoffMultiplier));
                     } else {
-                        $this->logger->error("Failed to initialize pool '{$name}' of type '{$poolType}' after {$maxRetries} attempts.", ['exception' => $e]);
+                        $errorMessage = "Failed to initialize pool '{$name}' of type '{$poolType}' after {$maxRetries} attempts.";
+                        $this->logger->critical($errorMessage, ['exception' => $e]);
+                        throw new \RuntimeException($errorMessage, 0, $e);
                     }
                 }
             }

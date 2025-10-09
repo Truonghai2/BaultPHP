@@ -2,6 +2,7 @@
 
 namespace Core\WebSocket;
 
+use Firebase\JWT\JWT;
 use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\GuzzleException;
 
@@ -9,6 +10,8 @@ class CentrifugoAPIService
 {
     private HttpClient $httpClient;
     private string $apiKey;
+    private string $secret;
+    private int $lifetime;
 
     /**
      * @param string $apiUrl URL của Centrifugo API, ví dụ: http://127.0.0.1:8000
@@ -18,6 +21,8 @@ class CentrifugoAPIService
     {
         $this->httpClient = new HttpClient(['base_uri' => $apiUrl, 'timeout' => 2.0]);
         $this->apiKey = $apiKey;
+        $this->secret = config('centrifugo.secret');
+        $this->lifetime = config('centrifugo.lifetime', 3600);
     }
 
     /**
@@ -33,6 +38,20 @@ class CentrifugoAPIService
             'channel' => $channel,
             'data' => $data,
         ]);
+    }
+
+    public function generateConnectionToken(string $userId, array $claims = []): string
+    {
+        if (empty($this->secret)) {
+            throw new \InvalidArgumentException('Centrifugo JWT secret key is not configured.');
+        }
+
+        $payload = array_merge($claims, [
+            'sub' => $userId,
+            'exp' => time() + $this->lifetime,
+        ]);
+
+        return JWT::encode($payload, $this->secret, 'HS256');
     }
 
     private function sendCommand(string $method, array $params): bool

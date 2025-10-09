@@ -23,7 +23,6 @@ class LoggingCommandDecorator extends Command
         $this->command = $command;
         $this->logger = $logger;
 
-        // Decorator phải nhận tên của command mà nó bao bọc.
         parent::__construct($this->command->getName());
     }
 
@@ -67,7 +66,6 @@ class LoggingCommandDecorator extends Command
     {
         $commandName = $this->command->getName();
 
-        // Log này khớp với những gì đã thấy trong file log bạn cung cấp.
         $this->logger->info("Executing command: '{$commandName}'", [
             'arguments' => $input->getArguments(),
             'options'   => $input->getOptions(),

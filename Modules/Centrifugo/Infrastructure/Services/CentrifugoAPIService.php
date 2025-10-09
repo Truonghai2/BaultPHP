@@ -2,17 +2,23 @@
 
 namespace Modules\Centrifugo\Infrastructure\Services;
 
-// This is a stub class based on the documentation.
-// You should implement the actual logic for calling the Centrifugo server API.
+use GuzzleHttp\Client as GuzzleClient;
+use GuzzleHttp\Exception\GuzzleException;
+use Psr\Log\LoggerInterface;
+
 class CentrifugoAPIService
 {
+    protected GuzzleClient $httpClient;
     protected string $apiUrl;
     protected string $apiKey;
+    protected LoggerInterface $logger;
 
-    public function __construct(string $apiUrl, string $apiKey)
+    public function __construct(string $apiUrl, string $apiKey, GuzzleClient $httpClient, LoggerInterface $logger)
     {
         $this->apiUrl = $apiUrl;
         $this->apiKey = $apiKey;
+        $this->httpClient = $httpClient;
+        $this->logger = $logger;
     }
 
     /**
@@ -20,7 +26,31 @@ class CentrifugoAPIService
      */
     public function publish(string $channel, array $data): bool
     {
-        // Logic to send a POST request to Centrifugo's API endpoint.
-        return true;
+        try {
+            $response = $this->httpClient->post($this->apiUrl, [
+                'headers' => [
+                    'Content-Type' => 'application/json',
+                    'Authorization' => 'apikey ' . $this->apiKey,
+                ],
+                'json' => [
+                    'method' => 'publish',
+                    'params' => [
+                        'channel' => $channel,
+                        'data' => $data,
+                    ],
+                ],
+            ]);
+
+            if ($response->getStatusCode() === 200) {
+                return true;
+            }
+        } catch (GuzzleException $e) {
+            $this->logger->error('Failed to publish message to Centrifugo', [
+                'error' => $e->getMessage(),
+                'channel' => $channel,
+            ]);
+        }
+
+        return false;
     }
 }

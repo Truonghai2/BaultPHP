@@ -19,17 +19,28 @@ class CheckPermissionMiddleware implements MiddlewareInterface
      * @param string ...$permissions The permissions required to access the route.
      * @return ResponseInterface
      */
-    public function handle(ServerRequestInterface $request, RequestHandlerInterface $handler, string ...$permissions): ResponseInterface
+    public function process(ServerRequestInterface $request, RequestHandlerInterface $handler, string ...$permissions): ResponseInterface
     {
-        $user = Auth::user();
-
-        if (!$user) {
+        if (!Auth::check()) {
             throw new AccessDeniedException('Authentication required.');
         }
 
+        $user = Auth::user();
+
         foreach ($permissions as $permission) {
-            if (!$user->can($permission)) {
-                throw new AccessDeniedException("You do not have permission to '{$permission}'.");
+            $orPermissions = explode('|', $permission);
+
+            $hasAtLeastOnePermission = false;
+            foreach ($orPermissions as $orPermission) {
+                if ($user->can($orPermission)) {
+                    $hasAtLeastOnePermission = true;
+                    break;
+                }
+            }
+
+            if (!$hasAtLeastOnePermission) {
+                $required = count($orPermissions) > 1 ? 'one of [' . implode(', ', $orPermissions) . ']' : "'" . $permission . "'";
+                throw new AccessDeniedException("User does not have the required permission: {$required}.");
             }
         }
 

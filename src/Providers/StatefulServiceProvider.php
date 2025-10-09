@@ -3,7 +3,6 @@
 namespace App\Providers;
 
 use Core\Contracts\StatefulService;
-use Core\Auth\AuthManager;
 use Core\Foundation\StateResetter;
 use Core\Support\ServiceProvider;
 use Core\View\ViewFactory;
@@ -18,10 +17,7 @@ class StatefulServiceProvider extends ServiceProvider
      * @var string[]
      */
     protected array $statefulServices = [
-        AuthManager::class,
         ViewFactory::class,
-        // DebugManager is already tagged in DebugServiceProvider.
-        // Other services like SessionManager and CookieManager are tagged in their respective providers.
     ];
 
     public function register(): void
@@ -32,7 +28,7 @@ class StatefulServiceProvider extends ServiceProvider
 
         $this->app->singleton(StateResetter::class, function ($app) {
             return new StateResetter(
-                $app->getTagged(StatefulService::class)
+                $app->getTagged(StatefulService::class),
             );
         });
 

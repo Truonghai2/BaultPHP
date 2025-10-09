@@ -18,7 +18,7 @@ class EncryptionServiceProvider extends ServiceProvider
         $this->app->singleton(Encrypter::class, function ($app) {
             $config = $app->make('config')->get('app');
 
-            $key = $config['key'] ?? null;
+            $key = $config['key'];
             $cipher = $config['cipher'] ?? 'AES-256-CBC';
 
             if (empty($key)) {
@@ -31,7 +31,7 @@ class EncryptionServiceProvider extends ServiceProvider
                 $key = base64_decode(substr($key, 7));
             }
 
-            return new Encrypter($key);
+            return new Encrypter($key, $cipher);
         });
 
         $this->app->alias(Encrypter::class, 'encrypter');

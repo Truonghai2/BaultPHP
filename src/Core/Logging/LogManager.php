@@ -62,7 +62,7 @@ class LogManager implements LoggerInterface
 
         return new Logger(
             $this->parseChannel($config),
-            [$this->prepareHandler($handler, $config)]
+            [$this->prepareHandler($handler, $config)],
         );
     }
 
@@ -163,17 +163,6 @@ class LogManager implements LoggerInterface
         return $config['channel'] ?? $this->app->make('config')->get('app.env');
     }
 
-    public function pushProcessor($processor): self
-    {
-        $this->processors[] = $processor;
-
-        foreach ($this->channels as $channel) {
-            $channel->pushProcessor($processor);
-        }
-
-        return $this;
-    }
-
     public function emergency($message, array $context = []): void
     {
         $this->channel()->emergency($message, $context);
@@ -216,11 +205,22 @@ class LogManager implements LoggerInterface
 
     public function log($level, $message, array $context = []): void
     {
-        $this->channel()->log($level, $message, context);
+        $this->channel()->log($level, $message, $context);
     }
 
     public function __call(string $method, array $parameters)
     {
         return $this->channel()->{$method}(...$parameters);
+    }
+
+    public function pushProcessor(callable $processor): self
+    {
+        $this->processors[] = $processor;
+
+        foreach ($this->channels as $channel) {
+            $channel->pushProcessor($processor);
+        }
+
+        return $this;
     }
 }

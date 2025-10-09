@@ -23,12 +23,14 @@ use Psr\Http\Message\ServerRequestInterface;
  */
 class TokenGuard implements Guard
 {
+    protected string $name;
     protected ?Authenticatable $user = null;
     protected bool $userResolved = false;
     protected ?EventDispatcherInterface $dispatcher;
     protected array $validatedRequestAttributes = [];
 
     public function __construct(
+        string $name,
         protected Application $app,
         protected ResourceServer $resourceServer,
         protected CacheManager $cache,

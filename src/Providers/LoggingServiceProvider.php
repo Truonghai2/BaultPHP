@@ -31,10 +31,10 @@ class LoggingServiceProvider extends ServiceProvider
     }
 
     /**
-     * Lấy tên kênh log đồng bộ.
+     * Get the name of the synchronous log channel.
      *
-     * Nó kiểm tra cấu hình kênh mặc định. Nếu mặc định là 'stack' hoặc 'async',
-     * nó sẽ tìm kênh không-phải-async đầu tiên trong stack. Mặc định là 'single'.
+     * It checks the default channel configuration. If the default is 'stack' or 'async',
+     * it will find the first non-async channel in the stack. Defaults to 'single'.
      *
      * @param Application $app
      * @return string
@@ -62,13 +62,4 @@ class LoggingServiceProvider extends ServiceProvider
         return 'single';
     }
 
-    /**
-     * Get the services provided by the provider.
-     *
-     * @return array
-     */
-    public function provides(): array
-    {
-        return ['log', 'log.sync', LoggerInterface::class, LogManager::class];
-    }
 }

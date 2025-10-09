@@ -42,7 +42,8 @@
     "league/oauth2-server": "^8.5",
     "php-amqplib/php-amqplib": "^3.7",
     "revolt/event-loop": "^1.0",
-    "amphp/redis": "^2.0"
+    "amphp/redis": "^2.0",
+    "intervention/image": "^3.11"
   },
   "require-dev": {
     "fakerphp/faker": "^1.23",
@@ -60,15 +61,17 @@
       "App\\Exceptions\\": "src/Exceptions/",
       "App\\Logging\\": "src/Logging/",
       "App\\Cache\\": "src/Cache/",
+      "App\\Listeners\\": "src/Listeners/",
+      "App\\Events\\": "src/Events/",
       "Core\\": "src/Core/",
       "App\\Http\\": "src/Http/",
       "Modules\\": "Modules/",
       "Database\\Seeders\\": "database/Seeders/"
     },
-    "autoload-dev": { 
-      "psr-4": { 
-        "Database\\Factories\\": "database/factories/" 
-      } 
+    "autoload-dev": {
+      "psr-4": {
+        "Database\\Factories\\": "database/factories/"
+      }
     },
     "files": [
       "src/Core/helpers.php"

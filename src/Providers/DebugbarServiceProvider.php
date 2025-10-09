@@ -4,10 +4,13 @@ namespace App\Providers;
 
 use Core\Auth\AuthManager;
 use Core\Debug\AuthCollector;
+use Core\Debug\CacheCollector;
 use Core\Debug\EventCollector;
 use Core\Debug\GuzzleCollector;
 use Core\Debug\GuzzleMiddleware;
 use Core\Debug\SessionCollector;
+use Core\Debug\TraceableConnection;
+use Core\ORM\Connection;
 use Core\Support\ServiceProvider;
 use DebugBar\Bridge\MonologCollector;
 use DebugBar\DataCollector\ConfigCollector;
@@ -22,16 +25,17 @@ use DebugBar\StandardDebugBar;
 use GuzzleHttp\Client as GuzzleClient;
 use GuzzleHttp\HandlerStack;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class DebugbarServiceProvider extends ServiceProvider
 {
     /**
-     * Chỉ đăng ký service provider này nếu APP_DEBUG là true.
+     * only register this service provider if APP_DEBUG is true.
      */
     public function shouldRegister(): bool
     {
-        return (bool) config('app.debug', false);
+        return false;
     }
 
     public function register(): void
@@ -76,7 +80,26 @@ class DebugbarServiceProvider extends ServiceProvider
         if ($this->app->bound(LoggerInterface::class)) {
             /** @var MonologCollector $monologCollector */
             $monologCollector = $debugbar->getCollector('messages');
-            $monologCollector->setLogger($this->app->make(LoggerInterface::class));
+
+            if ($monologCollector instanceof MonologCollector) {
+                $monologCollector->setLogger($this->app->make(LoggerInterface::class));
+            }
+        }
+
+        $this->setupRenderer($debugbar);
+    }
+
+    /**
+     * Cấu hình renderer và đăng ký listener để chèn debugbar vào response.
+     */
+    protected function setupRenderer(DebugBar $debugbar): void
+    {
+        $renderer = $debugbar->getJavascriptRenderer();
+        $renderer->setAjaxHandlerClass(false);
+
+        // Đảm bảo dữ liệu được thu thập ngay cả khi không có request AJAX
+        if (!$this->app->runningInConsole()) {
+            $this->app->booted(fn () => $debugbar->collect());
         }
     }
 
@@ -92,7 +115,7 @@ class DebugbarServiceProvider extends ServiceProvider
     }
 
     /**
-     * Đăng ký các collector riêng lẻ để có thể inject khi cần.
+     * register collectors .
      */
     protected function registerCollectors(): void
     {
@@ -112,27 +135,31 @@ class DebugbarServiceProvider extends ServiceProvider
     }
 
     /**
-     * "Trang trí" (decorate) các service cốt lõi để chúng có thể được theo dõi.
+     *
      */
     protected function decorateServices(): void
     {
-        // Tự động thêm middleware theo dõi vào bất kỳ Guzzle Client nào được tạo.
         $this->app->extend(GuzzleClient::class, function (GuzzleClient $client, $app) {
             $config = $client->getConfig();
             /** @var HandlerStack $handler */
             $handler = $config['handler'] ?? HandlerStack::create();
 
-            // Lấy middleware từ container
             $traceMiddleware = $app->make(GuzzleMiddleware::class);
 
-            // Thêm middleware vào đầu stack
             $handler->push($traceMiddleware, 'debugbar');
 
-            // Tạo lại client với handler đã được cập nhật
             return new GuzzleClient(['handler' => $handler] + $config);
         });
 
-        // Lưu ý: Việc trang trí PDO đã được chuyển sang DatabaseServiceProvider,
-        // đó là một cách tiếp cận tốt hơn và đã được thực hiện trước đó.
+        $this->app->extend(Connection::class, function (Connection $connection, $app) {
+            if ($app->bound('debugbar')) {
+                /** @var DebugBar $debugbar */
+                $debugbar = $app->make('debugbar');
+                /** @var PDOCollector $pdoCollector */
+                $pdoCollector = $debugbar->getCollector('pdo');
+                return new TraceableConnection($connection, $pdoCollector);
+            }
+            return $connection;
+        });
     }
 }

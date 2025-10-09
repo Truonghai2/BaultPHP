@@ -19,4 +19,21 @@ return [
     |--------------------------------------------------------------------------
     */
     'expiration' => 3600, // 1 giờ
+
+    /*
+    |--------------------------------------------------------------------------
+    | On-Demand Debugging
+    |--------------------------------------------------------------------------
+    |
+    | If set to true, the debug bar will only be enabled when a specific
+    | cookie (`X-DEBUG-ENABLED`) is present in the request. This is useful for
+    | selectively debugging in a shared development environment without affecting
+    | other users or services.
+    |
+    | Nếu được đặt thành true, thanh debug sẽ chỉ được bật khi có một
+    | cookie cụ thể (`X-DEBUG-ENABLED`) trong request. Điều này hữu ích để
+    | debug có chọn lọc trong môi trường dev mà không ảnh hưởng đến người dùng khác.
+    |
+    */
+    'on_demand' => false,
 ];

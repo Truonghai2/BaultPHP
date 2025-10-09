@@ -4,8 +4,10 @@ namespace Core\Cookie;
 
 use Core\Contracts\StatefulService;
 use Core\Encryption\Encrypter;
+use Core\Encryption\Exceptions\DecryptException;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Cookie;
 
 class CookieManager implements StatefulService
@@ -14,7 +16,7 @@ class CookieManager implements StatefulService
     protected array $queued = [];
     protected array $config;
 
-    public function __construct(Encrypter $encrypter)
+    public function __construct(Encrypter $encrypter, protected LoggerInterface $logger)
     {
         $this->encrypter = $encrypter;
         $this->config = config('session');
@@ -29,7 +31,24 @@ class CookieManager implements StatefulService
         $request = app(ServerRequestInterface::class);
         $cookies = $request->getCookieParams();
 
-        return $cookies[$key] ?? $default;
+        if (!isset($cookies[$key])) {
+            return $default;
+        }
+
+        $value = $cookies[$key];
+
+        try {
+            return $this->encrypter->decrypt($value);
+        } catch (DecryptException $e) {
+            $this->logger->warning('Cookie decryption failed.', [
+                'cookie_name' => $key,
+                'exception_message' => $e->getMessage(),
+                'payload_length' => strlen($value),
+                'payload_hash_preview' => substr(hash('sha256', $value), 0, 10),
+            ]);
+
+            return $value;
+        }
     }
 
     /**

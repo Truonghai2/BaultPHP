@@ -56,50 +56,19 @@ class Connection
         $name ??= $configRepo->get('database.default', 'mysql');
 
         if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
-            /** @var CoroutineConnectionManager $manager */
-            $manager = $this->app->make(CoroutineConnectionManager::class);
-            return $manager->get();
+            return $this->app->make(CoroutineConnectionManager::class)->get();
         }
 
-        $poolKey = "{$name}::{$type}";
-
-        if (isset($this->connections[$poolKey])) {
-            return $this->connections[$poolKey];
+        // Trong môi trường non-Swoole hoặc nếu pool không được cấu hình, chúng ta vẫn cần một kết nối.
+        // Tuy nhiên, logic này không an toàn cho Swoole nếu pool bị tắt.
+        // Thêm một cảnh báo để người phát triển biết về rủi ro.
+        if ($this->app->runningInConsole() && php_sapi_name() === 'swoole') {
+            trigger_error('Swoole PDO Pool is not initialized. Falling back to a persistent PDO connection which can cause issues in a Swoole environment. Please check your server.php config.', E_USER_WARNING);
         }
 
-        $config = $this->getConfig($name, $type);
-
-        try {
-            $dsn = $this->makeDsn($config);
-
-            $defaultOptions = [
-                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
-                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_PERSISTENT => false,
-            ];
-            $options = ($config['options'] ?? []) + $defaultOptions;
-
-            $pdo = new \PDO(
-                $dsn,
-                $config['username'] ?? null,
-                $config['password'] ?? null,
-                $options,
-            );
-
-            $this->connections[$poolKey] = $pdo;
-        } catch (PDOException $e) {
-            if (str_contains($e->getMessage(), 'Unknown database')) {
-                throw new \RuntimeException(
-                    "Database `{$config['database']}` does not exist. Please ensure it is created before starting the application. Check your docker-compose.yml and .env files.",
-                    (int)$e->getCode(),
-                    $e,
-                );
-            }
-
-            throw $e;
-        }
-
-        return $this->connections[$poolKey];
+        // Để tránh leak, chúng ta sẽ không cache kết nối này trong thuộc tính $this->connections.
+        // Mỗi lần gọi sẽ tạo kết nối mới trong môi trường non-pool.
+        return $this->createFreshPdoConnection($name, $type);
     }
 
     public function getGrammar(string $name = null): Grammar
@@ -148,6 +117,43 @@ class Connection
     }
 
     /**
+     * Creates a new, non-pooled PDO connection.
+     * This should only be used in non-Swoole environments or CLI scripts.
+     *
+     * @param string $name
+     * @param string|null $type
+     * @return \PDO
+     * @throws \Exception
+     */
+    private function createFreshPdoConnection(string $name, ?string $type = null): \PDO
+    {
+        $config = $this->getConfig($name, $type);
+
+        try {
+            $dsn = $this->makeDsn($config);
+
+            $defaultOptions = [
+                \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
+                \PDO::ATTR_PERSISTENT => false, // Rất quan trọng khi không dùng pool
+            ];
+            $options = ($config['options'] ?? []) + $defaultOptions;
+
+            return new \PDO(
+                $dsn,
+                $config['username'] ?? null,
+                $config['password'] ?? null,
+                $options,
+            );
+        } catch (PDOException $e) {
+            if (str_contains($e->getMessage(), 'Unknown database')) {
+                throw new \RuntimeException("Database `{$config['database']}` does not exist. Please ensure it is created before starting the application.", (int)$e->getCode(), $e);
+            }
+            throw $e;
+        }
+    }
+
+    /**
      * Close all connections in the pool.
      */
     public function flush(): void
@@ -181,4 +187,51 @@ class Connection
         };
     }
 
+    /**
+     * Begin a transaction on the specified connection.
+     *
+     * @param string|null $name The connection name.
+     * @return void
+     * @throws \Exception
+     */
+    public function beginTransaction(string $name = null): void
+    {
+        $this->connection($name)->beginTransaction();
+    }
+
+    /**
+     * Commit a transaction on the specified connection.
+     *
+     * @param string|null $name The connection name.
+     * @return void
+     * @throws \Exception
+     */
+    public function commit(string $name = null): void
+    {
+        $this->connection($name)->commit();
+    }
+
+    /**
+     * Roll back a transaction on the specified connection.
+     *
+     * @param string|null $name The connection name.
+     * @return void
+     * @throws \Exception
+     */
+    public function rollBack(string $name = null): void
+    {
+        $this->connection($name)->rollBack();
+    }
+
+    /**
+     * Check if a transaction is active on the specified connection.
+     *
+     * @param string|null $name The connection name.
+     * @return bool
+     * @throws \Exception
+     */
+    public function inTransaction(string $name = null): bool
+    {
+        return $this->connection($name)->inTransaction();
+    }
 }

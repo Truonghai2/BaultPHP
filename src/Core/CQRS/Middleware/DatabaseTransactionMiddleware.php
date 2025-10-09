@@ -2,10 +2,9 @@
 
 namespace Core\CQRS\Middleware;
 
-use Core\CQRS\Command;
-use Core\CQRS\CommandMiddleware;
+use Core\CQRS\Command\Command;
+use Core\CQRS\Command\TransactionalCommand;
 use Core\ORM\Connection;
-use PDO;
 use Throwable;
 
 /**
@@ -15,15 +14,11 @@ use Throwable;
  */
 class DatabaseTransactionMiddleware implements CommandMiddleware
 {
-    private Connection $connection;
-
     /**
      * DatabaseTransactionMiddleware constructor.
-     * Initializes the PDO connection for database transactions.
      */
-    public function __construct(Connection $connection)
+    public function __construct(private readonly Connection $connection)
     {
-        $this->connection = $connection;
     }
 
     /**
@@ -36,16 +31,18 @@ class DatabaseTransactionMiddleware implements CommandMiddleware
      */
     public function handle(Command $command, callable $next)
     {
-        $pdo = $this->connection->connection();
+        if (!$command instanceof TransactionalCommand) {
+            return $next($command);
+        }
 
-        $pdo->beginTransaction();
+        $this->connection->beginTransaction();
 
         try {
             $result = $next($command);
-            $pdo->commit();
+            $this->connection->commit();
             return $result;
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            $this->connection->rollBack();
             throw $e;
         }
     }

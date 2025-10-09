@@ -47,12 +47,8 @@ class EnsureAdminUserExists implements MiddlewareInterface
      */
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
-        // Efficiently check if any user exists in the database.
-        // Using `exists()` is much faster than `count() > 0` as it stops on the first find.
         $adminExists = User::query()->exists();
 
-        // If no admin exists and the current route is not in the exception list,
-        // redirect the user to the admin creation page.
         if (! $adminExists && ! $this->isExceptedRoute($request)) {
             $redirect = new RedirectResponse('/setup/create-admin');
             $redirect->setSession($this->session);

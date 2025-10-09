@@ -5,7 +5,6 @@ namespace Core\Session;
 use Core\Database\Swoole\SwoolePdoPool;
 use PDO;
 use SessionHandlerInterface;
-use Throwable;
 
 /**
  * A PDO-based session handler compatible with Swoole's coroutine environment.
@@ -70,31 +69,19 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
     public function write(string $sessionId, string $data): bool
     {
         return $this->withConnection(function (PDO $pdo) use ($sessionId, $data) {
-            // First, try to update an existing session
-            $sql = "UPDATE {$this->table} SET payload = :data, last_activity = :time, lifetime = :lifetime WHERE id = :id";
+            $sql = "INSERT INTO {$this->table} (id, payload, last_activity, lifetime, user_id, ip_address) 
+                    VALUES (:id, :data, :time, :lifetime, :user_id, :ip_address)
+                    ON DUPLICATE KEY UPDATE 
+                    payload = VALUES(payload), last_activity = VALUES(last_activity), lifetime = VALUES(lifetime)";
+
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
-            $stmt->bindParam(':data', $data, PDO::PARAM_STR);
+            $stmt->bindParam(':data', $data, PDO::PARAM_LOB);
             $stmt->bindValue(':time', time(), PDO::PARAM_INT);
             $stmt->bindValue(':lifetime', $this->lifetime, PDO::PARAM_INT);
+            $stmt->bindValue(':user_id', null, PDO::PARAM_INT);
+            $stmt->bindValue(':ip_address', $_SERVER['REMOTE_ADDR'] ?? null, PDO::PARAM_STR);
             $stmt->execute();
-
-            // If no rows were affected, it means the session ID doesn't exist, so insert it.
-            if ($stmt->rowCount() === 0) {
-                try {
-                    $sql = "INSERT INTO {$this->table} (id, payload, last_activity, lifetime) VALUES (:id, :data, :time, :lifetime)";
-                    $stmt = $pdo->prepare($sql);
-                    $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
-                    $stmt->bindParam(':data', $data, PDO::PARAM_STR);
-                    $stmt->bindValue(':time', time(), PDO::PARAM_INT);
-                    $stmt->bindValue(':lifetime', $this->lifetime, PDO::PARAM_INT);
-                    $stmt->execute();
-                } catch (Throwable) {
-                    // Handle potential race conditions where another process inserted the session between our UPDATE and INSERT.
-                    // We can simply retry the update.
-                    return $this->write($sessionId, $data);
-                }
-            }
 
             return true;
         });
@@ -103,7 +90,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
     public function destroy(string $sessionId): bool
     {
         return $this->withConnection(function (PDO $pdo) use ($sessionId) {
-            $sql = "DELETE FROM {$this->table} WHERE sess_id = :id";
+            $sql = "DELETE FROM {$this->table} WHERE id = :id";
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
             $stmt->execute();
@@ -115,7 +102,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
     public function gc(int $max_lifetime): int|false
     {
         return $this->withConnection(function (PDO $pdo) use ($max_lifetime) {
-            $sql = "DELETE FROM {$this->table} WHERE sess_time + sess_lifetime < :time";
+            $sql = "DELETE FROM {$this->table} WHERE last_activity < :time";
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':time', time() - $max_lifetime, PDO::PARAM_INT);
             $stmt->execute();

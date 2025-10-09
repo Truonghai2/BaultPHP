@@ -2,7 +2,7 @@
 
 namespace Modules\Cms\Application\Commands;
 
-use Core\CQRS\Command;
+use Core\CQRS\Command\Command;
 
 class DeleteBlockCommand implements Command
 {
