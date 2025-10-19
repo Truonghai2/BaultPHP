@@ -12,18 +12,18 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class CookieManager implements StatefulService
 {
-    protected Encrypter $encrypter;
     protected array $queued = [];
     protected array $config;
 
-    public function __construct(Encrypter $encrypter, protected LoggerInterface $logger)
-    {
-        $this->encrypter = $encrypter;
+    public function __construct(
+        protected LoggerInterface $logger,
+        protected Encrypter $encrypter,
+    ) {
         $this->config = config('session');
     }
 
     /**
-     * Get a cookie value from the request.
+     * Get a decrypted cookie value from the request.
      */
     public function get(string $key, mixed $default = null): mixed
     {
@@ -40,14 +40,10 @@ class CookieManager implements StatefulService
         try {
             return $this->encrypter->decrypt($value);
         } catch (DecryptException $e) {
-            $this->logger->warning('Cookie decryption failed.', [
-                'cookie_name' => $key,
-                'exception_message' => $e->getMessage(),
-                'payload_length' => strlen($value),
-                'payload_hash_preview' => substr(hash('sha256', $value), 0, 10),
+            $this->logger->warning("Failed to decrypt cookie '{$key}'. The cookie might be invalid or tampered.", [
+                'exception' => $e->getMessage(),
             ]);
-
-            return $value;
+            return $default;
         }
     }
 
@@ -63,6 +59,7 @@ class CookieManager implements StatefulService
 
     /**
      * Queue a cookie to be sent with the response.
+     * The cookie value will be encrypted by default.
      */
     public function queue(
         string $name,
@@ -85,7 +82,7 @@ class CookieManager implements StatefulService
             $domain ?? $this->config['domain'] ?? null,
             $secure ?? $this->config['secure'] ?? false,
             $httpOnly,
-            $raw,
+            false, // The value is already encoded by the encrypter, so we don't need raw handling here.
             $sameSite ?? $this->config['same_site'] ?? 'lax',
         );
     }

@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'driver' => env('SESSION_DRIVER', 'redis'),
+    'driver' => env('SESSION_DRIVER', 'file'),
 
     /*
     |--------------------------------------------------------------------------
@@ -26,7 +26,7 @@ return [
     |
     */
 
-    'lifetime' => env('SESSION_LIFETIME', 120),
+    'lifetime' => env('SESSION_LIFETIME', 43200),
 
     'expire_on_close' => env('SESSION_EXPIRE_ON_CLOSE', false),
 
@@ -63,8 +63,11 @@ return [
     | các subdomain, hãy đặt giá trị này là ".yourdomain.com".
     |
     */
-
-    'domain' => env('SESSION_DOMAIN', null),
+    'domain' => env('SESSION_DOMAIN', (function () {
+        $appUrl = env('APP_URL', 'http://localhost');
+        $host = parse_url($appUrl, PHP_URL_HOST);
+        return in_array($host, ['localhost', '127.0.0.1']) ? null : $host;
+    })()),
 
     /*
     |--------------------------------------------------------------------------
@@ -76,7 +79,6 @@ return [
     | nghe lén lưu lượng mạng. Bắt buộc bật `true` trong môi trường production.
     |
     */
-
     'secure' => env('SESSION_SECURE_COOKIE', true),
 
     /*
@@ -94,6 +96,18 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Encrypt Session
+    |--------------------------------------------------------------------------
+    |
+    | Tùy chọn này cho phép bạn chỉ định rằng tất cả dữ liệu session
+    | nên được mã hóa trước khi được lưu trữ. Việc mã hóa sẽ được thực hiện
+    | tự động và tăng cường bảo mật cho ứng dụng của bạn.
+    |
+    */
+    'encrypt' => env('SESSION_ENCRYPT', false),
+
+    /*
+    |--------------------------------------------------------------------------
     | Same-Site Cookies
     |--------------------------------------------------------------------------
     |
@@ -105,7 +119,7 @@ return [
     |
     */
 
-    'same_site' => 'lax',
+    'same_site' => env('SESSION_SAME_SITE', 'lax'),
 
     /*
     |--------------------------------------------------------------------------

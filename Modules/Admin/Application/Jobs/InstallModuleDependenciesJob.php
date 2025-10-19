@@ -6,7 +6,6 @@ use Core\Queue\Dispatchable;
 use Core\Queue\Job;
 use Core\Services\ModuleService;
 use Core\Support\Facades\Log;
-use Core\WebSocket\CentrifugoAPIService;
 use Modules\Admin\Infrastructure\Models\Module;
 
 class InstallModuleDependenciesJob extends Job
@@ -19,7 +18,6 @@ class InstallModuleDependenciesJob extends Job
 
     public function handle(
         ModuleService $moduleService,
-        CentrifugoAPIService $centrifugo,
         Log $logger,
     ): void {
         $module = Module::where('name', $this->moduleName)->first();
@@ -47,14 +45,6 @@ class InstallModuleDependenciesJob extends Job
             $module->status = 'installation_failed';
             $module->description = 'Lỗi cài đặt thư viện: ' . substr($e->getMessage(), 0, 250) . '...';
             $module->save();
-        } finally {
-            $centrifugo->publish('admin_notifications', [
-                'event' => 'module_list_updated',
-                'data' => [
-                    'message' => "Module '{$this->moduleName}' installation process finished.",
-                    'status' => $module->status,
-                ],
-            ]);
         }
     }
 }

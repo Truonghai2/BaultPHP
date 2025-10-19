@@ -35,11 +35,12 @@ class DeleteUserHandler implements CommandHandler
             throw new UserNotFoundException("User with ID {$command->userId} not found.");
         }
 
-        /** @var User $currentUser */
+        /** @var User|null $currentUser */
         $currentUser = Auth::user();
 
-        // Ủy quyền kiểm tra cho UserPolicy.
-        $currentUser->can('delete', $userToDelete);
+        if (!$currentUser || !$currentUser->can('delete', $userToDelete)) {
+            throw new \App\Exceptions\AuthorizationException('You are not authorized to delete this user.');
+        }
 
         $userToDelete->delete();
 

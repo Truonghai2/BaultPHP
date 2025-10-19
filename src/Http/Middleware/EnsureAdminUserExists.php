@@ -2,13 +2,13 @@
 
 namespace App\Http\Middleware;
 
+use Core\Contracts\Session\SessionInterface;
 use Core\Http\RedirectResponse;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * Middleware to ensure that at least one admin user exists in the system.

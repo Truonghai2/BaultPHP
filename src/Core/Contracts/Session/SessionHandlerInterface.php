@@ -1,23 +1,17 @@
 <?php
 
-declare(strict_types=1);
-
 namespace Core\Contracts\Session;
 
 /**
- * Interface SessionHandlerInterface
- *
- * Định nghĩa các phương thức cần thiết cho một trình xử lý session.
- * Tương thích với SessionHandlerInterface của PHP.
- *
- * @package Core\Contracts\Session
+ * Interface cho các trình xử lý lưu trữ session.
+ * Dựa trên SessionHandlerInterface của PHP.
  */
 interface SessionHandlerInterface
 {
     /**
      * Mở một session.
      */
-    public function open(string $path, string $name): bool;
+    public function open(string $savePath, string $sessionName): bool;
 
     /**
      * Đóng session.
@@ -27,20 +21,20 @@ interface SessionHandlerInterface
     /**
      * Đọc dữ liệu session.
      */
-    public function read(string $id): string|false;
+    public function read(string $sessionId): string|false;
 
     /**
      * Ghi dữ liệu session.
      */
-    public function write(string $id, string $data): bool;
+    public function write(string $sessionId, string $data): bool;
 
     /**
      * Hủy một session.
      */
-    public function destroy(string $id): bool;
+    public function destroy(string $sessionId): bool;
 
     /**
      * Dọn dẹp các session cũ (Garbage Collection).
      */
-    public function gc(int $max_lifetime): int|false;
+    public function gc(int $maxLifetime): int|false;
 }

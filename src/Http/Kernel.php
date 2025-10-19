@@ -12,6 +12,7 @@ use Core\Routing\Router;
 use Laminas\Stratigility\MiddlewarePipe;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
+use Psr\Http\Server\MiddlewareInterface;
 use Psr\Http\Server\RequestHandlerInterface;
 use ReflectionMethod;
 use ReflectionParameter;
@@ -23,10 +24,16 @@ class Kernel implements KernelContract, StatefulService
     protected Router $router;
 
     /**
-     * Cache for resolved middleware instances to avoid re-instantiation on every request.
+     * Cache for resolved singleton middleware instances.
      * @var array<string, MiddlewareInterface>
      */
     protected array $middlewareInstances = [];
+
+    /**
+     * The middlewares that have been resolved for the current request.
+     * @var MiddlewareInterface[]
+     */
+    protected array $resolvedMiddleware = [];
 
     /**
      * The application's global HTTP middleware stack.
@@ -78,12 +85,12 @@ class Kernel implements KernelContract, StatefulService
     protected array $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
-            \App\Http\Middleware\AddQueuedCookiesToResponse::class, // Di chuyển lên đây
             \App\Http\Middleware\StartSession::class,
             \App\Http\Middleware\ShareMessagesFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\TerminateSession::class,
+            \App\Http\Middleware\AddQueuedCookiesToResponse::class,
         ],
         'api' => [
             \App\Http\Middleware\SubstituteBindings::class,
@@ -129,6 +136,8 @@ class Kernel implements KernelContract, StatefulService
 
             $response = $this->sendRequestThroughRouter($request, $route);
 
+            $this->terminate($request, $response);
+
             return $response;
         } catch (HttpResponseException $e) {
             return $e->getResponse();
@@ -143,24 +152,29 @@ class Kernel implements KernelContract, StatefulService
     protected function sendRequestThroughRouter(ServerRequestInterface $request, Route $route): ResponseInterface
     {
         $this->app->instance(ServerRequestInterface::class, $request);
+        $this->resolvedMiddleware = []; // Reset for the current request
 
         $pipeline = new MiddlewarePipe();
 
         $middlewareStack = array_merge($this->middleware, $this->router->gatherRouteMiddleware($route));
 
         foreach ($middlewareStack as $middleware) {
-            $pipeline->pipe($this->resolveMiddleware($middleware));
+            $instance = $this->resolveMiddleware($middleware);
+            $this->resolvedMiddleware[] = $instance;
+            $pipeline->pipe($instance);
         }
 
-        $finalHandler = new class ($this->app, $route) implements RequestHandlerInterface {
-            public function __construct(private Application $app, private Route $route)
-            {
+        $finalHandler = new class ($this, $this->app, $route) implements RequestHandlerInterface {
+            public function __construct(
+                private Kernel $kernel,
+                private Application $app,
+                private Route $route,
+            ) {
             }
+
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                /** @var \Core\Routing\Router $router */
-                $router = $this->app->make(\Core\Routing\Router::class);
-                $responseContent = $router->runRoute($request, $this->route->handler, $this->route->parameters);
+                $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
 
                 if ($responseContent instanceof ResponseInterface) {
                     return $responseContent;
@@ -180,44 +194,51 @@ class Kernel implements KernelContract, StatefulService
     /**
      * Resolve a middleware instance from the container.
      * This method now caches resolved instances to improve performance.
-     * @param string|callable|\Psr\Http\Server\MiddlewareInterface $middleware
+     *
+     * @param string|callable|MiddlewareInterface $middleware
+     * @return MiddlewareInterface
      */
-    protected function resolveMiddleware($middleware)
+    protected function resolveMiddleware($middleware): MiddlewareInterface
     {
+        if ($middleware instanceof MiddlewareInterface) {
+            return $middleware;
+        }
+
         if ($middleware instanceof \Closure) {
             return new \Laminas\Stratigility\Middleware\CallableMiddlewareDecorator($middleware);
         }
 
-        if (is_string($middleware)) {
-            if (isset($this->middlewareInstances[$middleware])) {
-                return $this->middlewareInstances[$middleware];
-            }
-
-            [$name, $parameters] = array_pad(explode(':', $middleware, 2), 2, null);
-            $parameters = $parameters ? explode(',', $parameters) : [];
-
-            if (isset($this->routeMiddleware[$name])) {
-                $middleware = $this->routeMiddleware[$name];
-            } else {
-                $middleware = $name;
-            }
-
-            $instance = $this->app->make($middleware);
-
-            if (method_exists($instance, 'setParameters')) {
-                $instance->setParameters($parameters);
-            }
-
-            if (empty($parameters)) {
-                $this->middlewareInstances[$middleware] = $instance;
-            }
-
-            return $instance;
+        if (!is_string($middleware)) {
+            throw new \InvalidArgumentException('Invalid middleware type provided.');
         }
 
-        // For object instances, we assume they are stateless and can be cached by class name
-        $class = get_class($middleware);
-        return $this->middlewareInstances[$class] ??= $this->app->make($class);
+        // If the middleware is a string, we'll resolve it from the container.
+        $cacheKey = $middleware;
+        if (isset($this->middlewareInstances[$cacheKey])) {
+            return $this->middlewareInstances[$cacheKey];
+        }
+
+        [$name, $params] = array_pad(explode(':', $middleware, 2), 2, null);
+        $parameters = $params ? explode(',', $params) : [];
+
+        $className = $this->routeMiddleware[$name] ?? $name;
+
+        if (!class_exists($className)) {
+            throw new \RuntimeException("Middleware class [{$className}] does not exist.");
+        }
+
+        $instance = $this->app->make($className);
+
+        if (!empty($parameters) && method_exists($instance, 'setParameters')) {
+            $instance->setParameters($parameters);
+        }
+
+        // Only cache middleware that don't have parameters, as they are globally reusable.
+        if (empty($parameters)) {
+            $this->middlewareInstances[$cacheKey] = $instance;
+        }
+
+        return $instance;
     }
 
     /**
@@ -231,9 +252,17 @@ class Kernel implements KernelContract, StatefulService
         $reflectionMethod = new ReflectionMethod($controllerClass, $method);
         $parameters = $reflectionMethod->getParameters();
 
+        $routeParameters = $route->parameters;
         $dependencies = [];
         foreach ($parameters as $parameter) {
-            $dependencies[] = $this->resolveParameter($app, $route, $request, $parameter);
+            $paramName = $parameter->getName();
+
+            if (!$parameter->hasType() && array_key_exists($paramName, $routeParameters)) {
+                $dependencies[] = $routeParameters[$paramName];
+                unset($routeParameters[$paramName]);
+            } else {
+                $dependencies[] = $this->resolveParameter($app, $request, $parameter, $route);
+            }
         }
 
         $controllerInstance = $app->make($controllerClass);
@@ -244,24 +273,20 @@ class Kernel implements KernelContract, StatefulService
     /**
      * Resolve a single parameter for the controller method.
      */
-    protected function resolveParameter(Application $app, Route $route, ServerRequestInterface $request, ReflectionParameter $parameter): mixed
+    protected function resolveParameter(Application $app, ServerRequestInterface $request, ReflectionParameter $parameter, Route $route): mixed
     {
         $type = $parameter->getType();
         $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
 
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
-            /** @var \Core\Http\FormRequest $formRequest */
+            /** @var FormRequest $formRequest */
             $formRequest = $app->make($typeName);
             $formRequest->validateResolved();
             return $formRequest;
         }
 
-        if ($typeName === ServerRequestInterface::class) {
+        if ($typeName === ServerRequestInterface::class || $typeName === get_class($request)) {
             return $request;
-        }
-
-        if ($route && array_key_exists($parameter->getName(), $route->parameters)) {
-            return $route->parameters[$parameter->getName()];
         }
 
         if ($typeName && $app->has($typeName)) {
@@ -284,6 +309,15 @@ class Kernel implements KernelContract, StatefulService
 
     public function terminate(ServerRequestInterface $request, ResponseInterface $response): void
     {
+        if (!$request->getAttribute('route')) {
+            return;
+        }
+
+        foreach (array_reverse($this->resolvedMiddleware) as $middleware) {
+            if (method_exists($middleware, 'terminate')) {
+                $middleware->terminate($request, $response);
+            }
+        }
     }
 
     /**
@@ -291,7 +325,7 @@ class Kernel implements KernelContract, StatefulService
      */
     public function resetState(): void
     {
-        // We keep the middleware instances cache as they are mostly stateless.
+        $this->resolvedMiddleware = [];
     }
 
     /**
@@ -314,5 +348,13 @@ class Kernel implements KernelContract, StatefulService
     public function middlewareGroup(string $group, array $middleware): void
     {
         $this->middlewareGroups[$group] = $middleware;
+    }
+
+    public function pushMiddlewareToGroup(string $group, string $middleware): void
+    {
+        if (!isset($this->middlewareGroups[$group])) {
+            $this->middlewareGroups[$group] = [];
+        }
+        array_unshift($this->middlewareGroups[$group], $middleware);
     }
 }

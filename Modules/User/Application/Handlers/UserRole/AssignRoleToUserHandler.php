@@ -42,18 +42,14 @@ class AssignRoleToUserHandler
 
         $context = $this->acl->resolveContextByLevelAndId($command->contextLevel, $command->instanceId);
 
-        // Tối ưu hóa: Sử dụng `upsert` thay vì `updateOrCreate`.
-        // `upsert` thực hiện một truy vấn nguyên tử duy nhất ở cấp CSDL (ví dụ: INSERT ... ON DUPLICATE KEY UPDATE),
-        // hiệu quả hơn nhiều so với hai truy vấn (SELECT rồi UPDATE/INSERT) của `updateOrCreate`.
-        // Điều này cũng giúp loại bỏ hoàn toàn các vấn đề về race condition.
         RoleAssignment::upsert(
             [[
                 'user_id'    => $user->id,
                 'context_id' => $context->id,
                 'role_id' => $role->id,
-            ]], // Dữ liệu để chèn/cập nhật
-            ['user_id', 'context_id'], // Cột(s) unique để xác định bản ghi
-            ['role_id'], // Cột(s) cần cập nhật nếu bản ghi đã tồn tại
+            ]],
+            ['user_id', 'context_id'],
+            ['role_id'],
         );
 
         $this->dispatcher->dispatch(new RoleAssignedToUser($user, $role, $context));

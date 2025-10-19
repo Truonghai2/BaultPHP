@@ -25,6 +25,11 @@ class UserSeeder extends Seeder
             ],
         );
 
+        if (!$user) {
+            $this->command?->error('Could not find or create the admin user "admin@bault.dev". Aborting role assignment.');
+            return;
+        }
+
         if ($user->wasRecentlyCreated) {
             $this->command?->info('Admin user "admin@bault.dev" created.');
         } else {
@@ -33,11 +38,13 @@ class UserSeeder extends Seeder
 
         $superAdminRole = Role::where('name', 'super-admin')->firstOrFail();
 
-        RoleAssignment::firstOrCreate([
+        RoleAssignment::firstOrCreate(
+            [
             'user_id' => $user->id,
             'role_id' => $superAdminRole->id,
             'context_id' => 1,
-        ]);
+        ],
+        );
 
         $this->command?->line('  - Ensured "admin@bault.dev" has the "super-admin" role in the system context.');
     }

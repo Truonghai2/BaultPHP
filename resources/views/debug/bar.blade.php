@@ -333,11 +333,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         init() {
             this.cacheElements();
-            // Lấy ID request ban đầu từ dữ liệu được nhúng
             this.state.lastRequestId = sessionStorage.getItem('bault-debug-last-id');
+            
+            const loadedFromSession = this.loadFromSession();
+            if (!loadedFromSession) {
+                this.fetchDebugData();
+            }
+
             this.initEventListeners();
-            this.loadFromSession();
             this.initTheme();
+            this.initWebSocket();
         },
 
         loadFromSession() {
@@ -347,11 +352,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     const parsedData = JSON.parse(lastData);
                     this.update(parsedData);
                     this.state.lastRequestId = parsedData?.info?.id || null;
+                    return true; // Báo hiệu đã tải thành công
                 }
             } catch (err) {
                 // ignore corrupted session storage
                 console.warn('BaultDebugBar: invalid session data', err);
             }
+            return false; // Báo hiệu không tải được dữ liệu
         },
 
         cacheElements() {
@@ -401,13 +408,29 @@ document.addEventListener('DOMContentLoaded', function () {
             document.addEventListener('bault:spa-navigated', () => {
                 this.fetchDebugData();
             });
+
+            // Setup search filters một lần duy nhất
+            this.setupSearchFilter('debug-search-queries', '#debug-content-queries dl dt, #debug-content-queries dl dd');
+            this.setupSearchFilter('debug-search-events', '#debug-content-events dl dt, #debug-content-events dl dd');
+            this.setupSearchFilter('debug-search-cache', '#debug-content-cache dl dt, #debug-content-cache dl dd');
+            this.setupSearchFilter('debug-search-routes', '#debug-content-routes dl dt, #debug-content-routes dl dd');
+            this.setupSearchFilter('debug-search-session', '#debug-content-session dl dt, #debug-content-session dl dd');
+            this.setupSearchFilter('debug-search-cookies', '#debug-content-cookies dl dt, #debug-content-cookies dl dd');
+            this.setupSearchFilter('debug-search-auth', '#debug-content-auth dl dt, #debug-content-auth dl dd');
+            this.setupSearchFilter('debug-search-exceptions', '#debug-content-exceptions .exception-item');
         },
 
         fetchDebugData() {
             if (this.state.isFetching) return;
             this.state.isFetching = true;
+            
+            const requestId = this.state.lastRequestId;
+            if (!requestId) {
+                this.state.isFetching = false;
+                return;
+            }
 
-            fetch('/bault-debug/data')
+            fetch(`/_debug/${requestId}`)
                 .then(response => response.json())
                 .then(data => {
                     if (data && data.info && data.info.id !== this.state.lastRequestId) {
@@ -457,17 +480,17 @@ document.addEventListener('DOMContentLoaded', function () {
             const { info = {}, queries = [], events = [], config = {}, cache = null, routes = [], session = {}, cookies = {}, exceptions = [], auth = null, browser_events = [] } = data;
             const el = this.elements;
 
-            if (el.debugInfoDuration) el.debugInfoDuration.innerHTML = `Time: <b>${info.duration_ms || '?' }ms</b>`;
-            if (el.debugInfoMemory) el.debugInfoMemory.innerHTML = `Memory: <b>${info.memory_peak || '?'}</b>`;
+            if (el.debugInfoDuration) el.debugInfoDuration.innerHTML = `Time: <b>${this.escapeHtml(String(info.duration_ms || '?'))}ms</b>`;
+            if (el.debugInfoMemory) el.debugInfoMemory.innerHTML = `Memory: <b>${this.escapeHtml(info.memory_peak || '?')}</b>`;
             if (el.debugInfoQueries) el.debugInfoQueries.innerHTML = `Queries: <b>${queries.length || 0}</b>`;
             if (el.debugInfoEvents) el.debugInfoEvents.innerHTML = `Events: <b>${(events || []).length}</b>`;
             if (el.debugInfoSession) el.debugInfoSession.innerHTML = `Session: <b>${Object.keys(session || {}).length}</b>`;
             if (el.debugInfoCookies) el.debugInfoCookies.innerHTML = `Cookies: <b>${Object.keys(cookies || {}).length}</b>`;
             if (el.debugInfoExceptions) el.debugInfoExceptions.innerHTML = `Exceptions: <b style="color: ${exceptions.length > 0 ? '#c53030' : '#f80'}">${exceptions.length}</b>`;
-            if (el.debugInfoConfig) el.debugInfoConfig.innerHTML = `Config: <b>Loaded</b>`;
+            if (el.debugInfoConfig) el.debugInfoConfig.textContent = `Config: Loaded`;
             if (el.debugInfoRoutes) el.debugInfoRoutes.innerHTML = `Routes: <b>${(routes || []).length}</b>`;
 
-            if (el.debugContentInfo) el.debugContentInfo.innerHTML = `<h3>Request Info</h3><pre><code>${this.safeStringify(info)}</code></pre>`;
+            if (el.debugContentInfo) el.debugContentInfo.innerHTML = `<h3>Request Info</h3><pre><code>${this.escapeHtml(this.safeStringify(info))}</code></pre>`;
             if (el.debugContentConfig) el.debugContentConfig.innerHTML = `<h3>Application Configuration</h3><pre><code>${this.safeStringify(config)}</code></pre>`;
 
             if (el.debugContentQueries) this.renderQueries(queries, el.debugContentQueries);
@@ -481,16 +504,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Dispatch browser events if any
             this.dispatchBrowserEvents(browser_events);
-
-            // Setup search filters (only creates listeners if inputs exist)
-            this.setupSearchFilter('debug-search-queries', '#debug-content-queries dl dt, #debug-content-queries dl dd');
-            this.setupSearchFilter('debug-search-events', '#debug-content-events dl dt, #debug-content-events dl dd');
-            this.setupSearchFilter('debug-search-cache', '#debug-content-cache dl dt, #debug-content-cache dl dd');
-            this.setupSearchFilter('debug-search-routes', '#debug-content-routes dl dt, #debug-content-routes dl dd');
-            this.setupSearchFilter('debug-search-session', '#debug-content-session dl dt, #debug-content-session dl dd');
-            this.setupSearchFilter('debug-search-cookies', '#debug-content-cookies dl dt, #debug-content-cookies dl dd');
-            this.setupSearchFilter('debug-search-auth', '#debug-content-auth dl dt, #debug-content-auth dl dd');
-            this.setupSearchFilter('debug-search-exceptions', '#debug-content-exceptions .exception-item');
         },
 
         safeStringify(obj) {
@@ -734,11 +747,8 @@ document.addEventListener('DOMContentLoaded', function () {
             const searchInput = document.getElementById(inputId);
             if (!searchInput) return;
 
-            // Remove existing listener if any to avoid duplication
-            const newInput = searchInput.cloneNode(true);
-            searchInput.parentNode.replaceChild(newInput, searchInput);
-
-            newInput.addEventListener('keyup', function() {
+            // Gán sự kiện một lần duy nhất
+            searchInput.addEventListener('keyup', function() {
                 const searchTerm = this.value.toLowerCase();
                 const items = document.querySelectorAll(itemSelector);
                 
@@ -832,6 +842,131 @@ document.addEventListener('DOMContentLoaded', function () {
         escapeHtml(str) {
             if (str === null || str === undefined) return '';
             return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        },
+
+        // --- WebSocket Real-time updates ---
+        getWebSocketUrl() {
+            // Lấy URL từ config, với giá trị mặc định.
+            // Giá trị này được inject từ InjectDebugbarMiddleware
+            return "{{ config('app.websocket_url', 'ws://127.0.0.1:9502') }}";
+        },
+
+        initWebSocket() {
+            let heartbeatInterval = null;
+
+            const connect = () => {
+                const ws = new WebSocket(this.getWebSocketUrl());
+
+                ws.onopen = () => {
+                    console.log('BaultDebugBar: WebSocket connection established.');
+                };
+
+                ws.onopen = () => {
+                    console.log('BaultDebugBar: WebSocket connection established.');
+                    heartbeatInterval = setInterval(() => ws.send(JSON.stringify({ type: 'ping' })), 25000);
+                };
+
+                ws.onmessage = (event) => {
+                    try {
+                        this.handleWebSocketMessage(JSON.parse(event.data));
+                    } catch (e) {
+                        console.error('BaultDebugBar: Error handling WebSocket message.', e);
+                    }
+                };
+
+                ws.onclose = (event) => {
+                    console.log('BaultDebugBar: WebSocket connection closed. Reconnecting in 5 seconds...', event.reason);
+                    clearInterval(heartbeatInterval);
+                    setTimeout(connect, 5000);
+                };
+
+                ws.onerror = (error) => {
+                    console.error('BaultDebugBar: WebSocket error.', error);
+                };
+            };
+
+            connect();
+        },
+
+        handleWebSocketMessage(message) {
+            // Handle pong message for heartbeat
+            if (message.type === 'pong') {
+                return;
+            }
+
+            // Dữ liệu real-time từ server được gói trong 'payload'
+            const payload = message.payload;
+            if (!payload || !payload.type) return;
+
+            switch(payload.type) {
+                case 'query':
+                    this.handleQueryUpdate(payload.data);
+                    break;
+                case 'log':
+                    this.handleLogUpdate(payload.data);
+                    break;
+                case 'event':
+                    this.handleEventUpdate(payload.data);
+                    break;
+                case 'cache':
+                    this.handleCacheUpdate(payload.data);
+                    break;
+            }
+        },
+
+        handleQueryUpdate(data) {
+            const container = this.elements.debugContentQueries;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const dt = document.createElement('dt');
+            dt.innerHTML = `[${data.duration_ms || 0}ms]`;
+            const dd = document.createElement('dd');
+            dd.innerHTML = `<pre><code>${this.escapeHtml((data.sql || '').trim())}</code></pre>`;
+            
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+
+            const count = container.querySelectorAll('dt').length;
+            this.elements.debugInfoQueries.innerHTML = `Queries: <b>${count}</b>`;
+        },
+
+        handleLogUpdate(data) {
+            console.log('BaultDebugBar [Log]:', data);
+        },
+
+        handleEventUpdate(data) {
+            const container = this.elements.debugContentEvents;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const dt = document.createElement('dt');
+            dt.textContent = data.name;
+            const dd = document.createElement('dd');
+            dd.innerHTML = `<pre><code>${this.escapeHtml(this.safeStringify(data.payload || {}))}</code></pre>`;
+
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+
+            const count = container.querySelectorAll('dt').length;
+            this.elements.debugInfoEvents.innerHTML = `Events: <b>${count}</b>`;
+        },
+
+        handleCacheUpdate(data) {
+            // Similar to logs, this is complex and might be better handled by a full data refresh.
+            console.log('BaultDebugBar [Cache]:', data);
         }
     };
 

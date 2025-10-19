@@ -1,9 +1,0 @@
-{
-  "name": "Centrifugo",
-  "version": "1.0.0",
-  "endabled": true,
-  "providers": [
-    "Modules\\Centrifugo\\Providers\\ModuleServiceProvider",
-    "Modules\\Centrifugo\\Providers\\CentrifugoServiceProvider"
-  ]
-}

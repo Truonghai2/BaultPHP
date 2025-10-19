@@ -3,6 +3,7 @@
 namespace Modules\User\Http\Controllers\Auth;
 
 use Core\Auth\AuthManager;
+use Core\Contracts\Session\SessionInterface;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
@@ -10,7 +11,6 @@ use Modules\User\Application\Commands\RegisterUserCommand;
 use Modules\User\Application\Handlers\RegisterUserHandler;
 use Modules\User\Http\Requests\RegisterRequest;
 use Psr\Http\Message\ResponseInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 #[Route(prefix: '/auth', name: 'auth.')]
 class RegisterController extends Controller
@@ -35,7 +35,7 @@ class RegisterController extends Controller
 
         $auth->guard('web')->login($user);
 
-        $session->migrate(true);
+        $session->regenerate(true);
 
         return redirect(route('home'));
     }

@@ -34,12 +34,6 @@ return [
 
         'api' => [
             'driver' => 'token',
-            'provider' => 'users',
-        ],
-
-        'centrifugo' => [
-            'driver' => 'token',
-            'provider' => 'users',
         ],
     ],
 
@@ -50,7 +44,7 @@ return [
     | The permission name that grants a user all permissions across the system.
     | Assign this permission to your super admin role.
     */
-    'super_admin_permission' => 'system.manage-all',
+    'super_admin_permission' => 'super-admin',
 
     'cache' => [
         'permissions_ttl' => 3600,

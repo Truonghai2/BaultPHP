@@ -3,7 +3,7 @@
 namespace App\Http\Middleware;
 
 use Core\Application;
-use Core\Database\Swoole\SwooleRedisPool;
+use Core\Contracts\WebSocket\WebSocketManagerInterface;
 use Core\Debug\DebugManager;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -21,6 +21,7 @@ class CollectDebugDataMiddleware implements MiddlewareInterface
     public function __construct(
         private Application $app,
         private DebugManager $debugManager,
+        private WebSocketManagerInterface $wsManager,
         private LoggerInterface $logger,
     ) {
     }
@@ -47,18 +48,14 @@ class CollectDebugDataMiddleware implements MiddlewareInterface
         $data = $this->debugManager->getData();
 
         try {
-            $redis = SwooleRedisPool::get('default');
-
-            try {
-                $key = 'debug:' . $requestId;
-                $redis->set($key, json_encode($data), 900);
-            } finally {
-                SwooleRedisPool::put($redis);
-            }
-
+            // Gửi toàn bộ dữ liệu debug qua WebSocket đến đúng session debug
+            $this->wsManager->sendToUser($requestId, [
+                'type' => 'full_debug_load',
+                'payload' => $data,
+            ]);
             return $response->withHeader('X-Debug-ID', $requestId);
         } catch (\Throwable $e) {
-            $this->logger->error('Failed to save debug data to Redis: ' . $e->getMessage(), [
+            $this->logger->error('Failed to send debug data via WebSocket: ' . $e->getMessage(), [
                 'exception' => $e,
                 'request_id' => $requestId,
             ]);

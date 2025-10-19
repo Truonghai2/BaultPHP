@@ -47,7 +47,6 @@ services:
       - NGINX_HOST_PORT=888
       - PMA_HOST_PORT=8080
       
-      - CENTRIFUGO_HOST_PORT=8000
       - MEILISEARCH_HOST_PORT=7700
       - RABBITMQ_MANAGEMENT_HOST_PORT=15672
       - PROMETHEUS_HOST_PORT=9090
@@ -64,15 +63,45 @@ services:
       - RABBITMQ_USER=${RABBITMQ_USER:-user}
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-secret}
       - DB_SSLMODE=disable
-      - CENTRIFUGO_API_URL=http://centrifugo:8000/api
-      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
       
+  websocket:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        - APP_ENV=${APP_ENV:-production}
+    image: bault-php-app:latest
+    container_name: bault_websocket
+    restart: unless-stopped
+    command: php cli ws:serve
+    ports:
+      - "9502:9502"
+    volumes:
+      - .:/app
+      - /app/vendor
+    networks:
+      - bault-network
+    depends_on:
+      - app
+    environment:
+      - APP_ENV=${APP_ENV:-local}
+      
+      - APP_DEBUG=${APP_DEBUG:-true}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - DB_CONNECTION=${DB_CONNECTION:-mysql}
+      - DB_HOST=${DB_HOST:-db}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_READ_HOST=${DB_READ_HOST:-db_read}
+      - DB_DATABASE=${DB_DATABASE:-bault}
+      - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
+      - DB_USERNAME=${DB_USERNAME:-root}
+
   nginx:
     image: nginx:1.25-alpine
     container_name: bault_nginx
     restart: unless-stopped
     volumes:
-      # Bind mount the current directory to /app in read-only mode.
       - .:/app:ro
       - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
       - ./docker/nginx/gzip.conf:/etc/nginx/conf.d/gzip.conf
@@ -183,21 +212,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-  
-  centrifugo:
-    image: centrifugo/centrifugo:v5
-    container_name: bault_centrifugo
-    restart: unless-stopped
-    # profiles:
-    #   - tools
-    networks:
-      - bault-network
-    environment:
-      - CENTRIFUGO_API_KEY=${CENTRIFUGO_API_KEY}
-      - CENTRIFUGO_ADMIN_PASSWORD=${CENTRIFUGO_ADMIN_PASSWORD}
-      - CENTRIFUGO_ADMIN_SECRET=${CENTRIFUGO_ADMIN_SECRET}
-      - CENTRIFUGO_ALLOWED_ORIGINS=*
-      - CENTRIFUGO_LOG_LEVEL=debug
 
   phpmyadmin:
     image: phpmyadmin/phpmyadmin

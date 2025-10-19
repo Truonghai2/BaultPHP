@@ -2,12 +2,12 @@
 
 namespace App\Providers;
 
+use Core\Contracts\Session\SessionInterface;
 use Core\Contracts\StatefulService;
 use Core\Session\DirectSessionTokenStorage;
 use Core\Session\SessionManager;
 use Core\Support\ServiceProvider;
 use Symfony\Component\HttpFoundation\RequestStack;
-use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\Security\Csrf\CsrfTokenManager;
 use Symfony\Component\Security\Csrf\CsrfTokenManagerInterface;
 use Symfony\Component\Security\Csrf\TokenGenerator\TokenGeneratorInterface;
@@ -28,9 +28,7 @@ class SessionServiceProvider extends ServiceProvider
             return $app->make(SessionManager::class)->driver();
         });
 
-        $this->app->alias('session', Session::class);
-
-        $this->app->alias('session', \Symfony\Component\HttpFoundation\Session\SessionInterface::class);
+        $this->app->alias('session', SessionInterface::class);
 
         $this->registerCsrfServices();
 

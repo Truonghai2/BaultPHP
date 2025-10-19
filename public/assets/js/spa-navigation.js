@@ -90,10 +90,20 @@ const BaultSPA = {
     try {
       const response = await fetch(url, {
         headers: { "X-SPA-NAVIGATE": "true" },
+        credentials: "include",
       });
 
       if (!response.ok) {
-        throw new Error("Network response was not ok");
+        if (response.status === 500) {
+          const errorHtml = await response.text();
+          if (
+            errorHtml.trim().toLowerCase().startsWith("<!doctype html") ||
+            errorHtml.trim().toLowerCase().startsWith("<html")
+          ) {
+            document.documentElement.innerHTML = errorHtml;
+          }
+        }
+        throw new Error(`Network response was not ok: ${response.status}`);
       }
 
       const newPageHtml = await response.text();
@@ -147,6 +157,8 @@ const BaultSPA = {
           Accept:
             "text/html, application/xhtml+xml, application/xml;q=0.9, */*;q=0.8",
         },
+        // Thêm dòng này để đảm bảo cookie session được gửi cùng với request
+        credentials: "include",
         redirect: "manual", // We handle redirects manually
       });
 
@@ -158,6 +170,18 @@ const BaultSPA = {
         // Handle redirect
         this.navigateTo(response.headers.get("Location"));
       } else {
+        // Xử lý lỗi 500 khi debug mode được bật
+        if (response.status === 500) {
+          const errorHtml = await response.text();
+          if (
+            errorHtml.trim().toLowerCase().startsWith("<!doctype html") ||
+            errorHtml.trim().toLowerCase().startsWith("<html")
+          ) {
+            document.documentElement.innerHTML = errorHtml;
+            return;
+          }
+        }
+
         // Re-render the content with the response (e.g., for validation errors)
         const newPageHtml = await response.text();
         const tempDoc = new DOMParser().parseFromString(
@@ -210,7 +234,11 @@ const BaultSPA = {
 
     this.prefetched.add(url);
 
-    fetch(url, { headers: { "X-SPA-NAVIGATE": "true" } })
+    fetch(url, {
+      headers: { "X-SPA-NAVIGATE": "true" },
+      // Thêm dòng này để đảm bảo cookie session được gửi cùng với request
+      credentials: "include",
+    })
       .then((response) => (response.ok ? response.text() : Promise.reject()))
       .then((html) => {
         const tempDoc = new DOMParser().parseFromString(html, "text/html");

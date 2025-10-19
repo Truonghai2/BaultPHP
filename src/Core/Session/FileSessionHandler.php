@@ -13,7 +13,7 @@ class FileSessionHandler implements SessionHandlerInterface
         }
     }
 
-    public function open(string $path, string $name): bool
+    public function open(string $savePath, string $sessionName): bool
     {
         return true;
     }
@@ -23,38 +23,68 @@ class FileSessionHandler implements SessionHandlerInterface
         return true;
     }
 
-    public function read(string $id): string|false
+    public function read(string $sessionId): string|false
     {
-        $file = $this->path . '/' . $id;
-        if (file_exists($file)) {
-            return file_get_contents($file);
+        if (!$this->isValidId($sessionId)) {
+            return false;
         }
+
+        $file = $this->path . '/' . $sessionId;
+
+        if (is_readable($file)) {
+            $content = file_get_contents($file);
+            return $content === false ? '' : $content;
+        }
+
         return '';
     }
 
-    public function write(string $id, string $data): bool
+    public function write(string $sessionId, string $data): bool
     {
-        return file_put_contents($this->path . '/' . $id, $data) !== false;
+        if (!$this->isValidId($sessionId)) {
+            return false;
+        }
+
+        $file = $this->path . '/' . $sessionId;
+
+        return file_put_contents($file, $data, LOCK_EX) !== false;
     }
 
-    public function destroy(string $id): bool
+    public function destroy(string $sessionId): bool
     {
-        $file = $this->path . '/' . $id;
-        if (file_exists($file)) {
-            unlink($file);
+        if (!$this->isValidId($sessionId)) {
+            return false;
         }
+
+        $file = $this->path . '/' . $sessionId;
+        if (file_exists($file)) {
+            return unlink($file);
+        }
+
         return true;
     }
 
-    public function gc(int $max_lifetime): int|false
+    public function gc(int $maxLifetime): int|false
     {
         $count = 0;
         foreach (glob($this->path . '/*') as $file) {
-            if (filemtime($file) + $max_lifetime < time() && file_exists($file)) {
+            if (!$this->isValidId(basename($file))) {
+                continue;
+            }
+
+            if (filemtime($file) + $maxLifetime < time() && file_exists($file)) {
                 unlink($file);
                 $count++;
             }
         }
         return $count;
+    }
+
+    /**
+     * Kiểm tra xem Session ID có hợp lệ không để tránh tấn công path traversal.
+     */
+    protected function isValidId(string $id): bool
+    {
+        return preg_match('/^[a-zA-Z0-9,-]+$/', $id) === 1;
     }
 }

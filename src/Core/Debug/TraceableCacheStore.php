@@ -2,6 +2,7 @@
 
 namespace Core\Debug;
 
+use App\Services\RealtimeDebugService;
 use Psr\SimpleCache\CacheInterface;
 
 /**
@@ -13,6 +14,7 @@ class TraceableCacheStore implements CacheInterface
         private CacheInterface $store,
         private CacheCollector $collector,
         private string $storeName,
+        private ?RealtimeDebugService $realtimeService = null,
     ) {
     }
 
@@ -22,8 +24,14 @@ class TraceableCacheStore implements CacheInterface
 
         if ($value === $default && !$this->store->has($key)) {
             $this->collector->addMiss($key, $this->storeName);
+            if ($this->realtimeService) {
+                $this->realtimeService->publish('cache', ['type' => 'miss', 'key' => $key, 'store' => $this->storeName]);
+            }
         } else {
             $this->collector->addHit($key, $this->storeName);
+            if ($this->realtimeService) {
+                $this->realtimeService->publish('cache', ['type' => 'hit', 'key' => $key, 'store' => $this->storeName]);
+            }
         }
 
         return $value;
@@ -32,12 +40,18 @@ class TraceableCacheStore implements CacheInterface
     public function set(string $key, mixed $value, \DateInterval|int|null $ttl = null): bool
     {
         $this->collector->addWrite($key, $value, $this->parseTtl($ttl), $this->storeName);
+        if ($this->realtimeService) {
+            $this->realtimeService->publish('cache', ['type' => 'write', 'key' => $key, 'ttl' => $this->parseTtl($ttl), 'store' => $this->storeName]);
+        }
         return $this->store->set($key, $value, $ttl);
     }
 
     public function delete(string $key): bool
     {
         $this->collector->addForget($key, $this->storeName);
+        if ($this->realtimeService) {
+            $this->realtimeService->publish('cache', ['type' => 'forget', 'key' => $key, 'store' => $this->storeName]);
+        }
         return $this->store->delete($key);
     }
 

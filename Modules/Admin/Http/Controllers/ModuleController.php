@@ -14,8 +14,6 @@ use Core\Routing\Attributes\Route;
 use Core\Services\ModuleInstallerService;
 use Core\Services\ModuleService;
 use Core\Support\Facades\Log;
-use Core\WebSocket\CentrifugoAPIService;
-use Http\JsonResponse;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
@@ -24,7 +22,6 @@ class ModuleController extends Controller
     public function __construct(
         private ModuleService $moduleService,
         private ModuleInstallerService $installerService,
-        private CentrifugoAPIService $centrifugo,
     ) {
     }
 
@@ -32,25 +29,16 @@ class ModuleController extends Controller
      * Hiển thị trang quản lý module.
      */
     #[Route('/admin/modules', method: 'GET')]
-    public function showPage(): JsonResponse
+    public function showPage(): ResponseInterface
     {
-        $user = auth()->user();
-        $connectionToken = null;
-        if ($user) {
-            $connectionToken = $this->centrifugo->generateConnectionToken((string) $user->id);
-        }
-
-        return response(view('Admin::modules.index', [
-            'centrifugoUrl' => config('websocket.connections.centrifugo.public_url'),
-            'centrifugoToken' => $connectionToken,
-        ]));
+        return response(view('admin::modules.index', []));
     }
 
     /**
      * API: Lấy danh sách tất cả các module.
      */
     #[Route('/api/admin/modules', method: 'GET')]
-    public function index(): JsonResponse
+    public function index(): ResponseInterface
     {
         try {
             $modules = $this->moduleService->getModules();
@@ -65,7 +53,7 @@ class ModuleController extends Controller
      * API: Cài đặt một module mới từ file ZIP.
      */
     #[Route('/api/admin/modules', method: 'POST')]
-    public function store(RequestInterface $request): JsonResponse
+    public function store(RequestInterface $request): ResponseInterface
     {
         $uploadedFile = $request->getUploadedFiles()['module_zip'] ?? null;
 
@@ -99,7 +87,7 @@ class ModuleController extends Controller
      * API: Bật/tắt một module.
      */
     #[Route('/api/admin/modules/{name}', method: 'PUT')]
-    public function update(string $name): JsonResponse
+    public function update(string $name): ResponseInterface
     {
         try {
             $newStatus = $this->moduleService->toggleStatus($name);
@@ -117,7 +105,7 @@ class ModuleController extends Controller
      * API: Xóa một module.
      */
     #[Route('/api/admin/modules/{name}', method: 'DELETE')]
-    public function destroy(string $name): JsonResponse
+    public function destroy(string $name): ResponseInterface
     {
         try {
             $this->moduleService->deleteModule($name);
@@ -136,7 +124,7 @@ class ModuleController extends Controller
     #[Route('/admin/modules/install/confirm', method: 'GET')]
     public function showInstallConfirmPage(): ResponseInterface
     {
-        $pendingNames = session()->pull('pending_modules', []);
+        $pendingNames = session()->get('pending_modules', []);
 
         if (empty($pendingNames)) {
             return redirect('/admin/modules');
@@ -150,7 +138,7 @@ class ModuleController extends Controller
                     'name' => $name,
                     'version' => $meta['version'] ?? '1.0.0',
                     'description' => $meta['description'] ?? 'Không có mô tả.',
-                    'requirements' => $meta['require'] ?? [], // Lấy thông tin yêu cầu từ module.json
+                    'requirements' => $meta['require'] ?? [],
                 ];
             }
         }
@@ -164,6 +152,9 @@ class ModuleController extends Controller
     #[Route('/admin/modules/install/confirm', method: 'POST')]
     public function processInstallation(RequestInterface $request): ResponseInterface
     {
+        // Xóa session sau khi form được submit để tránh vòng lặp
+        session()->forget('pending_modules');
+
         $modulesToInstall = $request->getParsedBody()['modules'] ?? [];
 
         if (empty($modulesToInstall)) {

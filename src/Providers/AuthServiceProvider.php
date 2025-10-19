@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Core\Auth\AuthManager;
 use Core\Support\ServiceProvider;
 use Modules\User\Domain\Services\AccessControlService;
 use Modules\User\Infrastructure\Models\User;
@@ -15,6 +16,18 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected array $policies = [
     ];
+
+    /**
+     * Register any application services.
+     */
+    public function register(): void
+    {
+        $this->app->singleton('auth', function ($app) {
+            return new AuthManager($app);
+        });
+
+        $this->app->alias('auth', AuthManager::class);
+    }
 
     /**
      * Đăng ký bất kỳ service xác thực / phân quyền nào.

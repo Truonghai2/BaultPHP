@@ -25,11 +25,8 @@ class LoginUserHandler
             'password' => $command->password,
         ];
 
-        if ($this->auth->guard('web')->attempt($credentials, $command->remember)) {
-            /** @var User|null */
-            return $this->auth->guard('web')->user();
-        }
+        $user = $this->auth->guard('web')->attempt($credentials, $command->remember);
 
-        return null;
+        return $user instanceof User ? $user : null;
     }
 }

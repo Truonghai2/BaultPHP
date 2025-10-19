@@ -35,7 +35,7 @@ interface Guard
     /**
      * Log a user into the application.
      */
-    public function login(Authenticatable $user): void;
+    public function login(Authenticatable $user, bool $remember = false): void;
 
     /**
      * Log the user out of the application.
@@ -45,5 +45,5 @@ interface Guard
     /**
      * Attempt to authenticate a user using the given credentials.
      */
-    public function attempt(array $credentials = []): bool;
+    public function attempt(array $credentials = [], bool $remember = false): ?Authenticatable;
 }

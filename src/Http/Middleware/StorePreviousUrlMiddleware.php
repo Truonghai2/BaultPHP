@@ -3,10 +3,10 @@
 namespace App\Http\Middleware;
 
 use Closure;
+use Core\Contracts\Session\SessionInterface;
 use Core\Routing\Attributes\Middleware;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class StorePreviousUrlMiddleware extends Middleware
 {

@@ -39,6 +39,9 @@ class RequestLogger
         );
 
         $duration = round((microtime(true) - $startTime) * 1000);
-        $this->logger->info($message, ['duration_ms' => $duration, 'request_id' => $this->app->make('request_id')]);
+        $this->logger->info($message, [
+            'duration_ms' => $duration,
+            'request_id' => $this->app->resolved('request_id') ? $this->app->get('request_id') : 'uninitialized',
+        ]);
     }
 }

@@ -1,11 +1,11 @@
 // public/sw.js
 
-const CACHE_VERSION = 8; // Tăng phiên bản cache để kích hoạt activate
+const CACHE_VERSION = 9;
 const STATIC_CACHE_NAME = `baultphp-static-v${CACHE_VERSION}`;
 const DYNAMIC_CACHE_NAME = `baultphp-dynamic-v${CACHE_VERSION}`;
 const APP_SHELL_CACHE_NAME = `baultphp-shell-v${CACHE_VERSION}`;
 const IMAGE_CACHE_NAME = `baultphp-images-v${CACHE_VERSION}`;
-const FONT_CACHE_NAME = `baultphp-fonts-v${CACHE_VERSION}`;
+const FONT_CACHE_NAME = `baultphp-fonts-v${CACHE_VERSION}`; // Fonts
 
 const APP_SHELL_URLS = [
   "/",
@@ -14,6 +14,14 @@ const APP_SHELL_URLS = [
   "/offline.html",
   "/assets/css/app.css",
   "/assets/js/app.js",
+];
+
+const CACHE_NAMES = [
+  STATIC_CACHE_NAME,
+  DYNAMIC_CACHE_NAME,
+  APP_SHELL_CACHE_NAME,
+  IMAGE_CACHE_NAME,
+  FONT_CACHE_NAME,
 ];
 
 /**
@@ -49,20 +57,12 @@ self.addEventListener("install", (event) => {
  * 2. Kích hoạt Service Worker và xóa cache cũ
  */
 self.addEventListener("activate", (event) => {
-  const cacheWhitelist = [
-    STATIC_CACHE_NAME,
-    DYNAMIC_CACHE_NAME,
-    APP_SHELL_CACHE_NAME,
-    IMAGE_CACHE_NAME,
-    FONT_CACHE_NAME,
-  ];
-
   event.waitUntil(
     (async () => {
       const cacheNames = await caches.keys();
       await Promise.all(
         cacheNames.map(async (cacheName) => {
-          if (!cacheWhitelist.includes(cacheName)) {
+          if (!CACHE_NAMES.includes(cacheName)) {
             console.log("Service Worker: Deleting old cache", cacheName);
             await caches.delete(cacheName);
           }
@@ -86,7 +86,11 @@ self.addEventListener("fetch", (event) => {
   }
 
   // ƯU TIÊN 1: Xử lý các tài nguyên cốt lõi của App Shell trước tiên.
-  if (APP_SHELL_URLS.includes(new URL(event.request.url).pathname)) {
+  if (
+    APP_SHELL_URLS.includes(
+      new URL(event.request.url).pathname.replace("/index.php", ""),
+    )
+  ) {
     event.respondWith(
       staleWhileRevalidate(
         event.request,
@@ -108,11 +112,13 @@ self.addEventListener("fetch", (event) => {
 
   if (event.request.mode === "navigate") {
     event.respondWith(
-      staleWhileRevalidate(
-        event.request,
-        APP_SHELL_CACHE_NAME,
-        "/offline.html",
-      ),
+      (async () => {
+        try {
+          return await fetch(event.request);
+        } catch (error) {
+          return caches.match("/offline.html");
+        }
+      })(),
     );
     return;
   }

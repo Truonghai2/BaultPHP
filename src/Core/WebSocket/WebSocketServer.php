@@ -3,35 +3,30 @@
 namespace Core\WebSocket;
 
 use Core\Application;
-use Core\Auth\AuthManager;
-use Core\Cache\CacheManager;
-use Predis\ClientInterface as RedisClient;
 use Psr\Log\LoggerInterface;
 use Swoole\Http\Request;
 use Swoole\WebSocket\Frame;
 use Swoole\WebSocket\Server;
-use Throwable;
 
 class WebSocketServer
 {
     private Server $server;
     private LoggerInterface $logger;
     private Application $app;
-    private AuthManager $auth;
-    private RedisClient $redis;
+    private WebSocketManager $manager;
 
     /**
-     * Key prefix trong Redis để lưu map user_id -> fd.
+     * Map user_id -> fd.
+     * @var array<int|string, int>
      */
-    private const REDIS_USER_CONNECTION_KEY = 'ws:user_connections';
+    private array $userConnections = [];
 
     public function __construct(Application $app, string $host, int $port)
     {
         $this->app = $app;
         $this->server = new Server($host, $port);
         $this->logger = $app->make(LoggerInterface::class);
-        $this->auth = $app->make('auth');
-        $this->redis = $app->make(CacheManager::class)->connection('redis')->client();
+        $this->manager = $app->make(WebSocketManager::class);
 
         $this->server->set([
             'worker_num' => 1,
@@ -52,91 +47,81 @@ class WebSocketServer
     public function onWorkerStart(Server $server, int $workerId): void
     {
         go(function () {
-            $this->listenForRedisMessages();
+            $this->listenForMessages();
         });
     }
 
     public function onOpen(Server $server, Request $request): void
     {
-        $token = $request->get['token'] ?? null;
         $fd = $request->fd;
 
-        if (!$token) {
-            $this->logger->warning("Connection {$fd} rejected: No token provided.");
-            $server->push($fd, json_encode(['error' => 'unauthorized', 'message' => 'Token not provided.']));
-            $server->close($fd);
-            return;
-        }
-
-        try {
-            $guard = $this->auth->guard('centrifugo');
-            $user = $guard->userFromToken($token);
-
-            if ($user && in_array('websocket', $guard->getScopes())) {
-                $userId = $user->getAuthIdentifier();
-                $this->redis->hset(self::REDIS_USER_CONNECTION_KEY, (string)$userId, $fd);
-                $this->logger->info("User {$userId} authenticated and connected with fd {$fd}.");
-                $server->push($fd, json_encode(['status' => 'authenticated', 'user_id' => $userId]));
-            } else {
-                $this->logger->warning("Connection {$fd} rejected: Invalid token or insufficient scope.");
-                $server->push($fd, json_encode(['error' => 'unauthorized', 'message' => 'Invalid token or scope.']));
-                $server->close($fd);
-            }
-        } catch (Throwable $e) {
-            $this->logger->error("Auth error on connection {$fd}: " . $e->getMessage());
-            $server->close($fd);
-        }
+        $tempId = 'debug-ws-' . $fd;
+        $this->userConnections[$tempId] = $fd;
+        $this->logger->info("WebSocket connection {$fd} accepted without authentication (temporary). Assigned ID: {$tempId}");
+        $server->push($fd, json_encode([
+            'status' => 'authenticated',
+            'debug_session' => $tempId,
+        ]));
     }
 
     public function onMessage(Server $server, Frame $frame): void
     {
-        $this->logger->info("Received message from {$frame->fd}: {$frame->data}. Ignoring.");
+        try {
+            $data = json_decode($frame->data, true);
+            if (isset($data['type']) && $data['type'] === 'ping') {
+                $server->push($frame->fd, json_encode(['type' => 'pong']));
+                return;
+            }
+        } catch (\Throwable $e) {
+        }
+        $this->logger->info("Received message from {$frame->fd}: {$frame->data}. Ignoring non-ping message.");
     }
 
     public function onClose(Server $server, int $fd): void
     {
         $this->logger->info("Connection close: {$fd}");
 
-        $allConnections = $this->redis->hgetall(self::REDIS_USER_CONNECTION_KEY);
-        foreach ($allConnections as $userId => $connectionFd) {
-            if ((int)$connectionFd === $fd) {
-                $this->redis->hdel(self::REDIS_USER_CONNECTION_KEY, [$userId]);
-                $this->logger->info("User {$userId} (fd: {$fd}) disconnected and removed from Redis.");
-                break;
-            }
+        $userId = array_search($fd, $this->userConnections, true);
+        if ($userId !== false) {
+            unset($this->userConnections[$userId]);
+            $this->logger->info("User {$userId} (fd: {$fd}) disconnected.");
         }
     }
 
-    private function listenForRedisMessages(): void
+    private function listenForMessages(): void
     {
-        $channel = 'websocket_messages';
+        $channel = $this->manager->getChannel();
+        if (!$channel) {
+            $this->logger->error('WebSocketManager channel is not available. Real-time messaging will not work.');
+            return;
+        }
 
-        $this->logger->info("Listening for messages on Redis channel: {$channel}");
+        $this->logger->info('WebSocket worker is listening for internal messages.');
 
-        $subRedis = $this->app->make(CacheManager::class)->connection('redis')->client();
+        while (true) {
+            $message = $channel->pop();
+            if ($message === false) {
+                continue;
+            }
 
-        $subRedis->subscribe([$channel], function ($redis, $chan, $msg) {
-            if ($chan === 'websocket_messages') {
-                $this->logger->info("Received from Redis: {$msg}");
-                $data = json_decode($msg, true);
-
-                if (isset($data['users'], $data['payload'])) {
-                    foreach ($data['users'] as $userId) {
-                        $fd = $this->redis->hget(self::REDIS_USER_CONNECTION_KEY, (string)$userId);
-                        if ($fd) {
-                            $fd = (int)$fd;
-                            if ($this->server->isEstablished($fd)) {
-                                $this->server->push($fd, json_encode($data['payload']));
-                                $this->logger->info("Pushed message to user {$userId} (fd: {$fd})");
-                            } else {
-                                $this->redis->hdel(self::REDIS_USER_CONNECTION_KEY, [(string)$userId]);
-                                $this->logger->warning("Connection for user {$userId} (fd: {$fd}) not established. Removed from Redis.");
-                            }
-                        }
+            if ($message['type'] === 'users' && isset($message['users'], $message['payload'])) {
+                foreach ($message['users'] as $userId) {
+                    $fd = $this->userConnections[(string)$userId] ?? null;
+                    if ($fd && $this->server->isEstablished($fd)) {
+                        $this->server->push($fd, json_encode($message['payload']));
+                        $this->logger->info("Pushed message to user {$userId} (fd: {$fd})");
                     }
                 }
+            } elseif ($message['type'] === 'broadcast' && isset($message['payload'])) {
+                $payload = json_encode($message['payload']);
+                foreach ($this->server->connections as $fd) {
+                    if ($this->server->isEstablished($fd)) {
+                        $this->server->push($fd, $payload);
+                    }
+                }
+                $this->logger->info('Broadcasted message to all clients.');
             }
-        });
+        }
     }
 
     public function start(): void

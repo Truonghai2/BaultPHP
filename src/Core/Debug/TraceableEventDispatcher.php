@@ -2,6 +2,7 @@
 
 namespace Core\Debug;
 
+use App\Services\RealtimeDebugService;
 use Core\Events\EventDispatcherInterface;
 
 /**
@@ -14,6 +15,7 @@ class TraceableEventDispatcher implements EventDispatcherInterface
     public function __construct(
         private readonly EventDispatcherInterface $dispatcher,
         private readonly EventCollector $collector,
+        private readonly ?RealtimeDebugService $realtimeService = null,
     ) {
     }
 
@@ -22,7 +24,25 @@ class TraceableEventDispatcher implements EventDispatcherInterface
      */
     public function dispatch(object $event): void
     {
-        $this->collector->addEvent(get_class($event), $event);
+        $eventName = get_class($event);
+        $this->collector->addEvent($eventName, $event);
+
+        if ($this->realtimeService) {
+            try {
+                // Cố gắng serialize payload để xem trước.
+                $payload = json_encode($event, \JSON_PARTIAL_OUTPUT_ON_ERROR | \JSON_INVALID_UTF8_SUBSTITUTE | \JSON_PRETTY_PRINT);
+                if (json_last_error() !== JSON_ERROR_NONE) {
+                    $payload = '"Could not serialize event payload: ' . json_last_error_msg() . '"';
+                }
+            } catch (\Throwable $e) {
+                $payload = '"Could not serialize event payload: ' . $e->getMessage() . '"';
+            }
+
+            $this->realtimeService->publish('event', [
+                'name' => $eventName,
+                'payload' => $payload,
+            ]);
+        }
 
         $this->dispatcher->dispatch($event);
     }

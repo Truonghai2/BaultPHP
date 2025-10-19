@@ -395,12 +395,47 @@ if (!function_exists('old')) {
             return $default;
         }
 
-        /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
+        /** @var Core\Contracts\Session\SessionInterface $session */
         $session = app('session');
 
         $oldInput = $session->getFlashBag()->get('_old_input') ?? [];
 
         return $oldInput[$key] ?? $default;
+    }
+}
+
+if (!function_exists('session')) {
+    /**
+     * Get / set the session instance or session value.
+     *
+     * - `session()`: returns the session manager instance.
+     * - `session('key')`: gets the value of 'key' from the session.
+     * - `session(['key' => 'value'])`: sets 'key' to 'value' in the session.
+     * @param  string|array|null  $key
+     * @param  mixed  $default
+     * @return \Core\Contracts\Session\SessionInterface|mixed|null
+     */
+    function session($key = null, $default = null)
+    {
+        if (!app()->has('session')) {
+            throw new RuntimeException('Session store is not available. Make sure the session middleware is enabled.');
+        }
+
+        /** @var \Core\Session\SessionManager $session */
+        $session = app('session');
+
+        if (is_null($key)) {
+            return $session;
+        }
+
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $session->set($k, $v);
+            }
+            return null;
+        }
+
+        return $session->get($key, $default);
     }
 }
 

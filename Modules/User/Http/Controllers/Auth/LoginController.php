@@ -8,10 +8,9 @@ use Modules\User\Application\Commands\LoginUserCommand;
 use Modules\User\Application\Handlers\LoginUserHandler;
 use Modules\User\Application\Handlers\LogoutUserHandler;
 use Modules\User\Http\Requests\LoginRequest;
-use Nyholm\Psr7\Response;
 use Psr\Http\Message\ResponseInterface;
-use Psr\Log\LoggerInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+
+;
 
 #[Route(prefix: '/auth', name: 'auth.', group: 'web')]
 class LoginController extends Controller
@@ -19,7 +18,7 @@ class LoginController extends Controller
     #[Route(method: 'GET', uri: '/login', name: 'login.view')]
     public function view(): ResponseInterface
     {
-        return new Response(200, ['Content-Type' => 'text/html'], view('user::auth.login')->render());
+        return response(view('user::auth.login'));
     }
 
     /**
@@ -29,9 +28,8 @@ class LoginController extends Controller
         method: 'POST',
         uri: '/login',
         name: 'login',
-        // middleware: ['throttle:5,1'],
     )]
-    public function login(LoginRequest $request, LoginUserHandler $handler, LoggerInterface $logger, SessionInterface $session): ResponseInterface
+    public function login(LoginRequest $request, LoginUserHandler $handler): ResponseInterface
     {
         $data = $request->validated();
         $remember = !empty($request->getParsedBody()['remember'] ?? false);
@@ -41,22 +39,13 @@ class LoginController extends Controller
         $user = $handler->handle($command);
 
         if ($user) {
-            $response = redirect()->intended(route('home'));
-
-            $session->migrate(true);
-
-            $logger->info('Đăng nhập thành công cho người dùng: ' . $data['email']);
-            return $response->with('success', __('Đăng nhập thành công!'));
+            return redirect()->intended(route('home'))
+                ->with('success', __('Đăng nhập thành công!'));
         }
-
-        $logger->warning('Đăng nhập thất bại cho email: ' . $data['email']);
-
-        $input = $request->getParsedBody();
-        unset($input['password']);
 
         return redirect()->back()
             ->withErrors(['email' => __('Thông tin đăng nhập không chính xác.')])
-            ->withInput($input);
+            ->withInput($request->except('password'));
     }
 
     /**

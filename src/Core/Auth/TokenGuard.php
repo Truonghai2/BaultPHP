@@ -29,6 +29,12 @@ class TokenGuard implements Guard
     protected ?EventDispatcherInterface $dispatcher;
     protected array $validatedRequestAttributes = [];
 
+    /**
+     * A static cache for user models within a single request lifecycle.
+     * @var array<int|string, Authenticatable>
+     */
+    protected static array $userCache = [];
+
     public function __construct(
         string $name,
         protected Application $app,
@@ -125,30 +131,23 @@ class TokenGuard implements Guard
             return null;
         }
 
-        $cacheKey = "user:{$userId}";
-
-        $user = $this->cache->get($cacheKey);
-
-        if ($user) {
-            return $user;
+        if (isset(self::$userCache[$userId])) {
+            $user = self::$userCache[$userId];
+        } else {
+            $cacheKey = "user:{$userId}";
+            $user = $this->cache->rememberForever($cacheKey, function () use ($userId) {
+                return User::find($userId);
+            });
         }
-
-        $user = $this->cache->lock("lock:{$cacheKey}", 10)->block(5, function () use ($cacheKey, $userId) {
-            $cachedUser = $this->cache->get($cacheKey);
-            if ($cachedUser) {
-                return $cachedUser;
-            }
-
-            $userFromDb = User::find($userId);
-            $this->cache->forever($cacheKey, $userFromDb);
-            return $userFromDb;
-        });
 
         if (!$user) {
             throw new OAuthServerException('Access token is not associated with a valid user.', 10, 'invalid_grant', 401);
         }
 
         $this->dispatcher?->dispatch(new Authenticated('token', $user));
+
+        // Store the user in the static cache for subsequent calls within the same request.
+        self::$userCache[$userId] = $user;
 
         return $user;
     }
@@ -175,7 +174,7 @@ class TokenGuard implements Guard
      * For a token-based guard, this doesn't create a session. It simply sets
      * the user for the current request instance.
      */
-    public function login(Authenticatable $user): void
+    public function login(Authenticatable $user, bool $remember = false): void
     {
         // Dispatch event để đảm bảo tính nhất quán với SessionGuard
         $this->dispatcher?->dispatch(new Login('token', $user, false));
@@ -186,7 +185,6 @@ class TokenGuard implements Guard
     {
         $user = $this->user;
 
-        // Dispatch event trước khi xóa user
         $this->dispatcher?->dispatch(new Logout('token', $user));
 
         $this->user = null;
@@ -194,8 +192,8 @@ class TokenGuard implements Guard
         $this->validatedRequestAttributes = [];
     }
 
-    public function attempt(array $credentials = []): bool
+    public function attempt(array $credentials = [], bool $remember = false): ?Authenticatable
     {
-        return false;
+        return null;
     }
 }

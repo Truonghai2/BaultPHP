@@ -6,20 +6,19 @@ use Monolog\LogRecord;
 use Monolog\Processor\ProcessorInterface;
 
 /**
- * Class SanitizationProcessor
+ * Final Class SanitizationProcessor
  * Tự động kiểm duyệt các giá trị của các key nhạy cảm trong log.
  */
-class SanitizationProcessor implements ProcessorInterface
+final class SanitizationProcessor implements ProcessorInterface
 {
     /**
      * Danh sách các key nhạy cảm cần được che giấu.
      * @var array<string>
      */
-    protected array $sensitiveKeys;
+    private readonly array $sensitiveKeys;
 
-    public function __construct(array $sensitiveKeys)
+    public function __construct(string ...$sensitiveKeys)
     {
-        // Chuyển tất cả các key sang chữ thường để so sánh không phân biệt hoa thường.
         $this->sensitiveKeys = array_map('strtolower', $sensitiveKeys);
     }
 

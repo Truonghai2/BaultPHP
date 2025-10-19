@@ -11,6 +11,12 @@
  * @see https://www.php.net/manual/en/opcache.preloading.php
  */
 
+// Chỉ thực hiện preloading trong môi trường production.
+// Trong môi trường dev, preloading sẽ ngăn hot-reload hoạt động đúng cách.
+if (($_ENV['APP_ENV'] ?? 'production') !== 'production') {
+    return;
+}
+
 // Set environment variables as early as possible to prevent deprecated shutdown handlers.
 putenv('REVOLT_DRIVER_DISABLE_SHUTDOWN_HANDLER=1');
 putenv('AMPHP_PROCESS_DISABLE_SHUTDOWN_HANDLER=1');

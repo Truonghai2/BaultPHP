@@ -26,4 +26,16 @@ interface Authenticatable
      * Get the password for the user.
      */
     public function getAuthPassword(): string;
+
+    /**
+     * Get the "remember me" token value.
+     *
+     * @return string|null
+     */
+    public function getRememberToken();
+
+    /**
+     * Set the "remember me" token value.
+     */
+    public function setRememberToken($value): void;
 }

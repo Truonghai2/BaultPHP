@@ -3,8 +3,8 @@
 namespace Core\Http;
 
 use Core\Application;
+use Core\Contracts\Session\SessionInterface;
 use Core\Routing\Router;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 class Redirector
 {

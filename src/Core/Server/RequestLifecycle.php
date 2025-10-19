@@ -5,6 +5,7 @@ namespace Core\Server;
 use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\Http\Kernel as HttpKernel;
+use Core\Contracts\Session\SessionInterface;
 use Core\Debug\DebugManager;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Foundation\StateResetter;
@@ -178,13 +179,20 @@ final class RequestLifecycle
                     $this->debugManager->add('cookies', $request->getCookieParams());
                 }
 
-                if ($this->app->bound(\Symfony\Component\HttpFoundation\Session\SessionInterface::class)) {
-                    /** @var \Symfony\Component\HttpFoundation\Session\SessionInterface $session */
-                    $session = $this->app->make(\Symfony\Component\HttpFoundation\Session\SessionInterface::class);
+                if ($this->app->bound(SessionInterface::class)) {
+                    /** @var SessionInterface $session */
+                    $session = $this->app->make(SessionInterface::class);
                     if ($session->isStarted()) {
                         $this->debugManager->add('session', $session->all());
                     }
                 }
+
+                if ($this->app->bound('debugbar')) {
+                    /** @var \DebugBar\DebugBar $debugbar */
+                    $debugbar = $this->app->make('debugbar');
+                    $this->debugManager->setData($debugbar->collect()['__meta']);
+                }
+
                 if ($this->exceptionHandler->hasExceptions()) {
                     $this->debugManager->add('exceptions', $this->exceptionHandler->getExceptions());
                 }

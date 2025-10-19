@@ -2,6 +2,7 @@
 
 namespace Core\Debug;
 
+use App\Services\RealtimeDebugService;
 use Core\Cache\CacheManager;
 use DebugBar\DebugBar;
 use Psr\SimpleCache\CacheInterface;
@@ -13,6 +14,7 @@ use Psr\SimpleCache\CacheInterface;
 class TraceableCacheManager extends CacheManager
 {
     protected CacheCollector $collector;
+    protected RealtimeDebugService $realtimeService;
 
     /**
      * TraceableCacheManager constructor.
@@ -27,6 +29,7 @@ class TraceableCacheManager extends CacheManager
         /** @var CacheCollector $collector */
         $collector = $debugbar->getCollector('cache');
         $this->collector = $collector;
+        $this->realtimeService = $this->app->make(RealtimeDebugService::class);
     }
 
     /**
@@ -40,6 +43,6 @@ class TraceableCacheManager extends CacheManager
         $store = parent::store($name);
         $storeName = $name ?? $this->getDefaultDriver();
 
-        return new TraceableCacheStore($store, $this->collector, $storeName);
+        return new TraceableCacheStore($store, $this->collector, $storeName, $this->realtimeService);
     }
 }

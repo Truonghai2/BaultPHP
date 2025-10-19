@@ -4,7 +4,6 @@ namespace Core\Auth;
 
 use Core\Cache\CacheManager;
 use Core\Contracts\Auth\Guard;
-use Core\Contracts\Auth\UserProvider;
 use Core\Contracts\StatefulService;
 use Core\Manager;
 use InvalidArgumentException;
@@ -16,6 +15,13 @@ use League\OAuth2\Server\ResourceServer;
 class AuthManager extends Manager implements StatefulService
 {
     /**
+     * The user provider manager instance.
+     *
+     * @var \Core\Auth\UserProviderManager
+     */
+    protected UserProviderManager $providerManager;
+
+    /**
      * Get the default authentication driver name.
      *
      * @return string
@@ -23,6 +29,12 @@ class AuthManager extends Manager implements StatefulService
     public function getDefaultDriver(): string
     {
         return $this->app->make('config')->get('auth.defaults.guard');
+    }
+
+    public function __construct(\Core\Application $app)
+    {
+        parent::__construct($app);
+        $this->providerManager = $this->app->make(UserProviderManager::class);
     }
 
     /**
@@ -61,7 +73,7 @@ class AuthManager extends Manager implements StatefulService
      */
     protected function createSessionDriver(string $name, array $config): SessionGuard
     {
-        $provider = $this->createUserProvider($config['provider'] ?? null);
+        $provider = $this->providerManager->driver($config['provider'] ?? null);
 
         return new SessionGuard(
             $name,
@@ -88,30 +100,21 @@ class AuthManager extends Manager implements StatefulService
     }
 
     /**
-     * Create the user provider implementation for a guard.
+     * Create a new driver instance for the 'apikey' guard.
      *
-     * @param string|null $providerName
-     * @return UserProvider
-     * @throws \InvalidArgumentException
+     * @param string $name
+     * @param array $config
+     * @return ApiKeyGuard
      */
-    public function createUserProvider(?string $providerName): UserProvider
+    protected function createApiKeyDriver(string $name, array $config): ApiKeyGuard
     {
-        if (is_null($providerName)) {
-            throw new InvalidArgumentException('Auth provider not defined for guard.');
-        }
-
-        $config = $this->getProviderConfig($providerName);
-
-        if (!isset($config['driver'])) {
-            throw new InvalidArgumentException("Auth provider driver not configured for [{$providerName}].");
-        }
-
-        switch ($config['driver']) {
-            case 'orm':
-                return new EloquentUserProvider($config['model']);
-            default:
-                throw new InvalidArgumentException("Auth provider driver [{$config['driver']}] is not supported.");
-        }
+        return new ApiKeyGuard(
+            $name,
+            $this->app,
+            $this->providerManager->driver($config['provider'] ?? null),
+            $config['input_key'] ?? 'api_key',
+            $config['storage_key'] ?? 'key',
+        );
     }
 
     /**
@@ -134,17 +137,6 @@ class AuthManager extends Manager implements StatefulService
     protected function getDriverConfig(string $name): string
     {
         return $this->app->make('config')->get("auth.guards.{$name}.driver");
-    }
-
-    /**
-     * Get the configuration for a specific provider.
-     *
-     * @param string $name
-     * @return array
-     */
-    protected function getProviderConfig(string $name): array
-    {
-        return $this->app->make('config')->get("auth.providers.{$name}", []);
     }
 
     /**

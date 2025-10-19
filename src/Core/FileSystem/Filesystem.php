@@ -210,4 +210,35 @@ class Filesystem
 
         return $preserve ?: rmdir($directory);
     }
+
+    /**
+     * Get all of the directories within a given directory.
+     *
+     * @param  string  $directory
+     * @return array
+     */
+    public function directories(string $directory): array
+    {
+        $directories = [];
+
+        $items = scandir($directory);
+        if ($items === false) {
+            return [];
+        }
+
+        foreach ($items as $item) {
+            if ($item === '.' || $item === '..') {
+                continue;
+            }
+
+            $path = $directory . DIRECTORY_SEPARATOR . $item;
+
+            if (is_dir($path)) {
+                $directories[] = $path;
+            }
+        }
+
+        return $directories;
+    }
+
 }

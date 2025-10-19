@@ -453,7 +453,7 @@ class AccessControlService
             // 2c. Store in the persistent cache.
             if ($this->cacheStore) {
                 $ttl = $this->app->make('config')->get('auth.cache.permissions_ttl', 3600);
-                $this->cacheStore->put($cacheKey, json_encode($permissionsData), $ttl);
+                $this->cacheStore->set($cacheKey, json_encode($permissionsData), $ttl);
             }
         } finally {
             // 2d. Always release the lock.

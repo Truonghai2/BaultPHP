@@ -2,7 +2,6 @@
 
 namespace Core\Routing;
 
-use Closure;
 use Core\Application;
 use Core\Contracts\Http\Kernel;
 use Core\Contracts\StatefulService;
@@ -86,10 +85,6 @@ class Router implements StatefulService
         if (isset($this->routes[$method])) {
             foreach ($this->routes[$method] as $routeUri => $route) {
                 $pattern = preg_replace_callback('/\{([a-zA-Z0-9_]+)\}/', static function ($matches) {
-                    if ($matches[1] === 'any') {
-                        return '(?P<any>.*)';
-                    }
-
                     return '(?P<' . $matches[1] . '>[^/]+)';
                 }, $routeUri);
                 if (preg_match('#^' . $pattern . '$#', $uri, $matches)) {
@@ -100,49 +95,6 @@ class Router implements StatefulService
             }
         }
         return null;
-    }
-
-    public function runRoute(ServerRequestInterface $request, $handler, array $parameters)
-    {
-        if ($handler instanceof Closure) {
-            return $this->app->call($handler, $parameters);
-        }
-
-        if (is_array($handler) && count($handler) === 2 && is_string($handler[0]) && is_string($handler[1])) {
-            $controller = $this->app->make($handler[0]);
-            $method = $handler[1];
-
-            // Inject route parameters and other dependencies into the controller method
-            $dependencies = $this->resolveMethodDependencies($request, $controller, $method, $parameters);
-
-            return $this->app->call([$controller, $method], $dependencies);
-        }
-
-        throw new \RuntimeException('Invalid route handler.');
-    }
-
-    protected function resolveMethodDependencies(ServerRequestInterface $request, $controller, $method, array $routeParameters): array
-    {
-        $reflector = new \ReflectionMethod($controller, $method);
-        $dependencies = [];
-
-        foreach ($reflector->getParameters() as $parameter) {
-            $paramName = $parameter->getName();
-            $paramType = $parameter->getType();
-
-            if (array_key_exists($paramName, $routeParameters)) {
-                $dependencies[$paramName] = $routeParameters[$paramName];
-            } elseif ($paramType && !$paramType->isBuiltin()) {
-                $typeName = $paramType->getName();
-                if ($typeName === ServerRequestInterface::class || is_subclass_of($typeName, ServerRequestInterface::class)) {
-                    $dependencies[$paramName] = $this->app->make($typeName);
-                } else {
-                    $dependencies[$paramName] = $this->app->make($typeName);
-                }
-            }
-        }
-
-        return $dependencies;
     }
 
     public function gatherRouteMiddleware(Route $route): array
@@ -223,6 +175,49 @@ class Router implements StatefulService
     public function getByName(string $name): ?Route
     {
         return $this->namedRoutes[$name] ?? null;
+    }
+
+    /**
+     * Generate a URL for the given named route.
+     *
+     * @param  string  $name
+     * @param  array   $parameters
+     * @return string
+     *
+     * @throws \InvalidArgumentException
+     */
+    public function url(string $name, array $parameters = []): string
+    {
+        $route = $this->getByName($name);
+
+        if (!$route) {
+            // If the name is a valid URL, return it directly.
+            if (filter_var($name, FILTER_VALIDATE_URL)) {
+                return $name;
+            }
+            // If the name is a valid URI path, return it.
+            if (preg_match('/^\/[\w\/\-\.]*$/', $name)) {
+                return $name;
+            }
+            throw new \InvalidArgumentException("Route [{$name}] not defined.");
+        }
+
+        $uri = $route->uri;
+
+        // Replace required parameters
+        foreach ($parameters as $key => $value) {
+            $uri = str_replace('{' . $key . '}', $value, $uri);
+        }
+
+        // Remove any remaining optional parameters (e.g., {id?})
+        $uri = preg_replace('/\/\{[a-zA-Z0-9_]+\?\}/', '', $uri);
+
+        // Check if there are any required parameters left
+        if (str_contains($uri, '{')) {
+            throw new \InvalidArgumentException('Missing required parameters for route: ' . $name);
+        }
+
+        return '/' . ltrim($uri, '/');
     }
 
     /**

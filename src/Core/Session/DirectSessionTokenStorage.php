@@ -2,7 +2,7 @@
 
 namespace Core\Session;
 
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
+use Core\Contracts\Session\SessionInterface;
 use Symfony\Component\Security\Csrf\Exception\TokenNotFoundException;
 use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
 

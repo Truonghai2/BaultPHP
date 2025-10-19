@@ -2,9 +2,9 @@
 
 namespace Core\Debug;
 
+use Core\Contracts\Session\SessionInterface;
 use DebugBar\DataCollector\DataCollector;
 use DebugBar\DataCollector\Renderable;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * Class SessionCollector

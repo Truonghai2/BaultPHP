@@ -221,6 +221,25 @@ abstract class FormRequest
     }
 
     /**
+     * Get all of the input and files for the request except for a few specified items.
+     *
+     * @param  array|string  $keys
+     * @return array
+     */
+    public function except($keys): array
+    {
+        $keys = is_array($keys) ? $keys : func_get_args();
+
+        $results = $this->validationData();
+
+        foreach ($keys as $key) {
+            unset($results[$key]);
+        }
+
+        return $results;
+    }
+
+    /**
      * Proxy các lời gọi phương thức không tồn tại đến đối tượng PSR-7 request gốc.
      */
     public function __call(string $method, array $parameters)

@@ -115,5 +115,12 @@ return [
             'level' => 'info',
             'days' => 7,
         ],
+
+        'session' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/session.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => 7,
+        ],
     ],
 ];

@@ -3,6 +3,7 @@
 namespace Core\Auth;
 
 use Core\ORM\Model;
+use Modules\User\Infrastructure\Models\User;
 
 /**
  * Represents a "remember me" token in the database.
@@ -29,10 +30,25 @@ class RememberToken extends Model
         'user_id',
         'selector',
         'verifier_hash',
+        'user_agent',
+        'ip_address',
+        'expires_at',
     ];
 
     /**
      * Indicates if the model should be timestamped.
      */
     public bool $timestamps = true;
+
+    protected array $casts = [
+        'expires_at' => 'datetime',
+    ];
+
+    /**
+     * Get the user that the token belongs to.
+     */
+    public function user()
+    {
+        return $this->belongsTo(User::class, 'user_id');
+    }
 }

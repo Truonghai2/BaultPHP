@@ -25,6 +25,14 @@ class EloquentUserProvider implements UserProvider
             return null;
         }
 
-        return $this->model::where('email', $credentials['email'])->first();
+        $query = $this->model::query();
+
+        foreach ($credentials as $key => $value) {
+            if ($key !== 'password') {
+                $query->where($key, $value);
+            }
+        }
+
+        return $query->first();
     }
 }

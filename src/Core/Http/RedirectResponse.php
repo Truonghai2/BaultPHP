@@ -2,11 +2,11 @@
 
 namespace Core\Http;
 
+use Core\Contracts\Session\SessionInterface;
 use Core\Validation\ValidationException;
 use Core\Validation\Validator;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
-use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
 /**
  * A custom RedirectResponse that integrates with the session to flash data.
@@ -18,7 +18,7 @@ class RedirectResponse extends Response implements ResponseInterface
     /**
      * The session instance.
      *
-     * @var \Symfony\Component\HttpFoundation\Session\SessionInterface|null
+     * @var \Core\Contracts\Session\SessionInterface|null
      */
     protected ?SessionInterface $session = null;
 
@@ -41,7 +41,7 @@ class RedirectResponse extends Response implements ResponseInterface
     /**
      * Sets the session instance on the response.
      *
-     * @param  \Symfony\Component\HttpFoundation\Session\SessionInterface  $session
+     * @param  \Core\Contracts\Session\SessionInterface  $session
      * @return $this
      */
     public function setSession(SessionInterface $session): self

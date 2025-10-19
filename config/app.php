@@ -12,6 +12,10 @@ return [
     'url' => env('APP_URL', 'http://localhost:9501'),
     'asset_url' => env('ASSET_URL', null),
 
+    'websocket_url' => env('WEBSOCKET_URL', 'ws://127.0.0.1:9502'),
+    'websocket_host' => env('WEBSOCKET_HOST', '0.0.0.0'),
+    'websocket_port' => env('WEBSOCKET_PORT', 9502),
+
     'timezone' => 'Asia/Ho_Chi_Minh',
     'locale' => 'en',
     'fallback_locale' => 'en',
@@ -39,6 +43,7 @@ return [
         \App\Providers\MailServiceProvider::class,
         \App\Providers\ServerServiceProvider::class,
         \App\Providers\StatefulServiceProvider::class,
+        \App\Providers\WebSocketServiceProvider::class,
         \App\Providers\SessionServiceProvider::class,
         \Core\Queue\QueueServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,
@@ -47,17 +52,4 @@ return [
         \App\Providers\ScheduleServiceProvider::class,
     ],
 
-    'aliases' => [
-        'App'     => Illuminate\Support\Facades\App::class,
-        'Event'   => Illuminate\Support\Facades\Event::class,
-        'File'    => Illuminate\Support\Facades\File::class,
-        'Config'  => Illuminate\Support\Facades\Config::class,
-        'Log'     => Core\Support\Facades\Log::class,
-        'Gate'    => Core\Support\Facades\Gate::class,
-        'Hash'    => Core\Support\Facades\Hash::class,
-        'Storage' => Core\Support\Facades\Storage::class,
-        'Queue'   => Core\Support\Facades\Queue::class,
-        'Mail'    => Core\Support\Facades\Mail::class,
-        'Feature' => Core\Support\Facades\Feature::class,
-    ],
 ];

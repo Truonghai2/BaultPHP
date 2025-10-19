@@ -55,15 +55,27 @@ if (!empty($sentryConfig['dsn'])) {
 
 /*
 |--------------------------------------------------------------------------
+| Register Core Bindings
+|--------------------------------------------------------------------------
+|
+| We will register the ProviderRepository here. This class is responsible for
+| loading all of the service providers for the application, including from
+| a cached file for performance optimization.
+|
+*/
+$app->singleton(ProviderRepository::class);
+
+/*
+|--------------------------------------------------------------------------
 | Register Service Providers
 |--------------------------------------------------------------------------
 |
-| Now we will register all of the application's service providers. This
-| is done here to ensure the container is fully configured before either
-| the HTTP or Console kernels are instantiated.
+| Now we will resolve the ProviderRepository from the container and tell it
+| to load all the application's service providers. In a production environment,
+| this will be a very fast operation thanks to the cached manifest file.
 |
 */
-(new ProviderRepository($app))->load($app->getCachedProvidersPath());
+$app->make(ProviderRepository::class)->load($app->getCachedProvidersPath());
 
 Facade::setFacadeApplication($app);
 

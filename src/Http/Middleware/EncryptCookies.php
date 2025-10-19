@@ -13,7 +13,15 @@ class EncryptCookies implements MiddlewareInterface
 {
     protected Encrypter $encrypter;
 
-    protected array $except = [];
+    /**
+     * Tên của các cookie không nên được mã hóa.
+     *
+     * @var array<int, string>
+     */
+    protected array $except = [
+        'my_unencrypted_cookie',
+        'test',
+    ];
 
     public function __construct(Encrypter $encrypter)
     {
@@ -61,22 +69,33 @@ class EncryptCookies implements MiddlewareInterface
      */
     protected function encrypt(ResponseInterface $response): ResponseInterface
     {
-        $headers = $response->getHeaders();
+        $cookiesToSet = [];
 
-        foreach ($headers['Set-Cookie'] ?? [] as $key => $cookieHeader) {
+        foreach ($response->getHeader('Set-Cookie') as $cookieHeader) {
             $cookie = Cookie::fromString($cookieHeader);
 
             if (in_array($cookie->getName(), $this->except, true)) {
+                $cookiesToSet[] = (string) $cookie;
                 continue;
             }
 
-            $encryptedValue = $this->encrypter->encrypt($cookie->getValue(), true);
+            $value = $cookie->getValue();
+            if ($value === null || $value === '') {
+                $encryptedValue = $value;
+            } else {
+                $encryptedValue = $this->encrypter->encrypt($value, true);
+            }
 
             $encryptedCookie = $cookie->withValue($encryptedValue);
-
-            $headers['Set-Cookie'][$key] = (string) $encryptedCookie;
+            $cookiesToSet[] = (string) $encryptedCookie;
         }
 
-        return $response->withHeader('Set-Cookie', $headers['Set-Cookie']);
+        // Xóa tất cả các header 'Set-Cookie' cũ và thêm lại các header đã được xử lý
+        $response = $response->withoutHeader('Set-Cookie');
+        foreach ($cookiesToSet as $cookieString) {
+            $response = $response->withAddedHeader('Set-Cookie', $cookieString);
+        }
+
+        return $response;
     }
 }
