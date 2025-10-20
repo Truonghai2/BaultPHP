@@ -79,7 +79,7 @@ return [
     | nghe lén lưu lượng mạng. Bắt buộc bật `true` trong môi trường production.
     |
     */
-    'secure' => env('SESSION_SECURE_COOKIE', true),
+    'secure' => env('SESSION_SECURE_COOKIE', false),
 
     /*
     |--------------------------------------------------------------------------

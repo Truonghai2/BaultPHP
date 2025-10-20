@@ -50,7 +50,21 @@ $isSwooleServer = php_sapi_name() === 'cli' && isset($_SERVER['argv'][1]) && in_
 */
 $sentryConfig = $app->make('config')->get('sentry');
 if (!empty($sentryConfig['dsn'])) {
-    \Sentry\init($sentryConfig);
+    // For Swoole, we must disable default integrations to prevent Sentry from
+    // registering a shutdown function that conflicts with the event loop.
+    // We then manually add back the necessary integrations, excluding the one
+    // that causes the issue (ErrorListenerIntegration).
+    if ($isSwooleServer) {
+        $sentryConfig['default_integrations'] = false;
+        $sentryConfig['integrations'] = [
+            new \Sentry\Integration\RequestIntegration(),
+            new \Sentry\Integration\TransactionIntegration(),
+            new \Sentry\Integration\FrameContextifierIntegration(),
+            new \Sentry\Integration\EnvironmentIntegration(),
+        ];
+    }
+
+    \Sentry\init(array_merge(['dsn' => $sentryConfig['dsn']], $sentryConfig));
 }
 
 /*

@@ -31,6 +31,8 @@ class SwooleServer
     protected ExceptionHandler $exceptionHandler;
     protected ?RequestLogger $requestLogger = null;
     protected ?FileWatcher $fileWatcher = null;
+    protected ?\Core\Server\Development\DockerFileWatcher $dockerFileWatcher = null;
+    protected ?\Swoole\Process $fileWatcherProcess = null;
     protected bool $isDebug = false;
     /**
      * Counter for the number of requests processed by the worker.
@@ -71,7 +73,19 @@ class SwooleServer
         $isDevelopmentEnv = in_array($currentEnv, ['local', 'development'], true);
         $watchConfigExists = !empty($this->config['watch']['directories']);
         if ($isDevelopmentEnv && $watchConfigExists) {
-            $this->fileWatcher = new FileWatcher($this->server, $this->config['watch'], $this->getLogger());
+            if (isDockerEnvironment()) {
+                $this->dockerFileWatcher = new \Core\Server\Development\DockerFileWatcher($this->server, $this->config['watch'], $this->getLogger());
+                $this->fileWatcherProcess = $this->dockerFileWatcher->createProcess();
+            } else {
+                $this->fileWatcher = new FileWatcher($this->server, $this->config['watch'], $this->getLogger());
+                $this->fileWatcherProcess = $this->fileWatcher->createProcess();
+            }
+        }
+
+        // Add file watcher process if it was created
+        if ($this->fileWatcherProcess !== null) {
+            $this->server->addProcess($this->fileWatcherProcess);
+            $this->getLogger()->info('File watcher process registered.');
         }
 
         $this->registerCustomProcesses();
@@ -99,16 +113,25 @@ class SwooleServer
             'max_request' => 10000,
             'max_wait_time' => 30,
             'task_max_request' => 10000,
-            'max_connection' => 10000,
+            'max_connection' => 100000, // Tăng max connections
 
             'open_tcp_nodelay' => true,
+            'tcp_fastopen' => true, // TCP Fast Open
+            'tcp_defer_accept' => 5, // Defer accept
+            'open_cpu_affinity' => true, // CPU affinity
+            'enable_reuse_port' => true, // Port reuse
 
             'open_http2_protocol' => true,
 
             'buffer_output_size' => 32 * 1024 * 1024,
+            'package_max_length' => 8 * 1024 * 1024, // 8MB max package size
 
             'http_parse_post' => true,
             'upload_tmp_dir' => storage_path('app/uploads'),
+
+            // Coroutine optimization
+            'enable_coroutine' => true,
+            'max_coroutine' => 100000,
 
             'watch' => [],
 
@@ -163,7 +186,7 @@ class SwooleServer
         foreach ($processesToRegister as $processClass) {
             if (class_exists($processClass)) {
                 $processInstance = new $processClass($this->app, $this->server, $this->getLogger());
-                $process = new Process($processInstance, false, 2, true); // redirect_stdin_stdout, pipe_type, enable_coroutine
+                $process = new Process($processInstance, false, 2, true);
                 $this->server->addProcess($process);
                 $this->getLogger()->debug("Registered custom process: {$processClass}");
             } else {
@@ -208,7 +231,6 @@ class SwooleServer
 
             $this->isDebug = $this->app->make('config')->get('app.debug', false);
 
-            // Pool manager will be initialized in each worker
         } catch (Throwable $e) {
             $this->getLogger()->critical('Failed to bootstrap application in master process: ' . $e->getMessage(), ['exception' => $e]);
             $server->shutdown();
@@ -365,7 +387,7 @@ class SwooleServer
             );
 
             if (!$server->taskworker && $workerId === 0) {
-                if ($this->fileWatcher !== null) {
+                if ($this->fileWatcher !== null || $this->dockerFileWatcher !== null) {
                     $this->getLogger()->info('Delayed job scheduler is disabled because file watcher is active.');
                     return;
                 }
@@ -435,6 +457,10 @@ class SwooleServer
     {
         if ($this->delayedJobTimerId !== null) {
             \Swoole\Timer::clear($this->delayedJobTimerId);
+        }
+
+        if ($this->fileWatcherProcess !== null && $this->fileWatcherProcess->pid) {
+            Process::kill($this->fileWatcherProcess->pid, SIGTERM);
         }
 
         $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';

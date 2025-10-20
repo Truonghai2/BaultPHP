@@ -13,6 +13,8 @@ services:
     volumes:
       - .:/app
       - /app/vendor
+      - /app/node_modules
+      - /app/bootstrap/cache
     networks:
       - bault-network
     depends_on:

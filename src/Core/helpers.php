@@ -488,6 +488,36 @@ if (!function_exists('redirect')) {
     }
 }
 
+if (!function_exists('isDockerEnvironment')) {
+    /**
+     * Check if the application is running in a Docker environment.
+     *
+     * @return bool
+     */
+    function isDockerEnvironment(): bool
+    {
+        // Check for Docker-specific environment variables
+        if (getenv('DOCKER_CONTAINER') || getenv('CONTAINER')) {
+            return true;
+        }
+
+        // Check for Docker-specific files
+        if (file_exists('/.dockerenv') || file_exists('/proc/1/cgroup') && str_contains(file_get_contents('/proc/1/cgroup'), 'docker')) {
+            return true;
+        }
+
+        // Check for Docker in process name
+        if (function_exists('posix_getpwuid') && function_exists('posix_geteuid')) {
+            $processUser = posix_getpwuid(posix_geteuid());
+            if (isset($processUser['name']) && str_contains($processUser['name'], 'docker')) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
 if (!function_exists('cookie')) {
     /**
      * Create/queue a cookie or retrieve the cookie manager.

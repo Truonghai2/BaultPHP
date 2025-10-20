@@ -49,6 +49,21 @@ return [
 
         /*
         |--------------------------------------------------------------------------
+        | Advanced Performance Settings
+        |--------------------------------------------------------------------------
+        |
+        | Các cài đặt nâng cao để tối ưu hiệu năng Swoole
+        |
+        */
+        'reactor_num' => env('SWOOLE_REACTOR_NUM', null), // Số reactor threads (mặc định = CPU cores)
+        'max_conn' => env('SWOOLE_MAX_CONN', 100000), // Tăng max connections
+        'tcp_fastopen' => env('SWOOLE_TCP_FASTOPEN', true), // TCP Fast Open
+        'tcp_defer_accept' => env('SWOOLE_TCP_DEFER_ACCEPT', 5), // Defer accept
+        'open_cpu_affinity' => env('SWOOLE_CPU_AFFINITY', true), // CPU affinity
+        'enable_reuse_port' => env('SWOOLE_REUSE_PORT', true), // Port reuse
+
+        /*
+        |--------------------------------------------------------------------------
         | Max Requests Per Worker
         |--------------------------------------------------------------------------
         |
@@ -92,6 +107,7 @@ return [
             | Điều này cần thiết khi chạy trong Docker trên Windows/macOS.
             */
             'use_polling' => env('SWOOLE_WATCH_USE_POLLING', true),
+            'interval' => env('SWOOLE_WATCH_INTERVAL', 500), // Faster polling for Docker
             'ignore' => [
                 storage_path(),
                 base_path('bootstrap/cache'),
@@ -99,6 +115,11 @@ return [
                 '*.log',
                 base_path('node_modules'),
                 base_path('.git'),
+                '*.tmp',
+                '*.swp',
+                '*.swo',
+                '.DS_Store',
+                'Thumbs.db',
             ],
         ],
 
@@ -144,7 +165,8 @@ return [
 
                 'connections' => [
                     'default' => [
-                        'worker_pool_size' => 20,
+                        'worker_pool_size' => 50, // Tăng pool size cho Redis
+                        'task_worker_pool_size' => 20,
                     ],
                     'cache' => [
                         'alias' => 'default',
@@ -191,13 +213,15 @@ return [
                     ...(function () {
                         $allPoolConfigs = [
                             'mysql' => [
-                                'worker_pool_size' => 15,
+                                'worker_pool_size' => 30, // Tăng pool size cho MySQL
+                                'task_worker_pool_size' => 15,
                                 'circuit_breaker' => [
                                     'rate' => ['failure_rate' => 30, 'minimum_requests' => 5],
                                 ],
                             ],
                             'pgsql' => [
-                                'worker_pool_size' => 5,
+                                'worker_pool_size' => 20, // Tăng pool size cho PostgreSQL
+                                'task_worker_pool_size' => 10,
                             ],
                         ];
 

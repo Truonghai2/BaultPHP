@@ -42,6 +42,7 @@ class Kernel implements KernelContract, StatefulService
      */
     protected array $middleware = [
         \App\Http\Middleware\CollectDebugDataMiddleware::class,
+        \App\Http\Middleware\PerformanceMonitoringMiddleware::class,
         \App\Http\Middleware\ParseBodyMiddleware::class,
         \App\Http\Middleware\EnsureAdminUserExists::class,
         \App\Http\Middleware\HttpMetricsMiddleware::class,
