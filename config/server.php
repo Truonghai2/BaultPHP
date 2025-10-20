@@ -213,14 +213,14 @@ return [
                     ...(function () {
                         $allPoolConfigs = [
                             'mysql' => [
-                                'worker_pool_size' => 30, // Tăng pool size cho MySQL
-                                'task_worker_pool_size' => 15,
+                                'worker_pool_size' => 15,
+                                'task_worker_pool_size' => 5,
                                 'circuit_breaker' => [
                                     'rate' => ['failure_rate' => 30, 'minimum_requests' => 5],
                                 ],
                             ],
                             'pgsql' => [
-                                'worker_pool_size' => 20, // Tăng pool size cho PostgreSQL
+                                'worker_pool_size' => 20,
                                 'task_worker_pool_size' => 10,
                             ],
                         ];
