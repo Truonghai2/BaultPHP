@@ -12,6 +12,7 @@ class Store implements SessionInterface
     protected array $attributes = [];
     protected SessionHandlerInterface $handler;
     protected bool $started = false;
+    protected bool $dirty = false;
     protected FlashBag $flashBag;
 
     public function __construct(string $name, SessionHandlerInterface $handler, ?string $id = null)
@@ -51,6 +52,10 @@ class Store implements SessionInterface
     public function save(): void
     {
         // Get all new flashes and prepare them for the next request.
+        if (!$this->dirty && empty($this->flashBag->allNew())) {
+            return; // Không có gì thay đổi, không cần ghi
+        }
+
         $this->attributes['_flash'] = $this->flashBag->all();
         $this->handler->write($this->getId(), serialize($this->attributes));
         $this->started = false;
@@ -74,11 +79,13 @@ class Store implements SessionInterface
     public function set(string $key, mixed $value): void
     {
         $this->attributes[$key] = $value;
+        $this->dirty = true;
     }
 
     public function remove(string $key): void
     {
         unset($this->attributes[$key]);
+        $this->dirty = true;
     }
 
     public function pull(string $key, mixed $default = null): mixed
@@ -91,6 +98,7 @@ class Store implements SessionInterface
     public function flush(): void
     {
         $this->attributes = [];
+        $this->dirty = true;
     }
 
     public function regenerate(bool $destroy = false): bool
@@ -99,6 +107,7 @@ class Store implements SessionInterface
             $this->handler->destroy($this->getId());
         }
         $this->setId($this->generateSessionId());
+        $this->dirty = true;
         return true;
     }
 
@@ -147,6 +156,7 @@ class Store implements SessionInterface
     public function regenerateToken(): void
     {
         $this->set('_token', bin2hex(random_bytes(20)));
+        $this->dirty = true;
     }
 
     /**
@@ -170,6 +180,10 @@ class Store implements SessionInterface
      */
     public function getFlashBag(): FlashBag
     {
+        if (!$this->isStarted()) {
+            $this->start();
+        }
+
         return $this->flashBag;
     }
 

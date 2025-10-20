@@ -1,0 +1,26 @@
+[2025-10-20 18:12:59 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 18:26:37 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 18:48:11 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 19:01:38 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 19:17:33 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 19:30:05 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 19:57:49 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 20:20:37 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 20:29:22 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 20:37:08 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 20:59:37 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 21:10:32 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 21:13:50 *220.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Type of Modules\Admin\Infrastructure\Models\Module::$fillable must be array (as in class Core\ORM\Model) in /app/Modules/Admin/Infrastructure/Models/Module.php on line 19
+[2025-10-20 21:13:50 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=220, id=0) abnormal exit, status=255, signal=0
+[2025-10-20 21:15:09 *227.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Type of Modules\Admin\Infrastructure\Models\Module::$fillable must be array (as in class Core\ORM\Model) in /app/Modules/Admin/Infrastructure/Models/Module.php on line 19
+[2025-10-20 21:15:09 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=227, id=0) abnormal exit, status=255, signal=0
+[2025-10-20 21:15:53 *360.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Type of Modules\Admin\Infrastructure\Models\Module::$fillable must be array (as in class Core\ORM\Model) in /app/Modules/Admin/Infrastructure/Models/Module.php on line 19
+[2025-10-20 21:15:53 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=360, id=0) abnormal exit, status=255, signal=0
+[2025-10-20 21:17:48 *466.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Type of Modules\Admin\Infrastructure\Models\Module::$fillable must be array (as in class Core\ORM\Model) in /app/Modules/Admin/Infrastructure/Models/Module.php on line 19
+[2025-10-20 21:17:48 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=466, id=0) abnormal exit, status=255, signal=0
+[2025-10-20 21:18:07 *479.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Type of Modules\Admin\Infrastructure\Models\Module::$fillable must be array (as in class Core\ORM\Model) in /app/Modules/Admin/Infrastructure/Models/Module.php on line 19
+[2025-10-20 21:18:07 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=479, id=0) abnormal exit, status=255, signal=0
+[2025-10-20 21:20:03 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 21:33:56 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 21:52:05 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
+[2025-10-20 21:55:01 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024

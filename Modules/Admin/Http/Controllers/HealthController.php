@@ -14,7 +14,7 @@ class HealthController extends Controller
     }
 
     #[Route('/admin/server/health', method: 'GET')]
-    public function index(): JsonResponse
+    public function index()
     {
         $healthData = $this->healthCheckService->runChecks();
 

@@ -41,8 +41,7 @@ return [
     ],
 
     'options' => [
-        // Cấu hình chung cho tất cả các kết nối
-        'timeout' => 1.0, // Connection timeout in seconds
+        'timeout' => 1.0,
     ],
 
 ];

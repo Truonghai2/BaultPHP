@@ -135,8 +135,8 @@ class Compiler
             '/@foreach\s*\((.*)\)/' => '<?php foreach($1): ?>',
             '/@endforeach/' => '<?php endforeach; ?>',
 
-            '/@forelse\s*\((.*)\)/' => '<?php foreach($1): ?>',
-            '/@empty/' => '<?php endforeach; if (empty($1)): ?>',
+            '/@forelse\s*\((.*)\)/' => '<?php $__empty = true; foreach ($1): $__empty = false; ?>',
+            '/@empty/' => '<?php endforeach; if ($__empty): ?>',
             '/@endforelse/' => '<?php endif; ?>',
 
             '/@for\s*\((.*)\)/' => '<?php for ($1): ?>',
@@ -213,10 +213,9 @@ class Compiler
      */
     protected function compileComponents(string $value): string
     {
-        // This regex handles x-component syntax
         $value = preg_replace_callback('/<x-([a-zA-Z0-9\.-]+::)?([a-zA-Z0-9\.-]+)([^>]*)>/', function ($matches) {
-            $module = $matches[1]; // e.g., "user::"
-            $component = $matches[2]; // e.g., "alert"
+            $module = $matches[1]; 
+            $component = $matches[2]; 
             $attributes = $matches[3];
             $viewName = $module ? str_replace('::', '::components.', $module) . $component : 'components.' . $component;
             return "<?php \$__env->startComponent('{$viewName}', {$this->compileAttributes($attributes)}); ?>";

@@ -70,7 +70,7 @@ class SwooleRedisPool extends BaseSwoolePool
     protected static function isValid(mixed $rawConnection): bool
     {
         if ($rawConnection instanceof Redis) {
-            return !$rawConnection->getMode() == Redis::MULTI;
+            return $rawConnection->getMode() !== Redis::MULTI;
         }
         return false;
     }

@@ -75,4 +75,12 @@ class FlashBag
         $this->oldFlashes = [];
         return $all;
     }
+
+    /**
+     * Gets all new flash messages for the next request.
+     */
+    public function allNew(): array
+    {
+        return $this->newFlashes;
+    }
 }

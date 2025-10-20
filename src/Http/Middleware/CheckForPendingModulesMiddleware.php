@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Core\Database\Swoole\SwoolePdoPool;
 use Core\Cache\CacheManager;
 use Core\FileSystem\Filesystem;
 use Core\Http\Redirector;
@@ -39,11 +40,15 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
 
         $excludedPaths = [
             '/admin/modules/install/confirm',
+            '/admin/modules/install',
             '/api/',
+            '/logout', 
         ];
 
+        $currentPath = $request->getUri()->getPath();
+
         foreach ($excludedPaths as $path) {
-            if (str_starts_with($request->getUri()->getPath(), $path)) {
+            if ($currentPath === $path || ($path !== '/' && str_starts_with($currentPath, rtrim($path, '/') . '/'))) {
                 return $handler->handle($request);
             }
         }
@@ -55,12 +60,9 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
         );
 
         if (!empty($pendingModules)) {
-            if (session()->has('pending_modules')) {
-                return $handler->handle($request);
-            }
-            return $this->redirector
-                ->to('/admin/modules/install/confirm')
-                ->with('pending_modules', $pendingModules);
+            session()->set('pending_modules', $pendingModules);
+
+            return $this->redirector->to('/admin/modules/install/confirm');
         }
 
         return $handler->handle($request);
@@ -77,15 +79,16 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             if (!$this->fs->isDirectory($modulesPath)) {
                 return [];
             }
+
             $allModuleDirs = $this->fs->directories($modulesPath);
             $allModuleNames = array_map('basename', $allModuleDirs);
 
-            $pdo = $this->connection->connection();
-            $stmt = $pdo->query('SELECT name FROM modules');
-            $installedNames = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
-
-            return array_diff($allModuleNames, $installedNames);
-        } catch (\Throwable) {
+            return SwoolePdoPool::withConnection(function (PDO $pdo) use ($allModuleNames) {
+                $stmt = $pdo->query('SELECT name FROM modules');
+                $installedNames = $stmt ? $stmt->fetchAll(PDO::FETCH_COLUMN) : [];
+                return array_diff($allModuleNames, $installedNames);
+            });
+        } catch (\Throwable $e) {
             return [];
         }
     }

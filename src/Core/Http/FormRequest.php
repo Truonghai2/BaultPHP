@@ -197,7 +197,11 @@ abstract class FormRequest
             unset($input[$key]);
         }
 
-        $response = $redirector->back()->withErrors($validator)->withInput($input);
+        $response = $redirector->back()
+            ->withErrors($validator)
+            ->withInput($input);
+
+        $response = $redirector->getCookieManager()->addQueuedCookiesToResponse($response);
 
         throw new HttpResponseException($response);
     }

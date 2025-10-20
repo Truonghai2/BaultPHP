@@ -3,30 +3,36 @@
 namespace Modules\User\Providers;
 
 use Core\BaseServiceProvider;
-use Core\Events\EventDispatcherInterface;
-use Modules\User\Application\Listeners\SendWelcomeEmail;
-use Modules\User\Domain\Events\UserWasCreated;
 
 class UserServiceProvider extends BaseServiceProvider
 {
+    /**
+     * @var array<int, class-string>
+     */
+    protected array $handlers = [
+        \Modules\User\Application\Handlers\LoginUserHandler::class,
+        \Modules\User\Application\Handlers\LogoutUserHandler::class,
+        \Modules\User\Application\Handlers\RegisterUserHandler::class,
+        \Modules\User\Application\Handlers\UserRole\AssignRoleToUserHandler::class,
+    ];
+
+    /**
+     * Register any application services.
+     *
+     * @return void
+     */
+    public function register(): void
+    {
+        foreach ($this->handlers as $handler) {
+            $this->app->singleton($handler);
+        }
+    }
+
     /**
      * Bootstrap any application services.
      */
     public function boot(): void
     {
         $this->loadModuleViews('user');
-        $this->registerEventListeners();
-    }
-
-    /**
-     * Register the module's event listeners.
-     */
-    protected function registerEventListeners(): void
-    {
-        /** @var EventDispatcherInterface $dispatcher */
-        $dispatcher = $this->app->make(EventDispatcherInterface::class);
-
-        // Map the UserWasCreated event to its listener.
-        $dispatcher->listen(UserWasCreated::class, SendWelcomeEmail::class);
     }
 }

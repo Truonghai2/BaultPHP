@@ -60,7 +60,7 @@ class RedirectResponse extends Response implements ResponseInterface
      */
     public function with(string $key, $value): self
     {
-        if (! $this->session) {
+        if (!$this->session) {
             throw new \RuntimeException('Session has not been set on the RedirectResponse.');
         }
 
@@ -77,7 +77,7 @@ class RedirectResponse extends Response implements ResponseInterface
      */
     public function withInput(array $input): self
     {
-        if (! $this->session) {
+        if (!$this->session) {
             throw new \RuntimeException('Session has not been set on the RedirectResponse.');
         }
 
@@ -94,7 +94,7 @@ class RedirectResponse extends Response implements ResponseInterface
      */
     public function withErrors($provider): self
     {
-        if (! $this->session) {
+        if (!$this->session) {
             throw new \RuntimeException('Session has not been set on the RedirectResponse.');
         }
 

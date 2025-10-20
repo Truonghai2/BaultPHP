@@ -2,7 +2,6 @@
 
 namespace Modules\User\Http\Controllers\Auth;
 
-use Core\Auth\AuthManager;
 use Core\Contracts\Session\SessionInterface;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
@@ -10,6 +9,7 @@ use Core\Routing\Attributes\Route;
 use Modules\User\Application\Commands\RegisterUserCommand;
 use Modules\User\Application\Handlers\RegisterUserHandler;
 use Modules\User\Http\Requests\RegisterRequest;
+use Core\Support\Facades\Auth;
 use Psr\Http\Message\ResponseInterface;
 
 #[Route(prefix: '/auth', name: 'auth.')]
@@ -25,18 +25,15 @@ class RegisterController extends Controller
      * Handle a registration request for the application.
      */
     #[Route(method: 'POST', uri: '/register', name: 'register')]
-    public function register(RegisterRequest $request, RegisterUserHandler $handler, AuthManager $auth, SessionInterface $session): ResponseInterface
+    public function register(RegisterRequest $request, RegisterUserHandler $handler): ResponseInterface
     {
         $data = $request->validated();
 
         $command = new RegisterUserCommand($data['name'], $data['email'], $data['password']);
 
         $user = $handler->handle($command);
+        Auth::guard('web')->login($user);
 
-        $auth->guard('web')->login($user);
-
-        $session->regenerate(true);
-
-        return redirect(route('home'));
+        return redirect()->intended(route('home'))->with('success', 'Đăng ký thành công!');
     }
 }

@@ -189,6 +189,24 @@ class SessionGuard implements Guard
         $this->session->regenerate(true);
 
         $duration = microtime(true) - $startTime;
+
+        if ($this->app->resolved(\Core\Http\FormRequest::class)) {
+            $this->app->make(\Core\Http\FormRequest::class)->setSession($this->session);
+        }
+
+        $config = config('session');
+        $lifetime = $config['expire_on_close'] ? 0 : ($config['lifetime'] * 60);
+        $this->cookieManager->queue(
+            $this->session->getName(),
+            $this->session->getId(),
+            $lifetime,
+            $config['path'] ?? '/',
+            $config['domain'] ?? null,
+            $config['secure'] ?? false,
+            $config['http_only'] ?? true,
+            false,
+            $config['same_site'] ?? 'lax'
+        );
         $logger->info('Session ID migration finished.', [
             'duration_ms' => $duration * 1000,
         ]);
@@ -230,7 +248,9 @@ class SessionGuard implements Guard
             return null;
         }
 
-        if ($tokenRecord->user_agent !== $this->getUserAgent() || $tokenRecord->ip_address !== $this->getIpAddress()) {
+        if (($tokenRecord->user_agent && $tokenRecord->user_agent !== $this->getUserAgent()) ||
+            ($tokenRecord->ip_address && $tokenRecord->ip_address !== $this->getIpAddress())
+        ) {
             $this->removeRememberToken($tokenRecord->selector);
             $this->forgetRecallerCookie();
             return null;

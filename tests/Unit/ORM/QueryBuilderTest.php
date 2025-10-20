@@ -2,14 +2,14 @@
 
 namespace Tests\Unit\ORM;
 
+use Core\Application;
 use Core\ORM\Connection;
 use Core\ORM\Model;
 use Mockery;
 use Mockery\MockInterface;
 use PDO;
 use PDOStatement;
-use Tests\TestCase;
-
+use PHPUnit\Framework\TestCase;
 /**
  * A dummy model for testing purposes.
  */
@@ -19,7 +19,7 @@ class PostTestModel extends Model
 }
 
 class QueryBuilderTest extends TestCase
-{
+{   
     /** @var Connection|MockInterface */
     private $connectionMock;
 
@@ -28,6 +28,10 @@ class QueryBuilderTest extends TestCase
 
     /** @var PDOStatement|MockInterface */
     private $statementMock;
+
+    public function __construct(
+        protected Application $app,
+    ){}
 
     protected function setUp(): void
     {

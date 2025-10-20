@@ -4,19 +4,27 @@ namespace Core\Http;
 
 use Core\Application;
 use Core\Contracts\Session\SessionInterface;
+use Core\Cookie\CookieManager;
 use Core\Routing\Router;
+use Psr\Http\Message\ServerRequestInterface;
 
 class Redirector
 {
     protected Application $app;
+    protected ServerRequestInterface $request;
     protected Router $router;
     protected SessionInterface $session;
 
-    public function __construct(Application $app, Router $router, SessionInterface $session)
-    {
+    public function __construct(
+        Application $app,
+        Router $router,
+        SessionInterface $session,
+        ServerRequestInterface $request,
+    ) {
         $this->app = $app;
         $this->router = $router;
         $this->session = $session;
+        $this->request = $request;
     }
 
     /**
@@ -29,7 +37,9 @@ class Redirector
      */
     public function to(string $path, int $status = 302, array $headers = []): RedirectResponse
     {
-        return $this->createRedirect($path, $status, $headers);
+        $redirect = $this->createRedirect($path, $status, $headers);
+        $redirect->setSession($this->session);
+        return $redirect;
     }
 
     /**
@@ -48,7 +58,7 @@ class Redirector
             return $this->to($previousUrl, $status, $headers);
         }
 
-        $referer = $this->app->make(\Psr\Http\Message\ServerRequestInterface::class)->getHeaderLine('Referer');
+        $referer = $this->request->getHeaderLine('Referer');
         if ($referer) {
             return $this->to($referer, $status, $headers);
         }
@@ -91,7 +101,14 @@ class Redirector
 
     protected function createRedirect(string $url, int $status, array $headers): RedirectResponse
     {
-        $redirect = new RedirectResponse($url, $status, $headers);
-        return $redirect->setSession($this->session);
+        $redirect = new RedirectResponse($url, $status, $headers);        
+        $redirect->setSession($this->session);
+
+        return $redirect;
+    }
+
+    public function getCookieManager(): CookieManager
+    {
+        return $this->app->make(CookieManager::class);
     }
 }

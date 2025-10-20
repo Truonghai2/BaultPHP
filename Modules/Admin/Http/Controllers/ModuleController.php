@@ -12,13 +12,17 @@ use Core\Exceptions\Module\ModuleNotFoundException;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Services\ModuleInstallerService;
+use Core\Support\Facades\Cache;
 use Core\Services\ModuleService;
 use Core\Support\Facades\Log;
 use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 
+#[Route(group: 'web')]
 class ModuleController extends Controller
 {
+    private const MODULE_LIST_CACHE_KEY = 'modules.all_list';
+
     public function __construct(
         private ModuleService $moduleService,
         private ModuleInstallerService $installerService,
@@ -41,7 +45,9 @@ class ModuleController extends Controller
     public function index(): ResponseInterface
     {
         try {
-            $modules = $this->moduleService->getModules();
+            $modules = Cache::remember(self::MODULE_LIST_CACHE_KEY, 3600, function () {
+                return $this->moduleService->getModules();
+            });
             return response()->json($modules);
         } catch (\Throwable $e) {
             Log::error('Lỗi khi lấy danh sách module: ' . $e->getMessage());
@@ -65,6 +71,7 @@ class ModuleController extends Controller
 
         try {
             $this->installerService->install($zipPath);
+            Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache sau khi cài đặt
             return response()->json(['message' => 'Cài đặt module thành công!'], 201);
         } catch (ModuleAlreadyExistsException $e) {
             return response()->json(['error' => $e->getMessage()], 409);
@@ -91,6 +98,7 @@ class ModuleController extends Controller
     {
         try {
             $newStatus = $this->moduleService->toggleStatus($name);
+            Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache sau khi thay đổi trạng thái
             $message = "Module '{$name}' đã được " . ($newStatus ? 'bật' : 'tắt') . '.';
             return response()->json(['message' => $message, 'enabled' => $newStatus]);
         } catch (ModuleNotFoundException $e) {
@@ -109,6 +117,7 @@ class ModuleController extends Controller
     {
         try {
             $this->moduleService->deleteModule($name);
+            Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache sau khi xóa module
             return response()->json(null, 204);
         } catch (ModuleNotFoundException $e) {
             return response()->json(['error' => $e->getMessage()], 404);
@@ -121,7 +130,7 @@ class ModuleController extends Controller
     /**
      * Hiển thị trang xác nhận cài đặt các module mới được phát hiện.
      */
-    #[Route('/admin/modules/install/confirm', method: 'GET')]
+    #[Route('/admin/modules/install/confirm', method: 'GET', middleware: ['auth', 'can:isSuperAdmin'])]
     public function showInstallConfirmPage(): ResponseInterface
     {
         $pendingNames = session()->get('pending_modules', []);
@@ -143,20 +152,17 @@ class ModuleController extends Controller
             }
         }
 
-        return response(view('Admin::modules.install-confirm', ['modules' => $modulesToInstall]));
+        return response(view('admin::modules.install-confirm', ['modules' => $modulesToInstall]));
     }
-
+    
     /**
      * Xử lý việc cài đặt các module đã được người dùng xác nhận.
      */
-    #[Route('/admin/modules/install/confirm', method: 'POST')]
-    public function processInstallation(RequestInterface $request): ResponseInterface
+    #[Route('/admin/modules/install', method: 'POST', name: 'admin.modules.install.process')]
+    public function processInstall(RequestInterface $request): ResponseInterface
     {
-        // Xóa session sau khi form được submit để tránh vòng lặp
-        session()->forget('pending_modules');
-
-        $modulesToInstall = $request->getParsedBody()['modules'] ?? [];
-
+        $modulesToInstall = $request->getParsedBody()['modules'] ?? []; 
+        
         if (empty($modulesToInstall)) {
             return redirect('/admin/modules')->with('error', 'Không có module nào được chọn để cài đặt.');
         }
@@ -167,6 +173,7 @@ class ModuleController extends Controller
         foreach ($modulesToInstall as $moduleName) {
             try {
                 $this->moduleService->registerModule($moduleName);
+                Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache
                 $installed[] = $moduleName;
             } catch (\Throwable $e) {
                 $errors[$moduleName] = $e->getMessage();
@@ -174,11 +181,11 @@ class ModuleController extends Controller
             }
         }
 
-        // TODO: Xóa cache (route, config) sau khi cài đặt để thay đổi có hiệu lực.
+        session()->forget('pending_modules');
 
         $flash = [];
         if (!empty($installed)) {
-            $flash['success'] = 'Quá trình cài đặt cho các module đã được đưa vào hàng đợi: ' . implode(', ', $installed) . '. Trạng thái sẽ được cập nhật sau ít phút.';
+            $flash['success'] = 'Các module đã được đưa vào hàng đợi cài đặt: ' . implode(', ', $installed) . '. Quá trình cài đặt (bao gồm thư viện và database) sẽ tự động diễn ra trong nền. Vui lòng tải lại trang sau ít phút để xem kết quả.';
         }
         if (!empty($errors)) {
             $errorMessages = array_map(fn ($name, $msg) => "<li><strong>{$name}:</strong> " . htmlspecialchars($msg) . '</li>', array_keys($errors), $errors);

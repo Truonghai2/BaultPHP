@@ -253,12 +253,14 @@ class Kernel implements KernelContract, StatefulService
         $reflectionMethod = new ReflectionMethod($controllerClass, $method);
         $parameters = $reflectionMethod->getParameters();
 
-        $routeParameters = $route->parameters;
+        $internalKeys = ['uri', 'methods', 'handler', 'name', 'middleware', 'parameters'];
+        $routeParameters = array_diff_key($route->parameters, array_flip($internalKeys));
         $dependencies = [];
+
         foreach ($parameters as $parameter) {
             $paramName = $parameter->getName();
 
-            if (!$parameter->hasType() && array_key_exists($paramName, $routeParameters)) {
+            if (array_key_exists($paramName, $routeParameters)) {
                 $dependencies[] = $routeParameters[$paramName];
                 unset($routeParameters[$paramName]);
             } else {
@@ -297,7 +299,6 @@ class Kernel implements KernelContract, StatefulService
         if ($parameter->isDefaultValueAvailable()) {
             return $parameter->getDefaultValue();
         }
-
         throw new \LogicException("Unable to resolve controller parameter: [\${$parameter->getName()}] in method {$route->handler[0]}::{$route->handler[1]}");
     }
 

@@ -130,7 +130,6 @@ class ModuleService
             throw new ModuleNotFoundException("Module '{$moduleName}' không tồn tại trên hệ thống file.");
         }
 
-        // Xóa khỏi DB bằng ORM
         Module::where('name', $moduleName)->delete();
 
         $this->fs->deleteDirectory($dir);
@@ -166,7 +165,7 @@ class ModuleService
             'name' => $moduleName,
             'version' => $meta['version'] ?? '1.0.0',
             'enabled' => $meta['enabled'] ?? false,
-            'status' => 'installing_dependencies',
+            'status' => 'installing',
             'description' => $meta['description'] ?? '',
         ]);
 

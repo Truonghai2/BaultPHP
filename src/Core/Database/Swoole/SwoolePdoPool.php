@@ -55,7 +55,6 @@ class SwoolePdoPool extends BaseSwoolePool
         $config = static::$configs[$name] ?? [];
         $heartbeat = $config['heartbeat'] ?? 60;
 
-        // Luôn kiểm tra với raw connection
         if (isset(self::$lastUsedTimes[$rawConnection]) && time() - self::$lastUsedTimes[$rawConnection] < $heartbeat) {
             return true;
         }
@@ -72,7 +71,6 @@ class SwoolePdoPool extends BaseSwoolePool
     protected static function isValid(mixed $rawConnection): bool
     {
         if ($rawConnection instanceof PDO) {
-            // Kiểm tra xem kết nối có đang trong một transaction không
             return !$rawConnection->inTransaction();
         }
         return false;

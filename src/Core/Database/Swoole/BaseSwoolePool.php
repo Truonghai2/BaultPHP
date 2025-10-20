@@ -79,35 +79,53 @@ abstract class BaseSwoolePool
         }
 
         try {
-            $maxAttempts = $pool->length();
-            for ($i = 0; $i < $maxAttempts; $i++) {
-                $rawConnection = $pool->pop(0.001);
-                if ($rawConnection === false) {
-                    continue;
-                }
+            // Try to get a connection for a limited number of attempts to avoid infinite loops
+            $attempts = 0;
+            $maxAttempts = ($pool->capacity * 2) + 1; // Allow for retries if connections are stale
 
-                if (static::ping($rawConnection, $resolvedName)) {
-                    $breaker?->success($resolvedName);
-                    return static::wrapConnectionForDebug($rawConnection);
-                }
+            while ($attempts < $maxAttempts) {
+                $attempts++;
 
-                $breaker?->failure($resolvedName);
-                if (isset(static::$connectionCounts[$resolvedName])) {
-                    static::$connectionCounts[$resolvedName]--;
-                }
-                unset($rawConnection);
-
-                \Swoole\Coroutine::create(function () use ($resolvedName, $pool) {
-                    if (static::$connectionCounts[$resolvedName] < $pool->capacity) {
-                        if ($newConnection = static::createConnection($resolvedName)) {
-                            $pool->push($newConnection);
-                        }
+                // If there are idle connections, try to use one
+                if (!$pool->isEmpty()) {
+                    $rawConnection = $pool->pop(0.001);
+                    if ($rawConnection && static::ping($rawConnection, $resolvedName)) {
+                        $breaker?->success($resolvedName);
+                        return static::wrapConnectionForDebug($rawConnection);
                     }
-                });
+
+                    // Connection is stale or invalid, discard it
+                    if ($rawConnection) { // @phpstan-ignore-line
+                        $breaker?->failure($resolvedName);
+                        if (isset(static::$connectionCounts[$resolvedName])) {
+                            static::$connectionCounts[$resolvedName] = max(0, static::$connectionCounts[$resolvedName] - 1);
+                        }
+                        unset($rawConnection); // Explicitly destroy the object
+                    }
+                }
+
+                // If pool is not full, try to create a new connection
+                if (static::$connectionCounts[$resolvedName] < $pool->capacity) {
+                    if ($newConnection = static::createConnection($resolvedName)) {
+                        static::$connectionCounts[$resolvedName]++;
+                        $breaker?->success($resolvedName);
+                        return static::wrapConnectionForDebug($newConnection);
+                    }
+                }
+
+                if ($pool->isEmpty() && static::$connectionCounts[$resolvedName] < $pool->capacity) {
+                    \Swoole\Coroutine::sleep(0.01);
+                } elseif (!$pool->isEmpty()) {
+                }
             }
 
-            $rawConnection = $pool->pop($timeout);
-            return static::wrapConnectionForDebug($rawConnection);
+            // Final attempt with full timeout if all else fails
+            $rawConnection = $pool->pop($timeout); // This will throw if timeout is reached and pool is empty
+            if ($rawConnection && static::ping($rawConnection, $resolvedName)) {
+                return static::wrapConnectionForDebug($rawConnection);
+            }
+
+            throw new \RuntimeException("Failed to get a valid connection from pool '{$name}' after {$maxAttempts} attempts.");
         } catch (Throwable $e) {
             $breaker?->failure($resolvedName);
             throw $e;
@@ -223,6 +241,18 @@ abstract class BaseSwoolePool
             return;
         }
         static::$aliases[$aliasName] = $targetName;
+    }
+
+    /**
+     * Resets all circuit breakers associated with this pool type.
+     * This is useful in development environments after a hot-reload.
+     */
+    public static function resetCircuitBreakers(): void
+    {
+        foreach (static::$breakers as $breaker) {
+            $breaker->reset();
+        }
+        static::$app?->make(\Psr\Log\LoggerInterface::class)->debug('Circuit breakers for ' . static::class . ' have been reset.');
     }
 
     /**

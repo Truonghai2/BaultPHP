@@ -11,10 +11,7 @@ services:
     ports:
       - "9501:9501"
     volumes:
-      - .:/app
-      - /app/vendor
-      - /app/node_modules
-      - /app/bootstrap/cache
+      - .:/app 
     networks:
       - bault-network
     depends_on:
@@ -79,8 +76,7 @@ services:
     ports:
       - "9502:9502"
     volumes:
-      - .:/app
-      - /app/vendor
+      - .:/app 
     networks:
       - bault-network
     depends_on:

@@ -56,7 +56,7 @@ class Connection
         $name ??= $configRepo->get('database.default', 'mysql');
 
         if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
-            return $this->app->make(CoroutineConnectionManager::class)->get();
+            return $this->app->make(CoroutineConnectionManager::class)->get($name);
         }
 
         // Trong môi trường non-Swoole hoặc nếu pool không được cấu hình, chúng ta vẫn cần một kết nối.
@@ -69,6 +69,24 @@ class Connection
         // Để tránh leak, chúng ta sẽ không cache kết nối này trong thuộc tính $this->connections.
         // Mỗi lần gọi sẽ tạo kết nối mới trong môi trường non-pool.
         return $this->createFreshPdoConnection($name, $type);
+    }
+
+    /**
+     * Manually release a connection back to the pool.
+     * This is primarily for use in Swoole environments where a connection
+     * might be held longer than a single coroutine's lifecycle.
+     *
+     * @param \PDO|\Swoole\Database\PDOProxy $connection The connection to release.
+     * @param string|null $name The name of the pool to return the connection to.
+     */
+    public function release(mixed $connection, string $name = null): void
+    {
+        if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
+            $configRepo = $this->app->make('config');
+            $name ??= $configRepo->get('database.default', 'mysql');
+            SwoolePdoPool::put($connection, $name);
+        }
+        // In non-Swoole environments, connections are typically persistent per-request or per-script and don't need to be manually released.
     }
 
     public function getGrammar(string $name = null): Grammar

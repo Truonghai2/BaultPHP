@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\User\Application\Handlers;
 
-use Core\Auth\AuthManager;
+use Core\Contracts\Auth\StatefulGuard;
+use Core\Support\Facades\Auth;
 use Modules\User\Application\Commands\LoginUserCommand;
 use Modules\User\Infrastructure\Models\User;
 
 class LoginUserHandler
 {
     public function __construct(
-        private readonly AuthManager $auth,
     ) {
     }
 
@@ -25,8 +25,9 @@ class LoginUserHandler
             'password' => $command->password,
         ];
 
-        $user = $this->auth->guard('web')->attempt($credentials, $command->remember);
+        /** @var StatefulGuard $guard */
+        $guard = Auth::guard('web');
 
-        return $user instanceof User ? $user : null;
+        return $guard->attempt($credentials, $command->remember) ? $guard->user() : null;
     }
 }

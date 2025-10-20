@@ -44,8 +44,8 @@ return [
         | Đối với ứng dụng I/O-bound, `swoole_cpu_num() * 2` hoặc `* 4` là lựa chọn tốt.
         |
         */
-        'worker_num' => env('SWOOLE_WORKER_NUM', null), // null để dùng mặc định của framework
-        'task_worker_num' => env('SWOOLE_TASK_WORKER_NUM', null), // null để dùng mặc định của framework
+        'worker_num' => env('SWOOLE_WORKER_NUM', swoole_cpu_num() * 2), // Tăng số worker cho I/O-bound
+        'task_worker_num' => env('SWOOLE_TASK_WORKER_NUM', swoole_cpu_num()), // Thường bằng số CPU là đủ
 
         /*
         |--------------------------------------------------------------------------
@@ -55,7 +55,7 @@ return [
         | Các cài đặt nâng cao để tối ưu hiệu năng Swoole
         |
         */
-        'reactor_num' => env('SWOOLE_REACTOR_NUM', null), // Số reactor threads (mặc định = CPU cores)
+        'reactor_num' => env('SWOOLE_REACTOR_NUM', swoole_cpu_num() * 2), // Tăng số reactor thread
         'max_conn' => env('SWOOLE_MAX_CONN', 100000), // Tăng max connections
         'tcp_fastopen' => env('SWOOLE_TCP_FASTOPEN', true), // TCP Fast Open
         'tcp_defer_accept' => env('SWOOLE_TCP_DEFER_ACCEPT', 5), // Defer accept
