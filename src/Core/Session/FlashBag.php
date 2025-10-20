@@ -77,6 +77,17 @@ class FlashBag
     }
 
     /**
+     * Lấy tất cả flash message từ request trước và xóa chúng khỏi storage nội bộ.
+     * Đây là một hoạt động "tiêu thụ".
+     */
+    public function consume(): array
+    {
+        $all = $this->oldFlashes;
+        $this->oldFlashes = [];
+        return $all;
+    }
+
+    /**
      * Gets all new flash messages for the next request.
      */
     public function allNew(): array

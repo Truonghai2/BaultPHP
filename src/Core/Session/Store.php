@@ -41,22 +41,20 @@ class Store implements SessionInterface
             $this->attributes = [];
         }
 
-        if (!isset($this->attributes['_flash']) || !is_array($this->attributes['_flash'])) {
-            $this->attributes['_flash'] = [];
-        }
-
-        $this->flashBag = new FlashBag($this->attributes['_flash']);
-        $this->attributes['_flash'] = [];
+        $flashes = $this->pull('_flash', []);
+        $this->flashBag = new FlashBag($flashes);
     }
 
     public function save(): void
     {
-        // Get all new flashes and prepare them for the next request.
-        if (!$this->dirty && empty($this->flashBag->allNew())) {
-            return; // Không có gì thay đổi, không cần ghi
+        $newFlashes = $this->flashBag->allNew();
+
+        // Tối ưu hóa: Chỉ ghi vào storage nếu có dữ liệu session thay đổi hoặc có flash message mới.
+        if (!$this->dirty && empty($newFlashes)) {
+            return;
         }
 
-        $this->attributes['_flash'] = $this->flashBag->all();
+        $this->attributes['_flash'] = $newFlashes;
         $this->handler->write($this->getId(), serialize($this->attributes));
         $this->started = false;
     }
@@ -165,6 +163,7 @@ class Store implements SessionInterface
     public function flash(string $key, mixed $value): void
     {
         $this->flashBag->add($key, $value);
+        $this->dirty = true;
     }
 
     /**
@@ -203,5 +202,6 @@ class Store implements SessionInterface
     public function flashInput(array $input): void
     {
         $this->flash('_old_input', $input);
+        $this->dirty = true;
     }
 }

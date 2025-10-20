@@ -64,7 +64,6 @@ class Kernel implements KernelContract, StatefulService
         \App\Http\Middleware\StartSession::class,
         \App\Http\Middleware\VerifyCsrfToken::class,
         \App\Http\Middleware\SubstituteBindings::class,
-        \App\Http\Middleware\AddQueuedCookiesToResponse::class,
     ];
 
     /**
@@ -90,8 +89,8 @@ class Kernel implements KernelContract, StatefulService
             \App\Http\Middleware\ShareMessagesFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \App\Http\Middleware\SubstituteBindings::class,
-            \App\Http\Middleware\TerminateSession::class,
             \App\Http\Middleware\AddQueuedCookiesToResponse::class,
+            \App\Http\Middleware\TerminateSession::class,
         ],
         'api' => [
             \App\Http\Middleware\SubstituteBindings::class,
@@ -140,8 +139,6 @@ class Kernel implements KernelContract, StatefulService
             $this->terminate($request, $response);
 
             return $response;
-        } catch (HttpResponseException $e) {
-            return $e->getResponse();
         } catch (Throwable $e) {
             return $this->renderException($request, $e);
         }
@@ -153,7 +150,7 @@ class Kernel implements KernelContract, StatefulService
     protected function sendRequestThroughRouter(ServerRequestInterface $request, Route $route): ResponseInterface
     {
         $this->app->instance(ServerRequestInterface::class, $request);
-        $this->resolvedMiddleware = []; // Reset for the current request
+        $this->resolvedMiddleware = [];
 
         $pipeline = new MiddlewarePipe();
 
@@ -175,17 +172,21 @@ class Kernel implements KernelContract, StatefulService
 
             public function handle(ServerRequestInterface $request): ResponseInterface
             {
-                $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
+                try {
+                    $responseContent = $this->kernel->resolveAndCallController($this->app, $this->route, $request);
 
-                if ($responseContent instanceof ResponseInterface) {
-                    return $responseContent;
+                    if ($responseContent instanceof ResponseInterface) {
+                        return $responseContent;
+                    }
+
+                    if (is_array($responseContent) || is_object($responseContent) || $responseContent instanceof \JsonSerializable) {
+                        return response()->json($responseContent);
+                    }
+
+                    return response((string) $responseContent);
+                } catch (HttpResponseException $e) {
+                    return $e->getResponse();
                 }
-
-                if (is_array($responseContent) || is_object($responseContent) || $responseContent instanceof \JsonSerializable) {
-                    return response()->json($responseContent);
-                }
-
-                return response((string) $responseContent);
             }
         };
 
@@ -279,7 +280,7 @@ class Kernel implements KernelContract, StatefulService
     protected function resolveParameter(Application $app, ServerRequestInterface $request, ReflectionParameter $parameter, Route $route): mixed
     {
         $type = $parameter->getType();
-        $typeName = ($type && !$type->isBuiltin()) ? $type->getName() : null;
+        $typeName = ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) ? $type->getName() : null;
 
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
             /** @var FormRequest $formRequest */

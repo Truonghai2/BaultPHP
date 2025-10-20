@@ -18,12 +18,15 @@ class SwoolePdoPool extends BaseSwoolePool
     {
         self::$lastUsedTimes ??= new \WeakMap();
         $config = static::$configs[$name];
-        $driver = $config['driver'];
-        $host = $config['write']['host'] ?? $config['host'];
-        $port = $config['port'];
-        $database = $config['database'];
 
-        $dsn = "{$driver}:host={$host};port={$port};dbname={$database}";
+        $connectionDetails = $config['write'] ?? $config;
+
+        $driver = $connectionDetails['driver'] ?? $config['driver'];
+        $host = $connectionDetails['host'] ?? $config['host'];
+        $port = $connectionDetails['port'] ?? $config['port'];
+        $database = $connectionDetails['database'] ?? $config['database'];
+
+        $dsn = "{$driver}:host={$host};port={$port};dbname={$database}"; 
 
         if ($driver === 'mysql' && !empty($config['charset'])) {
             $dsn .= ';charset=' . $config['charset'];
@@ -36,7 +39,11 @@ class SwoolePdoPool extends BaseSwoolePool
         ];
 
         try {
-            $pdo = new PDO($dsn, $config['username'], $config['password'], $options);
+            $pdo = new PDO(
+                $dsn,
+                $connectionDetails['username'] ?? $config['username'],
+                $connectionDetails['password'] ?? $config['password'],
+                $options);
             self::$lastUsedTimes[$pdo] = time();
             return $pdo;
         } catch (Throwable $e) {

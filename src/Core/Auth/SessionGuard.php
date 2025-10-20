@@ -251,23 +251,24 @@ class SessionGuard implements Guard
         if (($tokenRecord->user_agent && $tokenRecord->user_agent !== $this->getUserAgent()) ||
             ($tokenRecord->ip_address && $tokenRecord->ip_address !== $this->getIpAddress())
         ) {
-            $this->removeRememberToken($tokenRecord->selector);
+            $this->dispatcher?->dispatch(new CookieTheftDetected($tokenRecord->user_id));
+            RememberToken::where('user_id', $tokenRecord->user_id)->delete();
             $this->forgetRecallerCookie();
             return null;
         }
 
         if (hash_equals($tokenRecord->verifier_hash, hash('sha256', $recaller['verifier']))) {
             $user = $this->provider->retrieveById($tokenRecord->user_id);
-
+ 
             if ($user) {
                 $this->regenerateRememberToken($tokenRecord, $user);
                 return $user;
             }
-
+ 
             $this->removeRememberToken($tokenRecord->selector);
         } else {
             $this->dispatcher?->dispatch(new CookieTheftDetected($tokenRecord->user_id));
-            RememberToken::where('user_id', $tokenRecord->user_id)->delete();
+            RememberToken::where('user_id', $tokenRecord->user_id)->forceDelete();
             $this->forgetRecallerCookie();
         }
 

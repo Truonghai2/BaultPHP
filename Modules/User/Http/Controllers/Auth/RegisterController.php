@@ -12,7 +12,7 @@ use Modules\User\Http\Requests\RegisterRequest;
 use Core\Support\Facades\Auth;
 use Psr\Http\Message\ResponseInterface;
 
-#[Route(prefix: '/auth', name: 'auth.')]
+#[Route(prefix: '/auth', name: 'auth.', group: 'web')]
 class RegisterController extends Controller
 {
     #[Route(method: 'GET', uri: '/register', name: 'register.view')]

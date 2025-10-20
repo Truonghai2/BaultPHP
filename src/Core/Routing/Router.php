@@ -105,6 +105,10 @@ class Router implements StatefulService
 
         $middleware = [];
 
+        if ($route->group && isset($this->middlewareGroups[$route->group])) {
+            $middleware = array_merge($middleware, $this->middlewareGroups[$route->group]);
+        }
+
         foreach ($route->middleware as $name) {
             if (isset($this->middlewareGroups[$name])) {
                 $middleware = array_merge($middleware, $this->middlewareGroups[$name]);

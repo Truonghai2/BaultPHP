@@ -5,8 +5,10 @@ namespace App\Providers;
 use App\Exceptions\Handler;
 use Core\Contracts\Exceptions\Handler as ExceptionHandlerContract;
 use Core\Contracts\StatefulService;
+use Core\Exceptions\RouteNotFoundException;
 use Core\Routing\RouteRegistrar;
 use Core\Support\ServiceProvider;
+use Psr\Http\Message\RequestInterface;
 
 class RouteServiceProvider extends ServiceProvider
 {
@@ -55,19 +57,19 @@ class RouteServiceProvider extends ServiceProvider
     {
         $this->mapAttributeRoutes($router);
 
-        $router->get('/{any}', function (Request $request) {
+        $router->get('/{any}', function (RequestInterface $request) {
             $path = $request->getUri()->getPath();
-            // ignore api routes
+
             if (str_starts_with($path, '/api/')) {
                 throw new RouteNotFoundException("Route not found for GET {$path}");
             }
-            // ignore file assets
+            
             if (preg_match('/\\.[a-zA-Z0-9]+$/', $path)) {
                 throw new RouteNotFoundException("Route not found for GET {$path}");
             }
 
             return view('layouts.app');
-        });
+        })->group('web');
     }
 
     /**

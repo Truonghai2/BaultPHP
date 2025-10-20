@@ -9,6 +9,7 @@ use Core\Validation\Factory as ValidatorFactory;
 use Core\Validation\ValidationException;
 use Core\Validation\Validator;
 use Psr\Http\Message\ServerRequestInterface;
+use Swoole\Coroutine;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
@@ -61,6 +62,17 @@ abstract class FormRequest
     abstract public function rules(): array;
 
     /**
+     * Lấy các quy tắc validation bất đồng bộ sẽ được áp dụng cho request.
+     * Mỗi quy tắc phải là một Closure nhận ($attribute, $value) và trả về một Closure khác để thực thi trong coroutine.
+     *
+     * @return array
+     */
+    public function asyncRules(): array
+    {
+        return [];
+    }
+    
+    /**
      * Lấy các thông báo lỗi tùy chỉnh cho các quy tắc validation.
      *
      * @return array
@@ -101,12 +113,21 @@ abstract class FormRequest
 
         $this->prepareForValidation();
 
+        // Xử lý các quy tắc bất đồng bộ trước
+        $asyncValidationResults = $this->performAsyncValidation();
+
         $validator = $this->validatorFactory->make(
             $this->validationData(),
             $this->rules(),
             $this->messages(),
             $this->attributes(),
         );
+
+        if (!empty($asyncValidationResults)) {
+            foreach ($asyncValidationResults as $attribute => $messages) {
+                $validator->addError($attribute, $messages);
+            }
+        }
 
         $this->validator = $validator;
 
@@ -115,6 +136,44 @@ abstract class FormRequest
         }
     }
 
+    /**
+     * Thực thi các quy tắc validation bất đồng bộ song song.
+     *
+     * @return array Mảng các lỗi validation từ các quy tắc async.
+     */
+    protected function performAsyncValidation(): array
+    {
+        $asyncRules = $this->asyncRules();
+        if (empty($asyncRules)) {
+            return [];
+        }
+
+        $data = $this->validationData();
+        $coroutines = [];
+        $errors = [];
+
+        foreach ($asyncRules as $attribute => $rules) {
+            $value = $data[$attribute] ?? null;
+            foreach ((array) $rules as $rule) {
+                if ($rule instanceof \Closure) {
+                    $coroutines[$attribute][] = function () use ($rule, $attribute, $value, &$errors) {
+                        try {
+                            $errorMessage = $rule($attribute, $value);
+                            if (is_string($errorMessage)) {
+                                $errors[$attribute][] = $errorMessage;
+                            }
+                        } catch (\Throwable $e) {
+                            $errors[$attribute][] = "Async validation rule for '{$attribute}' failed: " . $e->getMessage();
+                        }
+                    };
+                }
+            }
+        }
+
+        Coroutine\parallel(array_merge(...array_values($coroutines)));
+
+        return $errors;
+    }
     /**
      * Lấy dữ liệu đã được validate, đã loại bỏ các tham số từ route để tăng bảo mật.
      *
@@ -130,8 +189,6 @@ abstract class FormRequest
             throw new \LogicException('Validator not initialized before calling validated().');
         }
 
-        // Cải tiến bảo mật: Loại bỏ các tham số từ route khỏi dữ liệu đã validate.
-        // Điều này ngăn chặn các lỗ hổng mass assignment.
         return array_diff_key($this->validator->validated(), $this->routeParameters);
     }
 
@@ -197,11 +254,10 @@ abstract class FormRequest
             unset($input[$key]);
         }
 
+        // Tạo redirect response với lỗi và input cũ
         $response = $redirector->back()
             ->withErrors($validator)
             ->withInput($input);
-
-        $response = $redirector->getCookieManager()->addQueuedCookiesToResponse($response);
 
         throw new HttpResponseException($response);
     }

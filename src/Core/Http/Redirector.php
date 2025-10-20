@@ -101,7 +101,11 @@ class Redirector
 
     protected function createRedirect(string $url, int $status, array $headers): RedirectResponse
     {
-        $redirect = new RedirectResponse($url, $status, $headers);        
+        if ($this->session->isStarted()) {
+            $this->session->save();
+        }
+
+        $redirect = new RedirectResponse($url, $status, $headers);
         $redirect->setSession($this->session);
 
         return $redirect;

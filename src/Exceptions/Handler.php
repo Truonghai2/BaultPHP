@@ -90,7 +90,7 @@ class Handler implements HandlerContract, StatefulService
     public function render(Request $request, Throwable $e): ResponseInterface
     {
         if ($e instanceof ValidationException && !$this->shouldReturnJson($request, $e)) {
-            return $this->handleValidationException($request, $e);
+            $this->handleValidationException($request, $e);
         }
 
         if ($this->shouldReturnJson($request, $e)) {
@@ -253,15 +253,18 @@ class Handler implements HandlerContract, StatefulService
 
     /**
      * Handle ValidationException for non-JSON requests by redirecting back with errors.
+     * This method now throws an HttpResponseException to ensure the response goes through the middleware stack.
      */
-    protected function handleValidationException(Request $request, ValidationException $e): ResponseInterface
+    protected function handleValidationException(Request $request, ValidationException $e): void
     {
         /** @var Redirector $redirector */
         $redirector = app(Redirector::class);
 
-        return $redirector->back()
+        $response = $redirector->back()
             ->withInput($request->getParsedBody() ?? [])
             ->withErrors($e->errors());
+
+        throw new \Core\Exceptions\HttpResponseException($response);
     }
 
     /**

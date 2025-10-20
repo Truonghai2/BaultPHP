@@ -20,7 +20,7 @@ class Module extends Model
 {
     protected static string $table = 'modules';
 
-    protected $fillable = ['name', 'version', 'enabled', 'status', 'description'];
+    protected array $fillable = ['name', 'version', 'enabled', 'status', 'description'];
 
     protected $casts = ['enabled' => 'boolean'];
 }

@@ -22,7 +22,7 @@ class OAuthController extends Controller
     ) {
     }
 
-    #[Route('/oauth/authorize', method: 'GET', name: 'oauth.authorize')]
+    #[Route('/oauth/authorize', method: 'GET', name: 'oauth.authorize', group: 'web')]
     public function HandleAuthorize(ServerRequestInterface $request): ResponseInterface
     {
         try {

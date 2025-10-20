@@ -72,11 +72,9 @@ Now, let's create the ORM Model to interact with the `posts` table.
 
     class Post extends Model
     {
-        // Table name in the database
         protected static string $table = 'posts';
 
-        // The attributes that are mass assignable.
-        protected $fillable = [
+        protected array $fillable = [
             'title',
             'content',
         ];

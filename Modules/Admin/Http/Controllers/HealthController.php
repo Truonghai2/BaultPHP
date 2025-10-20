@@ -13,7 +13,7 @@ class HealthController extends Controller
     {
     }
 
-    #[Route('/admin/server/health', method: 'GET')]
+    #[Route('/admin/server/health', method: 'GET', group: 'web')]
     public function index()
     {
         $healthData = $this->healthCheckService->runChecks();
