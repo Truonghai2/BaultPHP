@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetPageBySlugQuery
  *
  * Query to retrieve a page by slug.
+ *
+ * @property-read string $slug
+ * @property-read bool $withBlocks
+ * @property-read bool $publishedOnly
  */
 class GetPageBySlugQuery implements QueryInterface
 {

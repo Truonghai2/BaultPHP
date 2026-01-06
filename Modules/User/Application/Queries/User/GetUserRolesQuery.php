@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetUserRolesQuery
  *
  * Query to retrieve all roles assigned to a user.
+ *
+ * @property-read int $userId
+ * @property-read int|null $contextId
  */
 class GetUserRolesQuery implements QueryInterface
 {

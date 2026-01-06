@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetRoleByIdQuery
  *
  * Query to retrieve a role by ID.
+ *
+ * @property-read int $roleId
+ * @property-read bool $withPermissions
+ * @property-read bool $withUsers
  */
 class GetRoleByIdQuery implements QueryInterface
 {

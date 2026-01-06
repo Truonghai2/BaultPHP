@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetBlockByIdQuery
  *
  * Query to retrieve a block by ID.
+ *
+ * @property-read int $blockId
  */
 class GetBlockByIdQuery implements QueryInterface
 {

@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetEnabledModulesQuery
  *
  * Query to retrieve all enabled modules.
+ *
+ * @property-read array $enabledModules
  */
 class GetEnabledModulesQuery implements QueryInterface
 {

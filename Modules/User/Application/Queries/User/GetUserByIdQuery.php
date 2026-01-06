@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetUserByIdQuery
  *
  * Query to retrieve a user by ID.
+ *
+ * @property-read int $userId
+ * @property-read bool $withRoles
  */
 class GetUserByIdQuery implements QueryInterface
 {

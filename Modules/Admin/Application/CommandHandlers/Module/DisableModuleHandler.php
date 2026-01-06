@@ -6,6 +6,7 @@ use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Module\ModuleManager;
 use Core\Support\Facades\Audit;
+use Modules\Admin\Application\Commands\Module\DisableModuleCommand;
 use Modules\Admin\Infrastructure\Models\Module;
 
 /**
@@ -22,6 +23,10 @@ class DisableModuleHandler implements CommandHandlerInterface
 
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof DisableModuleCommand) {
+            throw new \InvalidArgumentException('DisableModuleHandler can only handle DisableModuleCommand.');
+        }
+
         $module = Module::where('name', '=', $command->moduleName)->first();
 
         if (!$module) {

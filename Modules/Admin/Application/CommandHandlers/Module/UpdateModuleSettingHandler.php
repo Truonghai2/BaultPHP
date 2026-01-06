@@ -6,6 +6,7 @@ use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Module\ModuleSettings;
 use Core\Support\Facades\Audit;
+use Modules\Admin\Application\Commands\Module\UpdateModuleSettingCommand;
 
 /**
  * UpdateModuleSettingHandler
@@ -16,6 +17,10 @@ class UpdateModuleSettingHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof UpdateModuleSettingCommand) {
+            throw new \InvalidArgumentException('UpdateModuleSettingHandler can only handle UpdateModuleSettingCommand.');
+        }
+
         $setting = ModuleSettings::where('module_name', '=', $command->moduleName)
             ->where('key', '=', $command->key)
             ->first();

@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\User;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\User\DeleteUserCommand;
 use Modules\User\Infrastructure\Models\User;
 
 /**
@@ -16,6 +17,10 @@ class DeleteUserHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof DeleteUserCommand) {
+            throw new \InvalidArgumentException('DeleteUserHandler can only handle DeleteUserCommand.');
+        }
+
         $user = User::find($command->userId);
 
         if (!$user) {

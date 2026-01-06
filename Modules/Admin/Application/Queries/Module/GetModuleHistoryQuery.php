@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetModuleHistoryQuery
  *
  * Query to retrieve audit history for a specific module.
+ *
+ * @property-read string $moduleName
+ * @property-read int|null $limit
  */
 class GetModuleHistoryQuery implements QueryInterface
 {

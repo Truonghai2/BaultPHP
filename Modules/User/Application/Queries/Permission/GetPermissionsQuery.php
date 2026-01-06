@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetPermissionsQuery
  *
  * Query to retrieve all permissions.
+ *
+ * @property-read string|null $captype
+ * @property-read int|null $limit
+ * @property-read int|null $offset
  */
 class GetPermissionsQuery implements QueryInterface
 {

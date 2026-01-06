@@ -5,6 +5,7 @@ namespace Modules\Admin\Application\CommandHandlers\Module;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\Admin\Application\Commands\Module\InstallModuleCommand;
 use Modules\Admin\Infrastructure\Models\Module;
 
 /**
@@ -16,6 +17,10 @@ class InstallModuleHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): int
     {
+        if (!$command instanceof InstallModuleCommand) {
+            throw new \InvalidArgumentException('InstallModuleHandler can only handle InstallModuleCommand.');
+        }
+
         $existing = Module::where('name', '=', $command->moduleName)->first();
 
         if ($existing) {

@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetPageByIdQuery
  *
  * Query to retrieve a page by ID.
+ *
+ * @property-read int $pageId
+ * @property-read bool $withBlocks
  */
 class GetPageByIdQuery implements QueryInterface
 {

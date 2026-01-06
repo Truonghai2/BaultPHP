@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\Permission;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\Permission\CreatePermissionCommand;
 use Modules\User\Infrastructure\Models\Permission;
 
 /**
@@ -16,6 +17,10 @@ class CreatePermissionHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): int
     {
+        if (!$command instanceof CreatePermissionCommand) {
+            throw new \InvalidArgumentException('CreatePermissionHandler can only handle CreatePermissionCommand.');
+        }
+
         // Check if permission already exists
         if (Permission::where('name', '=', $command->name)->exists()) {
             throw new \Exception("Permission '{$command->name}' already exists");

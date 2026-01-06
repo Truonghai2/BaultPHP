@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\Role;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\Role\CreateRoleCommand;
 use Modules\User\Infrastructure\Models\Role;
 
 /**
@@ -16,6 +17,10 @@ class CreateRoleHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): int
     {
+        if (!$command instanceof CreateRoleCommand) {
+            throw new \InvalidArgumentException('CreateRoleHandler can only handle CreateRoleCommand.');
+        }
+
         if (Role::where('name', '=', $command->name)->exists()) {
             throw new \Exception("Role '{$command->name}' already exists");
         }

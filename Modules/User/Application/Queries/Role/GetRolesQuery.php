@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetRolesQuery
  *
  * Query to retrieve all roles.
+ *
+ * @property-read bool $withPermissions
+ * @property-read int|null $limit
+ * @property-read int|null $offset
  */
 class GetRolesQuery implements QueryInterface
 {

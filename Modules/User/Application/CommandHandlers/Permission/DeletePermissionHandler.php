@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\Permission;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\Permission\DeletePermissionCommand;
 use Modules\User\Infrastructure\Models\Permission;
 
 /**
@@ -16,6 +17,10 @@ class DeletePermissionHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof DeletePermissionCommand) {
+            throw new \InvalidArgumentException('DeletePermissionHandler can only handle DeletePermissionCommand.');
+        }
+
         $permission = Permission::find($command->permissionId);
 
         if (!$permission) {

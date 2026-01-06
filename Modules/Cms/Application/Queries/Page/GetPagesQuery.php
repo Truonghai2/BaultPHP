@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetPagesQuery
  *
  * Query to retrieve a list of pages with filters.
+ *
+ * @property-read string|null $status
+ * @property-read int|null $limit
+ * @property-read int|null $offset
+ * @property-read bool $withBlocks
  */
 class GetPagesQuery implements QueryInterface
 {

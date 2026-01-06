@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetUserByEmailQuery
  *
  * Query to retrieve a user by email address.
+ *
+ * @property-read string $email
+ * @property-read bool $withRoles
  */
 class GetUserByEmailQuery implements QueryInterface
 {

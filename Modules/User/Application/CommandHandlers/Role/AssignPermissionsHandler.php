@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\Role;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\Role\AssignPermissionsCommand;
 use Modules\User\Domain\Events\RolePermissionsChanged;
 use Modules\User\Infrastructure\Models\Permission;
 use Modules\User\Infrastructure\Models\Role;
@@ -18,6 +19,10 @@ class AssignPermissionsHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof AssignPermissionsCommand) {
+            throw new \InvalidArgumentException('AssignPermissionsHandler can only handle AssignPermissionsCommand.');
+        }
+
         $role = Role::find($command->roleId);
 
         if (!$role) {

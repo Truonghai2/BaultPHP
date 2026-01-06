@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetRolePermissionsQuery
  *
  * Query to retrieve all permissions for a role.
+ *
+ * @property-read int $roleId
  */
 class GetRolePermissionsQuery implements QueryInterface
 {

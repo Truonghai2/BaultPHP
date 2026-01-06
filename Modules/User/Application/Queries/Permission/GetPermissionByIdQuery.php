@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\QueryInterface;
  * GetPermissionByIdQuery
  *
  * Query to retrieve a permission by ID.
+ *
+ * @property-read int $permissionId
  */
 class GetPermissionByIdQuery implements QueryInterface
 {

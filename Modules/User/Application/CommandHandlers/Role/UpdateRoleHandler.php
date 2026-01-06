@@ -5,6 +5,7 @@ namespace Modules\User\Application\CommandHandlers\Role;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Modules\User\Application\Commands\Role\UpdateRoleCommand;
 use Modules\User\Infrastructure\Models\Role;
 
 /**
@@ -16,6 +17,10 @@ class UpdateRoleHandler implements CommandHandlerInterface
 {
     public function handle(CommandInterface $command): bool
     {
+        if (!$command instanceof UpdateRoleCommand) {
+            throw new \InvalidArgumentException('UpdateRoleHandler can only handle UpdateRoleCommand.');
+        }
+
         $role = Role::find($command->roleId);
 
         if (!$role) {
