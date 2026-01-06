@@ -13,6 +13,16 @@ use PHPUnit\Framework\TestCase as BaseTestCase;
 abstract class TestCases extends BaseTestCase
 {
     protected Application $app;
+    
+    /**
+     * The currently authenticated user.
+     */
+    protected ?\Core\Contracts\Auth\Authenticatable $authenticatedUser = null;
+    
+    /**
+     * Headers to be sent with the next request.
+     */
+    protected array $defaultHeaders = [];
 
     /**
      * Creates the application.
@@ -70,19 +80,54 @@ abstract class TestCases extends BaseTestCase
     }
 
     /**
+     * Set the authenticated user for the next request.
+     */
+    public function actingAs(\Core\Contracts\Auth\Authenticatable $user, string $guard = 'web'): self
+    {
+        $this->authenticatedUser = $user;
+        
+        // Set user in the auth guard
+        $authManager = $this->app->make(\Core\Auth\AuthManager::class);
+        $guardInstance = $authManager->guard($guard);
+        $guardInstance->setUser($user);
+        
+        // Also set in session for session-based guards
+        if ($guardInstance instanceof \Core\Auth\SessionGuard) {
+            $session = $this->app->make(\Core\Contracts\Session\SessionInterface::class);
+            $sessionKey = $guardInstance->getName();
+            $session->set($sessionKey, $user->getAuthIdentifier());
+        }
+        
+        return $this;
+    }
+
+    /**
+     * Set headers for the next request.
+     */
+    public function withHeaders(array $headers): self
+    {
+        $this->defaultHeaders = array_merge($this->defaultHeaders, $headers);
+        return $this;
+    }
+
+    /**
      * Simulate a GET request.
      */
-    public function get(string $uri, array $headers = [])
+    public function get(string $uri, array $headers = []): TestResponse
     {
-        return $this->call('GET', $uri, [], [], [], $headers);
+        $response = $this->call('GET', $uri, [], [], [], array_merge($this->defaultHeaders, $headers));
+        $this->defaultHeaders = []; // Reset after request
+        return new TestResponse($response, $this->app);
     }
 
     /**
      * Simulate a POST request.
      */
-    public function post(string $uri, array $data = [], array $headers = [])
+    public function post(string $uri, array $data = [], array $headers = []): TestResponse
     {
-        return $this->call('POST', $uri, $data, [], [], $headers);
+        $response = $this->call('POST', $uri, $data, [], [], array_merge($this->defaultHeaders, $headers));
+        $this->defaultHeaders = []; // Reset after request
+        return new TestResponse($response, $this->app);
     }
 
     /**

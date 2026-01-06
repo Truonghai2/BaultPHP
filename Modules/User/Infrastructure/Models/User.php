@@ -4,6 +4,7 @@ namespace Modules\User\Infrastructure\Models;
 
 use Core\Audit\Traits\Auditable;
 use Core\Contracts\Auth\Authenticatable;
+use Core\Database\Concerns\HasFactory;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsToMany;
 use Core\ORM\Relations\HasMany;
@@ -27,6 +28,7 @@ use Modules\User\Domain\Services\AccessControlService;
 class User extends Model implements Authenticatable
 {
     use Auditable;
+    use HasFactory;
 
     protected static string $table = 'users';
 

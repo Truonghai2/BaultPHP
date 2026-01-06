@@ -20,6 +20,9 @@ class PostTestModel extends Model
 
 class QueryBuilderTest extends TestCase
 {   
+    /** @var Application */
+    protected Application $app;
+
     /** @var Connection|MockInterface */
     private $connectionMock;
 
@@ -29,13 +32,14 @@ class QueryBuilderTest extends TestCase
     /** @var PDOStatement|MockInterface */
     private $statementMock;
 
-    public function __construct(
-        protected Application $app,
-    ){}
-
     protected function setUp(): void
     {
         parent::setUp();
+
+        // Initialize Application if not already set
+        if (!isset($this->app)) {
+            $this->app = new Application(dirname(__DIR__, 2));
+        }
 
         // 1. Tạo các đối tượng mock cần thiết
         $this->statementMock = Mockery::mock(PDOStatement::class);
@@ -53,6 +57,12 @@ class QueryBuilderTest extends TestCase
         // Đây là bước quan trọng nhất. Bất cứ khi nào code gọi app(Connection::class),
         // nó sẽ nhận được $this->connectionMock thay vì Connection thật.
         $this->app->instance(Connection::class, $this->connectionMock);
+    }
+
+    protected function tearDown(): void
+    {
+        Mockery::close();
+        parent::tearDown();
     }
 
     public function test_get_with_where_clause_builds_correct_sql_and_hydrates_models(): void

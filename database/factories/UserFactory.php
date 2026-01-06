@@ -1,6 +1,6 @@
 <?php
 
-namespace Database\factories;
+namespace Database\Factories;
 
 use Core\Database\Factory;
 use Modules\User\Infrastructure\Models\User;
