@@ -32,13 +32,16 @@ class CorsOriginsManager implements StatefulService
             return false;
         }
 
+        // Normalize origin: lowercase và remove trailing slash
+        $normalizedOrigin = rtrim(strtolower($origin), '/');
+
         // Kiểm tra cache runtime
-        if (isset($this->validatedCache[$origin])) {
-            return $this->validatedCache[$origin];
+        if (isset($this->validatedCache[$normalizedOrigin])) {
+            return $this->validatedCache[$normalizedOrigin];
         }
 
-        $result = $this->validateOrigin($origin);
-        $this->validatedCache[$origin] = $result;
+        $result = $this->validateOrigin($normalizedOrigin);
+        $this->validatedCache[$normalizedOrigin] = $result;
 
         return $result;
     }

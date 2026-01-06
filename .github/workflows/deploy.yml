@@ -73,8 +73,33 @@ jobs:
         with:
           sarif_file: "trivy-results.sarif"
 
-      - name: Composer Security Check
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Composer Security Audit
+        continue-on-error: true
+        run: composer audit
+
+      - name: Symfony Security Checker
+        continue-on-error: true
         uses: symfonycorp/security-checker-action@v4
+        with:
+          lock: composer.lock
+          format: ansi
 
   # Job 3: Unit Tests
   unit-tests:

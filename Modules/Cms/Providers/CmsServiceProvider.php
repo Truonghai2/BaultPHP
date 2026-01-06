@@ -134,8 +134,16 @@ class CmsServiceProvider extends BaseServiceProvider
     {
         $modulePath = $this->getModulePath();
 
+        // Try both Resources/views and resources/views (case-insensitive filesystems)
         $viewPath = $modulePath . '/Resources/views';
-        $this->loadViewsFrom($viewPath, 'cms');
+        if (!is_dir($viewPath)) {
+            $viewPath = $modulePath . '/resources/views';
+        }
+        
+        // Only load views if directory exists
+        if (is_dir($viewPath)) {
+            $this->loadViewsFrom($viewPath, 'cms');
+        }
 
         $this->loadMigrationsFrom($modulePath . '/Infrastructure/Migrations');
     }
