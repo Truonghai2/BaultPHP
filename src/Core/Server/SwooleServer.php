@@ -255,11 +255,43 @@ class SwooleServer
 
     public function onWorkerExit(SwooleHttpServer $server, int $workerId): void
     {
-        $this->getLogger()->warning("Swoole Worker #{$workerId} exited unexpectedly.", ['worker_id' => $workerId]);
+        $memoryUsage = memory_get_usage(true);
+        $memoryPeak = memory_get_peak_usage(true);
+        
+        $this->getLogger()->warning("Swoole Worker #{$workerId} exited unexpectedly.", [
+            'worker_id' => $workerId,
+            'request_count' => $this->requestCount,
+            'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
+            'memory_peak' => round($memoryPeak / 1024 / 1024, 2) . ' MB',
+        ]);
+        
+        // Cleanup resources
+        try {
+            // Close connection pools
+            if ($this->poolManager) {
+                $this->poolManager->closePools();
+            }
+            
+            // Force garbage collection
+            gc_collect_cycles();
+            
+            $this->getLogger()->debug("Worker #{$workerId} cleanup completed");
+        } catch (Throwable $e) {
+            $this->getLogger()->error("Worker #{$workerId} cleanup failed", [
+                'exception' => $e->getMessage(),
+            ]);
+        }
     }
 
     public function handleRequest(SwooleRequest $swooleRequest, SwooleResponse $swooleResponse): void
     {
+        $this->requestCount++;
+        
+        // Periodic cleanup every 1000 requests (in addition to per-request cleanup)
+        if ($this->requestCount % 1000 === 0) {
+            $this->performPeriodicCleanup();
+        }
+        
         (new RequestLifecycle(
             $this->app,
             $this->kernel,
@@ -268,6 +300,39 @@ class SwooleServer
             $this->psr7Bridge,
             $this->isDebug,
         ))->handle($swooleRequest, $swooleResponse);
+    }
+    
+    /**
+     * Performs periodic cleanup tasks to prevent memory leaks.
+     * Called every 1000 requests.
+     */
+    private function performPeriodicCleanup(): void
+    {
+        try {
+            // Force garbage collection
+            $beforeGC = memory_get_usage(true);
+            gc_collect_cycles();
+            $afterGC = memory_get_usage(true);
+            $freed = $beforeGC - $afterGC;
+            
+            // Clear opcache in development (helps with hot-reloading)
+            if (!$this->isProduction() && function_exists('opcache_reset')) {
+                opcache_reset();
+            }
+            
+            // Log cleanup stats
+            $this->getLogger()->debug('Periodic cleanup performed', [
+                'request_count' => $this->requestCount,
+                'memory_freed' => $freed > 0 ? round($freed / 1024 / 1024, 2) . ' MB' : '0 MB',
+                'memory_usage' => round($afterGC / 1024 / 1024, 2) . ' MB',
+                'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
+            ]);
+        } catch (Throwable $e) {
+            $this->getLogger()->error('Periodic cleanup failed', [
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
     }
 
     /**

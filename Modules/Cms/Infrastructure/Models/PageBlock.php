@@ -88,24 +88,37 @@ class PageBlock extends Model
     }
 
     /**
+     * Instance-level parsed config cache (performance optimization)
+     * @var array<string, mixed>|null
+     */
+    private ?array $parsedConfigCache = null;
+
+    /**
      * Get block configuration (from block type)
      * 
-     * Uses static caching for performance (except in debug mode)
+     * PERFORMANCE OPTIMIZATION: 
+     * - Instance-level cache to avoid repeated JSON decoding
+     * - Static cache for block type level (shared across instances)
      * 
      * @return array<string, mixed> Configuration array
      */
     public function getConfig(): array
     {
+        // Performance optimization: Use instance-level cache first
+        if ($this->parsedConfigCache !== null) {
+            return $this->parsedConfigCache;
+        }
+        
         // In debug mode, always get fresh config
         if (config('app.debug', false)) {
-            return $this->getFreshConfig();
+            return $this->parsedConfigCache = $this->getFreshConfig();
         }
 
-        // In production, use static cache
+        // In production, use static cache (shared across instances of same block type)
         static $configCache = [];
         
         if (!$this->blockType) {
-            return [];
+            return $this->parsedConfigCache = [];
         }
         
         $cacheKey = $this->block_type_id;
@@ -114,7 +127,8 @@ class PageBlock extends Model
             $configCache[$cacheKey] = $this->getFreshConfig();
         }
         
-        return $configCache[$cacheKey];
+        // Cache at instance level too
+        return $this->parsedConfigCache = $configCache[$cacheKey];
     }
 
     /**

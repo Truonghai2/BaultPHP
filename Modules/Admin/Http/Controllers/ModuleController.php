@@ -74,9 +74,17 @@ class ModuleController extends Controller
         $zipPath = $uploadedFile->getStream()->getMetadata('uri');
 
         try {
-            $this->installerService->install($zipPath);
+            // Install module with full integration
+            $result = $this->installerService->install($zipPath, runMigrations: true, installDependencies: true);
+            
             Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache sau khi cài đặt
-            return response()->json(['message' => 'Cài đặt module thành công!'], 201);
+            
+            return response()->json([
+                'message' => 'Cài đặt module thành công!',
+                'module' => $result['module'] ?? null,
+                'version' => $result['version'] ?? null,
+                'status' => $result['status'] ?? 'installed',
+            ], 201);
         } catch (ModuleAlreadyExistsException $e) {
             return response()->json(['error' => $e->getMessage()], 409);
         } catch (InvalidModuleFileException | InvalidModuleStructureException | InvalidModuleSignatureException $e) {

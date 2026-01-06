@@ -44,7 +44,7 @@ class UserProviderManager extends Manager
      */
     protected function createOrmDriver(array $config): EloquentUserProvider
     {
-        return new EloquentUserProvider($config['model']);
+        return new EloquentUserProvider($config['model'], $this->app);
     }
 
     /**

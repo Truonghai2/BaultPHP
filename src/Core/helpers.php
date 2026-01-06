@@ -1569,3 +1569,250 @@ if (!function_exists('bulk_update_page_blocks_order')) {
         return $updated;
     }
 }
+
+// ============================================================================
+// APCu Helper Functions
+// ============================================================================
+
+if (!function_exists('apcu_available')) {
+    /**
+     * Check if APCu extension is available and enabled.
+     * 
+     * @return bool
+     */
+    function apcu_available(): bool
+    {
+        return extension_loaded('apcu')
+            && function_exists('apcu_fetch')
+            && function_exists('apcu_store')
+            && function_exists('apcu_delete')
+            && ini_get('apc.enabled') !== '0';
+    }
+}
+
+if (!function_exists('apcu_get')) {
+    /**
+     * Safely fetch a value from APCu cache.
+     * Returns null if APCu is not available or key doesn't exist.
+     * 
+     * @param string $key
+     * @param mixed $default Default value if key doesn't exist
+     * @return mixed
+     */
+    function apcu_get(string $key, mixed $default = null): mixed
+    {
+        if (!apcu_available()) {
+            return $default;
+        }
+
+        $success = false;
+        /** @phpstan-ignore-next-line */
+        $value = \apcu_fetch($key, $success);
+        
+        return $success ? $value : $default;
+    }
+}
+
+if (!function_exists('apcu_set')) {
+    /**
+     * Safely store a value in APCu cache.
+     * Returns false if APCu is not available.
+     * 
+     * @param string $key
+     * @param mixed $value
+     * @param int $ttl Time to live in seconds (default: 0 = unlimited)
+     * @return bool
+     */
+    function apcu_set(string $key, mixed $value, int $ttl = 0): bool
+    {
+        if (!apcu_available()) {
+            return false;
+        }
+
+        /** @phpstan-ignore-next-line */
+        return \apcu_store($key, $value, $ttl);
+    }
+}
+
+if (!function_exists('apcu_delete')) {
+    /**
+     * Safely delete a value from APCu cache.
+     * Returns false if APCu is not available.
+     * 
+     * @param string|string[] $key
+     * @return bool|array
+     */
+    function apcu_delete(string|array $key): bool|array
+    {
+        if (!apcu_available()) {
+            return false;
+        }
+
+        /** @phpstan-ignore-next-line */
+        return \apcu_delete($key);
+    }
+}
+
+if (!function_exists('apcu_clear')) {
+    /**
+     * Clear all APCu cache entries.
+     * Returns false if APCu is not available.
+     * 
+     * @return bool
+     */
+    function apcu_clear(): bool
+    {
+        if (!apcu_available()) {
+            return false;
+        }
+
+        /** @phpstan-ignore-next-line */
+        return \apcu_clear_cache();
+    }
+}
+
+// ============================================================================
+// OAuth Cache Helper Functions
+// ============================================================================
+
+if (!function_exists('oauth_cache_client')) {
+    /**
+     * Cache an OAuth client entity.
+     * Uses multi-level caching: APCu (L2) and persistent cache (L3).
+     * 
+     * @param string $clientId
+     * @param mixed $clientEntity
+     * @param int $apcuTtl APCu TTL in seconds (default: 300 = 5 minutes)
+     * @param int $persistentTtl Persistent cache TTL in seconds (default: 600 = 10 minutes)
+     * @return void
+     */
+    function oauth_cache_client(string $clientId, mixed $clientEntity, int $apcuTtl = 300, int $persistentTtl = 600): void
+    {
+        $key = "oauth:client:{$clientId}";
+        
+        // L2: APCu cache
+        if (apcu_available()) {
+            apcu_set($key, $clientEntity, $apcuTtl);
+        }
+        
+        // L3: Persistent cache
+        cache()->set($key, $clientEntity, $persistentTtl);
+    }
+}
+
+if (!function_exists('oauth_get_client')) {
+    /**
+     * Get an OAuth client entity from cache.
+     * Checks APCu (L2) first, then persistent cache (L3).
+     * 
+     * @param string $clientId
+     * @return mixed|null
+     */
+    function oauth_get_client(string $clientId): mixed
+    {
+        $key = "oauth:client:{$clientId}";
+        
+        // L2: Check APCu cache
+        if (apcu_available()) {
+            $cached = apcu_get($key);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+        
+        // L3: Check persistent cache
+        return cache()->get($key);
+    }
+}
+
+if (!function_exists('oauth_clear_client_cache')) {
+    /**
+     * Clear OAuth client cache for a specific client.
+     * 
+     * @param string $clientId
+     * @return void
+     */
+    function oauth_clear_client_cache(string $clientId): void
+    {
+        $key = "oauth:client:{$clientId}";
+        
+        // Clear APCu
+        if (apcu_available()) {
+            apcu_delete($key);
+        }
+        
+        // Clear persistent cache
+        cache()->delete($key);
+    }
+}
+
+if (!function_exists('oauth_cache_scope')) {
+    /**
+     * Cache an OAuth scope entity.
+     * Uses multi-level caching: APCu (L2) and persistent cache (L3).
+     * 
+     * @param string $scopeId
+     * @param mixed $scopeEntity
+     * @param int $apcuTtl APCu TTL in seconds (default: 3600 = 1 hour)
+     * @param int $persistentTtl Persistent cache TTL in seconds (default: 3600 = 1 hour)
+     * @return void
+     */
+    function oauth_cache_scope(string $scopeId, mixed $scopeEntity, int $apcuTtl = 3600, int $persistentTtl = 3600): void
+    {
+        $key = "oauth:scope:{$scopeId}";
+        
+        // L2: APCu cache
+        if (apcu_available()) {
+            apcu_set($key, $scopeEntity, $apcuTtl);
+        }
+        
+        // L3: Persistent cache
+        cache()->set($key, $scopeEntity, $persistentTtl);
+    }
+}
+
+if (!function_exists('oauth_get_scope')) {
+    /**
+     * Get an OAuth scope entity from cache.
+     * Checks APCu (L2) first, then persistent cache (L3).
+     * 
+     * @param string $scopeId
+     * @return mixed|null
+     */
+    function oauth_get_scope(string $scopeId): mixed
+    {
+        $key = "oauth:scope:{$scopeId}";
+        
+        // L2: Check APCu cache
+        if (apcu_available()) {
+            $cached = apcu_get($key);
+            if ($cached !== null) {
+                return $cached;
+            }
+        }
+        
+        // L3: Check persistent cache
+        return cache()->get($key);
+    }
+}
+
+if (!function_exists('oauth_clear_scope_cache')) {
+    /**
+     * Clear OAuth scope cache for a specific scope.
+     * 
+     * @param string $scopeId
+     * @return void
+     */
+    function oauth_clear_scope_cache(string $scopeId): void
+    {
+        $key = "oauth:scope:{$scopeId}";
+        
+        // Clear APCu
+        if (apcu_available()) {
+            apcu_delete($key);
+        }
+        
+        // Clear persistent cache
+        cache()->delete($key);
+    }
+}

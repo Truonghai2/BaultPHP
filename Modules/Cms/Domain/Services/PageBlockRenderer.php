@@ -88,15 +88,16 @@ class PageBlockRenderer
             $this->cacheStats['misses']++;
         }
 
-        $pageBlocks = $page->blocksInRegion($region);
+        // Performance optimization: Pass user for visibility pre-filtering
+        $user = $this->getCurrentUser();
+        $pageBlocks = $page->blocksInRegion($region, $user);
 
         // FALLBACK: If no page_blocks found, try legacy block_instances
         if ($pageBlocks->isEmpty()) {
             return $this->renderLegacyBlockInstances($page, $region, $context, $userRoles);
         }
 
-        // Get user once and cache for request
-        $user = $this->getCurrentUser();
+        // User already retrieved above for blocksInRegion()
 
         // Preload data for performance
         $preloadedData = $this->preloadBlockData($pageBlocks);
@@ -215,6 +216,8 @@ class PageBlockRenderer
     /**
      * Render a collection of blocks
      * 
+     * OPTIMIZATION: Check individual block output cache before rendering
+     * 
      * @param \Core\Support\Collection $pageBlocks
      * @param \Modules\User\Infrastructure\Models\User|null $user
      * @param array $preloadedData
@@ -230,9 +233,21 @@ class PageBlockRenderer
         string $region
     ): array {
         $htmlParts = [];
+        $toCache = []; // Batch cache operations
         
         foreach ($pageBlocks as $pageBlock) {
             try {
+                // Performance optimization: Check individual block output cache first
+                if ($this->cacheManager) {
+                    $cached = $this->cacheManager->getBlockOutput($pageBlock);
+                    if ($cached !== null) {
+                        $htmlParts[] = $cached;
+                        $this->cacheStats['hits']++;
+                        continue;
+                    }
+                    $this->cacheStats['misses']++;
+                }
+                
                 $blockContext = [
                     'preloaded' => $preloadedData[$pageBlock->id] ?? [],
                     'page_id' => $pageId,
@@ -243,10 +258,22 @@ class PageBlockRenderer
                 
                 if ($rendered !== '') {
                     $htmlParts[] = $rendered;
+                    
+                    // Queue for batch caching (performance optimization)
+                    if ($this->cacheManager) {
+                        $toCache[] = ['block' => $pageBlock, 'html' => $rendered];
+                    }
                 }
                 
             } catch (\Throwable $e) {
                 $this->handleBlockRenderError($e, $pageBlock, $pageId, $region, $htmlParts);
+            }
+        }
+        
+        // Batch cache all rendered blocks (performance optimization)
+        if (!empty($toCache) && $this->cacheManager) {
+            foreach ($toCache as $item) {
+                $this->cacheManager->putBlockOutput($item['block'], $item['html']);
             }
         }
 

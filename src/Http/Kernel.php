@@ -34,6 +34,19 @@ class Kernel implements KernelContract, StatefulService
      * @var MiddlewareInterface[]
      */
     protected array $resolvedMiddleware = [];
+    
+    /**
+     * Cache for pre-resolved middleware stacks per route (performance optimization).
+     * Key: route cache key (method + uri + middleware)
+     * @var array<string, MiddlewareInterface[]>
+     */
+    protected array $routeMiddlewareCache = [];
+    
+    /**
+     * Cache for reflection metadata (performance optimization).
+     * @var array<string, array{method: ReflectionMethod, parameters: ReflectionParameter[]}>
+     */
+    protected array $reflectionCache = [];
 
     /**
      * The application's global HTTP middleware stack.
@@ -156,10 +169,23 @@ class Kernel implements KernelContract, StatefulService
 
         $pipeline = new MiddlewarePipe();
 
-        $middlewareStack = array_merge($this->middleware, $this->router->gatherRouteMiddleware($route));
-
-        foreach ($middlewareStack as $middleware) {
-            $instance = $this->resolveMiddleware($middleware);
+        // Performance optimization: Cache middleware stack per route
+        $routeKey = $this->getRouteCacheKey($route);
+        
+        if (!isset($this->routeMiddlewareCache[$routeKey])) {
+            $middlewareStack = array_merge($this->middleware, $this->router->gatherRouteMiddleware($route));
+            
+            // Pre-resolve and cache middleware instances
+            $resolved = [];
+            foreach ($middlewareStack as $middleware) {
+                $resolved[] = $this->resolveMiddleware($middleware);
+            }
+            
+            $this->routeMiddlewareCache[$routeKey] = $resolved;
+        }
+        
+        // Use cached middleware stack
+        foreach ($this->routeMiddlewareCache[$routeKey] as $instance) {
             $this->resolvedMiddleware[] = $instance;
             $pipeline->pipe($instance);
         }
@@ -281,8 +307,20 @@ class Kernel implements KernelContract, StatefulService
 
         [$controllerClass, $method] = $route->handler;
 
-        $reflectionMethod = new ReflectionMethod($controllerClass, $method);
-        $parameters = $reflectionMethod->getParameters();
+        // Performance optimization: Cache reflection metadata
+        $cacheKey = $controllerClass . '::' . $method;
+        
+        if (!isset($this->reflectionCache[$cacheKey])) {
+            $reflectionMethod = new ReflectionMethod($controllerClass, $method);
+            $this->reflectionCache[$cacheKey] = [
+                'method' => $reflectionMethod,
+                'parameters' => $reflectionMethod->getParameters(),
+            ];
+        }
+        
+        $cached = $this->reflectionCache[$cacheKey];
+        $reflectionMethod = $cached['method'];
+        $parameters = $cached['parameters'];
 
         // Route parameters are extracted from the URL pattern (e.g., {id}, {name})
         // and stored directly in $route->parameters by the Router's findRoute() method.
@@ -357,10 +395,20 @@ class Kernel implements KernelContract, StatefulService
 
     /**
      * Reset the state of the kernel after a request.
+     * Note: We don't reset caches (routeMiddlewareCache, reflectionCache) as they are static.
      */
     public function resetState(): void
     {
         $this->resolvedMiddleware = [];
+    }
+    
+    /**
+     * Generate a cache key for route middleware stack.
+     */
+    protected function getRouteCacheKey(Route $route): string
+    {
+        $middlewareKey = implode(',', $route->middleware);
+        return md5($route->method . '|' . $route->uri . '|' . ($route->group ?? '') . '|' . $middlewareKey);
     }
 
     /**

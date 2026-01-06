@@ -19,6 +19,24 @@ class Router implements StatefulService
     protected array $middleware = [];
     protected array $middlewareGroups = [];
     protected array $routeMiddleware = [];
+    
+    /**
+     * Pre-compiled regex patterns for route matching (performance optimization).
+     * @var array<string, array<string, string>>
+     */
+    protected array $compiledPatterns = [];
+    
+    /**
+     * Static routes (no parameters) for O(1) lookup (performance optimization).
+     * @var array<string, array<string, Route>>
+     */
+    protected array $staticRoutes = [];
+    
+    /**
+     * Dynamic routes (with parameters) for regex matching.
+     * @var array<string, array<string, Route>>
+     */
+    protected array $dynamicRoutes = [];
 
     public function __construct(Application $app)
     {
@@ -54,7 +72,30 @@ class Router implements StatefulService
     {
         $route = new Route($method, $uri, $handler);
         $this->routes[$method][$uri] = $route;
+        
+        // Performance optimization: Pre-compile patterns and separate static/dynamic routes
+        $this->optimizeRoute($method, $uri, $route);
+        
         return $route;
+    }
+    
+    /**
+     * Optimize route by pre-compiling patterns and categorizing as static/dynamic.
+     */
+    protected function optimizeRoute(string $method, string $uri, Route $route): void
+    {
+        // Check if route has parameters
+        if (str_contains($uri, '{')) {
+            // Dynamic route - pre-compile pattern
+            $pattern = preg_replace_callback('/\{([a-zA-Z0-9_]+)\}/', static function ($matches) {
+                return '(?P<' . $matches[1] . '>[^/]+)';
+            }, $uri);
+            $this->compiledPatterns[$method][$uri] = $pattern;
+            $this->dynamicRoutes[$method][$uri] = $route;
+        } else {
+            // Static route - O(1) lookup
+            $this->staticRoutes[$method][$uri] = $route;
+        }
     }
 
     /**
@@ -82,24 +123,36 @@ class Router implements StatefulService
 
     protected function findRoute(string $method, string $uri): ?Route
     {
-        if (isset($this->routes[$method])) {
-            foreach ($this->routes[$method] as $routeUri => $route) {
-                $pattern = preg_replace_callback('/\{([a-zA-Z0-9_]+)\}/', static function ($matches) {
-                    return '(?P<' . $matches[1] . '>[^/]+)';
-                }, $routeUri);
-                if (preg_match('#^' . $pattern . '$#', $uri, $matches)) {
+        // Fast path: O(1) lookup for static routes
+        if (isset($this->staticRoutes[$method][$uri])) {
+            return $this->staticRoutes[$method][$uri];
+        }
+        
+        // Slow path: Regex matching for dynamic routes (with pre-compiled patterns)
+        if (isset($this->dynamicRoutes[$method])) {
+            foreach ($this->dynamicRoutes[$method] as $routeUri => $route) {
+                // Use pre-compiled pattern instead of compiling each time
+                $pattern = $this->compiledPatterns[$method][$routeUri] ?? null;
+                
+                if ($pattern && preg_match('#^' . $pattern . '$#', $uri, $matches)) {
                     $parameters = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
                     $route->setParameters($parameters);
                     return $route;
                 }
             }
         }
+        
         return null;
     }
 
     public function gatherRouteMiddleware(Route $route): array
     {
-        $kernel = $this->app->make(Kernel::class);
+        // Performance optimization: Cache kernel instance
+        static $kernel = null;
+        if ($kernel === null) {
+            $kernel = $this->app->make(Kernel::class);
+        }
+        
         $this->middlewareGroups = $kernel->getMiddlewareGroups();
         $this->routeMiddleware = $kernel->getRouteMiddleware();
 
@@ -134,6 +187,25 @@ class Router implements StatefulService
                     $route->name($routeData['name']);
                     $this->namedRoutes[$routeData['name']] = $route;
                 }
+            }
+        }
+        
+        // After loading from cache, ensure all routes are optimized
+        $this->rebuildRouteIndexes();
+    }
+    
+    /**
+     * Rebuild route indexes after loading from cache or bulk operations.
+     */
+    protected function rebuildRouteIndexes(): void
+    {
+        $this->staticRoutes = [];
+        $this->dynamicRoutes = [];
+        $this->compiledPatterns = [];
+        
+        foreach ($this->routes as $method => $routes) {
+            foreach ($routes as $uri => $route) {
+                $this->optimizeRoute($method, $uri, $route);
             }
         }
     }
@@ -248,6 +320,7 @@ class Router implements StatefulService
 
     /**
      * Resets the router's state after a request.
+     * Note: We don't reset compiled patterns and route indexes as they are static.
      */
     public function resetState(): void
     {

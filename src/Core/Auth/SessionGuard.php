@@ -156,19 +156,76 @@ class SessionGuard implements Guard
         return null;
     }
 
+    /**
+     * Cache for failed login attempts to prevent brute force.
+     * Format: [email => ['count' => int, 'last_attempt' => timestamp]]
+     */
+    private static array $failedAttemptsCache = [];
+    
+    /**
+     * Maximum failed attempts before blocking (per request lifecycle)
+     */
+    private const MAX_FAILED_ATTEMPTS = 5;
+    
+    /**
+     * Block duration in seconds
+     */
+    private const BLOCK_DURATION = 300; // 5 minutes
+
     protected function hasValidCredentials(?Authenticatable $user, array $credentials): bool
     {
         if (is_null($user)) {
             return false;
         }
 
+        // Performance optimization: Check failed attempts cache
+        $email = $credentials['email'] ?? null;
+        if ($email && isset(self::$failedAttemptsCache[$email])) {
+            $attempt = self::$failedAttemptsCache[$email];
+            if ($attempt['count'] >= self::MAX_FAILED_ATTEMPTS) {
+                $timeSinceLastAttempt = time() - $attempt['last_attempt'];
+                if ($timeSinceLastAttempt < self::BLOCK_DURATION) {
+                    $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
+                    $logger->warning('SessionGuard: Too many failed attempts', [
+                        'email' => $email,
+                        'blocked_until' => $attempt['last_attempt'] + self::BLOCK_DURATION,
+                    ]);
+                    return false;
+                } else {
+                    // Reset after block duration
+                    unset(self::$failedAttemptsCache[$email]);
+                }
+            }
+        }
+
         $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
         $start = microtime(true);
-        $result = Hash::check($credentials['password'], $user->getAuthPassword());
-        $logger->info('SessionGuard: Password verification', ['duration_ms' => (microtime(true) - $start) * 1000]);
+        
+        // Performance optimization: Early return if password is empty
+        $hashedPassword = $user->getAuthPassword();
+        if (empty($hashedPassword)) {
+            return false;
+        }
+        
+        $result = Hash::check($credentials['password'], $hashedPassword);
+        $duration = microtime(true) - $start;
+        
+        $logger->info('SessionGuard: Password verification', ['duration_ms' => $duration * 1000]);
+        
+        // Track failed attempts
+        if (!$result && $email) {
+            if (!isset(self::$failedAttemptsCache[$email])) {
+                self::$failedAttemptsCache[$email] = ['count' => 0, 'last_attempt' => 0];
+            }
+            self::$failedAttemptsCache[$email]['count']++;
+            self::$failedAttemptsCache[$email]['last_attempt'] = time();
+        } else if ($result && $email) {
+            // Clear failed attempts on success
+            unset(self::$failedAttemptsCache[$email]);
+        }
         
         // Auto-rehash password if needed (when hashing config changes)
-        if ($result && Hash::needsRehash($user->getAuthPassword())) {
+        if ($result && Hash::needsRehash($hashedPassword)) {
             $this->rehashPasswordAfterLogin($user, $credentials['password']);
         }
         
@@ -198,8 +255,8 @@ class SessionGuard implements Guard
                 // Update password in database
                 if (method_exists($user, 'updatePassword')) {
                     $user->updatePassword($newHash);
-                } else {
-                    // Fallback: direct update
+                } elseif (method_exists($user, 'save')) {
+                    // Fallback: direct update if save method exists
                     $user->password = $newHash;
                     $user->save();
                 }
@@ -231,12 +288,12 @@ class SessionGuard implements Guard
         // Check if user has hasRole method
         if (method_exists($user, 'hasRole')) {
             // Check for admin roles
-            if ($user->hasRole('admin') || $user->hasRole('administrator')) {
+            if ($user->hasRole('admin') || (method_exists($user, 'hasRole') && $user->hasRole('administrator'))) {
                 return 'high';
             }
             
             // Check for moderator or manager roles
-            if ($user->hasRole('moderator') || $user->hasRole('manager')) {
+            if ($user->hasRole('moderator') || (method_exists($user, 'hasRole') && $user->hasRole('manager'))) {
                 return 'standard';
             }
         }
@@ -333,7 +390,15 @@ class SessionGuard implements Guard
     }
 
     /**
+     * Cache for remember token lookups within request lifecycle.
+     * Format: [selector => RememberToken|null]
+     */
+    private static array $rememberTokenCache = [];
+
+    /**
      * Attempt to retrieve a user by the "remember me" cookie's data.
+     * 
+     * PERFORMANCE OPTIMIZATION: Cache remember token lookups
      *
      * @param array $recaller
      * @return \Core\Contracts\Auth\Authenticatable|null
@@ -344,34 +409,58 @@ class SessionGuard implements Guard
             return null;
         }
 
-        $tokenRecord = RememberToken::where('selector', $recaller['selector'])->first();
+        $selector = $recaller['selector'];
+        
+        // Performance optimization: Cache remember token lookup
+        if (!isset(self::$rememberTokenCache[$selector])) {
+            self::$rememberTokenCache[$selector] = RememberToken::where('selector', $selector)->first();
+        }
+        
+        $tokenRecord = self::$rememberTokenCache[$selector];
 
         if (!$tokenRecord) {
             return null;
         }
 
+        // Check expiration early (performance optimization)
+        if ($tokenRecord->expires_at && strtotime($tokenRecord->expires_at) < time()) {
+            $this->removeRememberToken($tokenRecord->selector);
+            unset(self::$rememberTokenCache[$selector]);
+            return null;
+        }
+
+        // Security check: user agent and IP validation
         if (($tokenRecord->user_agent && $tokenRecord->user_agent !== $this->getUserAgent()) ||
             ($tokenRecord->ip_address && $tokenRecord->ip_address !== $this->getIpAddress())
         ) {
             $this->dispatcher?->dispatch(new CookieTheftDetected($tokenRecord->user_id));
             RememberToken::where('user_id', $tokenRecord->user_id)->delete();
             $this->forgetRecallerCookie();
+            unset(self::$rememberTokenCache[$selector]);
             return null;
         }
 
+        // Verify token hash (constant-time comparison for security)
         if (hash_equals($tokenRecord->verifier_hash, hash('sha256', $recaller['verifier']))) {
             $user = $this->provider->retrieveById($tokenRecord->user_id);
  
             if ($user) {
+                // Regenerate token for security (token rotation)
                 $this->regenerateRememberToken($tokenRecord, $user);
+                // Clear cache after regeneration
+                unset(self::$rememberTokenCache[$selector]);
                 return $user;
             }
  
+            // User not found, remove token
             $this->removeRememberToken($tokenRecord->selector);
+            unset(self::$rememberTokenCache[$selector]);
         } else {
+            // Invalid verifier - potential cookie theft
             $this->dispatcher?->dispatch(new CookieTheftDetected($tokenRecord->user_id));
             RememberToken::where('user_id', $tokenRecord->user_id)->forceDelete();
             $this->forgetRecallerCookie();
+            unset(self::$rememberTokenCache[$selector]);
         }
 
         return null;

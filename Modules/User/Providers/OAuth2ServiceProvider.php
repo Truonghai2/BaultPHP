@@ -26,10 +26,23 @@ class OAuth2ServiceProvider extends BaseServiceProvider
     }
     protected function registerAuthorizationServer(): void
     {
+        // Bind repositories with Application instance for caching
+        $this->app->singleton(ClientRepository::class, function ($app) {
+            return new ClientRepository($app);
+        });
+        
+        $this->app->singleton(AccessTokenRepository::class, function ($app) {
+            return new AccessTokenRepository($app);
+        });
+        
+        $this->app->singleton(ScopeRepository::class, function ($app) {
+            return new ScopeRepository($app);
+        });
+        
         $this->app->singleton(AuthorizationServer::class, function ($app) {
             $config = $app->make('config');
 
-            // Khởi tạo server
+            // Khởi tạo server với optimized repositories (cached instances)
             $server = new AuthorizationServer(
                 $app->make(ClientRepository::class),
                 $app->make(AccessTokenRepository::class),
@@ -98,7 +111,7 @@ class OAuth2ServiceProvider extends BaseServiceProvider
         $this->app->singleton(ResourceServer::class, function ($app) {
             $config = $app->make('config');
             return new ResourceServer(
-                $app->make(AccessTokenRepository::class),
+                $app->make(AccessTokenRepository::class), // Uses cached instance
                 $config->get('oauth2.public_key'),
             );
         });
