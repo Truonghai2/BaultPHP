@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Core\Database\Seeder;
+use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\BlockRegion;
 use Modules\Cms\Infrastructure\Models\BlockType;
-use Modules\Cms\Infrastructure\Models\BlockInstance;
 
 /**
  * Default Blocks Seeder
- * 
+ *
  * Creates BlockInstances for global regions (header, footer, sidebar)
  * This is separate from PageBlocks which are page-specific
  */

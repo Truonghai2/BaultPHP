@@ -11,7 +11,7 @@ class RefreshToken extends Model
 {
     protected static string $table = 'oauth_refresh_tokens';
     public $incrementing = false;
-    protected string $primaryKey = 'id';
+    protected static string $primaryKey = 'id';
 
     protected array $fillable = ['id', 'access_token_id', 'revoked', 'expires_at'];
 

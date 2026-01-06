@@ -23,7 +23,7 @@ class Scope extends Model
 
     protected static string $table = 'oauth_scopes';
 
-    protected string $primaryKey = 'id';
+    protected static string $primaryKey = 'id';
 
     public bool $incrementing = false;
 

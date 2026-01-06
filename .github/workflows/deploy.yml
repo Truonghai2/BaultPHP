@@ -11,6 +11,10 @@ env:
   PHP_VERSION: "8.2"
   NODE_VERSION: "18"
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   # Job 1: Code Quality Checks
   code-quality:
@@ -64,7 +68,7 @@ jobs:
           output: "trivy-results.sarif"
 
       - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: "trivy-results.sarif"

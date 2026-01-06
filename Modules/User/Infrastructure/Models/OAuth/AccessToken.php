@@ -11,7 +11,7 @@ class AccessToken extends Model
 {
     protected static string $table = 'oauth_access_tokens';
     public $incrementing = false;
-    protected string $primaryKey = 'id';
+    protected static string $primaryKey = 'id';
 
     protected array $fillable = ['id', 'user_id', 'client_id', 'scopes', 'revoked', 'created_at', 'updated_at', 'expires_at'];
 
