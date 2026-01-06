@@ -10,6 +10,11 @@ use Core\CQRS\Command;
  * Update Page Content Command
  *
  * Command để cập nhật nội dung page
+ *
+ * @property-read int $pageId
+ * @property-read array $blocks
+ * @property-read string|null $featuredImagePath
+ * @property-read int|null $userId
  */
 final class UpdatePageContentCommand implements Command
 {

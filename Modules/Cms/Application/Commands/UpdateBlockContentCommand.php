@@ -4,6 +4,11 @@ namespace Modules\Cms\Application\Commands;
 
 use Core\CQRS\Command;
 
+/**
+ * @property-read int $pageBlockId
+ * @property-read array<string, mixed> $data
+ * @property-read mixed $content
+ */
 class UpdateBlockContentCommand implements Command
 {
     /**

@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\CommandInterface;
  * CreateRoleCommand
  *
  * Command to create a new role.
+ *
+ * @property-read string $name
+ * @property-read string $description
+ * @property-read array $permissionIds
+ * @property-read int $roleId
  */
 class CreateRoleCommand implements CommandInterface
 {

@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * DeletePermissionCommand
  *
  * Command to delete a permission.
+ *
+ * @property-read int $permissionId
  */
 class DeletePermissionCommand implements CommandInterface
 {

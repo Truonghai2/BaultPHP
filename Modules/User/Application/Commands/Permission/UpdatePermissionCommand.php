@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdatePermissionCommand
  *
  * Command to update a permission.
+ *
+ * @property-read int $permissionId
+ * @property-read string|null $name
+ * @property-read string|null $description
+ * @property-read string|null $captype
  */
 class UpdatePermissionCommand implements CommandInterface
 {

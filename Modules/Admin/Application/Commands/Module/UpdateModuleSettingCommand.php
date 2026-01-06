@@ -8,6 +8,13 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdateModuleSettingCommand
  *
  * Command to update a module setting.
+ *
+ * @property-read string $moduleName
+ * @property-read string $key
+ * @property-read mixed $value
+ * @property-read string $type
+ * @property-read string|null $description
+ * @property-read string|null $group
  */
 class UpdateModuleSettingCommand implements CommandInterface
 {

@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdateUserCommand
  *
  * Command to update user information.
+ *
+ * @property-read int $userId
+ * @property-read string|null $name
+ * @property-read string|null $email
+ * @property-read string|null $password
  */
 class UpdateUserCommand implements CommandInterface
 {

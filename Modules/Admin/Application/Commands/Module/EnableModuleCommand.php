@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * EnableModuleCommand
  *
  * Command to enable a module in the system.
+ *
+ * @property-read string $moduleName
  */
 class EnableModuleCommand implements CommandInterface
 {

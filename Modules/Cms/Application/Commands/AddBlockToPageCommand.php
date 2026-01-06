@@ -5,6 +5,10 @@ namespace Modules\Cms\Application\Commands;
 use Core\CQRS\Command;
 use Modules\Cms\Infrastructure\Models\Page;
 
+/**
+ * @property-read \Modules\Cms\Infrastructure\Models\Page $page
+ * @property-read string $componentClass
+ */
 class AddBlockToPageCommand implements Command
 {
     /**

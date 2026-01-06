@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\CommandInterface;
  * LoginCommand
  *
  * Command to authenticate a user.
+ *
+ * @property-read string $email
+ * @property-read string $password
+ * @property-read bool $remember
  */
 class LoginCommand implements CommandInterface
 {

@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * DeleteBlockCommand
  *
  * Command to delete a block from a page.
+ *
+ * @property-read int $blockId
  */
 class DeleteBlockCommand implements CommandInterface
 {

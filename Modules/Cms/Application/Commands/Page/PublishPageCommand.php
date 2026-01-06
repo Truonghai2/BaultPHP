@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * PublishPageCommand
  *
  * Command to publish a page.
+ *
+ * @property-read int $pageId
  */
 class PublishPageCommand implements CommandInterface
 {

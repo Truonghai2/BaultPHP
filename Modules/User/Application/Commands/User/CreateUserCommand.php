@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\CommandInterface;
  * CreateUserCommand
  *
  * Command to create a new user in the system.
+ *
+ * @property-read string $name
+ * @property-read string $email
+ * @property-read string $password
  */
 class CreateUserCommand implements CommandInterface
 {

@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\CommandInterface;
  * RemoveRoleCommand
  *
  * Command to remove a role from a user.
+ *
+ * @property-read int $userId
+ * @property-read int $roleId
+ * @property-read int|null $contextId
  */
 class RemoveRoleCommand implements CommandInterface
 {

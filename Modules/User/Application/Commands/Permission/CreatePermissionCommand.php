@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\CommandInterface;
  * CreatePermissionCommand
  *
  * Command to create a new permission.
+ *
+ * @property-read string $name
+ * @property-read string $description
+ * @property-read string $captype
+ * @property-read int $permissionId
  */
 class CreatePermissionCommand implements CommandInterface
 {

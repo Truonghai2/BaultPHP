@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * DisableModuleCommand
  *
  * Command to disable a module in the system.
+ *
+ * @property-read string $moduleName
  */
 class DisableModuleCommand implements CommandInterface
 {

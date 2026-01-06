@@ -1,2 +1,4741 @@
 parameters:
 	ignoreErrors:
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$moduleName\\.$#"
+			count: 6
+			path: Modules/Admin/Application/CommandHandlers/Module/DisableModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/DisableModuleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/DisableModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$moduleName\\.$#"
+			count: 6
+			path: Modules/Admin/Application/CommandHandlers/Module/EnableModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/EnableModuleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/EnableModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$dependencies\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/InstallModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$description\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/InstallModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$moduleName\\.$#"
+			count: 6
+			path: Modules/Admin/Application/CommandHandlers/Module/InstallModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$version\\.$#"
+			count: 2
+			path: Modules/Admin/Application/CommandHandlers/Module/InstallModuleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/InstallModuleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$description\\.$#"
+			count: 2
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$group\\.$#"
+			count: 2
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$key\\.$#"
+			count: 6
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$moduleName\\.$#"
+			count: 6
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$type\\.$#"
+			count: 4
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$value\\.$#"
+			count: 4
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$description\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$group\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$type\\.$#"
+			count: 1
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$value\\.$#"
+			count: 2
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 2
+			path: Modules/Admin/Application/CommandHandlers/Module/UpdateModuleSettingHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$description\\.$#"
+			count: 3
+			path: Modules/Admin/Application/Jobs/InstallModuleDependenciesJob.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 1
+			path: Modules/Admin/Application/Jobs/InstallModuleDependenciesJob.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$status\\.$#"
+			count: 4
+			path: Modules/Admin/Application/Jobs/InstallModuleDependenciesJob.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Application/Jobs/InstallModuleDependenciesJob.php
+
+		-
+			message: "#^Array has 2 duplicate keys with value 'version' \\('version', 'version'\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Application/Services/ModuleAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, array\\|string\\> given\\.$#"
+			count: 3
+			path: Modules/Admin/Application/Services/ModuleAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, string\\> given\\.$#"
+			count: 3
+			path: Modules/Admin/Application/Services/ModuleAggregateService.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleDependenciesResolved.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleDisabled.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleEnabled.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleInstalled.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleUninstalled.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Aggregates/Events/ModuleUpdated.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockType\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Function now not found\\.$#"
+			count: 2
+			path: Modules/Admin/Domain/Blocks/AdminDashboardStatsBlock.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/QuickActionsBlock.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Domain/Blocks/RecentActivityBlock.php
+
+		-
+			message: "#^Function now not found\\.$#"
+			count: 2
+			path: Modules/Admin/Domain/Blocks/RecentActivityBlock.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:isSuperAdmin\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\RequestInterface\\:\\:getParsedBody\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\RequestInterface\\:\\:getUploadedFiles\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Support\\\\Facades\\\\Cache\\:\\:remember\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Method Core\\\\Http\\\\RedirectResponse\\:\\:with\\(\\) invoked with 1 parameter, 2 required\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Parameter \\#1 \\$key of method Core\\\\Http\\\\RedirectResponse\\:\\:with\\(\\) expects string, array\\<string, string\\> given\\.$#"
+			count: 1
+			path: Modules/Admin/Http/Controllers/ModuleController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Admin\\\\Infrastructure\\\\Models\\\\Module\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Infrastructure/Models/Module.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Admin\\\\Providers\\\\EventSourcingServiceProvider\\:\\:commands\\(\\)\\.$#"
+			count: 1
+			path: Modules/Admin/Providers/EventSourcingServiceProvider.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$blockTypeId\\.$#"
+			count: 3
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$content\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$pageId\\.$#"
+			count: 4
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$region\\.$#"
+			count: 2
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$sortOrder\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/AddBlockToPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$blockId\\.$#"
+			count: 3
+			path: Modules/Cms/Application/CommandHandlers/Block/DeleteBlockHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/DeleteBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$blockId\\.$#"
+			count: 2
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$content\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$sortOrder\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$visible\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$blockOrders\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$pageId\\.$#"
+			count: 4
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$sort_order\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Block/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/CreatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$pageId\\.$#"
+			count: 3
+			path: Modules/Cms/Application/CommandHandlers/Page/DeletePageHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/DeletePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$pageId\\.$#"
+			count: 2
+			path: Modules/Cms/Application/CommandHandlers/Page/PublishPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$published_at\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/PublishPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$status\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/PublishPageHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/PublishPageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$metaDescription\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$metaTitle\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$name\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$pageId\\.$#"
+			count: 3
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$slug\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$status\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_description\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_title\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$status\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Page/UpdatePageHandler.php
+
+		-
+			message: "#^Parameter \\$eventDispatcher of method Modules\\\\Cms\\\\Application\\\\CommandHandlers\\\\Projects\\\\CreatePageHandler\\:\\:__construct\\(\\) has invalid type Core\\\\EventSourcing\\\\Contracts\\\\EventDispatcherInterface\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Projects/CreatePageHandler.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Application\\\\CommandHandlers\\\\Projects\\\\CreatePageHandler\\:\\:\\$eventDispatcher has unknown class Core\\\\EventSourcing\\\\Contracts\\\\EventDispatcherInterface as its type\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Projects/CreatePageHandler.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Application\\\\CommandHandlers\\\\Projects\\\\CreatePageHandler\\:\\:\\$eventDispatcher is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Projects/CreatePageHandler.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Application\\\\CommandHandlers\\\\Projects\\\\CreatePageHandler\\:\\:\\$pageRepository is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Application/CommandHandlers/Projects/CreatePageHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\AddBlockToPageCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/AddBlockToPageHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\AddBlockToPageHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/AddBlockToPageHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\DeleteBlockCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/DeleteBlockHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\DeleteBlockHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/DeleteBlockHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\DuplicateBlockCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/DuplicateBlockHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\DuplicateBlockHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/DuplicateBlockHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\RestoreBlockCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/RestoreBlockHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\RestoreBlockHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/RestoreBlockHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockContentCommand\\:\\:\\$content\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdateBlockContentHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockContentCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdateBlockContentHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockContentHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/UpdateBlockContentHandler.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockContentHandler\\:\\:\\$pageBlockRepository is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdateBlockContentHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockOrderCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdateBlockOrderHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/UpdateBlockOrderHandler.php
+
+		-
+			message: "#^Call to method ensureCanUpdate\\(\\) on an unknown class Modules\\\\User\\\\Domain\\\\Services\\\\AuthorizationService\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdatePageContentCommandHandler.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$command with type Core\\\\CQRS\\\\Command\\|Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommand is not subtype of native type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdatePageContentCommandHandler.php
+
+		-
+			message: "#^Parameter \\$authorizationService of method Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommandHandler\\:\\:__construct\\(\\) has invalid type Modules\\\\User\\\\Domain\\\\Services\\\\AuthorizationService\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdatePageContentCommandHandler.php
+
+		-
+			message: "#^Parameter \\$command of method Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommandHandler\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 2
+			path: Modules/Cms/Application/Commands/UpdatePageContentCommandHandler.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommandHandler\\:\\:\\$authorizationService has unknown class Modules\\\\User\\\\Domain\\\\Services\\\\AuthorizationService as its type\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Commands/UpdatePageContentCommandHandler.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Application\\\\Policies\\\\PagePolicy\\:\\:before\\(\\) should return bool\\|null but return statement is missing\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Policies/PagePolicy.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Application/QueryHandlers/Block/GetBlockByIdHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Application/QueryHandlers/Block/GetBlockByIdHandler.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:blocks\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Application/QueryHandlers/Page/GetPageBySlugHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\<0, max\\>\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Services/PageAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\|null\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Services/PageAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, string\\> given\\.$#"
+			count: 7
+			path: Modules/Cms/Application/Services/PageAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, string\\|null\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Services/PageAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\<0, max\\>\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Services/PageBlockAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/Cms/Application/Services/PageBlockAggregateService.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, string\\> given\\.$#"
+			count: 4
+			path: Modules/Cms/Application/Services/PageBlockAggregateService.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Console\\\\Commands\\\\BlockCacheStatsCommand\\:\\:success\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/BlockCacheStatsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Console/BlockPerformanceTestCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$name\\.$#"
+			count: 1
+			path: Modules/Cms/Console/BlockPerformanceTestCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:blocksInRegion\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/BlockPerformanceTestCommand.php
+
+		-
+			message: "#^Parameter \\#1 \\$page of method Modules\\\\Cms\\\\Console\\\\BlockPerformanceTestCommand\\:\\:runPerformanceTest\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page, Core\\\\ORM\\\\Model given\\.$#"
+			count: 1
+			path: Modules/Cms/Console/BlockPerformanceTestCommand.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Console\\\\Commands\\\\ClearBlockCacheCommand\\:\\:success\\(\\)\\.$#"
+			count: 4
+			path: Modules/Cms/Console/ClearBlockCacheCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 3
+			path: Modules/Cms/Console/SetupDefaultBlocksCommand.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/SetupDefaultBlocksCommand.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:truncate\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/SetupDefaultBlocksCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:orWhere\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/WarmupBlockCacheCommand.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Console\\\\Commands\\\\WarmupBlockCacheCommand\\:\\:success\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Console/WarmupBlockCacheCommand.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockAddedToPage.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockContentUpdated.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockCreated.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockDeleted.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockDuplicated.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockOrderChanged.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/BlockRestored.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/FeaturedImageChanged.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageContentUpdated.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageCreated.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageDeleted.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PagePublished.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageRenamed.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageRestored.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Aggregates/Events/PageUnpublished.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Blocks/AbstractBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Blocks/RecentPagesBlock.php
+
+		-
+			message: "#^Using nullsafe method call on non\\-nullable type DateTimeImmutable\\. Use \\-\\> instead\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Entities/BlockInstance.php
+
+		-
+			message: "#^Using nullsafe method call on non\\-nullable type DateTimeImmutable\\. Use \\-\\> instead\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Entities/BlockRegion.php
+
+		-
+			message: "#^Using nullsafe method call on non\\-nullable type DateTimeImmutable\\. Use \\-\\> instead\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Entities/Page.php
+
+		-
+			message: "#^Using nullsafe method call on non\\-nullable type DateTimeImmutable\\. Use \\-\\> instead\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Entities/PageBlock.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:forgetPattern\\(\\)\\.$#"
+			count: 8
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Call to function is_array\\(\\) with Core\\\\Contracts\\\\Cache\\\\Store will always evaluate to false\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 3
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockCacheManager\\:\\:getBlockOutput\\(\\) should return string\\|null but returns Core\\\\Contracts\\\\Cache\\\\Store\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockCacheManager\\:\\:getPageRegion\\(\\) should return string\\|null but returns Core\\\\Contracts\\\\Cache\\\\Store\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Using nullsafe property access on non\\-nullable type Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion\\. Use \\-\\> instead\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockCacheManager.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockDuplicationService.php
+
+		-
+			message: "#^Right side of && is always true\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockDuplicationService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockManager.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$title\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$instance of method Modules\\\\Cms\\\\Domain\\\\Blocks\\\\AbstractBlock\\:\\:afterSave\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance, Modules\\\\Cms\\\\Domain\\\\Entities\\\\BlockInstance given\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$instance of method Modules\\\\Cms\\\\Domain\\\\Blocks\\\\AbstractBlock\\:\\:beforeSave\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance, Modules\\\\Cms\\\\Domain\\\\Entities\\\\BlockInstance given\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$instance of method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockRenderer\\:\\:clearBlockCache\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance, Modules\\\\Cms\\\\Domain\\\\Entities\\\\BlockInstance given\\.$#"
+			count: 3
+			path: Modules/Cms/Domain/Services/BlockManager.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRegistry.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockType\\:\\:active\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRegistry.php
+
+		-
+			message: "#^Constant Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockRegistry\\:\\:CACHE_TTL is unused\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRegistry.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRenderer.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockRenderer\\:\\:\\$blockRegionRepository\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRenderer.php
+
+		-
+			message: "#^Call to function is_string\\(\\) with array\\|null will always evaluate to false\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRenderer.php
+
+		-
+			message: "#^Parameter \\#1 \\$user of method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:isVisibleTo\\(\\) expects Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\|null, array given\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRenderer.php
+
+		-
+			message: "#^Parameter \\#1 \\$user of method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:isVisibleTo\\(\\) expects Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\|null, array\\|null given\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockRenderer.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$description\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$max_blocks\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$title\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Binary operation \"\\-\" between int\\<1, max\\> and Core\\\\Contracts\\\\Cache\\\\Store results in an error\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:has\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockSyncService\\:\\:getLastSyncTime\\(\\) should return int\\|null but returns Core\\\\Contracts\\\\Cache\\\\Store\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between Core\\\\Contracts\\\\Cache\\\\Store and null will always evaluate to false\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockSyncService.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockType\\:\\:whereIn\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/BlockSynchronizer.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageBlockRenderer.php
+
+		-
+			message: "#^Parameter \\#3 \\$context of method Modules\\\\Cms\\\\Domain\\\\Services\\\\PageBlockRenderer\\:\\:renderPageBlocks\\(\\) expects array\\|null, Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\|null given\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/PageBlockRenderer.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Domain\\\\Services\\\\PageBlockRenderer\\:\\:\\$cachedUser \\(Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\|null\\) does not accept Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/PageBlockRenderer.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Domain\\\\Entities\\\\PageBlock\\:\\:getOrder\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageBlockService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$revision_number\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_description\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_keywords\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_title\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$og_image\\.$#"
+			count: 2
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$status\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:delete\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Domain/Services/PageRevisionService.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Domain\\\\Entities\\\\Page\\:\\:\\$featured_image_path\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^Access to private property Modules\\\\Cms\\\\Domain\\\\Entities\\\\Page\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^Cannot access offset 'blocks' on Modules\\\\Cms\\\\Domain\\\\ValueObjects\\\\PageContent\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$value$#"
+			count: 1
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^Parameter \\#1 \\$command of method Core\\\\Frontend\\\\Component\\:\\:dispatchCommand\\(\\) expects Core\\\\CQRS\\\\Command, Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommand given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^Parameter \\#1 \\$pageId of class Modules\\\\Cms\\\\Application\\\\Commands\\\\UpdatePageContentCommand constructor expects int, Modules\\\\Cms\\\\Domain\\\\ValueObjects\\\\PageId given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Components/PageEditor.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 3
+			path: Modules/Cms/Http/Controllers/AdminBlocksController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:count\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Parameter \\#1 \\$content of function response expects string\\|null, Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/AnalyticsController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$id\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$default_config\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 5
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$sort_order\\.$#"
+			count: 4
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$title\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 11
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:where\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:toArray\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\|Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:toArray\\(\\)\\.$#"
+			count: 3
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\|Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:toArray\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockManagementController.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockPreviewController\\:\\:\\$blockRenderer is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/BlockPreviewController.php
+
+		-
+			message: "#^Attribute class Core\\\\Routing\\\\Attributes\\\\RouteGroup does not exist\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:orWhere\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Function logger not found\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:clearAll\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:clearPage\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:clearRegion\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:index\\(\\) should return Core\\\\Http\\\\Response but returns App\\\\Http\\\\ResponseFactory\\|Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:stats\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:warmupAll\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Http\\\\Controllers\\\\CacheManagementController\\:\\:warmupPage\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Parameter \\#1 \\$content of function response expects string\\|null, Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/CacheManagementController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/LanguageController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/LanguageController.php
+
+		-
+			message: "#^Parameter \\#1 \\$content of function response expects string\\|null, Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/LanguageController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/MediaLibraryController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 3
+			path: Modules/Cms/Http/Controllers/MediaLibraryController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\MediaFile\\:\\:select\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/MediaLibraryController.php
+
+		-
+			message: "#^Parameter \\#1 \\$content of function response expects string\\|null, Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/MediaLibraryController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$id\\.$#"
+			count: 3
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$title\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$block_type_id on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$config on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$context_id on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$context_type on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$created_by on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$region_id on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$title on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$visibility_mode on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$visible on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to property \\$weight on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 10
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to an undefined static method Database\\\\Seeders\\\\PageTemplateSeeder\\:\\:getTemplate\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to an undefined static method Database\\\\Seeders\\\\PageTemplateSeeder\\:\\:getTemplates\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to method save\\(\\) on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to static method firstOrCreate\\(\\) on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockRegion\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Call to static method where\\(\\) on an unknown class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockRegion\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Instantiated class Modules\\\\Cms\\\\Http\\\\Controllers\\\\BlockInstance not found\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Http\\\\Controllers\\\\PageManagementController\\:\\:\\$pageBlockRenderer is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageManagementController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$title\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageTemplate\\:\\:toArray\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageTemplate\\:\\:select\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Parameter \\#1 \\$content of function response expects string\\|null, Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View given\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageTemplateController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageViewController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:getRoles\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Http/Controllers/PageViewController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageViewController.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Http\\\\Controllers\\\\PageViewController\\:\\:\\$pageBlockRenderer is never read, only written\\.$#"
+			count: 1
+			path: Modules/Cms/Http/Controllers/PageViewController.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/BlockInstance.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/BlockRegion.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:max\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/BlockRegion.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/BlockRegion.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockType\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/BlockType.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Language.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\:\\:findByCode\\(\\) should return Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\|null but returns Core\\\\ORM\\\\Model\\|null\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Language.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\:\\:getDefault\\(\\) should return Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Language\\|null but returns Core\\\\ORM\\\\Model\\|null\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Language.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\MediaFile\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/MediaFile.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$meta_title\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$published_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$status\\.$#"
+			count: 6
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$translation_group_id\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:exists\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:where\\(\\)\\.$#"
+			count: 3
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Function now not found\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/Page.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageBlock.php
+
+		-
+			message: "#^Call to function is_string\\(\\) with array\\|null will always evaluate to false\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageBlock.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between int\\<1, max\\> and 0 is always true\\.$#"
+			count: 2
+			path: Modules/Cms/Infrastructure/Models/PageBlock.php
+
+		-
+			message: "#^Expression on left side of \\?\\? is not nullable\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageBlock.php
+
+		-
+			message: "#^Negated boolean expression is always false\\.$#"
+			count: 3
+			path: Modules/Cms/Infrastructure/Models/PageBlock.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageListItem\\:\\:forceDelete\\(\\) should return bool but returns int\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageListItem.php
+
+		-
+			message: "#^Call to an undefined method DateTime\\:\\:diffForHumans\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageRevision.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageRevision\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageRevision.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageTemplate\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Models/PageTemplate.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$component_class\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageBlockEventSourcingObserver.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Http\\\\Request\\:\\:user\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Infrastructure/Observers/PageBlockEventSourcingObserver.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Support\\\\Facades\\\\Log\\:\\:channel\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Infrastructure/Observers/PageBlockEventSourcingObserver.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$featured_image_path\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$status\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Http\\\\Request\\:\\:user\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:getOriginal\\(\\) invoked with 1 parameter, 0 required\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Result of && is always false\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between array and 'published' will always evaluate to false\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Observers/PageEventSourcingObserver.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockInstanceRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockInstanceRepository.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockInstanceRepository.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance\\:\\:max\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockInstanceRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockRegionRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockRegionRepository.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockRegionRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$model of method Modules\\\\Cms\\\\Infrastructure\\\\Repositories\\\\EloquentBlockRegionRepository\\:\\:toDomain\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockRegion, Core\\\\ORM\\\\Model given\\.$#"
+			count: 2
+			path: Modules/Cms/Infrastructure/Repositories/EloquentBlockRegionRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$component_class\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$order\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\PageBlock\\:\\:max\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageBlockRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$featured_image_path\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page\\:\\:max\\(\\)\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$model of method Modules\\\\Cms\\\\Infrastructure\\\\Repositories\\\\EloquentPageRepository\\:\\:toDomain\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\Page, Core\\\\ORM\\\\Model given\\.$#"
+			count: 1
+			path: Modules/Cms/Infrastructure/Repositories/EloquentPageRepository.php
+
+		-
+			message: "#^Anonymous function has an unused use \\$event\\.$#"
+			count: 1
+			path: Modules/Cms/Providers/CmsCacheServiceProvider.php
+
+		-
+			message: "#^Cannot use array destructuring on string\\.$#"
+			count: 1
+			path: Modules/Cms/Providers/CmsCacheServiceProvider.php
+
+		-
+			message: "#^Property Modules\\\\Cms\\\\Providers\\\\CmsCacheServiceProvider\\:\\:\\$listen \\(array\\<string, array\\<string\\>\\>\\) does not accept default value of type array\\<string, array\\<int, array\\<int, string\\>\\>\\>\\.$#"
+			count: 1
+			path: Modules/Cms/Providers/CmsCacheServiceProvider.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Http\\\\Kernel\\:\\:pushMiddlewareToGroup\\(\\)\\.$#"
+			count: 2
+			path: Modules/Cms/Providers/CmsServiceProvider.php
+
+		-
+			message: "#^Call to method attempt\\(\\) on an unknown class Core\\\\Contracts\\\\Auth\\\\StatefulGuard\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LoginHandler.php
+
+		-
+			message: "#^Call to method user\\(\\) on an unknown class Core\\\\Contracts\\\\Auth\\\\StatefulGuard\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LoginHandler.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$guard contains unknown class Core\\\\Contracts\\\\Auth\\\\StatefulGuard\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LoginHandler.php
+
+		-
+			message: "#^Parameter \\#4 \\$auditableType of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects string\\|null, array\\<string, string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LoginHandler.php
+
+		-
+			message: "#^Call to method logout\\(\\) on an unknown class Core\\\\Contracts\\\\Auth\\\\StatefulGuard\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LogoutHandler.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$guard contains unknown class Core\\\\Contracts\\\\Auth\\\\StatefulGuard\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/LogoutHandler.php
+
+		-
+			message: "#^Class Modules\\\\User\\\\Domain\\\\Events\\\\UserRegistered constructor invoked with 3 parameters, 1 required\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/RegisterHandler.php
+
+		-
+			message: "#^Parameter \\#1 \\$user of class Modules\\\\User\\\\Domain\\\\Events\\\\UserRegistered constructor expects Modules\\\\User\\\\Infrastructure\\\\Models\\\\User, int given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/RegisterHandler.php
+
+		-
+			message: "#^Parameter \\#4 \\$auditableType of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects string\\|null, array\\<string, string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Auth/RegisterHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$captype\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/CreatePermissionHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$description\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/CreatePermissionHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$name\\.$#"
+			count: 5
+			path: Modules/User/Application/CommandHandlers/Permission/CreatePermissionHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/CreatePermissionHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$permissionId\\.$#"
+			count: 3
+			path: Modules/User/Application/CommandHandlers/Permission/DeletePermissionHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Permission\\:\\:\\$roles\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/DeletePermissionHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/DeletePermissionHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Permission/UpdatePermissionHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$permissionIds\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/AssignPermissionsHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$roleId\\.$#"
+			count: 2
+			path: Modules/User/Application/CommandHandlers/Role/AssignPermissionsHandler.php
+
+		-
+			message: "#^Class Modules\\\\User\\\\Domain\\\\Events\\\\RolePermissionsChanged constructor invoked with 2 parameters, 1 required\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/AssignPermissionsHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/AssignPermissionsHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$description\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/CreateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$name\\.$#"
+			count: 5
+			path: Modules/User/Application/CommandHandlers/Role/CreateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$permissionIds\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/CreateRoleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/CreateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$roleId\\.$#"
+			count: 3
+			path: Modules/User/Application/CommandHandlers/Role/DeleteRoleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/DeleteRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$description\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/UpdateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$name\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/UpdateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$roleId\\.$#"
+			count: 3
+			path: Modules/User/Application/CommandHandlers/Role/UpdateRoleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/Role/UpdateRoleHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/AssignRoleHandler.php
+
+		-
+			message: "#^Parameter \\#2 \\$description of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:security\\(\\) expects string, array\\<string, int\\|string\\|null\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/AssignRoleHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/CreateUserHandler.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\CQRS\\\\Contracts\\\\CommandInterface\\:\\:\\$userId\\.$#"
+			count: 3
+			path: Modules/User/Application/CommandHandlers/User/DeleteUserHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, mixed\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/DeleteUserHandler.php
+
+		-
+			message: "#^Parameter \\#2 \\$description of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:security\\(\\) expects string, array\\<string, int\\|string\\|null\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/RemoveRoleHandler.php
+
+		-
+			message: "#^Parameter \\#2 \\$description of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:security\\(\\) expects string, array\\<string, int\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/UpdateUserHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Application/CommandHandlers/User/UpdateUserHandler.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Support\\\\Facades\\\\Cache\\:\\:tags\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/FlushPermissionCacheForRoleUsers.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Support\\\\Facades\\\\Cache\\:\\:tags\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/FlushPermissionCacheOnRoleChange.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Domain\\\\Events\\\\UserProfileUpdated\\:\\:\\$user\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/InvalidateUserPermissionCache.php
+
+		-
+			message: "#^Call to method sendToUser\\(\\) on an unknown class Modules\\\\User\\\\Application\\\\Services\\\\NotificationService\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/NotifyUserOfCookieTheft.php
+
+		-
+			message: "#^Function logger not found\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/NotifyUserOfCookieTheft.php
+
+		-
+			message: "#^Parameter \\$notificationService of method Modules\\\\User\\\\Application\\\\Listeners\\\\NotifyUserOfCookieTheft\\:\\:__construct\\(\\) has invalid type Modules\\\\User\\\\Application\\\\Services\\\\NotificationService\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/NotifyUserOfCookieTheft.php
+
+		-
+			message: "#^Property Modules\\\\User\\\\Application\\\\Listeners\\\\NotifyUserOfCookieTheft\\:\\:\\$notificationService has unknown class Modules\\\\User\\\\Application\\\\Services\\\\NotificationService as its type\\.$#"
+			count: 1
+			path: Modules/User/Application/Listeners/NotifyUserOfCookieTheft.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Permission\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/Permission/GetPermissionByIdHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Permission\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/Permission/GetPermissionByIdHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Role\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/Role/GetRoleByIdHandler.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Role\\:\\:\\$updated_at\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/Role/GetRoleByIdHandler.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:roles\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/User/GetUserByEmailHandler.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:roles\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Application/QueryHandlers/User/GetUserByIdHandler.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, string\\> given\\.$#"
+			count: 4
+			path: Modules/User/Application/Services/UserAggregateService.php
+
+		-
+			message: "#^Part \\$userIds \\(non\\-empty\\-array\\) of encapsed string cannot be cast to string\\.$#"
+			count: 1
+			path: Modules/User/Console/ACLSchedulerCommand.php
+
+		-
+			message: "#^Method Modules\\\\User\\\\Console\\\\AclSyncPermissionsCommand\\:\\:syncRemoved\\(\\) should return int but returns bool\\.$#"
+			count: 1
+			path: Modules/User/Console/AclSyncPermissionsCommand.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$name\\.$#"
+			count: 3
+			path: Modules/User/Console/OAuthClientRevokeCommand.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$revoked\\.$#"
+			count: 1
+			path: Modules/User/Console/OAuthClientRevokeCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:orWhere\\(\\)\\.$#"
+			count: 3
+			path: Modules/User/Console/OAuthTokenPruneCommand.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:count\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Domain/Blocks/UserStatsBlock.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:whereNotNull\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Domain/Blocks/UserStatsBlock.php
+
+		-
+			message: "#^Function now not found\\.$#"
+			count: 4
+			path: Modules/User/Domain/Blocks/UserStatsBlock.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between \\(array\\|float\\|int\\) and 0 results in an error\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/ACLOptimizer.php
+
+		-
+			message: "#^Constant Modules\\\\User\\\\Domain\\\\Services\\\\ACLOptimizer\\:\\:L2_TTL is unused\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/ACLOptimizer.php
+
+		-
+			message: "#^Parameter \\#3 \\$user of static method Core\\\\Support\\\\Facades\\\\Audit\\:\\:log\\(\\) expects Core\\\\Contracts\\\\Auth\\\\Authenticatable\\|null, array\\<string, int\\<0, max\\>\\|string\\> given\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/ACLOptimizer.php
+
+		-
+			message: "#^Variable \\$l1Key might not be defined\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/ACLOptimizer.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\Context\\:\\:\\$exists\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/AccessControlService.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\Context\\:\\:firstOrNew\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/AccessControlService.php
+
+		-
+			message: "#^Cannot instantiate interface Amp\\\\Sync\\\\KeyedMutex\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/AccessControlService.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<int, Amp\\\\Future\\<mixed\\>\\>, array\\<int, Amp\\\\Sync\\\\Lock\\> given\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/AccessControlService.php
+
+		-
+			message: "#^Parameter \\#1 \\$key of method Amp\\\\Sync\\\\KeyedMutex\\:\\:acquire\\(\\) expects string, int given\\.$#"
+			count: 1
+			path: Modules/User/Domain/Services/AccessControlService.php
+
+		-
+			message: "#^Instantiated class Http\\\\JsonResponse not found\\.$#"
+			count: 3
+			path: Modules/User/Http/Controllers/Admin/UserRoleController.php
+
+		-
+			message: "#^Method Modules\\\\User\\\\Http\\\\Controllers\\\\Admin\\\\UserRoleController\\:\\:assign\\(\\) should return Psr\\\\Http\\\\Message\\\\ResponseInterface but returns Http\\\\JsonResponse\\.$#"
+			count: 3
+			path: Modules/User/Http/Controllers/Admin/UserRoleController.php
+
+		-
+			message: "#^Unknown parameter \\$contextLevel in call to Modules\\\\User\\\\Application\\\\Commands\\\\User\\\\AssignRoleCommand constructor\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/Admin/UserRoleController.php
+
+		-
+			message: "#^Unknown parameter \\$instanceId in call to Modules\\\\User\\\\Application\\\\Commands\\\\User\\\\AssignRoleCommand constructor\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/Admin/UserRoleController.php
+
+		-
+			message: "#^Method Modules\\\\User\\\\Application\\\\CommandHandlers\\\\Auth\\\\LogoutHandler\\:\\:handle\\(\\) invoked with 0 parameters, 1 required\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/Auth/LoginController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$access_token_id\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$client_id\\.$#"
+			count: 2
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$expires_at\\.$#"
+			count: 4
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$revoked\\.$#"
+			count: 3
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$scopes\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$user_id\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\AccessToken\\:\\:\\$client_id\\.$#"
+			count: 2
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\AccessToken\\:\\:\\$scopes\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\AccessToken\\:\\:\\$user_id\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/OAuthController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$avatar_path\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:save\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Http\\\\UploadedFile\\:\\:getStream\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^Call to static method make\\(\\) on an unknown class Intervention\\\\Image\\\\ImageManagerStatic\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^PHPDoc tag @var for property Modules\\\\User\\\\Http\\\\Controllers\\\\ProfileController\\:\\:\\$view with type Illuminate\\\\Contracts\\\\View\\\\Factory is not subtype of native type Core\\\\Contracts\\\\View\\\\Factory\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/ProfileController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Connection\\:\\:query\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/TestController.php
+
+		-
+			message: "#^Instantiated class Modules\\\\User\\\\Application\\\\Commands\\\\DeleteUserCommand not found\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Instantiated class Modules\\\\User\\\\Application\\\\Commands\\\\UpdateUserProfileCommand not found\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Instantiated class Modules\\\\User\\\\Application\\\\Queries\\\\FindUserByIdQuery not found\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Parameter \\#1 \\$command of method Core\\\\CQRS\\\\Command\\\\CommandBus\\:\\:dispatch\\(\\) expects Core\\\\CQRS\\\\Command\\\\Command, Modules\\\\User\\\\Application\\\\Commands\\\\DeleteUserCommand given\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Parameter \\#1 \\$command of method Core\\\\CQRS\\\\Command\\\\CommandBus\\:\\:dispatch\\(\\) expects Core\\\\CQRS\\\\Command\\\\Command, Modules\\\\User\\\\Application\\\\Commands\\\\UpdateUserProfileCommand given\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Parameter \\#1 \\$query of method Core\\\\CQRS\\\\Query\\\\QueryBus\\:\\:dispatch\\(\\) expects Core\\\\CQRS\\\\Query\\\\Query, Modules\\\\User\\\\Application\\\\Queries\\\\FindUserByIdQuery given\\.$#"
+			count: 1
+			path: Modules/User/Http/Controllers/UserController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Guard\\:\\:getScopes\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Middleware/OAuthGuardMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Guard\\:\\:validate\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Middleware/OAuthGuardMiddleware.php
+
+		-
+			message: "#^Call to an undefined static method League\\\\OAuth2\\\\Server\\\\Exception\\\\OAuthServerException\\:\\:insufficientScope\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Http/Middleware/OAuthGuardMiddleware.php
+
+		-
+			message: "#^PHPDoc tag @return with type mixed is not subtype of native type Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 1
+			path: Modules/User/Http/Middleware/OAuthGuardMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Scope\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/OAuth/Scope.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Scope\\:\\:whereIn\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/OAuth/Scope.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\User\\\\Infrastructure\\\\Models\\\\Permission\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/Permission.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\User\\\\Infrastructure\\\\Models\\\\Role\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/Role.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\User\\\\Infrastructure\\\\Models\\\\RoleAssignment\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/RoleAssignment.php
+
+		-
+			message: "#^Call to an undefined method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/User.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:deleted\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Models/User.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\AccessToken\\:\\:\\$revoked\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/AccessTokenRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$id of static method Core\\\\ORM\\\\Model\\:\\:find\\(\\) expects int, string given\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/AccessTokenRepository.php
+
+		-
+			message: "#^Property Modules\\\\User\\\\Infrastructure\\\\Repositories\\\\OAuth\\\\AccessTokenRepository\\:\\:\\$app is never read, only written\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/AccessTokenRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\AuthCode\\:\\:\\$revoked\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/AuthCodeRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$id of static method Core\\\\ORM\\\\Model\\:\\:find\\(\\) expects int, string given\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/AuthCodeRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$id\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$name\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$redirect\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$revoked\\.$#"
+			count: 2
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\Client\\:\\:\\$secret\\.$#"
+			count: 2
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Method Modules\\\\User\\\\Domain\\\\Entities\\\\OAuth\\\\ClientEntity\\:\\:isConfidential\\(\\) invoked with 1 parameter, 0 required\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Property Modules\\\\User\\\\Infrastructure\\\\Repositories\\\\OAuth\\\\ClientRepository\\:\\:\\$app is never read, only written\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ClientRepository.php
+
+		-
+			message: "#^Access to an undefined property Modules\\\\User\\\\Infrastructure\\\\Models\\\\OAuth\\\\RefreshToken\\:\\:\\$revoked\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/RefreshTokenRepository.php
+
+		-
+			message: "#^Instantiated class Modules\\\\User\\\\Domain\\\\Entities\\\\OAuth\\\\RefreshTokenEntity not found\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/RefreshTokenRepository.php
+
+		-
+			message: "#^Method Modules\\\\User\\\\Infrastructure\\\\Repositories\\\\OAuth\\\\RefreshTokenRepository\\:\\:getNewRefreshToken\\(\\) should return League\\\\OAuth2\\\\Server\\\\Entities\\\\RefreshTokenEntityInterface\\|null but returns Modules\\\\User\\\\Domain\\\\Entities\\\\OAuth\\\\RefreshTokenEntity\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/RefreshTokenRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$id of static method Core\\\\ORM\\\\Model\\:\\:find\\(\\) expects int, string given\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/RefreshTokenRepository.php
+
+		-
+			message: "#^Parameter \\#1 \\$id of static method Core\\\\ORM\\\\Model\\:\\:find\\(\\) expects int, string given\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ScopeRepository.php
+
+		-
+			message: "#^Property Modules\\\\User\\\\Infrastructure\\\\Repositories\\\\OAuth\\\\ScopeRepository\\:\\:\\$app is never read, only written\\.$#"
+			count: 1
+			path: Modules/User/Infrastructure/Repositories/OAuth/ScopeRepository.php
+
+		-
+			message: "#^Call to an undefined method League\\\\OAuth2\\\\Server\\\\Grant\\\\AuthCodeGrant\\:\\:enablePkce\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Providers/OAuth2ServiceProvider.php
+
+		-
+			message: "#^Call to an undefined method League\\\\OAuth2\\\\Server\\\\Grant\\\\RefreshTokenGrant\\:\\:enableRefreshTokenRotation\\(\\)\\.$#"
+			count: 1
+			path: Modules/User/Providers/OAuth2ServiceProvider.php
+
+		-
+			message: "#^Parameter \\#1 \\$redisManager of class Core\\\\Cache\\\\SwooleRedisCacheStore constructor expects Core\\\\Redis\\\\FiberRedisManager, string given\\.$#"
+			count: 1
+			path: src/Cache/AppCacheManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$store of class Core\\\\Cache\\\\Repository constructor expects Core\\\\Contracts\\\\Cache\\\\Store, Core\\\\Cache\\\\SwooleRedisCacheStore given\\.$#"
+			count: 1
+			path: src/Cache/AppCacheManager.php
+
+		-
+			message: "#^Call to an undefined method ReflectionType\\:\\:getName\\(\\)\\.$#"
+			count: 2
+			path: src/Core/Application.php
+
+		-
+			message: "#^Call to an undefined method ReflectionType\\:\\:isBuiltin\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Application.php
+
+		-
+			message: "#^PHPDoc tag @throws with type Core\\\\LogicException\\|Core\\\\RuntimeException is not subtype of Throwable$#"
+			count: 1
+			path: src/Core/Application.php
+
+		-
+			message: "#^PHPDoc tag @throws with type Core\\\\RuntimeException is not subtype of Throwable$#"
+			count: 3
+			path: src/Core/Application.php
+
+		-
+			message: "#^Static property Core\\\\Application\\:\\:\\$instance \\(static\\(Core\\\\Application\\)\\|null\\) does not accept Core\\\\Application\\.$#"
+			count: 1
+			path: src/Core/Application.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$auditable_id\\.$#"
+			count: 1
+			path: src/Core/Audit/Models/AuditLog.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$auditable_type\\.$#"
+			count: 1
+			path: src/Core/Audit/Models/AuditLog.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$user_id\\.$#"
+			count: 1
+			path: src/Core/Audit/Models/AuditLog.php
+
+		-
+			message: "#^Ternary operator condition is always true\\.$#"
+			count: 2
+			path: src/Core/Audit/Observers/AuditObserver.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 2
+			path: src/Core/Auth/Access/Response.php
+
+		-
+			message: "#^Function now not found\\.$#"
+			count: 1
+			path: src/Core/Auth/ApiKeyGuard.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 2
+			path: src/Core/Auth/EloquentUserProvider.php
+
+		-
+			message: "#^Property Core\\\\Auth\\\\EloquentUserProvider\\:\\:\\$app is never read, only written\\.$#"
+			count: 1
+			path: src/Core/Auth/EloquentUserProvider.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$password\\.$#"
+			count: 1
+			path: src/Core/Auth/SessionGuard.php
+
+		-
+			message: "#^Offset 'selector' on array\\{selector\\: string, verifier\\: string\\} in isset\\(\\) always exists and is not nullable\\.$#"
+			count: 1
+			path: src/Core/Auth/SessionGuard.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:remember\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Auth/TokenGuard.php
+
+		-
+			message: "#^Constructor of class Core\\\\Auth\\\\TokenGuard has an unused parameter \\$name\\.$#"
+			count: 1
+			path: src/Core/Auth/TokenGuard.php
+
+		-
+			message: "#^Parameter \\#1 \\$request of method Core\\\\Contracts\\\\Exceptions\\\\Handler\\:\\:report\\(\\) expects Psr\\\\Http\\\\Message\\\\ServerRequestInterface, null given\\.$#"
+			count: 1
+			path: src/Core/CLI/ConsoleKernel.php
+
+		-
+			message: "#^Parameter \\$middleware of method Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandBusWithMiddleware\\:\\:__construct\\(\\) has invalid type Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandMiddleware\\.$#"
+			count: 1
+			path: src/Core/CQRS/Command/Implementation/CommandBusWithMiddleware.php
+
+		-
+			message: "#^Property Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandBusWithMiddleware\\:\\:\\$middleware has unknown class Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandMiddleware as its type\\.$#"
+			count: 1
+			path: src/Core/CQRS/Command/Implementation/CommandBusWithMiddleware.php
+
+		-
+			message: "#^Parameter \\$message of method Core\\\\CQRS\\\\Middleware\\\\TransactionMiddleware\\:\\:handle\\(\\) has invalid type Core\\\\CQRS\\\\Middleware\\\\QueryInterface\\.$#"
+			count: 1
+			path: src/Core/CQRS/Middleware/TransactionMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Cache\\\\Store\\:\\:forget\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Cache/CacheManager.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Cache\\\\Store\\:\\:put\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Cache/CacheManager.php
+
+		-
+			message: "#^Instanceof between int\\|null and DateTimeInterface will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Cache/FileStore.php
+
+		-
+			message: "#^Call to an undefined method Amp\\\\Redis\\\\RedisClient\\:\\:exists\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Call to static method default\\(\\) on an unknown class Amp\\\\Redis\\\\SetOptions\\.$#"
+			count: 2
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between array and 0 results in an error\\.$#"
+			count: 3
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Method Amp\\\\Redis\\\\RedisClient\\:\\:setMultiple\\(\\) invoked with 2 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$data of function unserialize expects string, array given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<\\(int\\|string\\), Amp\\\\Future\\<mixed\\>\\>, array\\<string\\|null\\> given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<\\(int\\|string\\), Amp\\\\Future\\<mixed\\>\\>, bool given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<\\(int\\|string\\), Amp\\\\Future\\<mixed\\>\\>, int given\\.$#"
+			count: 5
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<\\(int\\|string\\), Amp\\\\Future\\<mixed\\>\\>, null given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$futures of function Amp\\\\Future\\\\await expects iterable\\<\\(int\\|string\\), Amp\\\\Future\\<mixed\\>\\>, string\\|null given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Parameter \\#1 \\$key of method Amp\\\\Redis\\\\RedisClient\\:\\:getMultiple\\(\\) expects string, array\\<string\\> given\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Result of method Amp\\\\Redis\\\\RedisClient\\:\\:setMultiple\\(\\) \\(void\\) is used\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between array and null will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Cache/SwooleRedisCacheStore.php
+
+		-
+			message: "#^Argument of an invalid type Core\\\\Contracts\\\\Cache\\\\Store supplied for foreach, only iterables are supported\\.$#"
+			count: 1
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:decrement\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:increment\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 3
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Method Core\\\\Cache\\\\CacheManager\\:\\:get\\(\\) invoked with 2 parameters, 1 required\\.$#"
+			count: 3
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Parameter \\#2 \\$haystack of function in_array expects array, Core\\\\Contracts\\\\Cache\\\\Store given\\.$#"
+			count: 1
+			path: src/Core/Cache/TaggedCache.php
+
+		-
+			message: "#^Instantiated class DebugBar\\\\DataCollector\\\\CacheCollector not found\\.$#"
+			count: 1
+			path: src/Core/Cache/TraceableCacheManager.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$collector contains unknown class DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 1
+			path: src/Core/Cache/TraceableCacheManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$collector of method DebugBar\\\\DebugBar\\:\\:addCollector\\(\\) expects DebugBar\\\\DataCollector\\\\DataCollectorInterface, DebugBar\\\\DataCollector\\\\CacheCollector given\\.$#"
+			count: 1
+			path: src/Core/Cache/TraceableCacheManager.php
+
+		-
+			message: "#^Call to method addDelete\\(\\) on an unknown class DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 3
+			path: src/Core/Cache/TraceableCacheStore.php
+
+		-
+			message: "#^Call to method addRead\\(\\) on an unknown class DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 3
+			path: src/Core/Cache/TraceableCacheStore.php
+
+		-
+			message: "#^Call to method addWrite\\(\\) on an unknown class DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 2
+			path: src/Core/Cache/TraceableCacheStore.php
+
+		-
+			message: "#^Parameter \\$collector of method Core\\\\Cache\\\\TraceableCacheStore\\:\\:__construct\\(\\) has invalid type DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 1
+			path: src/Core/Cache/TraceableCacheStore.php
+
+		-
+			message: "#^Property Core\\\\Cache\\\\TraceableCacheStore\\:\\:\\$collector has unknown class DebugBar\\\\DataCollector\\\\CacheCollector as its type\\.$#"
+			count: 1
+			path: src/Core/Cache/TraceableCacheStore.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$event_category\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$event_type\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$id\\.$#"
+			count: 2
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$is_sensitive\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$metadata\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$new_values\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$old_values\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Audit\\\\Models\\\\AuditLog\\:\\:\\$severity\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:byUser\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:category\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:dateRange\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:eventType\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:recent\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:sensitive\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:severity\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/AuditLogsCommand.php
+
+		-
+			message: "#^Method Core\\\\Console\\\\Commands\\\\DDD\\\\MakeUseCaseCommand\\:\\:getStubContent\\(\\) is unused\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/DDD/MakeUseCaseCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Console\\\\Commands\\\\Database\\\\MigrateModulesCommand\\:\\:confirm\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Database/MigrateModulesCommand.php
+
+		-
+			message: "#^Left side of && is always true\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Database/MigrateModulesCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Module/ModuleComposerCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$status\\.$#"
+			count: 3
+			path: src/Core/Console/Commands/Module/ModuleComposerCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$version\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Module/ModuleComposerCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$connection\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$created_at\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$exception\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$id\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$queue\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Queue\\\\FailedJob\\:\\:\\$uuid\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueFailedCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Queue\\\\QueueManager\\:\\:push\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Queue/QueueRetryCommand.php
+
+		-
+			message: "#^Call to method getEvents\\(\\) on an unknown class App\\\\Console\\\\ScheduleKernel\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/ScheduleRunCommand.php
+
+		-
+			message: "#^Class App\\\\Console\\\\ScheduleKernel not found\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/ScheduleRunCommand.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$kernel contains unknown class App\\\\Console\\\\ScheduleKernel\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/ScheduleRunCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:chunkById\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Search/SearchImportCommand.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Server/ServerStopCommand.php
+
+		-
+			message: "#^Comparison operation \"\\>\" between int\\<1, max\\> and 0 is always true\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/Session/CleanupCommand.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Console\\\\Commands\\\\TestRunCommand\\:\\:getOutput\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Console/Commands/TestRunCommand.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Console\\\\Commands\\\\WatcherStatusCommand\\:\\:\\$output\\.$#"
+			count: 3
+			path: src/Core/Console/Commands/WatcherStatusCommand.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$address$#"
+			count: 1
+			path: src/Core/Contracts/Mail/Mailable.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$name$#"
+			count: 1
+			path: src/Core/Contracts/Mail/Mailable.php
+
+		-
+			message: "#^PHPDoc tag @return with type Core\\\\Mail\\\\PendingMail is incompatible with native type void\\.$#"
+			count: 1
+			path: src/Core/Contracts/Mail/Mailer.php
+
+		-
+			message: "#^Method Core\\\\Database\\\\CoroutineConnectionManager\\:\\:get\\(\\) has invalid return type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 2
+			path: src/Core/Database/CoroutineConnectionManager.php
+
+		-
+			message: "#^Method Core\\\\Database\\\\CoroutineConnectionManager\\:\\:getPoolStats\\(\\) is unused\\.$#"
+			count: 1
+			path: src/Core/Database/CoroutineConnectionManager.php
+
+		-
+			message: "#^Parameter \\$connection of method Core\\\\Database\\\\CoroutineConnectionManager\\:\\:release\\(\\) has invalid type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/Database/CoroutineConnectionManager.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$connection$#"
+			count: 1
+			path: src/Core/Database/Swoole/BaseSwoolePool.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:endQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdo.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:failQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdo.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:startQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdo.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:endQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdoStatement.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:failQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdoStatement.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:startQuery\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Database/TraceablePdoStatement.php
+
+		-
+			message: "#^Dead catch \\- Throwable is never thrown in the try block\\.$#"
+			count: 1
+			path: src/Core/Debug/EventCollector.php
+
+		-
+			message: "#^Method Core\\\\Debug\\\\Proxy\\\\DebugPdoProxy\\:\\:prepare\\(\\) should return PDOStatement\\|false but returns Core\\\\Debug\\\\Proxy\\\\DebugPdoStatementProxy\\.$#"
+			count: 1
+			path: src/Core/Debug/Proxy/DebugPdoProxy.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Debug\\\\DebugManager\\:\\:recordRedisCommand\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/Proxy/DebugRedisProxy.php
+
+		-
+			message: "#^Instantiated class DebugBar\\\\DataCollector\\\\CacheCollector not found\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCacheManager.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$collector contains unknown class DebugBar\\\\DataCollector\\\\CacheCollector\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCacheManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$collector of method DebugBar\\\\DebugBar\\:\\:addCollector\\(\\) expects DebugBar\\\\DataCollector\\\\DataCollectorInterface, DebugBar\\\\DataCollector\\\\CacheCollector given\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCacheManager.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Debug\\\\RealtimeTraceableCookieJar\\:\\:\\$queued\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCookieJar.php
+
+		-
+			message: "#^Core\\\\Debug\\\\RealtimeTraceableCookieJar\\:\\:addQueuedCookiesToResponse\\(\\) calls parent\\:\\:addQueuedCookiesToResponse\\(\\) but Core\\\\Debug\\\\RealtimeTraceableCookieJar does not extend any class\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCookieJar.php
+
+		-
+			message: "#^Core\\\\Debug\\\\RealtimeTraceableCookieJar\\:\\:expire\\(\\) calls parent\\:\\:expire\\(\\) but Core\\\\Debug\\\\RealtimeTraceableCookieJar does not extend any class\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCookieJar.php
+
+		-
+			message: "#^Core\\\\Debug\\\\RealtimeTraceableCookieJar\\:\\:queue\\(\\) calls parent\\:\\:queue\\(\\) but Core\\\\Debug\\\\RealtimeTraceableCookieJar does not extend any class\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableCookieJar.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:flash\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:forget\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:getFlash\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:keep\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:reflash\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:regenerateToken\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:token\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/RealtimeTraceableSessionStore.php
+
+		-
+			message: "#^Method Core\\\\Debug\\\\SessionCollector\\:\\:collect\\(\\) should return array but returns string\\.$#"
+			count: 1
+			path: src/Core/Debug/SessionCollector.php
+
+		-
+			message: "#^Class App\\\\Services\\\\RealtimeDebugService not found\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableCacheManager.php
+
+		-
+			message: "#^Property Core\\\\Debug\\\\TraceableCacheManager\\:\\:\\$realtimeService has unknown class App\\\\Services\\\\RealtimeDebugService as its type\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableCacheManager.php
+
+		-
+			message: "#^Call to method publish\\(\\) on an unknown class App\\\\Services\\\\RealtimeDebugService\\.$#"
+			count: 4
+			path: src/Core/Debug/TraceableCacheStore.php
+
+		-
+			message: "#^Parameter \\$realtimeService of method Core\\\\Debug\\\\TraceableCacheStore\\:\\:__construct\\(\\) has invalid type App\\\\Services\\\\RealtimeDebugService\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableCacheStore.php
+
+		-
+			message: "#^Property Core\\\\Debug\\\\TraceableCacheStore\\:\\:\\$realtimeService has unknown class App\\\\Services\\\\RealtimeDebugService as its type\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableCacheStore.php
+
+		-
+			message: "#^Method Core\\\\Debug\\\\TraceableConnection\\:\\:connection\\(\\) has invalid return type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableConnection.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Events\\\\EventDispatcherInterface\\:\\:getListenersForEvent\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableEventDispatcher.php
+
+		-
+			message: "#^Call to method publish\\(\\) on an unknown class App\\\\Services\\\\RealtimeDebugService\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableEventDispatcher.php
+
+		-
+			message: "#^Dead catch \\- Throwable is never thrown in the try block\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableEventDispatcher.php
+
+		-
+			message: "#^Parameter \\$realtimeService of method Core\\\\Debug\\\\TraceableEventDispatcher\\:\\:__construct\\(\\) has invalid type App\\\\Services\\\\RealtimeDebugService\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableEventDispatcher.php
+
+		-
+			message: "#^Property Core\\\\Debug\\\\TraceableEventDispatcher\\:\\:\\$realtimeService has unknown class App\\\\Services\\\\RealtimeDebugService as its type\\.$#"
+			count: 1
+			path: src/Core/Debug/TraceableEventDispatcher.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/AggregateRoot.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/BaseAggregateRoot.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/Examples/Events/UserEmailChanged.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/Examples/Events/UserRegistered.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/Examples/Events/UserStatusChanged.php
+
+		-
+			message: "#^Expression on left side of \\?\\? is not nullable\\.$#"
+			count: 1
+			path: src/Core/EventSourcing/ModuleConfigLoader.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$event$#"
+			count: 1
+			path: src/Core/Events/IlluminateViewEventAdapter.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Exceptions/ValidationException.php
+
+		-
+			message: "#^Class Core\\\\FileSystem\\\\Exceptions\\\\FileNotFoundException referenced with incorrect case\\: Core\\\\Filesystem\\\\Exceptions\\\\FileNotFoundException\\.$#"
+			count: 3
+			path: src/Core/FileSystem/Filesystem.php
+
+		-
+			message: "#^Call to method delete\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Call to method fileExists\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Call to method read\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Call to method readStream\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Call to method write\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Call to method writeStream\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Parameter \\$adapter of method Core\\\\FileSystem\\\\FilesystemAdapter\\:\\:__construct\\(\\) has invalid type League\\\\Flysystem\\\\FilesystemAdapter\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Parameter \\$driver of method Core\\\\FileSystem\\\\FilesystemAdapter\\:\\:__construct\\(\\) has invalid type League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Property Core\\\\FileSystem\\\\FilesystemAdapter\\:\\:\\$adapter has unknown class League\\\\Flysystem\\\\FilesystemAdapter as its type\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Property Core\\\\FileSystem\\\\FilesystemAdapter\\:\\:\\$driver has unknown class League\\\\Flysystem\\\\Filesystem as its type\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemAdapter.php
+
+		-
+			message: "#^Instantiated class League\\\\Flysystem\\\\Filesystem not found\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemManager.php
+
+		-
+			message: "#^Instantiated class League\\\\Flysystem\\\\Local\\\\LocalFilesystemAdapter not found\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemManager.php
+
+		-
+			message: "#^Parameter \\#2 \\$adapter of class Core\\\\FileSystem\\\\FilesystemAdapter constructor expects League\\\\Flysystem\\\\FilesystemAdapter, League\\\\Flysystem\\\\Local\\\\LocalFilesystemAdapter given\\.$#"
+			count: 1
+			path: src/Core/FileSystem/FilesystemManager.php
+
+		-
+			message: "#^Parameter \\#1 \\$validator of class Core\\\\Validation\\\\ValidationException constructor expects Core\\\\Validation\\\\Validator, array given\\.$#"
+			count: 2
+			path: src/Core/Frontend/Component.php
+
+		-
+			message: "#^Parameter \\$command of method Core\\\\Frontend\\\\Component\\:\\:dispatchCommand\\(\\) has invalid type Core\\\\CQRS\\\\Command\\.$#"
+			count: 1
+			path: src/Core/Frontend/Component.php
+
+		-
+			message: "#^Call to method delete\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Call to method getClientOriginalExtension\\(\\) on an unknown class Illuminate\\\\Http\\\\UploadedFile\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Call to method getContent\\(\\) on an unknown class Illuminate\\\\Http\\\\UploadedFile\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Call to method readStream\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Call to method write\\(\\) on an unknown class League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Method Core\\\\Frontend\\\\FileUpload\\\\TemporaryUploadedFile\\:\\:getTemporaryDisk\\(\\) has invalid return type League\\\\Flysystem\\\\Filesystem\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Parameter \\$file of method Core\\\\Frontend\\\\FileUpload\\\\TemporaryUploadedFile\\:\\:createFromUploadedFile\\(\\) has invalid type Illuminate\\\\Http\\\\UploadedFile\\.$#"
+			count: 1
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 2
+			path: src/Core/Frontend/FileUpload/TemporaryUploadedFile.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between non\\-empty\\-string and false will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Hashing/Argon2iHasher.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between non\\-empty\\-string and false will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Hashing/Argon2idHasher.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between non\\-empty\\-string and false will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Hashing/BcryptHasher.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\RequestInterface\\:\\:user\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Http/Controller.php
+
+		-
+			message: "#^Call to protected method addError\\(\\) of class Core\\\\Validation\\\\Validator\\.$#"
+			count: 1
+			path: src/Core/Http/FormRequest.php
+
+		-
+			message: "#^Function Swoole\\\\Coroutine\\\\parallel not found\\.$#"
+			count: 1
+			path: src/Core/Http/FormRequest.php
+
+		-
+			message: "#^Method Core\\\\Validation\\\\Factory\\:\\:make\\(\\) invoked with 4 parameters, 2\\-3 required\\.$#"
+			count: 1
+			path: src/Core/Http/FormRequest.php
+
+		-
+			message: "#^Method Core\\\\Validation\\\\Validator\\:\\:addError\\(\\) invoked with 2 parameters, 3 required\\.$#"
+			count: 1
+			path: src/Core/Http/FormRequest.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Console\\\\Contracts\\\\BaseCommand\\:\\:setCoreApplication\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Listeners/ClearRelatedCacheOnModuleChange.php
+
+		-
+			message: "#^Class Core\\\\Console\\\\Commands\\\\ModuleClearCommand not found\\.$#"
+			count: 1
+			path: src/Core/Listeners/ClearRelatedCacheOnModuleChange.php
+
+		-
+			message: "#^Class Core\\\\Console\\\\Commands\\\\RouteClearCommand not found\\.$#"
+			count: 1
+			path: src/Core/Listeners/ClearRelatedCacheOnModuleChange.php
+
+		-
+			message: "#^Parameter \\#1 \\$commandClass of method Core\\\\Listeners\\\\ClearRelatedCacheOnModuleChange\\:\\:runCommand\\(\\) expects class\\-string\\<Core\\\\Console\\\\Contracts\\\\CommandInterface\\>, string given\\.$#"
+			count: 2
+			path: src/Core/Listeners/ClearRelatedCacheOnModuleChange.php
+
+		-
+			message: "#^Call to an undefined method Monolog\\\\Handler\\\\HandlerInterface\\:\\:setFormatter\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Logging/LogManager.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Log\\\\LoggerInterface\\:\\:getHandlers\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Logging/LogManager.php
+
+		-
+			message: "#^Class Core\\\\Contracts\\\\Task\\\\TaskDispatcher not found\\.$#"
+			count: 2
+			path: src/Core/Logging/LogManager.php
+
+		-
+			message: "#^PHPDoc tag @return with type Psr\\\\Log\\\\LoggerInterface is not subtype of native type Monolog\\\\Logger\\.$#"
+			count: 3
+			path: src/Core/Logging/LogManager.php
+
+		-
+			message: "#^Call to method dispatch\\(\\) on an unknown class Core\\\\Contracts\\\\Task\\\\TaskDispatcher\\.$#"
+			count: 1
+			path: src/Core/Logging/SwooleTaskHandler.php
+
+		-
+			message: "#^Parameter \\$taskService of method Core\\\\Logging\\\\SwooleTaskHandler\\:\\:__construct\\(\\) has invalid type Core\\\\Contracts\\\\Task\\\\TaskDispatcher\\.$#"
+			count: 1
+			path: src/Core/Logging/SwooleTaskHandler.php
+
+		-
+			message: "#^Property Core\\\\Logging\\\\SwooleTaskHandler\\:\\:\\$taskService has unknown class Core\\\\Contracts\\\\Task\\\\TaskDispatcher as its type\\.$#"
+			count: 1
+			path: src/Core/Logging/SwooleTaskHandler.php
+
+		-
+			message: "#^Call to function is_null\\(\\) with string will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Manager.php
+
+		-
+			message: "#^Call to method add\\(\\) on an unknown class Spiral\\\\RoadRunner\\\\Metrics\\\\Collector\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^Call to method get\\(\\) on an unknown class Spiral\\\\RoadRunner\\\\Metrics\\\\MetricsInterface\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^Call to method set\\(\\) on an unknown class Spiral\\\\RoadRunner\\\\Metrics\\\\Collector\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^Method Core\\\\Metrics\\\\MetricsService\\:\\:getCollector\\(\\) has invalid return type Spiral\\\\RoadRunner\\\\Metrics\\\\Collector\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^Parameter \\$metrics of method Core\\\\Metrics\\\\MetricsService\\:\\:__construct\\(\\) has invalid type Spiral\\\\RoadRunner\\\\Metrics\\\\MetricsInterface\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^Property Core\\\\Metrics\\\\MetricsService\\:\\:\\$metrics has unknown class Spiral\\\\RoadRunner\\\\Metrics\\\\MetricsInterface as its type\\.$#"
+			count: 1
+			path: src/Core/Metrics/MetricsService.php
+
+		-
+			message: "#^PHPDoc tag @var for constant Core\\\\Metrics\\\\SwooleMetricsService\\:\\:DEFAULT_DURATION_BUCKETS with type array\\<float\\> is not subtype of value array\\{0\\.005, 0\\.01, 0\\.025, 0\\.05, 0\\.1, 0\\.25, 0\\.5, 1, \\.\\.\\.\\}\\.$#"
+			count: 1
+			path: src/Core/Metrics/SwooleMetricsService.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between int and false will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Metrics/SwooleMetricsService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 2
+			path: src/Core/Module/ModuleManager.php
+
+		-
+			message: "#^Cannot call method all\\(\\) on array\\.$#"
+			count: 1
+			path: src/Core/Module/ModuleManager.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Module\\\\ModuleSettings\\:\\:getChanges\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Module/ModuleSettings.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Module\\\\ModuleSettings\\:\\:forModule\\(\\)\\.$#"
+			count: 8
+			path: src/Core/Module/ModuleSettingsManager.php
+
+		-
+			message: "#^Function logger not found\\.$#"
+			count: 1
+			path: src/Core/Module/ModuleSettingsManager.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Module\\\\Module\\:\\:whereIn\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Module/ModuleSynchronizer.php
+
+		-
+			message: "#^Call to method beginTransaction\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Call to method commit\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Call to method inTransaction\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Call to method rollBack\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Connection\\:\\:connection\\(\\) has invalid return type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Parameter \\$connection of method Core\\\\ORM\\\\Connection\\:\\:release\\(\\) has invalid type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/Connection.php
+
+		-
+			message: "#^Instantiated class Core\\\\ORM\\\\Relations\\\\HasOneThrough not found\\.$#"
+			count: 1
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:find\\(\\) should return static\\(Core\\\\ORM\\\\Model\\)\\|null but returns Core\\\\ORM\\\\Model\\|null\\.$#"
+			count: 1
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:findOrFail\\(\\) should return static\\(Core\\\\ORM\\\\Model\\) but returns Core\\\\ORM\\\\Model\\.$#"
+			count: 1
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:firstOrCreate\\(\\) should return static\\(Core\\\\ORM\\\\Model\\)\\|null but returns Core\\\\ORM\\\\Model\\.$#"
+			count: 1
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:hasOneThrough\\(\\) has invalid return type Core\\\\ORM\\\\Relations\\\\HasOneThrough\\.$#"
+			count: 2
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\Model\\:\\:updateOrCreate\\(\\) should return static\\(Core\\\\ORM\\\\Model\\)\\|null but returns Core\\\\ORM\\\\Model\\.$#"
+			count: 1
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 4
+			path: src/Core/ORM/Model.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\ServerRequestInterface\\:\\:query\\(\\)\\.$#"
+			count: 1
+			path: src/Core/ORM/Paginator.php
+
+		-
+			message: "#^Call to method fetchAll\\(\\) on an unknown class Swoole\\\\Database\\\\PDOStatementProxy\\.$#"
+			count: 2
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Call to method fetchColumn\\(\\) on an unknown class Swoole\\\\Database\\\\PDOStatementProxy\\.$#"
+			count: 3
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Call to method lastInsertId\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Call to method prepare\\(\\) on an unknown class Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Call to method rowCount\\(\\) on an unknown class Swoole\\\\Database\\\\PDOStatementProxy\\.$#"
+			count: 4
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Instanceof between array and Core\\\\Support\\\\Collection will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:decrement\\(\\) should return bool but returns int\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:execute\\(\\) has invalid return type Swoole\\\\Database\\\\PDOStatementProxy\\.$#"
+			count: 2
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:forPage\\(\\) should return \\$this\\(Core\\\\ORM\\\\QueryBuilder\\) but returns Core\\\\ORM\\\\QueryBuilder\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:getConnection\\(\\) has invalid return type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:getPdo\\(\\) has invalid return type Swoole\\\\Database\\\\PDOProxy\\.$#"
+			count: 2
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:increment\\(\\) should return bool but returns int\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:whereIn\\(\\) should return \\$this\\(Core\\\\ORM\\\\QueryBuilder\\) but returns Core\\\\ORM\\\\QueryBuilder\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:whereNotIn\\(\\) should return \\$this\\(Core\\\\ORM\\\\QueryBuilder\\) but returns Core\\\\ORM\\\\QueryBuilder\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:whereNotNull\\(\\) should return \\$this\\(Core\\\\ORM\\\\QueryBuilder\\) but returns Core\\\\ORM\\\\QueryBuilder\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Method Core\\\\ORM\\\\QueryBuilder\\:\\:whereNull\\(\\) should return \\$this\\(Core\\\\ORM\\\\QueryBuilder\\) but returns Core\\\\ORM\\\\QueryBuilder\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Offset string on array\\{\\} in isset\\(\\) does not exist\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$models with type array is incompatible with native type Core\\\\Support\\\\Collection\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^Variable \\$models in empty\\(\\) always exists and is not falsy\\.$#"
+			count: 1
+			path: src/Core/ORM/QueryBuilder.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$columns with type mixed is not subtype of native type array\\.$#"
+			count: 1
+			path: src/Core/ORM/Relations/BelongsToMany.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$ids with type array\\|Core\\\\Support\\\\Collection is not subtype of native type array\\|Core\\\\ORM\\\\Relations\\\\Collection\\.$#"
+			count: 1
+			path: src/Core/ORM/Relations/MorphToMany.php
+
+		-
+			message: "#^Parameter \\$ids of method Core\\\\ORM\\\\Relations\\\\MorphToMany\\:\\:sync\\(\\) has invalid type Core\\\\ORM\\\\Relations\\\\Collection\\.$#"
+			count: 1
+			path: src/Core/ORM/Relations/MorphToMany.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:getQualifiedIsActiveColumn\\(\\)\\.$#"
+			count: 1
+			path: src/Core/ORM/Scopes/ActiveScope.php
+
+		-
+			message: "#^Call to method addEvent\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method end\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method getTracer\\(\\) on an unknown class OpenTelemetry\\\\SDK\\\\Trace\\\\TracerProvider\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method recordException\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 5
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method setAttribute\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 7
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method setStatus\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 10
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method shutdown\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\TracerProviderInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method shutdown\\(\\) on an unknown class OpenTelemetry\\\\SDK\\\\Trace\\\\TracerProvider\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to method spanBuilder\\(\\) on an unknown class OpenTelemetry\\\\API\\\\Trace\\\\TracerInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to static method create\\(\\) on an unknown class OpenTelemetry\\\\SDK\\\\Common\\\\Attribute\\\\Attributes\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to static method create\\(\\) on an unknown class OpenTelemetry\\\\SDK\\\\Resource\\\\ResourceInfo\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Call to static method defaultResource\\(\\) on an unknown class OpenTelemetry\\\\SDK\\\\Resource\\\\ResourceInfoFactory\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Class OpenTelemetry\\\\SDK\\\\Trace\\\\TracerProvider not found\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Instantiated class OpenTelemetry\\\\Contrib\\\\Otlp\\\\SpanExporter not found\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Instantiated class OpenTelemetry\\\\SDK\\\\Trace\\\\Sampler\\\\AlwaysOnSampler not found\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Instantiated class OpenTelemetry\\\\SDK\\\\Trace\\\\SpanProcessor\\\\SimpleSpanProcessor not found\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Instantiated class OpenTelemetry\\\\SDK\\\\Trace\\\\TracerProvider not found\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Method Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:getCurrentSpan\\(\\) has invalid return type OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Method Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:startSpan\\(\\) has invalid return type OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Parameter \\$context of method Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:startSpan\\(\\) has invalid type OpenTelemetry\\\\Context\\\\Context\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Parameter \\$span of method Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:endSpan\\(\\) has invalid type OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Property Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:\\$currentSpan has unknown class OpenTelemetry\\\\API\\\\Trace\\\\SpanInterface as its type\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Property Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:\\$tracer has unknown class OpenTelemetry\\\\API\\\\Trace\\\\TracerInterface as its type\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Property Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:\\$tracerProvider \\(OpenTelemetry\\\\API\\\\Trace\\\\TracerProviderInterface\\) does not accept OpenTelemetry\\\\SDK\\\\Trace\\\\TracerProvider\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Property Core\\\\Observability\\\\OpenTelemetry\\\\TelemetryManager\\:\\:\\$tracerProvider has unknown class OpenTelemetry\\\\API\\\\Trace\\\\TracerProviderInterface as its type\\.$#"
+			count: 1
+			path: src/Core/Observability/OpenTelemetry/TelemetryManager.php
+
+		-
+			message: "#^Class Core\\\\Queue\\\\RedisQueue constructor invoked with 3 parameters, 1\\-2 required\\.$#"
+			count: 1
+			path: src/Core/Queue/Connectors/RedisConnector.php
+
+		-
+			message: "#^Parameter \\#1 \\$redis of class Core\\\\Queue\\\\RedisQueue constructor expects Predis\\\\ClientInterface, Core\\\\Redis\\\\RedisManager given\\.$#"
+			count: 1
+			path: src/Core/Queue/Connectors/RedisConnector.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Queue\\\\FailedJob\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/DatabaseFailedJobProvider.php
+
+		-
+			message: "#^Method Core\\\\Queue\\\\DatabaseFailedJobProvider\\:\\:flush\\(\\) should return int but returns bool\\.$#"
+			count: 1
+			path: src/Core/Queue/DatabaseFailedJobProvider.php
+
+		-
+			message: "#^Negated boolean expression is always false\\.$#"
+			count: 1
+			path: src/Core/Queue/DelayedJobScheduler.php
+
+		-
+			message: "#^PHPDoc tag @return with type Amp\\\\Future\\<array\\<string\\>\\> is incompatible with native type array\\.$#"
+			count: 1
+			path: src/Core/Queue/DelayedJobScheduler.php
+
+		-
+			message: "#^Parameter \\#1 \\$callback of method Monolog\\\\Logger\\:\\:pushProcessor\\(\\) expects callable\\(Monolog\\\\LogRecord\\)\\: Monolog\\\\LogRecord, Core\\\\Logging\\\\Processor\\\\ContextProcessor given\\.$#"
+			count: 1
+			path: src/Core/Queue/DelayedJobScheduler.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Queue\\\\Job\\:\\:ack\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^Cannot instantiate interface Core\\\\Contracts\\\\Queue\\\\Job\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$job with type Core\\\\Queue\\\\Job is not subtype of native type Core\\\\Contracts\\\\Queue\\\\Job\\.$#"
+			count: 2
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^PHPDoc tag @return with type array\\|null is not subtype of native type Core\\\\Contracts\\\\Queue\\\\Job\\|null\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^PHPDoc tag @return with type mixed is not subtype of native type void\\.$#"
+			count: 2
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^Parameter \\#1 \\$delay of method Core\\\\Contracts\\\\Queue\\\\Job\\:\\:release\\(\\) expects int, bool given\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RabbitMQQueue.php
+
+		-
+			message: "#^Class Core\\\\Queue\\\\Jobs\\\\RedisJob constructor invoked with 4 parameters, 5 required\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RedisQueueDriver.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$job with type object is not subtype of native type Core\\\\Contracts\\\\Queue\\\\Job\\.$#"
+			count: 2
+			path: src/Core/Queue/Drivers/RedisQueueDriver.php
+
+		-
+			message: "#^Parameter \\#2 \\$redis of class Core\\\\Queue\\\\Jobs\\\\RedisJob constructor expects Redis, \\$this\\(Core\\\\Queue\\\\Drivers\\\\RedisQueueDriver\\) given\\.$#"
+			count: 1
+			path: src/Core/Queue/Drivers/RedisQueueDriver.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\QueryBuilder\\:\\:when\\(\\)\\.$#"
+			count: 2
+			path: src/Core/Queue/FailedJobProvider.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Queue\\\\FailedJob\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/FailedJobProvider.php
+
+		-
+			message: "#^PHPDoc tag @implements has invalid value \\(FailedJobProviderInterface\\)\\: Unexpected token \"\\\\n \", expected '\\<' at offset 147$#"
+			count: 1
+			path: src/Core/Queue/FailedJobProvider.php
+
+		-
+			message: "#^Parameter \\#2 \\$options of function unserialize expects array\\{allowed_classes\\?\\: array\\<string\\>\\|bool\\}, array\\{allowed_classes\\: Closure\\(string\\)\\: bool\\} given\\.$#"
+			count: 1
+			path: src/Core/Queue/Jobs/ProcessDelayedJobBatchTask.php
+
+		-
+			message: "#^PHPDoc tag @var for property Core\\\\Queue\\\\Jobs\\\\ProcessJobTask\\:\\:\\$job with type Core\\\\Contracts\\\\Queue\\\\Job\\|Core\\\\Queue\\\\Jobs\\\\BaseJob is not subtype of native type Core\\\\Contracts\\\\Queue\\\\Job\\.$#"
+			count: 1
+			path: src/Core/Queue/Jobs/ProcessJobTask.php
+
+		-
+			message: "#^Property Core\\\\Queue\\\\Jobs\\\\ProcessJobTask\\:\\:\\$job has unknown class Core\\\\Queue\\\\Jobs\\\\BaseJob as its type\\.$#"
+			count: 1
+			path: src/Core/Queue/Jobs/ProcessJobTask.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Queue\\\\Job\\:\\:isDeleted\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/QueueWorker.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Queue\\\\Job\\:\\:isReleased\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/QueueWorker.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Queue\\\\QueueManager\\:\\:connection\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/QueueWorker.php
+
+		-
+			message: "#^Method Core\\\\Contracts\\\\Exceptions\\\\Handler\\:\\:report\\(\\) invoked with 1 parameter, 2 required\\.$#"
+			count: 1
+			path: src/Core/Queue/QueueWorker.php
+
+		-
+			message: "#^Parameter \\#1 \\$request of method Core\\\\Contracts\\\\Exceptions\\\\Handler\\:\\:report\\(\\) expects Psr\\\\Http\\\\Message\\\\ServerRequestInterface, Throwable given\\.$#"
+			count: 1
+			path: src/Core/Queue/QueueWorker.php
+
+		-
+			message: "#^Call to an undefined method Predis\\\\ClientInterface\\:\\:lPop\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/RedisQueue.php
+
+		-
+			message: "#^Call to an undefined method Predis\\\\ClientInterface\\:\\:rPush\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/RedisQueue.php
+
+		-
+			message: "#^Call to an undefined method Amp\\\\Redis\\\\RedisClient\\:\\:zAdd\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Queue/SwooleQueue.php
+
+		-
+			message: "#^Call to static method publish\\(\\) on an unknown class Core\\\\Realtime\\\\Redis\\.$#"
+			count: 1
+			path: src/Core/Realtime/RealtimeBroadcaster.php
+
+		-
+			message: "#^Call to an undefined method Amp\\\\Redis\\\\RedisClient\\:\\:close\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Redis/FiberRedisPool.php
+
+		-
+			message: "#^Method Core\\\\Routing\\\\Router\\:\\:listRoutes\\(\\) should return array\\<Core\\\\Routing\\\\Route\\> but returns array\\<int\\<0, max\\>, array\\<string, mixed\\>\\>\\.$#"
+			count: 1
+			path: src/Core/Routing/Router.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$after\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$autoIncrement\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$change\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$comment\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$default\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$first\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$foreign\\.$#"
+			count: 5
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$index\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$name\\.$#"
+			count: 3
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$nullable\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unique\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unsigned\\.$#"
+			count: 1
+			path: src/Core/Schema/ColumnDefinition.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$allowed\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$comment\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$foreign\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$length\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$name\\.$#"
+			count: 4
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$nullable\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$precision\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$scale\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$type\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unique\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$columns\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$from\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$name\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$to\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$type\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$columns\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$groups\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$joins\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$limit\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$offset\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$orders\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$table\\.$#"
+			count: 5
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to protected property Core\\\\ORM\\\\QueryBuilder\\:\\:\\$wheres\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Call to function is_null\\(\\) with string will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/MySqlGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$allowed\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$foreign\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$name\\.$#"
+			count: 4
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$nullable\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unique\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$columns\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$name\\.$#"
+			count: 4
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Cannot cast array\\{0\\: non\\-falsy\\-string, 1\\: non\\-falsy\\-string, 2\\?\\: non\\-falsy\\-string\\} to string\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^PHPDoc tag @return with type array is incompatible with native type string\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/PostgresGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$nullable\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SQLiteGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unique\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SQLiteGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$columns\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SQLiteGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$length\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$nullable\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Schema\\\\ColumnDefinition\\:\\:\\$unique\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$columns\\.$#"
+			count: 2
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$from\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$name\\.$#"
+			count: 4
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Support\\\\Fluent\\:\\:\\$to\\.$#"
+			count: 1
+			path: src/Core/Schema/Grammars/SqlServerGrammar.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:searchableAs\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/BulkIndexJob.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\ORM\\\\Model\\:\\:findMany\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/BulkIndexJob.php
+
+		-
+			message: "#^Class Meilisearch\\\\Client referenced with incorrect case\\: MeiliSearch\\\\Client\\.$#"
+			count: 3
+			path: src/Core/Search/Jobs/BulkIndexJob.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/BulkIndexJob.php
+
+		-
+			message: "#^Call to method getKey\\(\\) on an unknown class Core\\\\Search\\\\Searchable\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^Call to method getKeyName\\(\\) on an unknown class Core\\\\Search\\\\Searchable\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^Call to method toSearchableArray\\(\\) on an unknown class Core\\\\Search\\\\Searchable\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^Call to static method getSearchIndexName\\(\\) on an unknown class Core\\\\Search\\\\Searchable\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^Class Meilisearch\\\\Client referenced with incorrect case\\: MeiliSearch\\\\Client\\.$#"
+			count: 2
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$model has invalid type Core\\\\Search\\\\Searchable\\.$#"
+			count: 1
+			path: src/Core/Search/Jobs/MakeSearchableJob.php
+
+		-
+			message: "#^Class Meilisearch\\\\Client referenced with incorrect case\\: MeiliSearch\\\\Client\\.$#"
+			count: 2
+			path: src/Core/Search/Jobs/RemoveFromSearchJob.php
+
+		-
+			message: "#^Class Meilisearch\\\\Client referenced with incorrect case\\: MeiliSearch\\\\Client\\.$#"
+			count: 1
+			path: src/Core/Search/Searchable.php
+
+		-
+			message: "#^Property Core\\\\Server\\\\Development\\\\DockerFileWatcher\\:\\:\\$lastScanTime is never read, only written\\.$#"
+			count: 1
+			path: src/Core/Server/Development/DockerFileWatcher.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: src/Core/Server/Processes/QueueProcess.php
+
+		-
+			message: "#^While loop condition is always true\\.$#"
+			count: 1
+			path: src/Core/Server/Processes/QueueProcess.php
+
+		-
+			message: "#^While loop condition is always true\\.$#"
+			count: 1
+			path: src/Core/Server/Processes/StatsMonitorProcess.php
+
+		-
+			message: "#^Call to method all\\(\\) on an unknown class Core\\\\Contracts\\\\Config\\\\Repository\\.$#"
+			count: 1
+			path: src/Core/Server/RequestLifecycle.php
+
+		-
+			message: "#^PHPDoc tag @var for variable \\$configService contains unknown class Core\\\\Contracts\\\\Config\\\\Repository\\.$#"
+			count: 1
+			path: src/Core/Server/RequestLifecycle.php
+
+		-
+			message: "#^Class RazonYang\\\\Psr7\\\\Swoole\\\\ServerRequestFactory does not have a constructor and must be instantiated without any parameters\\.$#"
+			count: 1
+			path: src/Core/Server/SwoolePsr7Bridge.php
+
+		-
+			message: "#^Else branch is unreachable because ternary operator condition is always true\\.$#"
+			count: 1
+			path: src/Core/Server/SwoolePsr7Bridge.php
+
+		-
+			message: "#^Property Core\\\\Server\\\\SwoolePsr7Bridge\\:\\:\\$httpFoundationFactory is never read, only written\\.$#"
+			count: 1
+			path: src/Core/Server/SwoolePsr7Bridge.php
+
+		-
+			message: "#^Parameter \\#2 \\$options of function unserialize expects array\\{allowed_classes\\?\\: array\\<string\\>\\|bool\\}, array\\{allowed_classes\\: Closure\\(string\\)\\: bool\\} given\\.$#"
+			count: 1
+			path: src/Core/Server/SwooleServer.php
+
+		-
+			message: "#^Strict comparison using \\=\\=\\= between bool and null will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/Server/SwooleServer.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\FileSystem\\\\Filesystem\\:\\:copy\\(\\)\\.$#"
+			count: 2
+			path: src/Core/Services/ComposerDependencyManager.php
+
+		-
+			message: "#^Call to method add\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 1
+			path: src/Core/Services/HealthCheckService.php
+
+		-
+			message: "#^Call to method done\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 1
+			path: src/Core/Services/HealthCheckService.php
+
+		-
+			message: "#^Call to method wait\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 1
+			path: src/Core/Services/HealthCheckService.php
+
+		-
+			message: "#^Instantiated class Swoole\\\\Coroutine\\\\WaitGroup not found\\.$#"
+			count: 1
+			path: src/Core/Services/HealthCheckService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$description\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$enabled\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 2
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$status\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$version\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Method Core\\\\Services\\\\ModuleInstallerService\\:\\:registerModule\\(\\) should return Modules\\\\Admin\\\\Infrastructure\\\\Models\\\\Module but returns Core\\\\ORM\\\\Model\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Offset 'signature' on array in empty\\(\\) always exists and is not falsy\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleInstallerService.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$description\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Model\\:\\:update\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Constant Core\\\\Services\\\\ModuleService\\:\\:CACHE_TTL is unused\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Method Core\\\\Services\\\\ModuleService\\:\\:getModules\\(\\) should return array but returns Core\\\\Contracts\\\\Cache\\\\Store\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: src/Core/Services/ModuleService.php
+
+		-
+			message: "#^Result of method Core\\\\Contracts\\\\Session\\\\SessionInterface\\:\\:remove\\(\\) \\(void\\) is used\\.$#"
+			count: 1
+			path: src/Core/Session/DirectSessionTokenStorage.php
+
+		-
+			message: "#^Call to an undefined static method Core\\\\Logging\\\\Log\\:\\:channel\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Session/SwooleRedisSessionHandler.php
+
+		-
+			message: "#^Call to method toArray\\(\\) on an unknown class Core\\\\Support\\\\Model\\.$#"
+			count: 1
+			path: src/Core/Support/Collection.php
+
+		-
+			message: "#^Class Core\\\\Support\\\\Model not found\\.$#"
+			count: 1
+			path: src/Core/Support/Collection.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 14
+			path: src/Core/Support/Collection.php
+
+		-
+			message: "#^If condition is always true\\.$#"
+			count: 1
+			path: src/Core/Support/Facade.php
+
+		-
+			message: "#^Unreachable statement \\- code above always terminates\\.$#"
+			count: 1
+			path: src/Core/Support/Facade.php
+
+		-
+			message: "#^Negated boolean expression is always false\\.$#"
+			count: 1
+			path: src/Core/Tasking/LogTask.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 1
+			path: src/Core/Validation/ValidationException.php
+
+		-
+			message: "#^Method Core\\\\View\\\\Compiler\\:\\:compileExtraDirectives\\(\\) has invalid return type Core\\\\View\\\\stringd\\.$#"
+			count: 1
+			path: src/Core/View/Compiler.php
+
+		-
+			message: "#^Offset 1 on array\\{string, string\\} on left side of \\?\\? always exists and is not nullable\\.$#"
+			count: 1
+			path: src/Core/View/Compiler.php
+
+		-
+			message: "#^PHPDoc tag @return with type Core\\\\View\\\\stringd is incompatible with native type string\\.$#"
+			count: 1
+			path: src/Core/View/Compiler.php
+
+		-
+			message: "#^Unsafe usage of new static\\(\\)\\.$#"
+			count: 2
+			path: src/Core/View/ComponentAttributeBag.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 1
+			path: src/Core/View/ViewFactory.php
+
+		-
+			message: "#^Result of \\|\\| is always true\\.$#"
+			count: 1
+			path: src/Core/View/ViewFactory.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:connection\\(\\)\\.$#"
+			count: 1
+			path: src/Core/WebSocket/RedisPublisher.php
+
+		-
+			message: "#^Property Core\\\\WebSocket\\\\WebSocketServer\\:\\:\\$app is never read, only written\\.$#"
+			count: 1
+			path: src/Core/WebSocket/WebSocketServer.php
+
+		-
+			message: "#^While loop condition is always true\\.$#"
+			count: 1
+			path: src/Core/WebSocket/WebSocketServer.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:getRoles\\(\\)\\.$#"
+			count: 3
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:delete\\(\\)\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:orderBy\\(\\)\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\ORM\\\\Relations\\\\HasMany\\:\\:where\\(\\)\\.$#"
+			count: 4
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Queue\\\\QueueManager\\:\\:connection\\(\\)\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to function is_array\\(\\) with string will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to function is_null\\(\\) with string will always evaluate to false\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Function get_block_type_by_name\\(\\) should return Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockType\\|null but returns Core\\\\ORM\\\\Model\\|null\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Function get_page_blocks\\(\\) should return Core\\\\Support\\\\Collection but returns Illuminate\\\\Support\\\\Collection\\<\\*NEVER\\*, \\*NEVER\\*\\>\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Function logger not found\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockRenderer\\:\\:renderAllRegions\\(\\) invoked with 4 parameters, 0\\-3 required\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Negated boolean expression is always false\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param for parameter \\$event with type object\\|string is not subtype of native type object\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$domain$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$httpOnly$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$minutes$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$name$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$path$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$payload$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$raw$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$sameSite$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$secure$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^PHPDoc tag @param references unknown parameter\\: \\$value$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Parameter \\#1 \\$instance of method Modules\\\\Cms\\\\Domain\\\\Services\\\\BlockRenderer\\:\\:renderBlock\\(\\) expects Modules\\\\Cms\\\\Infrastructure\\\\Models\\\\BlockInstance, Modules\\\\Cms\\\\Domain\\\\Entities\\\\BlockInstance given\\.$#"
+			count: 1
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Ternary operator condition is always true\\.$#"
+			count: 2
+			path: src/Core/helpers.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 2
+			path: src/Exceptions/Handler.php
+
+		-
+			message: "#^Parameter \\#1 \\$callback of function set_error_handler expects \\(callable\\(int, string, string, int\\)\\: bool\\)\\|null, Closure\\(mixed, mixed, mixed\\=, mixed\\=\\)\\: void given\\.$#"
+			count: 1
+			path: src/Exceptions/Handler.php
+
+		-
+			message: "#^File ends with a trailing whitespace\\. This may cause problems when running the code in the web browser\\. Remove the closing \\?\\> mark or remove the whitespace\\.$#"
+			count: 1
+			path: src/GraphQL/resolvers.php
+
+		-
+			message: "#^Static method Core\\\\Database\\\\Swoole\\\\SwoolePdoPool\\:\\:stats\\(\\) invoked with 0 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Http/Controllers/Admin/MetricsController.php
+
+		-
+			message: "#^Static method Core\\\\Database\\\\Swoole\\\\SwooleRedisPool\\:\\:stats\\(\\) invoked with 0 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Http/Controllers/Admin/MetricsController.php
+
+		-
+			message: "#^Call to an undefined method Psr\\\\Http\\\\Message\\\\ServerRequestInterface\\:\\:input\\(\\)\\.$#"
+			count: 3
+			path: src/Http/Controllers/ComponentController.php
+
+		-
+			message: "#^Method App\\\\Http\\\\Controllers\\\\ComponentController\\:\\:__invoke\\(\\) should return App\\\\Http\\\\JsonResponse but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 7
+			path: src/Http/Controllers/ComponentController.php
+
+		-
+			message: "#^Class Core\\\\Http\\\\UploadedFile constructor invoked with 5 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Http/Controllers/ComponentUploadController.php
+
+		-
+			message: "#^Parameter \\#1 \\$file of static method Core\\\\Frontend\\\\FileUpload\\\\TemporaryUploadedFile\\:\\:createFromUploadedFile\\(\\) expects Illuminate\\\\Http\\\\UploadedFile, Core\\\\Http\\\\UploadedFile given\\.$#"
+			count: 1
+			path: src/Http/Controllers/ComponentUploadController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:count\\(\\)\\.$#"
+			count: 2
+			path: src/Http/Controllers/DebugTestController.php
+
+		-
+			message: "#^Call to an undefined static method Modules\\\\User\\\\Infrastructure\\\\Models\\\\User\\:\\:limit\\(\\)\\.$#"
+			count: 2
+			path: src/Http/Controllers/DebugTestController.php
+
+		-
+			message: "#^Class Core\\\\Events\\\\ModuleChanged constructor invoked with 1 parameter, 2 required\\.$#"
+			count: 4
+			path: src/Http/Controllers/DebugTestController.php
+
+		-
+			message: "#^Parameter \\#1 \\$callback of static method Core\\\\Database\\\\Swoole\\\\BaseSwoolePool\\:\\:withConnection\\(\\) expects callable\\(\\)\\: mixed, 'mysql' given\\.$#"
+			count: 1
+			path: src/Http/Controllers/DebugTestController.php
+
+		-
+			message: "#^Parameter \\#2 \\$name of static method Core\\\\Database\\\\Swoole\\\\BaseSwoolePool\\:\\:withConnection\\(\\) expects string, Closure given\\.$#"
+			count: 1
+			path: src/Http/Controllers/DebugTestController.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Http\\\\Response\\:\\:getContent\\(\\)\\.$#"
+			count: 2
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Call to method add\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 1
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Call to method done\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 2
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Call to method wait\\(\\) on an unknown class Swoole\\\\Coroutine\\\\WaitGroup\\.$#"
+			count: 1
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Instantiated class Swoole\\\\Coroutine\\\\WaitGroup not found\\.$#"
+			count: 1
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Method App\\\\Http\\\\Controllers\\\\ExternalApiController\\:\\:fetch\\(\\) has invalid return type Http\\\\JsonResponse\\.$#"
+			count: 1
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Method App\\\\Http\\\\Controllers\\\\ExternalApiController\\:\\:fetch\\(\\) should return Http\\\\JsonResponse but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 1
+			path: src/Http/Controllers/ExternalApiController.php
+
+		-
+			message: "#^Method App\\\\Http\\\\Controllers\\\\ReportController\\:\\:generate\\(\\) should return App\\\\Http\\\\JsonResponse but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 2
+			path: src/Http/Controllers/ReportController.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\ORM\\\\Model\\:\\:\\$id\\.$#"
+			count: 1
+			path: src/Http/Controllers/SetupController.php
+
+		-
+			message: "#^Call to an undefined method App\\\\Http\\\\Requests\\\\CreateAdminRequest\\:\\:validated\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Controllers/SetupController.php
+
+		-
+			message: "#^Class App\\\\Http\\\\JsonResponse extends @final class Nyholm\\\\Psr7\\\\Response\\.$#"
+			count: 1
+			path: src/Http/JsonResponse.php
+
+		-
+			message: "#^Access to an undefined property Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:\\$id\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:has\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:remember\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:isSuperAdmin\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Constant App\\\\Http\\\\Middleware\\\\CheckForPendingModulesMiddleware\\:\\:SKIP_DURATION is unused\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Property App\\\\Http\\\\Middleware\\\\CheckForPendingModulesMiddleware\\:\\:\\$csrfManager is never read, only written\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckForPendingModulesMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Auth\\\\Authenticatable\\:\\:can\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Middleware/CheckPermissionMiddleware.php
+
+		-
+			message: "#^Instantiated class Core\\\\Http\\\\Exceptions\\\\NotFoundException not found\\.$#"
+			count: 1
+			path: src/Http/Middleware/FeatureMiddleware.php
+
+		-
+			message: "#^Throwing object of an unknown class Core\\\\Http\\\\Exceptions\\\\NotFoundException\\.$#"
+			count: 1
+			path: src/Http/Middleware/FeatureMiddleware.php
+
+		-
+			message: "#^Caught class Illuminate\\\\Database\\\\Eloquent\\\\ModelNotFoundException not found\\.$#"
+			count: 1
+			path: src/Http/Middleware/SubstituteBindings.php
+
+		-
+			message: "#^Access to an undefined property Psr\\\\Http\\\\Message\\\\ServerRequestInterface\\:\\:\\$attributes\\.$#"
+			count: 1
+			path: src/Http/Middleware/SyncModulesMiddleware.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Cache\\\\CacheManager\\:\\:set\\(\\)\\.$#"
+			count: 1
+			path: src/Http/Middleware/SyncModulesMiddleware.php
+
+		-
+			message: "#^Call to protected method get\\(\\) of class Core\\\\Cache\\\\CacheManager\\.$#"
+			count: 1
+			path: src/Http/Middleware/SyncModulesMiddleware.php
+
+		-
+			message: "#^Cannot cast Core\\\\Contracts\\\\Cache\\\\Store to int\\.$#"
+			count: 1
+			path: src/Http/Middleware/SyncModulesMiddleware.php
+
+		-
+			message: "#^Instantiated class App\\\\Exceptions\\\\TooManyRequestsHttpException not found\\.$#"
+			count: 1
+			path: src/Http/Middleware/ThrottleRequests.php
+
+		-
+			message: "#^Throwing object of an unknown class App\\\\Exceptions\\\\TooManyRequestsHttpException\\.$#"
+			count: 1
+			path: src/Http/Middleware/ThrottleRequests.php
+
+		-
+			message: "#^Method App\\\\Http\\\\SwooleHttpClient\\:\\:buildResponse\\(\\) should return Core\\\\Http\\\\Response but returns Psr\\\\Http\\\\Message\\\\ResponseInterface\\.$#"
+			count: 1
+			path: src/Http/SwooleHttpClient.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\View\\\\Factory\\|Core\\\\Contracts\\\\View\\\\View\\:\\:render\\(\\)\\.$#"
+			count: 1
+			path: src/Listeners/InjectDebugbar.php
+
+		-
+			message: "#^Class App\\\\Services\\\\SanitizerService not found\\.$#"
+			count: 1
+			path: src/Providers/AppServiceProvider.php
+
+		-
+			message: "#^Parameter \\#2 \\$middleware of class Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandBusWithMiddleware constructor expects array\\<class\\-string\\<Core\\\\CQRS\\\\Command\\\\Implementation\\\\CommandMiddleware\\>\\>, array\\<int, string\\> given\\.$#"
+			count: 1
+			path: src/Providers/CqrsServiceProvider.php
+
+		-
+			message: "#^Parameter \\#1 \\$pdo of method DebugBar\\\\DataCollector\\\\PDO\\\\PDOCollector\\:\\:addConnection\\(\\) expects DebugBar\\\\DataCollector\\\\PDO\\\\TraceablePDO, Core\\\\Debug\\\\RealtimeTraceablePdo given\\.$#"
+			count: 1
+			path: src/Providers/DatabaseServiceProvider.php
+
+		-
+			message: "#^Call to an undefined method Core\\\\Contracts\\\\Http\\\\Kernel\\:\\:pushMiddlewareToGroup\\(\\)\\.$#"
+			count: 1
+			path: src/Providers/DebugbarServiceProvider.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\Bridge\\\\MonologCollector\\:\\:getLogger\\(\\)\\.$#"
+			count: 1
+			path: src/Providers/DebugbarServiceProvider.php
+
+		-
+			message: "#^Call to an undefined method DebugBar\\\\Bridge\\\\MonologCollector\\:\\:setLogger\\(\\)\\.$#"
+			count: 1
+			path: src/Providers/DebugbarServiceProvider.php
+
+		-
+			message: "#^Instantiated class Core\\\\Debug\\\\RealtimeMonologProxy not found\\.$#"
+			count: 1
+			path: src/Providers/DebugbarServiceProvider.php
+
+		-
+			message: "#^Instantiated class Core\\\\Debug\\\\RealtimeTraceableConnection not found\\.$#"
+			count: 1
+			path: src/Providers/DebugbarServiceProvider.php
+
+		-
+			message: "#^Class Core\\\\Encryption\\\\Encrypter constructor invoked with 2 parameters, 1 required\\.$#"
+			count: 1
+			path: src/Providers/EncryptionServiceProvider.php
+
+		-
+			message: "#^Class Meilisearch\\\\Client referenced with incorrect case\\: MeiliSearch\\\\Client\\.$#"
+			count: 4
+			path: src/Providers/MeiliSearchServiceProvider.php
+
+		-
+			message: "#^Method App\\\\Providers\\\\RouteServiceProvider\\:\\:isCachingCommand\\(\\) is unused\\.$#"
+			count: 1
+			path: src/Providers/RouteServiceProvider.php

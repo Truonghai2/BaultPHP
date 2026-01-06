@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * DeleteRoleCommand
  *
  * Command to delete a role.
+ *
+ * @property-read int $roleId
  */
 class DeleteRoleCommand implements CommandInterface
 {

@@ -8,6 +8,13 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdatePageCommand
  *
  * Command to update a page.
+ *
+ * @property-read int $pageId
+ * @property-read string|null $name
+ * @property-read string|null $slug
+ * @property-read string|null $status
+ * @property-read string|null $metaTitle
+ * @property-read string|null $metaDescription
  */
 class UpdatePageCommand implements CommandInterface
 {

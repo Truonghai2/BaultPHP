@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\CommandInterface;
  * AssignPermissionsCommand
  *
  * Command to assign permissions to a role.
+ *
+ * @property-read int $roleId
+ * @property-read array $permissionIds
  */
 class AssignPermissionsCommand implements CommandInterface
 {

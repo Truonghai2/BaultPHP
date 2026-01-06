@@ -8,6 +8,13 @@ use Core\CQRS\Contracts\CommandInterface;
  * AddBlockToPageCommand
  *
  * Command to add a block to a page.
+ *
+ * @property-read int $pageId
+ * @property-read int $blockTypeId
+ * @property-read string $region
+ * @property-read array|null $config
+ * @property-read string|null $content
+ * @property-read int $sortOrder
  */
 class AddBlockToPageCommand implements CommandInterface
 {

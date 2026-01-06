@@ -4,6 +4,10 @@ namespace Modules\Cms\Application\Commands;
 
 use Core\CQRS\Command;
 
+/**
+ * @property-read int $pageBlockId
+ * @property-read int $blockId
+ */
 class DuplicateBlockCommand implements Command
 {
     /**

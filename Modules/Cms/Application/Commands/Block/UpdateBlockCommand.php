@@ -8,6 +8,12 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdateBlockCommand
  *
  * Command to update a block's content and configuration.
+ *
+ * @property-read int $blockId
+ * @property-read string|null $content
+ * @property-read array|null $config
+ * @property-read bool|null $visible
+ * @property-read int|null $sortOrder
  */
 class UpdateBlockCommand implements CommandInterface
 {

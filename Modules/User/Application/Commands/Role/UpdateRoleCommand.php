@@ -8,6 +8,10 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdateRoleCommand
  *
  * Command to update a role.
+ *
+ * @property-read int $roleId
+ * @property-read string|null $name
+ * @property-read string|null $description
  */
 class UpdateRoleCommand implements CommandInterface
 {

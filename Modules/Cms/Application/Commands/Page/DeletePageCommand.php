@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * DeletePageCommand
  *
  * Command to delete a page.
+ *
+ * @property-read int $pageId
  */
 class DeletePageCommand implements CommandInterface
 {

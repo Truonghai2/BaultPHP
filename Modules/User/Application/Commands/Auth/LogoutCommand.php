@@ -8,6 +8,8 @@ use Core\CQRS\Contracts\CommandInterface;
  * LogoutCommand
  *
  * Command to logout a user.
+ *
+ * @property-read int $userId
  */
 class LogoutCommand implements CommandInterface
 {

@@ -14,6 +14,66 @@ use Core\ORM\Relations\Relation;
 use Core\ORM\Scopes\Scope;
 use Core\Support\Collection;
 
+/**
+ * Base Model class
+ *
+ * @property int $id
+ * @property bool $enabled
+ * @property string $status
+ * @property mixed $value
+ * @property string|null $description
+ * @property string|null $created_at
+ * @property string|null $updated_at
+ * @property int|null $sort_order
+ * @property int|null $revision_number
+ * @property string|null $version
+ * @property string|null $title
+ * @property string|null $name
+ * @property string|null $key
+ * @property string|null $type
+ * @property string|null $group
+ * @property array|null $default_config
+ * @property int|null $max_blocks
+ * @property string|null $meta_title
+ * @property string|null $meta_description
+ * @property string|null $meta_keywords
+ * @property string|null $og_image
+ * @property string|null $published_at
+ * @property int|null $translation_group_id
+ * @property string|null $featured_image_path
+ * @property string|null $component_class
+ * @property int|null $order
+ * @property string|null $region
+ * @property string|null $content
+ * @property bool|null $visible
+ * @property string|null $visibility_mode
+ * @property int|null $created_by
+ * @property int|null $block_type_id
+ * @property int|null $region_id
+ * @property string|null $context_type
+ * @property int|null $context_id
+ * @property int|null $weight
+ * @property int|null $pageId
+ * @property int|null $blockId
+ * @property int|null $userId
+ * @property int|null $permissionId
+ * @property int|null $roleId
+ * @property array|null $permissionIds
+ * @property array|null $blockOrders
+ * @property string|null $slug
+ * @property string|null $captype
+ * @property array|null $roles
+ * @property bool|null $revoked
+ * @property string|null $expires_at
+ * @property int|null $client_id
+ * @property int|null $user_id
+ * @property array|null $scopes
+ * @property int|null $access_token_id
+ * @property string|null $avatar_path
+ * @property string|null $password
+ * @property bool|null $exists
+ * @property-read \Core\Support\Collection $relations
+ */
 abstract class Model
 {
     use Observable;

@@ -134,6 +134,9 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress --no-interaction
 
+      - name: Regenerate Composer autoload files
+        run: composer dump-autoload
+
       - name: Setup .env file
         run: |
           echo "APP_ENV=${APP_ENV}" > .env

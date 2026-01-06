@@ -8,6 +8,9 @@ use Core\CQRS\Contracts\CommandInterface;
  * UpdateBlockOrderCommand
  *
  * Command to update block display order.
+ *
+ * @property-read int $pageId
+ * @property-read array $blockOrders
  */
 class UpdateBlockOrderCommand implements CommandInterface
 {

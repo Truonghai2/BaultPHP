@@ -8,6 +8,14 @@ use Core\CQRS\Contracts\CommandInterface;
  * CreatePageCommand
  *
  * Command to create a new page in the CMS.
+ *
+ * @property-read string $name
+ * @property-read string $slug
+ * @property-read int $userId
+ * @property-read string $status
+ * @property-read string|null $metaTitle
+ * @property-read string|null $metaDescription
+ * @property-read int $pageId
  */
 class CreatePageCommand implements CommandInterface
 {

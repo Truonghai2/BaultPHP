@@ -8,6 +8,11 @@ use Core\CQRS\Contracts\CommandInterface;
  * InstallModuleCommand
  *
  * Command to install a new module into the system.
+ *
+ * @property-read string $moduleName
+ * @property-read string $version
+ * @property-read string $description
+ * @property-read array $dependencies
  */
 class InstallModuleCommand implements CommandInterface
 {
