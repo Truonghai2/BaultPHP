@@ -67,7 +67,8 @@
       "Core\\": "src/Core/",
       "App\\Http\\": "src/Http/",
       "Modules\\": "Modules/",
-      "Database\\Seeders\\": "database/Seeders/"
+      "Database\\Seeders\\": "database/Seeders/",
+      "Tests\\": "tests/"
     },
     "files": [
       "src/Core/helpers.php"
