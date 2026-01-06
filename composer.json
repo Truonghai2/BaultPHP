@@ -69,14 +69,14 @@
       "Modules\\": "Modules/",
       "Database\\Seeders\\": "database/Seeders/"
     },
-    "autoload-dev": {
-      "psr-4": {
-        "Database\\Factories\\": "database/factories/"
-      }
-    },
     "files": [
       "src/Core/helpers.php"
     ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Database\\Factories\\": "database/factories/"
+    }
   },
   "config": {
     "allow-plugins": {
