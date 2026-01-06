@@ -5,13 +5,21 @@ namespace Core\CQRS\Command\Implementation;
 use Core\Application;
 use Core\CQRS\Command\Command;
 use Core\CQRS\Command\CommandBus;
+use Core\CQRS\Middleware\CommandMiddleware;
 
 /**
  * CommandBusWithMiddleware is a command bus that applies middleware to commands before dispatching them.
  * It allows for additional processing, such as logging or transaction management, around command execution.
+ * 
+ * Optimized with middleware instance caching.
  */
 class CommandBusWithMiddleware implements CommandBus
 {
+    /**
+     * @var array<string, CommandMiddleware> Cache for resolved middleware instances
+     */
+    private array $middlewareInstances = [];
+
     /**
      * @param SimpleCommandBus $decoratedBus The inner command bus that will ultimately execute the handler.
      * @param array<class-string<CommandMiddleware>> $middleware The array of middleware classes to apply.
@@ -39,7 +47,7 @@ class CommandBusWithMiddleware implements CommandBus
     /**
      * Delegate handler mapping to the inner bus.
      *
-     * @param array $map
+     * @param array<string, string> $map
      * @return void
      */
     public function map(array $map): void
@@ -55,6 +63,10 @@ class CommandBusWithMiddleware implements CommandBus
      */
     public function dispatch(Command $command): mixed
     {
+        if (empty($this->middleware)) {
+            return $this->decoratedBus->dispatch($command);
+        }
+
         $coreDispatch = fn (Command $c) => $this->decoratedBus->dispatch($c);
 
         $pipeline = array_reduce(
@@ -68,6 +80,8 @@ class CommandBusWithMiddleware implements CommandBus
 
     /**
      * Create a callable that wraps the next middleware in the pipeline.
+     * 
+     * Optimized with middleware instance caching.
      *
      * @return callable
      */
@@ -75,8 +89,22 @@ class CommandBusWithMiddleware implements CommandBus
     {
         return function (callable $stack, string $pipe) {
             return function (Command $command) use ($stack, $pipe) {
-                return $this->app->make($pipe)->handle($command, $stack);
+                // Cache middleware instances for better performance
+                if (!isset($this->middlewareInstances[$pipe])) {
+                    $this->middlewareInstances[$pipe] = $this->app->make($pipe);
+                }
+
+                return $this->middlewareInstances[$pipe]->handle($command, $stack);
             };
         };
+    }
+
+    /**
+     * Clear all cached middleware instances (useful for testing).
+     */
+    public function clearCache(): void
+    {
+        $this->middlewareInstances = [];
+        $this->decoratedBus->clearCache();
     }
 }

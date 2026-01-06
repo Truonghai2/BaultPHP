@@ -5,18 +5,26 @@ declare(strict_types=1);
 namespace Core\CQRS\Query\Implementation;
 
 use Core\Application;
+use Core\CQRS\Middleware\MiddlewareInterface;
 use Core\CQRS\Query\Query;
 use Core\CQRS\Query\QueryBus;
 
 /**
  * QueryBusWithMiddleware is a query bus that applies middleware to queries before dispatching them.
  * It allows for additional processing, such as logging, caching, or performance monitoring.
+ * 
+ * Optimized with middleware instance caching.
  */
 class QueryBusWithMiddleware implements QueryBus
 {
     /**
+     * @var array<string, MiddlewareInterface> Cache for resolved middleware instances
+     */
+    private array $middlewareInstances = [];
+
+    /**
      * @param SimpleQueryBus $decoratedBus The inner query bus that will ultimately execute the handler.
-     * @param array<class-string> $middleware The array of middleware classes to apply.
+     * @param array<class-string<MiddlewareInterface>> $middleware The array of middleware classes to apply.
      * @param Application $app The application container to resolve middleware instances.
      */
     public function __construct(
@@ -36,6 +44,8 @@ class QueryBusWithMiddleware implements QueryBus
 
     /**
      * Delegate handler mapping to the inner bus.
+     *
+     * @param array<string, string> $map
      */
     public function map(array $map): void
     {
@@ -47,6 +57,10 @@ class QueryBusWithMiddleware implements QueryBus
      */
     public function dispatch(Query $query): mixed
     {
+        if (empty($this->middleware)) {
+            return $this->decoratedBus->dispatch($query);
+        }
+
         $coreDispatch = fn (Query $q) => $this->decoratedBus->dispatch($q);
 
         $pipeline = array_reduce(
@@ -60,6 +74,8 @@ class QueryBusWithMiddleware implements QueryBus
 
     /**
      * Create a callable that wraps the next middleware in the pipeline.
+     * 
+     * Optimized with middleware instance caching.
      *
      * @return callable
      */
@@ -67,8 +83,22 @@ class QueryBusWithMiddleware implements QueryBus
     {
         return function (callable $stack, string $pipe) {
             return function (Query $query) use ($stack, $pipe) {
-                return $this->app->make($pipe)->handle($query, $stack);
+                // Cache middleware instances for better performance
+                if (!isset($this->middlewareInstances[$pipe])) {
+                    $this->middlewareInstances[$pipe] = $this->app->make($pipe);
+                }
+
+                return $this->middlewareInstances[$pipe]->handle($query, $stack);
             };
         };
+    }
+
+    /**
+     * Clear all cached middleware instances (useful for testing).
+     */
+    public function clearCache(): void
+    {
+        $this->middlewareInstances = [];
+        $this->decoratedBus->clearCache();
     }
 }
