@@ -2,10 +2,16 @@
 
 namespace Modules\User\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsToMany;
 
 /**
+ * Role Model
+ * 
+ * Represents a user role with associated permissions.
+ * Auto-logs all role changes for security audit.
+ * 
  * @property int $id
  * @property string $name
  * @property string $description
@@ -14,12 +20,24 @@ use Core\ORM\Relations\BelongsToMany;
  */
 class Role extends Model
 {
+    use Auditable;
+
     /**
      * The table associated with the model.
      */
     protected static string $table = 'roles';
 
     protected array $fillable = ['name', 'description'];
+
+    /**
+     * Define which events should be audited.
+     */
+    protected array $auditableEvents = ['created', 'updated', 'deleted'];
+
+    /**
+     * Define which attributes should be tracked in audit logs.
+     */
+    protected array $auditableAttributes = ['name', 'description'];
 
     /**
      * The permissions that belong to the role.

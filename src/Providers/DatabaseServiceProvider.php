@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use Core\Debug\DebugBroadcaster;
+use Core\Debug\RealtimeTraceablePdo;
 use Core\ORM\Connection;
 use Core\ORM\MigrationManager;
 use Core\Support\ServiceProvider;
@@ -30,15 +32,25 @@ class DatabaseServiceProvider extends ServiceProvider
             $connection = $app->make(Connection::class);
             $pdo = $connection->connection(null, 'write');
 
-            // Nếu debug được bật và debugbar tồn tại, hãy bọc PDO lại
-            if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
-                /** @var \DebugBar\DebugBar $debugbar */
-                $debugbar = $app->make('debugbar');
-                /** @var \DebugBar\DataCollector\PDO\PDOCollector $pdoCollector */
-                $pdoCollector = $debugbar->getCollector('pdo');
-
-                $traceablePdo = new \DebugBar\DataCollector\PDO\TraceablePDO($pdo);
-                $pdoCollector->addConnection($traceablePdo, $connection->getDefaultConnection());
+            // Nếu debug được bật, wrap PDO với real-time tracing
+            if ((bool) config('debug.enabled', false)) {
+                // Wrap với RealtimeTraceablePdo cho real-time broadcasting
+                $traceablePdo = new RealtimeTraceablePdo($pdo);
+                
+                // Inject broadcaster nếu có
+                if ($app->bound(DebugBroadcaster::class)) {
+                    $traceablePdo->setBroadcaster($app->make(DebugBroadcaster::class));
+                }
+                
+                // Add vào DebugBar collector nếu có
+                if ($app->bound('debugbar')) {
+                    /** @var \DebugBar\DebugBar $debugbar */
+                    $debugbar = $app->make('debugbar');
+                    /** @var \DebugBar\DataCollector\PDO\PDOCollector $pdoCollector */
+                    $pdoCollector = $debugbar->getCollector('pdo');
+                    $pdoCollector->addConnection($traceablePdo, $connection->getDefaultConnection());
+                }
+                
                 return $traceablePdo;
             }
             return $pdo;

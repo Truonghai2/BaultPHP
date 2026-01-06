@@ -22,6 +22,7 @@ class QueryBuilder
     protected ?int $offset = null;
     protected array $groups = [];
     protected array $removedScopes = [];
+    protected bool $distinct = false;
 
     public function __construct(string $modelClass)
     {
@@ -61,6 +62,17 @@ class QueryBuilder
         }
 
         $this->columns = $columns;
+        return $this;
+    }
+
+    /**
+     * Force the query to only return distinct results.
+     * 
+     * @return $this
+     */
+    public function distinct(): self
+    {
+        $this->distinct = true;
         return $this;
     }
 
@@ -120,7 +132,7 @@ class QueryBuilder
         return $this;
     }
 
-    public function where($column, string $operator = null, $value = null): self
+    public function where($column, $operator = null, $value = null): self
     {
         if (is_string($column)) {
             $model = $this->getModel();
@@ -322,7 +334,8 @@ class QueryBuilder
     public function get(): Collection
     {
         $columns = implode(', ', $this->columns);
-        $sql = "SELECT {$columns} FROM {$this->table}";
+        $distinctClause = $this->distinct ? 'DISTINCT ' : '';
+        $sql = "SELECT {$distinctClause}{$columns} FROM {$this->table}";
         [$whereClause, $whereBindings] = $this->buildWhereClause();
 
         $sql .= $this->buildJoinClause();
@@ -404,6 +417,71 @@ class QueryBuilder
         $stmt = $this->execute($sql, $bindings, 'read');
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Retrieve the maximum value of a given column.
+     *
+     * @param  string  $column
+     * @return mixed
+     */
+    public function max(string $column): mixed
+    {
+        return $this->aggregate('MAX', $column);
+    }
+
+    /**
+     * Retrieve the minimum value of a given column.
+     *
+     * @param  string  $column
+     * @return mixed
+     */
+    public function min(string $column): mixed
+    {
+        return $this->aggregate('MIN', $column);
+    }
+
+    /**
+     * Retrieve the sum of the values of a given column.
+     *
+     * @param  string  $column
+     * @return mixed
+     */
+    public function sum(string $column): mixed
+    {
+        return $this->aggregate('SUM', $column);
+    }
+
+    /**
+     * Retrieve the average of the values of a given column.
+     *
+     * @param  string  $column
+     * @return mixed
+     */
+    public function avg(string $column): mixed
+    {
+        return $this->aggregate('AVG', $column);
+    }
+
+    /**
+     * Execute an aggregate function on the database.
+     *
+     * @param  string  $function
+     * @param  string  $column
+     * @return mixed
+     */
+    protected function aggregate(string $function, string $column): mixed
+    {
+        $sql = "SELECT {$function}({$column}) FROM {$this->table}";
+        [$whereClause, $bindings] = $this->buildWhereClause();
+        $sql .= $this->buildJoinClause();
+        $sql .= $whereClause;
+        $sql .= $this->buildGroupByClause();
+
+        $stmt = $this->execute($sql, $bindings, 'read');
+        $result = $stmt->fetchColumn();
+
+        return $result !== false ? $result : null;
     }
 
     public function exists(): bool
@@ -700,7 +778,7 @@ class QueryBuilder
 
     protected function eagerLoadRelations(array $models): void
     {
-        $this->eagerLoadLevel($models, $this->eagerLoad);
+        $this->eagerLoadLevel(new Collection($models), $this->eagerLoad);
     }
 
     /**
@@ -1019,12 +1097,15 @@ class QueryBuilder
 
         if (!empty($bindings)) {
             foreach ($bindings as $key => $value) {
-                // PDO parameters are 1-indexed
                 $paramType = \PDO::PARAM_STR;
-                if (is_int($value)) {
+                if (is_array($value)) {
+                    $value = json_encode($value);
+                    $paramType = \PDO::PARAM_STR;
+                } elseif (is_int($value)) {
                     $paramType = \PDO::PARAM_INT;
                 } elseif (is_bool($value)) {
-                    $paramType = \PDO::PARAM_BOOL;
+                    $value = (int) $value; // Convert true to 1, false to 0
+                    $paramType = \PDO::PARAM_INT;
                 } elseif (is_null($value)) {
                     $paramType = \PDO::PARAM_NULL;
                 }

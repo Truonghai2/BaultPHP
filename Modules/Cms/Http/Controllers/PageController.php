@@ -2,12 +2,15 @@
 
 namespace Modules\Cms\Http\Controllers;
 
+use Core\Http\Controller;
+use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
 use Modules\Cms\Application\Queries\PageFinder;
 use Modules\Cms\Http\Components\PageEditor;
 use Psr\Http\Message\ResponseInterface as Response;
 
-class PageController
+#[Route(prefix: '/admin/pages', middleware: ['auth'], group: 'web')]
+class PageController extends Controller
 {
     public function __construct(
         private readonly PageFinder $pageFinder,
@@ -25,6 +28,7 @@ class PageController
      * @throws \App\Exceptions\AuthorizationException Thrown by the policy if access is denied.
      * @throws \Modules\Cms\Domain\Exceptions\PageNotFoundException
      */
+    #[Route('/{id}/editor', method: 'GET', name: 'admin.pages.editor')]
     public function editor(int $id): Response
     {
         $page = $this->pageFinder->findById($id);

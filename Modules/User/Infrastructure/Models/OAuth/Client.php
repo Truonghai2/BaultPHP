@@ -12,12 +12,12 @@ class Client extends Model
     protected static string $table = 'oauth_clients';
 
     protected array $fillable = [
-        'id', 'user_id', 'name', 'secret', 'provider', 'redirect', 'personal_access_client', 'password_client', 'revoked',
+        'id', 'user_id', 'name', 'secret', 'provider', 'redirect', 'redirect_uri', 'is_personal_access_client', 'is_password_client', 'is_revoked',
     ];
 
     protected array $casts = [
-        'personal_access_client' => 'boolean',
-        'password_client' => 'boolean',
-        'revoked' => 'boolean',
+        'is_personal_access_client' => 'boolean',
+        'is_password_client' => 'boolean',
+        'is_revoked' => 'boolean',
     ];
 }

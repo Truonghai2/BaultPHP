@@ -62,6 +62,11 @@ class Blueprint
         return $this->addColumn('unsignedBigInteger', $name);
     }
 
+    public function bigInteger(string $name): ColumnDefinition
+    {
+        return $this->addColumn('bigInteger', $name);
+    }
+
     public function string(string $name, int $length = 255): ColumnDefinition
     {
         return $this->addColumn('string', $name, ['length' => $length]);
@@ -184,11 +189,6 @@ class Blueprint
     public function getColumns(): array
     {
         return $this->columns;
-    }
-
-    public function __toString(): string
-    {
-        return $this->getCreateSql();
     }
 
     /**

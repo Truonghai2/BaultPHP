@@ -44,6 +44,16 @@ class ModuleSyncCommand extends BaseCommand
                 $this->line('› No new modules found to register.');
             }
 
+            if (!empty($result['updated'])) {
+                $this->line("\n<fg=yellow>Updating existing modules:</>");
+                foreach ($result['updated'] as $moduleName) {
+                    $this->line("  <fg=blue>↻ Updated:</> {$moduleName}");
+                }
+                $this->info('Module versions updated.');
+            } else {
+                $this->line('› No modules to update.');
+            }
+
             if (!empty($result['removed'])) {
                 $this->line("\n<fg=yellow>Cleaning up stale records:</>");
                 foreach ($result['removed'] as $moduleName) {

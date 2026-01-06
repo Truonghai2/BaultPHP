@@ -1,0 +1,35 @@
+{
+  "name": "baultframe/example-module",
+  "description": "Example module with Composer dependencies",
+  "type": "bault-module",
+  "license": "MIT",
+  "require": {
+    "php": "^8.2",
+    "ext-gd": "*",
+    "monolog/monolog": "^3.0",
+    "intervention/image": "^2.7",
+    "guzzlehttp/guzzle": "^7.5"
+  },
+  "require-dev": {
+    "phpunit/phpunit": "^10.0",
+    "mockery/mockery": "^1.5"
+  },
+  "autoload": {
+    "psr-4": {
+      "Modules\\ExampleModule\\": ""
+    },
+    "files": [
+      "helpers.php"
+    ]
+  },
+  "autoload-dev": {
+    "psr-4": {
+      "Modules\\ExampleModule\\Tests\\": "tests/"
+    }
+  },
+  "extra": {
+    "branch-alias": {
+      "dev-main": "1.x-dev"
+    }
+  }
+}

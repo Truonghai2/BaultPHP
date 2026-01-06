@@ -23,13 +23,12 @@ class ModuleRegistry
             $json = $dir . '/module.json';
 
             if (!file_exists($json)) {
-                $this->markError($pdo, $name, 'Không tìm thấy module.json');
+                $this->markError($pdo, $name, 'The module.json file does not exist');
                 continue;
             }
 
             $meta = json_decode(file_get_contents($json), true);
 
-            // Nếu chưa có trong DB → thêm
             $stmt = $pdo->prepare('SELECT id FROM modules WHERE name = ?');
             $stmt->execute([$name]);
             $exists = $stmt->fetch();
@@ -50,7 +49,7 @@ class ModuleRegistry
     protected function markError($pdo, string $name, string $message): void
     {
         $stmt = $pdo->prepare("INSERT IGNORE INTO modules (name, version, status, description, created_at, updated_at)
-            VALUES (?, '', 'error', ?, NOW(), NOW())");
+            VALUES (?, '', 'pending', ?, NOW(), NOW())");
         $stmt->execute([$name, $message]);
     }
 }

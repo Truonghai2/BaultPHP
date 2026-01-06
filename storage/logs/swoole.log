@@ -1,2 +1,0 @@
-[2025-10-20 22:33:04 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024
-[2025-10-20 22:43:40 @1.0]	WARNING	Server::set_max_connection(): max_connection is exceed the maximum value, it's reset to 1024

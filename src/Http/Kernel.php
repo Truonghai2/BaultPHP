@@ -49,7 +49,6 @@ class Kernel implements KernelContract, StatefulService
         \App\Http\Middleware\TrimStrings::class,
         \App\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\SetLocaleMiddleware::class,
-        \App\Http\Middleware\CheckForPendingModulesMiddleware::class,
     ];
 
     /**
@@ -75,6 +74,7 @@ class Kernel implements KernelContract, StatefulService
     protected array $routeMiddleware = [
         'auth' => \App\Http\Middleware\Authenticate::class,
         'can' => \App\Http\Middleware\CheckPermissionMiddleware::class,
+        'throttle' => \App\Http\Middleware\ThrottleRequests::class,
     ];
 
     /**
@@ -85,12 +85,14 @@ class Kernel implements KernelContract, StatefulService
     protected array $middlewareGroups = [
         'web' => [
             \App\Http\Middleware\EncryptCookies::class,
-            \App\Http\Middleware\StartSession::class,
-            \App\Http\Middleware\ShareMessagesFromSession::class,
-            \App\Http\Middleware\VerifyCsrfToken::class,
-            \App\Http\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\AddQueuedCookiesToResponse::class,
             \App\Http\Middleware\TerminateSession::class,
+            \App\Http\Middleware\StartSession::class,
+            \App\Http\Middleware\ShareMessagesFromSession::class,
+            \App\Http\Middleware\CheckForPendingModulesMiddleware::class,
+            \App\Http\Middleware\VerifyCsrfToken::class,
+            \App\Http\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SpaCorsMiddleware::class,
         ],
         'api' => [
             \App\Http\Middleware\SubstituteBindings::class,
@@ -249,13 +251,43 @@ class Kernel implements KernelContract, StatefulService
      */
     public function resolveAndCallController(Application $app, Route $route, ServerRequestInterface $request): mixed
     {
+        // Handle Closure handlers
+        if ($route->handler instanceof \Closure) {
+            $reflectionFunction = new \ReflectionFunction($route->handler);
+            $parameters = $reflectionFunction->getParameters();
+            
+            $internalKeys = ['uri', 'methods', 'handler', 'name', 'middleware', 'parameters'];
+            $routeParameters = array_diff_key($route->parameters, array_flip($internalKeys));
+            $dependencies = [];
+
+            foreach ($parameters as $parameter) {
+                $paramName = $parameter->getName();
+
+                if (array_key_exists($paramName, $routeParameters)) {
+                    $dependencies[] = $routeParameters[$paramName];
+                    unset($routeParameters[$paramName]);
+                } else {
+                    $dependencies[] = $this->resolveParameter($app, $request, $parameter, $route);
+                }
+            }
+
+            return $reflectionFunction->invokeArgs($dependencies);
+        }
+
+        // Handle array handlers [class, method]
+        if (!is_array($route->handler)) {
+            throw new \RuntimeException('Route handler must be an array [class, method] or a Closure');
+        }
+
         [$controllerClass, $method] = $route->handler;
 
         $reflectionMethod = new ReflectionMethod($controllerClass, $method);
         $parameters = $reflectionMethod->getParameters();
 
-        $internalKeys = ['uri', 'methods', 'handler', 'name', 'middleware', 'parameters'];
-        $routeParameters = array_diff_key($route->parameters, array_flip($internalKeys));
+        // Route parameters are extracted from the URL pattern (e.g., {id}, {name})
+        // and stored directly in $route->parameters by the Router's findRoute() method.
+        // We use them as-is without filtering.
+        $routeParameters = $route->parameters;
         $dependencies = [];
 
         foreach ($parameters as $parameter) {

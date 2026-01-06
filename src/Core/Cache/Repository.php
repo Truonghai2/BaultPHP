@@ -68,6 +68,19 @@ class Repository implements StoreContract
     }
 
     /**
+     * Store an item in the cache (Laravel compatibility).
+     *
+     * @param string $key
+     * @param mixed $value
+     * @param int $seconds
+     * @return bool
+     */
+    public function put(string $key, $value, int $seconds): bool
+    {
+        return $this->set($key, $value, $seconds);
+    }
+
+    /**
      * {@inheritdoc}
      */
     public function get($key, $default = null)
@@ -90,6 +103,17 @@ class Repository implements StoreContract
     public function delete($key)
     {
         return $this->store->delete($key);
+    }
+
+    /**
+     * Alias for delete() method (Laravel compatibility).
+     *
+     * @param string $key
+     * @return bool
+     */
+    public function forget(string $key): bool
+    {
+        return $this->delete($key);
     }
 
     /**

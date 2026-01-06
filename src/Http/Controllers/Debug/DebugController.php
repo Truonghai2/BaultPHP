@@ -16,6 +16,10 @@ class DebugController extends Controller
             return response()->json(['error' => 'Debug mode is disabled.'], 404);
         }
 
+        if (!SwooleRedisPool::isInitialized('default')) {
+            return response()->json(['error' => 'Redis storage is not available. Debug data cannot be retrieved.'], 503);
+        }
+
         try {
             $redis = SwooleRedisPool::get('default');
 

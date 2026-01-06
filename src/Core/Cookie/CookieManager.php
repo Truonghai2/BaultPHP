@@ -12,6 +12,12 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class CookieManager implements StatefulService
 {
+    /**
+     * Static queue shared across all instances within a request
+     * @var array
+     */
+    protected static array $sharedQueue = [];
+    
     protected array $queued = [];
     protected array $config;
 
@@ -74,7 +80,7 @@ class CookieManager implements StatefulService
     ): void {
         $value = $raw ? $value : $this->encrypter->encrypt($value);
 
-        $this->queued[$name] = new Cookie(
+        $cookie = new Cookie(
             $name,
             $value,
             $minutes === 0 ? 0 : time() + ($minutes * 60),
@@ -85,6 +91,10 @@ class CookieManager implements StatefulService
             false, // The value is already encoded by the encrypter, so we don't need raw handling here.
             $sameSite ?? $this->config['same_site'] ?? 'lax',
         );
+        
+        // Queue to both instance and static shared queue
+        $this->queued[$name] = $cookie;
+        self::$sharedQueue[$name] = $cookie;
     }
 
     /**
@@ -100,8 +110,12 @@ class CookieManager implements StatefulService
      */
     public function addQueuedCookiesToResponse(ResponseInterface $response): ResponseInterface
     {
-        foreach ($this->queued as $cookie) {
-            $response = $response->withAddedHeader('Set-Cookie', (string) $cookie);
+        // Use shared queue instead of instance queue
+        $queue = self::$sharedQueue;
+        
+        foreach ($queue as $cookie) {
+            $cookieString = (string) $cookie;
+            $response = $response->withAddedHeader('Set-Cookie', $cookieString);
         }
 
         return $response;
@@ -113,5 +127,6 @@ class CookieManager implements StatefulService
     public function resetState(): void
     {
         $this->queued = [];
+        self::$sharedQueue = [];
     }
 }

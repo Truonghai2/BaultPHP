@@ -36,14 +36,22 @@ class MySqlGrammar implements Grammar
             }
         }
 
+        // Xử lý các cột mới hoặc thay đổi
         foreach ($blueprint->getColumns() as $column) {
             if (!empty($column->change)) {
+                // Cột thay đổi
                 $method = 'compileChange';
                 if (method_exists($this, $method)) {
                     $sql = $this->{$method}($blueprint, $column);
                     if (!is_null($sql)) {
                         $statements = array_merge($statements, (array)$sql);
                     }
+                }
+            } else {
+                // Cột mới - cần ADD COLUMN
+                $sql = $this->compileAddColumn($blueprint, $column);
+                if (!is_null($sql)) {
+                    $statements[] = $sql;
                 }
             }
         }
@@ -86,6 +94,10 @@ class MySqlGrammar implements Grammar
             $sql .= ' DEFAULT ' . $this->formatDefault($column->default);
         }
 
+        if ($column->autoIncrement ?? false) {
+            $sql .= ' AUTO_INCREMENT';
+        }
+
         if ($column->unique) {
             $sql .= ' UNIQUE';
         }
@@ -95,6 +107,26 @@ class MySqlGrammar implements Grammar
         }
 
         return $sql;
+    }
+
+    /**
+     * Compile an add column command for MySQL.
+     */
+    protected function compileAddColumn(Blueprint $blueprint, ColumnDefinition $column): string
+    {
+        $sql = $this->quote($column->name) . ' ' . $this->getType($column);
+        $sql = $this->addModifiers($sql, $blueprint, $column);
+
+        $alterSql = "ALTER TABLE {$this->quote($blueprint->getTableName())} ADD COLUMN {$sql}";
+
+        // Thêm vị trí cột nếu có thuộc tính 'after'
+        if (isset($column->after)) {
+            $alterSql .= " AFTER {$this->quote($column->after)}";
+        } elseif (isset($column->first) && $column->first) {
+            $alterSql .= " FIRST";
+        }
+
+        return $alterSql;
     }
 
     protected function formatDefault($value): string

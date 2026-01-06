@@ -7,10 +7,10 @@ use Core\CQRS\Command;
 class RestoreBlockCommand implements Command
 {
     /**
-     * @param int $pageId
-     * @param string $componentClass
-     * @param array<string, mixed> $content
-     * @param int $order
+     * @param int $pageId The ID of the page to restore the block to.
+     * @param string $componentClass The class of the block component.
+     * @param array<string, mixed> $content The content of the block.
+     * @param int $order The order of the block.
      */
     public function __construct(
         public readonly int $pageId,

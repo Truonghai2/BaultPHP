@@ -7,7 +7,7 @@ use Core\CQRS\Command;
 class DuplicateBlockCommand implements Command
 {
     /**
-     * @param int $pageBlockId ID của PageBlock cần sao chép.
+     * @param int $pageBlockId ID of the PageBlock to duplicate.
      */
     public function __construct(
         public readonly int $pageBlockId,

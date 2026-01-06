@@ -40,14 +40,17 @@ class ClientRepository implements ClientRepositoryInterface
             return false;
         }
 
-        // Đối với client "confidential", secret phải khớp.
-        // Sử dụng hash_equals để chống tấn công timing attack.
         if ($client->secret !== null) {
-            if (!$clientSecret || !hash_equals((string) $client->secret, $clientSecret)) {
+            if (!$clientSecret) {
                 return false;
             }
+            
+            if (str_starts_with($client->secret, '$2y$')) {
+                return password_verify($clientSecret, $client->secret);
+            } else {
+                return hash_equals((string) $client->secret, $clientSecret);
+            }
         }
-        // Đối với client "public", secret phải là null.
         elseif ($clientSecret !== null) {
             return false;
         }

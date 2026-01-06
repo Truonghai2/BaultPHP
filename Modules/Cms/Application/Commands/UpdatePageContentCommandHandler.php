@@ -7,37 +7,57 @@ namespace Modules\Cms\Application\Commands;
 use App\Exceptions\AuthorizationException;
 use Core\CQRS\Command;
 use Core\CQRS\CommandHandler;
-use Core\Support\Facades\Auth;
 use Modules\Cms\Domain\Exceptions\PageNotFoundException;
-use Modules\Cms\Infrastructure\Models\Page;
+use Modules\Cms\Domain\Repositories\PageRepositoryInterface;
+use Modules\Cms\Domain\Services\PageService;
+use Modules\Cms\Domain\ValueObjects\PageContent;
+use Modules\Cms\Domain\ValueObjects\PageId;
+use Modules\User\Domain\Services\AuthorizationService;
 
+/**
+ * Update Page Content Command Handler
+ * 
+ * CQRS Command Handler following DDD standards:
+ * - Does not access Infrastructure directly
+ * - Uses Repository pattern
+ * - Delegates business logic to Domain Service
+ */
 class UpdatePageContentCommandHandler implements CommandHandler
 {
-    /**
-     * Xử lý command cập nhật nội dung và ảnh đại diện của trang.
-     *
-     * @param UpdatePageContentCommand $command
-     * @return void
-     * @throws PageNotFoundException|AuthorizationException
-     */
-    public function handle(UpdatePageContentCommand $command): void
-    {
-        /** @var Page|null $page */
-        $page = Page::find($command->pageId);
+    public function __construct(
+        private readonly PageRepositoryInterface $pageRepository,
+        private readonly PageService $pageService,
+        private readonly AuthorizationService $authorizationService
+    ) {
+    }
 
-        if (!$page) {
-            throw new PageNotFoundException("Page with ID {$command->pageId} not found.");
+    /**
+     * @param Command|UpdatePageContentCommand $command
+     * @throws PageNotFoundException
+     * @throws AuthorizationException
+     */
+    public function handle(Command $command): void
+    {
+        /** @var UpdatePageContentCommand $command */
+        
+        // 1. Load page from repository
+        $pageId = new PageId($command->pageId);
+        $page = $this->pageRepository->findById($pageId);
+
+        // 2. Check authorization (if userId is provided)
+        if ($command->userId) {
+            $this->authorizationService->ensureCanUpdate($command->userId, $page);
         }
 
-        /** @var \Modules\User\Infrastructure\Models\User $user */
-        $user = Auth::user();
+        // 3. Update page content using domain service
+        $content = PageContent::fromArray(['blocks' => $command->blocks]);
+        $updatedPage = $this->pageService->updateContent(
+            $page,
+            $content,
+            $command->featuredImagePath
+        );
 
-        // Kiểm tra quyền: người dùng có được phép cập nhật trang này không?
-        $user->can('update', $page);
-
-        $page->content = $command->blocks;
-        $page->featured_image_path = $command->featuredImagePath;
-
-        $page->save();
+        // 4. Persist changes
+        $this->pageRepository->save($updatedPage);
     }
 }

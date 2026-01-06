@@ -43,6 +43,11 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
      */
     private function withConnection(callable $callback): mixed
     {
+        if (!SwooleRedisPool::isInitialized($this->connectionName)) {
+            $this->logger->error("Redis pool '{$this->connectionName}' is not initialized. Session operations will fail.");
+            throw new \RuntimeException("Redis pool '{$this->connectionName}' is not initialized. Ensure Redis pool is configured and enabled in config/server.php");
+        }
+
         $redis = null;
         try {
             $redis = SwooleRedisPool::get($this->connectionName);

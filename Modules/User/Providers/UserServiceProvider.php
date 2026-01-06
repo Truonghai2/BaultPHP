@@ -10,10 +10,10 @@ class UserServiceProvider extends BaseServiceProvider
      * @var array<int, class-string>
      */
     protected array $handlers = [
-        \Modules\User\Application\Handlers\LoginUserHandler::class,
-        \Modules\User\Application\Handlers\LogoutUserHandler::class,
-        \Modules\User\Application\Handlers\RegisterUserHandler::class,
-        \Modules\User\Application\Handlers\UserRole\AssignRoleToUserHandler::class,
+        \Modules\User\Application\CommandHandlers\Auth\LoginHandler::class,
+        \Modules\User\Application\CommandHandlers\Auth\LogoutHandler::class,
+        \Modules\User\Application\CommandHandlers\Auth\RegisterHandler::class,
+        \Modules\User\Application\CommandHandlers\User\AssignRoleHandler::class,
     ];
 
     /**

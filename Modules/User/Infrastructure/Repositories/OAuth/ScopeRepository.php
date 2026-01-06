@@ -26,8 +26,8 @@ class ScopeRepository implements ScopeRepositoryInterface
 
         $scopeEntity = new ScopeEntity();
         $scopeEntity->setIdentifier($scope->id);
-
-        if (method_exists($scopeEntity, 'setDescription') && isset($scope->description)) {
+        
+        if (isset($scope->description)) {
             $scopeEntity->setDescription($scope->description);
         }
 

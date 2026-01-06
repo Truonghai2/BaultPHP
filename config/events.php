@@ -1,7 +1,6 @@
 <?php
 
 return [
-
     /*
     |--------------------------------------------------------------------------
     | Global Event-Listener mapping
@@ -15,5 +14,4 @@ return [
     Modules\User\Domain\Events\UserRegistered::class => [
         Modules\Notifications\Listeners\SendWelcomeNotification::class,
     ],
-
 ];

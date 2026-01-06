@@ -49,9 +49,18 @@ class BelongsTo extends Relation
     {
         $dictionary = [];
         foreach ($results as $result) {
-            // For BelongsTo, the result should be a single model, not an array of models
             $dictionary[$result->getAttribute($this->ownerKey)] = $result;
         }
         return $dictionary;
+    }
+
+    public function getSelectCountSql(): string
+    {
+        $relatedTable = $this->query->getModel()->getTable();
+        $parentTable = $this->parent->getTable();
+
+        $sql = "SELECT count(*) FROM `{$relatedTable}` WHERE `{$relatedTable}`.`{$this->ownerKey}` = `{$parentTable}`.`{$this->foreignKey}`";
+
+        return $sql;
     }
 }

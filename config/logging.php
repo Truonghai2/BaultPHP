@@ -32,7 +32,7 @@ return [
     'channels' => [
         'default_stack' => [
             'driver' => 'stack',
-            'channels' => array_filter(['daily', 'sentry', (env('APP_ENV') === 'local' && class_exists(\DebugBar\Bridge\MonologCollector::class)) ? 'debugbar' : null]),
+            'channels' => ['daily', 'sentry'],
             'ignore_exceptions' => false,
         ],
         'sync_stack' => [

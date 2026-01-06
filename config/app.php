@@ -50,6 +50,7 @@ return [
         \App\Providers\CacheServiceProvider::class,
         \App\Providers\FeatureServiceProvider::class,
         \App\Providers\ScheduleServiceProvider::class,
+        \App\Providers\DebugBroadcasterServiceProvider::class,
+        \App\Providers\ModuleSettingsServiceProvider::class, // Module settings system
     ],
-
 ];

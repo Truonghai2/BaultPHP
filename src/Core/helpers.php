@@ -90,6 +90,36 @@ if (!function_exists('auth')) {
     }
 }
 
+if (!function_exists('cache')) {
+    /**
+     * Get the cache manager instance or a cache value
+     *
+     * @param string|array|null $key Cache key or array of key-value pairs to set
+     * @param mixed $default Default value if key doesn't exist
+     * @return mixed|\Core\Cache\CacheManager
+     */
+    function cache(string|array|null $key = null, mixed $default = null): mixed
+    {
+        $cache = app(\Core\Cache\CacheManager::class);
+
+        // If no key provided, return cache manager instance
+        if ($key === null) {
+            return $cache;
+        }
+
+        // If array provided, set multiple values
+        if (is_array($key)) {
+            foreach ($key as $k => $v) {
+                $cache->put($k, $v);
+            }
+            return null;
+        }
+
+        // Get single value
+        return $cache->get($key, $default);
+    }
+}
+
 if (!function_exists('dispatch')) {
     /**
      * Dispatch a job to its appropriate handler on the default queue.
@@ -240,7 +270,21 @@ if (!function_exists('class_basename')) {
     }
 }
 
+use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
+
+if (!function_exists('request')) {
+    /**
+     * Get the current request instance.
+     *
+     * @return \Core\Http\Request
+     */
+    function request(): \Core\Http\Request
+    {
+        $psr7Request = app(ServerRequestInterface::class);
+        return new \Core\Http\Request($psr7Request);
+    }
+}
 
 if (!function_exists('response')) {
     /**
@@ -364,6 +408,24 @@ if (!function_exists('route')) {
     function route(string $name, array $parameters = []): string
     {
         return app(UrlGenerator::class)->route($name, $parameters);
+    }
+}
+
+if (!function_exists('route_exists')) {
+    /**
+     * Check if a named route exists.
+     *
+     * @param  string  $name
+     * @return bool
+     */
+    function route_exists(string $name): bool
+    {
+        try {
+            app(UrlGenerator::class)->route($name);
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 }
 
@@ -618,5 +680,892 @@ if (!function_exists('sdd')) {
         $response = $responseFactory->make($output, 200);
 
         throw new DumpException($response);
+    }
+}
+
+
+use Core\Module\ModuleSettingsManager;
+
+if (!function_exists('module_setting')) {
+    /**
+     * Get a module setting value.
+     *
+     * @param string $moduleName
+     * @param string $key
+     * @param mixed $default
+     * @return mixed
+     */
+    function module_setting(string $moduleName, string $key, mixed $default = null): mixed
+    {
+        return app(ModuleSettingsManager::class)->get($moduleName, $key, $default);
+    }
+}
+
+if (!function_exists('set_module_setting')) {
+    /**
+     * Set a module setting value.
+     *
+     * @param string $moduleName
+     * @param string $key
+     * @param mixed $value
+     * @param array $options
+     * @return bool
+     */
+    function set_module_setting(string $moduleName, string $key, mixed $value, array $options = []): bool
+    {
+        return app(ModuleSettingsManager::class)->set($moduleName, $key, $value, $options);
+    }
+}
+
+if (!function_exists('module_settings')) {
+    /**
+     * Get all settings for a module.
+     *
+     * @param string $moduleName
+     * @param string|null $group
+     * @return array
+     */
+    function module_settings(string $moduleName, ?string $group = null): array
+    {
+        return app(ModuleSettingsManager::class)->getAll($moduleName, $group);
+    }
+}
+
+if (!function_exists('has_module_setting')) {
+    /**
+     * Check if a module setting exists.
+     *
+     * @param string $moduleName
+     * @param string $key
+     * @return bool
+     */
+    function has_module_setting(string $moduleName, string $key): bool
+    {
+        return app(ModuleSettingsManager::class)->has($moduleName, $key);
+    }
+}
+
+if (!function_exists('delete_module_setting')) {
+    /**
+     * Delete a module setting.
+     *
+     * @param string $moduleName
+     * @param string $key
+     * @return bool
+     */
+    function delete_module_setting(string $moduleName, string $key): bool
+    {
+        return app(ModuleSettingsManager::class)->delete($moduleName, $key);
+    }
+}
+
+if (!function_exists('clear_module_settings_cache')) {
+    /**
+     * Clear module settings cache.
+     *
+     * @param string $moduleName
+     * @param string|null $key
+     * @return void
+     */
+    function clear_module_settings_cache(string $moduleName, ?string $key = null): void
+    {
+        app(ModuleSettingsManager::class)->clearCache($moduleName, $key);
+    }
+}
+
+
+
+// ============================================================
+// Block System Helpers
+// ============================================================
+
+use Modules\Cms\Domain\Services\BlockRenderer;
+use Modules\Cms\Domain\ValueObjects\RegionName;
+use Modules\Cms\Domain\ValueObjects\BlockId;
+use Modules\Cms\Domain\Repositories\BlockInstanceRepositoryInterface;
+
+if (!function_exists('render_block_region')) {
+    /**
+     * Render all blocks in a region
+     * 
+     * Supports both approaches:
+     * 1. render_block_region('header') - Block tự fetch data
+     * 2. render_block_region('header', ['user' => $user]) - Pass data from controller
+     *
+     * @param string $regionName The region name (e.g., 'header', 'sidebar', 'footer')
+     * @param array|null $context Additional context data from controller/view (optional)
+     * @param string $contextType Context type: 'global', 'page', or 'user' (default: 'global')
+     * @param int|null $contextId Context ID (page ID, user ID, etc.)
+     * @param array|null $userRoles User roles for visibility check
+     * @return string Rendered HTML
+     */
+    function render_block_region(
+        string $regionName,
+        ?array $context = null,
+        string $contextType = 'global',
+        ?int $contextId = null,
+        ?array $userRoles = null
+    ): string {
+        try {
+            /** @var BlockRenderer $renderer */
+            $renderer = app(BlockRenderer::class);
+
+            // Get user roles if authenticated and not provided
+            if ($userRoles === null && auth()->check()) {
+                $userRoles = auth()->user()->getRoles() ?? [];
+            }
+
+            return $renderer->renderRegion($regionName, $contextType, $contextId, $userRoles, $context);
+
+        } catch (\Throwable $e) {
+            if (config('app.debug')) {
+                return sprintf(
+                    '<!-- Block Region Error (%s): %s -->',
+                    htmlspecialchars($regionName),
+                    htmlspecialchars($e->getMessage())
+                );
+            }
+            return '';
+        }
+    }
+}
+
+if (!function_exists('render_page_blocks')) {
+    /**
+     * Render blocks for a specific page
+     * 
+     * @param \Modules\Cms\Infrastructure\Models\Page|int $page Page model or ID
+     * @param string $region Region name (hero, content, sidebar)
+     * @param array|null $context Additional context data
+     * @param array|null $userRoles User roles for visibility check
+     * @return string Rendered HTML
+     */
+    function render_page_blocks($page, string $region = 'content', ?array $context = null, ?array $userRoles = null): string
+    {
+        if (is_int($page)) {
+            $page = \Modules\Cms\Infrastructure\Models\Page::find($page);
+        }
+        
+        if (!$page) {
+            if (config('app.debug')) {
+                return '<!-- No page found for render_page_blocks -->';
+            }
+            return '';
+        }
+
+        /** @var \Modules\Cms\Domain\Services\PageBlockRenderer $renderer */
+        $renderer = app(\Modules\Cms\Domain\Services\PageBlockRenderer::class);
+        
+        // DEBUG: Disable cache and add debug info
+        if (config('app.debug')) {
+            $renderer->withoutCache();
+        }
+        
+        try {
+            $html = $renderer->renderPageBlocks($page, $region, $context, $userRoles);
+            
+            // DEBUG: Add info about blocks
+            if (config('app.debug') && empty($html)) {
+                $blocks = $page->blocksInRegion($region);
+                $blockCount = $blocks->count();
+                $blockInfo = [];
+                foreach ($blocks as $block) {
+                    $blockInfo[] = sprintf(
+                        'Block #%d: %s (visible: %s, type: %s)',
+                        $block->id,
+                        $block->blockType ? $block->blockType->name : 'NULL',
+                        $block->visible ? 'yes' : 'no',
+                        $block->blockType ? 'exists' : 'MISSING'
+                    );
+                }
+                return sprintf(
+                    "<!-- DEBUG: Page #%d, Region '%s', Found %d blocks but rendered empty\n%s\n-->",
+                    $page->id,
+                    $region,
+                    $blockCount,
+                    implode("\n", $blockInfo)
+                );
+            }
+            
+            return $html;
+        } catch (\Throwable $e) {
+            if (config('app.debug')) {
+                return sprintf(
+                    '<!-- render_page_blocks ERROR: %s in %s:%d -->',
+                    htmlspecialchars($e->getMessage()),
+                    basename($e->getFile()),
+                    $e->getLine()
+                );
+            }
+            logger()->error('render_page_blocks failed', [
+                'page_id' => $page->id,
+                'region' => $region,
+                'error' => $e->getMessage(),
+            ]);
+            return '';
+        }
+    }
+}
+
+if (!function_exists('render_block')) {
+    /**
+     * Render a specific block by ID
+     *
+     * @param int $blockId Block instance ID
+     * @param array|null $context Additional context data (optional)
+     * @param array|null $userRoles User roles for visibility check
+     * @return string Rendered HTML
+     */
+    function render_block(int $blockId, ?array $context = null, ?array $userRoles = null): string
+    {
+        try {
+            /** @var BlockRenderer $renderer */
+            $renderer = app(BlockRenderer::class);
+            
+            /** @var BlockInstanceRepositoryInterface $repository */
+            $repository = app(BlockInstanceRepositoryInterface::class);
+
+            $block = $repository->findById(new BlockId($blockId));
+            
+            if (!$block) {
+                if (config('app.debug')) {
+                    return sprintf('<!-- Block #%d not found -->', $blockId);
+                }
+                return '';
+            }
+
+            // Get user roles if authenticated and not provided
+            if ($userRoles === null && auth()->check()) {
+                $userRoles = auth()->user()->getRoles() ?? [];
+            }
+
+            return $renderer->renderBlock($block, $userRoles, $context);
+
+        } catch (\Throwable $e) {
+            if (config('app.debug')) {
+                return sprintf(
+                    '<!-- Block Error (#%d): %s -->',
+                    $blockId,
+                    htmlspecialchars($e->getMessage())
+                );
+            }
+            return '';
+        }
+    }
+}
+
+if (!function_exists('has_blocks_in_region')) {
+    /**
+     * Check if a region has visible blocks
+     *
+     * @param string $regionName Region name
+     * @param string $contextType Context type (default: 'global')
+     * @param int|null $contextId Context ID
+     * @return bool True if region has visible blocks
+     */
+    function has_blocks_in_region(
+        string $regionName,
+        string $contextType = 'global',
+        ?int $contextId = null
+    ): bool {
+        try {
+            $html = render_block_region($regionName, null, $contextType, $contextId);
+            return !empty(trim(strip_tags($html)));
+        } catch (\Throwable $e) {
+            return false;
+        }
+    }
+}
+
+if (!function_exists('get_all_regions')) {
+    /**
+     * Get all rendered regions with their HTML content
+     *
+     * @param array|null $context Additional context data (optional)
+     * @param string $contextType Context type (default: 'global')
+     * @param int|null $contextId Context ID
+     * @param array|null $userRoles User roles
+     * @return array Array of region_name => html
+     */
+    function get_all_regions(
+        ?array $context = null,
+        string $contextType = 'global',
+        ?int $contextId = null,
+        ?array $userRoles = null
+    ): array {
+        try {
+            /** @var BlockRenderer $renderer */
+            $renderer = app(BlockRenderer::class);
+
+            if ($userRoles === null && auth()->check()) {
+                $userRoles = auth()->user()->getRoles() ?? [];
+            }
+
+            return $renderer->renderAllRegions($contextType, $contextId, $userRoles, $context);
+
+        } catch (\Throwable $e) {
+            return [];
+        }
+    }
+}
+
+if (!function_exists('render_block_with_data')) {
+    /**
+     * Shorthand helper to render a region with controller data
+     * 
+     * Example:
+     * Controller: return view('about', ['team' => $teamData]);
+     * View: {!! render_block_with_data('team-section', ['team' => $team]) !!}
+     *
+     * @param string $regionName Region name
+     * @param array $data Data to pass to blocks
+     * @return string Rendered HTML
+     */
+    function render_block_with_data(string $regionName, array $data): string
+    {
+        return render_block_region($regionName, $data);
+    }
+}
+
+
+use Modules\Cms\Domain\Services\BlockSyncService;
+use Modules\Cms\Infrastructure\Models\BlockRegion;
+
+if (!function_exists('sync_blocks')) {
+    /**
+     * Manually trigger block sync
+     * 
+     * @param bool $force Force sync even if recently synced
+     * @return array Sync statistics
+     */
+    function sync_blocks(bool $force = false): array
+    {
+        /** @var BlockSyncService $service */
+        $service = app(BlockSyncService::class);
+        return $service->syncBlocks($force);
+    }
+}
+
+if (!function_exists('blocks_synced')) {
+    /**
+     * Check if blocks are synced
+     * 
+     * @return bool
+     */
+    function blocks_synced(): bool
+    {
+        /** @var BlockSyncService $service */
+        $service = app(BlockSyncService::class);
+        return $service->isSynced();
+    }
+}
+
+if (!function_exists('last_block_sync')) {
+    /**
+     * Get last block sync time
+     * 
+     * @return int|null Unix timestamp or null if never synced
+     */
+    function last_block_sync(): ?int
+    {
+        /** @var BlockSyncService $service */
+        $service = app(BlockSyncService::class);
+        return $service->getLastSyncTime();
+    }
+}
+
+if (!function_exists('clear_block_sync_cache')) {
+    /**
+     * Clear block sync cache to force next sync
+     * 
+     * @return void
+     */
+    function clear_block_sync_cache(): void
+    {
+        /** @var BlockSyncService $service */
+        $service = app(BlockSyncService::class);
+        $service->clearSyncCache();
+    }
+}
+
+if (!function_exists('auto_sync_blocks_on_boot')) {
+    /**
+     * Auto-sync blocks on application boot (development only)
+     * Call this in your service provider's boot method
+     * 
+     * @return void
+     */
+    function auto_sync_blocks_on_boot(): void
+    {
+        if (config('app.env') === 'local' && config('cms.auto_sync_blocks', true)) {
+            try {
+                /** @var BlockSyncService $service */
+                $service = app(BlockSyncService::class);
+                $service->syncBlocks();
+            } catch (\Throwable $e) {
+                // Silent fail - log error but don't break boot
+                if (function_exists('logger')) {
+                    logger()->error('Auto-sync blocks on boot failed', [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+        }
+    }
+}
+
+// ============================================================================
+// Block Duplication & Sync Helpers
+// ============================================================================
+
+if (!function_exists('duplicate_block_to_pages')) {
+    /**
+     * Duplicate a block to multiple pages
+     *
+     * @param int $blockId Source block ID
+     * @param array<int> $targetPageIds Target page IDs
+     * @param bool $keepOriginalRegion Keep same region type
+     * @return array Statistics
+     */
+    function duplicate_block_to_pages(int $blockId, array $targetPageIds, bool $keepOriginalRegion = true): array
+    {
+        /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
+        $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
+        
+        $block = \Modules\Cms\Infrastructure\Models\BlockInstance::find($blockId);
+        
+        if (!$block) {
+            return [
+                'success' => 0,
+                'failed' => count($targetPageIds),
+                'errors' => ['Block not found'],
+            ];
+        }
+        
+        return $service->duplicateToPages($block, $targetPageIds, $keepOriginalRegion);
+    }
+}
+
+if (!function_exists('convert_block_to_global')) {
+    /**
+     * Convert a page-specific block to a global block (shown on all pages)
+     *
+     * @param int $blockId Block to convert
+     * @param string $targetRegion Global region name ('header', 'content', 'sidebar', etc.)
+     * @return bool Success status
+     */
+    function convert_block_to_global(int $blockId, string $targetRegion = 'content'): bool
+    {
+        /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
+        $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
+        
+        $block = \Modules\Cms\Infrastructure\Models\BlockInstance::find($blockId);
+        
+        if (!$block) {
+            return false;
+        }
+        
+        return $service->convertToGlobal($block, $targetRegion);
+    }
+}
+
+if (!function_exists('duplicate_all_page_blocks')) {
+    /**
+     * Duplicate all blocks from one page to another
+     *
+     * @param int $sourcePageId Source page ID
+     * @param int $targetPageId Target page ID
+     * @param bool $includeHidden Include hidden blocks
+     * @return array Statistics
+     */
+    function duplicate_all_page_blocks(int $sourcePageId, int $targetPageId, bool $includeHidden = false): array
+    {
+        /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
+        $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
+        
+        return $service->duplicateAllBlocksToPage($sourcePageId, $targetPageId, $includeHidden);
+    }
+}
+
+if (!function_exists('sync_block_type_config')) {
+    /**
+     * Sync block type configuration across all pages
+     * Updates all blocks of the same type with new config
+     *
+     * @param int $blockTypeId Block type ID
+     * @param array $config New configuration
+     * @return int Number of blocks updated
+     */
+    function sync_block_type_config(int $blockTypeId, array $config): int
+    {
+        /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
+        $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
+        
+        return $service->syncBlockTypeAcrossPages($blockTypeId, $config);
+    }
+}
+
+// ============================================================================
+// Page Blocks Helpers (Simplified Architecture)
+// ============================================================================
+
+if (!function_exists('add_page_block')) {
+    /**
+     * Add a block to a page
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
+     * @param string|int|\Modules\Cms\Infrastructure\Models\BlockType $blockType Block type name, ID, or instance
+     * @param string $region Region name (default: 'content')
+     * @param array $options Additional options (visible, sort_order, etc.)
+     * @return \Modules\Cms\Infrastructure\Models\PageBlock
+     */
+    function add_page_block($page, $blockType, string $region = 'content', array $options = []): \Modules\Cms\Infrastructure\Models\PageBlock
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        $BlockType = \Modules\Cms\Infrastructure\Models\BlockType::class;
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        
+        // Resolve page
+        if (!$page instanceof $Page) {
+            $page = $Page::find($page);
+            if (!$page) {
+                throw new \InvalidArgumentException("Page not found");
+            }
+        }
+
+        // Resolve block type
+        if (is_string($blockType)) {
+            $blockType = $BlockType::where('name', $blockType)->firstOrFail();
+        } elseif (is_numeric($blockType)) {
+            $blockType = $BlockType::findOrFail($blockType);
+        }
+
+        if (!$blockType instanceof $BlockType) {
+            throw new \InvalidArgumentException("Invalid block type");
+        }
+
+        // Get max sort_order in region
+        $sortOrder = $options['sort_order'] ?? ($page->blocks()->where('region', $region)->max('sort_order') ?? 0) + 1;
+
+        // Create page block (title and config come from block_type)
+        $pageBlock = new $PageBlock([
+            'page_id' => $page->id,
+            'block_type_id' => $blockType->id,
+            'region' => $region,
+            'content' => $options['content'] ?? null,
+            'sort_order' => $sortOrder,
+            'visible' => $options['visible'] ?? true,
+            'visibility_rules' => $options['visibility_rules'] ?? null,
+            'allowed_roles' => $options['allowed_roles'] ?? null,
+            'created_by' => $options['created_by'] ?? null,
+        ]);
+
+        $pageBlock->save();
+
+        return $pageBlock;
+    }
+}
+
+if (!function_exists('remove_page_block')) {
+    /**
+     * Remove a block from a page
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $blockId Block ID or instance
+     * @return bool
+     */
+    function remove_page_block($blockId): bool
+    {
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        
+        if ($blockId instanceof $PageBlock) {
+            return $blockId->delete();
+        }
+
+        $block = $PageBlock::find($blockId);
+        return $block ? $block->delete() : false;
+    }
+}
+
+if (!function_exists('get_page_blocks')) {
+    /**
+     * Get all blocks for a page
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
+     * @param string|null $region Optional region filter
+     * @param bool $visibleOnly Only visible blocks (default: true)
+     * @return \Core\Support\Collection
+     */
+    function get_page_blocks($page, ?string $region = null, bool $visibleOnly = true): \Core\Support\Collection
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        
+        if (!$page instanceof $Page) {
+            $page = $Page::find($page);
+            if (!$page) {
+                return collect([]);
+            }
+        }
+
+        $query = $page->blocks();
+
+        if ($region !== null) {
+            $query->where('region', $region);
+        }
+
+        if ($visibleOnly) {
+            $query->where('visible', true);
+        }
+
+        return $query->orderBy('sort_order')->get();
+    }
+}
+
+if (!function_exists('duplicate_page_blocks')) {
+    /**
+     * Duplicate all blocks from one page to another
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $sourcePage Source page ID or instance
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $targetPage Target page ID or instance
+     * @return int Number of blocks duplicated
+     */
+    function duplicate_page_blocks($sourcePage, $targetPage): int
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        
+        if (!$sourcePage instanceof $Page) {
+            $sourcePage = $Page::find($sourcePage);
+            if (!$sourcePage) {
+                throw new \InvalidArgumentException("Source page not found");
+            }
+        }
+
+        if (!$targetPage instanceof $Page) {
+            $targetPage = $Page::find($targetPage);
+            if (!$targetPage) {
+                throw new \InvalidArgumentException("Target page not found");
+            }
+        }
+
+        return $sourcePage->duplicateBlocksTo($targetPage);
+    }
+}
+
+if (!function_exists('reorder_page_block')) {
+    /**
+     * Reorder a page block
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
+     * @param int $newOrder New order value
+     * @return bool
+     */
+    function reorder_page_block($block, int $newOrder): bool
+    {
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        
+        if (!$block instanceof $PageBlock) {
+            $block = $PageBlock::find($block);
+            if (!$block) {
+                return false;
+            }
+        }
+
+        $block->sort_order = $newOrder;
+        return $block->save();
+    }
+}
+
+if (!function_exists('move_page_block_to_region')) {
+    /**
+     * Move a page block to a different region
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
+     * @param string $newRegion New region name
+     * @return bool
+     */
+    function move_page_block_to_region($block, string $newRegion): bool
+    {
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        
+        if (!$block instanceof $PageBlock) {
+            $block = $PageBlock::find($block);
+            if (!$block) {
+                return false;
+            }
+        }
+
+        // Get max sort_order in target region
+        $maxOrder = $PageBlock::where('page_id', $block->page_id)
+            ->where('region', $newRegion)
+            ->max('sort_order') ?? 0;
+
+        $block->region = $newRegion;
+        $block->sort_order = $maxOrder + 1;
+        
+        return $block->save();
+    }
+}
+
+if (!function_exists('toggle_page_block_visibility')) {
+    /**
+     * Toggle visibility of a page block
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
+     * @return bool New visibility state
+     */
+    function toggle_page_block_visibility($block): bool
+    {
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        
+        if (!$block instanceof $PageBlock) {
+            $block = $PageBlock::find($block);
+            if (!$block) {
+                return false;
+            }
+        }
+
+        $block->toggleVisibility();
+        return $block->visible;
+    }
+}
+
+if (!function_exists('get_page_block_types')) {
+    /**
+     * Get all available block types
+     * 
+     * @param bool $activeOnly Only active block types (default: true)
+     * @param string|null $category Filter by category
+     * @return \Core\Support\Collection
+     */
+    function get_page_block_types(bool $activeOnly = true, ?string $category = null): \Core\Support\Collection
+    {
+        $BlockType = \Modules\Cms\Infrastructure\Models\BlockType::class;
+        $query = $BlockType::query();
+
+        if ($activeOnly) {
+            $query->where('is_active', true);
+        }
+
+        if ($category !== null) {
+            $query->where('category', $category);
+        }
+
+        return $query->orderBy('title')->get();
+    }
+}
+
+if (!function_exists('get_block_type_by_name')) {
+    /**
+     * Get a block type by name
+     * 
+     * @param string $name Block type name
+     * @return \Modules\Cms\Infrastructure\Models\BlockType|null
+     */
+    function get_block_type_by_name(string $name): ?\Modules\Cms\Infrastructure\Models\BlockType
+    {
+        return \Modules\Cms\Infrastructure\Models\BlockType::where('name', $name)->first();
+    }
+}
+
+if (!function_exists('page_has_blocks')) {
+    /**
+     * Check if a page has any blocks
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
+     * @param string|null $region Optional region filter
+     * @return bool
+     */
+    function page_has_blocks($page, ?string $region = null): bool
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        
+        if (!$page instanceof $Page) {
+            $page = $Page::find($page);
+            if (!$page) {
+                return false;
+            }
+        }
+
+        if ($region !== null) {
+            return $page->blocksInRegion($region)->isNotEmpty();
+        }
+
+        return $page->hasBlocks();
+    }
+}
+
+if (!function_exists('get_page_regions')) {
+    /**
+     * Get all regions used by a page
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
+     * @return array Array of region names
+     */
+    function get_page_regions($page): array
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        
+        if (!$page instanceof $Page) {
+            $page = $Page::find($page);
+            if (!$page) {
+                return [];
+            }
+        }
+
+        return $page->getRegions();
+    }
+}
+
+if (!function_exists('clear_page_blocks')) {
+    /**
+     * Remove all blocks from a page
+     * 
+     * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
+     * @param string|null $region Optional region filter
+     * @return int Number of blocks deleted
+     */
+    function clear_page_blocks($page, ?string $region = null): int
+    {
+        $Page = \Modules\Cms\Infrastructure\Models\Page::class;
+        
+        if (!$page instanceof $Page) {
+            $page = $Page::find($page);
+            if (!$page) {
+                return 0;
+            }
+        }
+
+        $query = $page->blocks();
+
+        if ($region !== null) {
+            $query->where('region', $region);
+        }
+
+        return $query->delete();
+    }
+}
+
+if (!function_exists('bulk_update_page_blocks_order')) {
+    /**
+     * Update order of multiple blocks at once
+     * 
+     * @param array $blockOrders Array of ['block_id' => new_order]
+     * @return int Number of blocks updated
+     */
+    function bulk_update_page_blocks_order(array $blockOrders): int
+    {
+        $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
+        $updated = 0;
+
+        foreach ($blockOrders as $blockId => $order) {
+            $block = $PageBlock::find($blockId);
+            if ($block) {
+                $block->sort_order = $order;
+                if ($block->save()) {
+                    $updated++;
+                }
+            }
+        }
+
+        return $updated;
     }
 }

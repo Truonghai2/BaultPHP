@@ -3,6 +3,8 @@
 namespace Database\Seeders;
 
 use Core\Database\Seeder;
+use Core\ORM\Connection;
+use Core\Schema\Schema as DbSchema;
 use Modules\User\Infrastructure\Models\OAuth\Client;
 
 class OAuthClientSeeder extends Seeder
@@ -13,40 +15,53 @@ class OAuthClientSeeder extends Seeder
      * @return void
      */
     public function run(): void
-    {
-        // 1. Tạo một "Confidential Client" cho luồng Authorization Code
-        // Đây là client cho các ứng dụng của bên thứ ba, yêu cầu xác thực bằng secret.
-        Client::firstOrCreate(
+    {   
+        /** @var \PDO $pdo */
+        $pdo = $this->container->make(Connection::class)->connection();
+        $schema = new DbSchema($pdo);
+
+        $redirectColumn = $schema->hasColumn('oauth_clients', 'redirect') ? 'redirect' : 'redirect_uri';
+
+        $webAppSecret = env('OAUTH_WEB_CLIENT_SECRET') ?: bin2hex(random_bytes(32));
+        $mobileAppSecret = env('OAUTH_MOBILE_CLIENT_SECRET') ?: bin2hex(random_bytes(32));
+
+        $webClient = Client::firstOrCreate(
             ['id' => '9c882444-76cf-4423-9216-a0a1f485b132'],
             [
                 'name' => 'My Web App',
-                'secret' => 'aVerySecretKeyThatYouShouldChange', // Thay đổi key này trong môi trường production
-                'redirect' => 'http://localhost:3000/callback',
-                'personal_access_client' => false,
-                'password_client' => false,
-                'revoked' => false,
+                'secret' => \Core\Support\Facades\Hash::make($webAppSecret),
+                $redirectColumn => env('OAUTH_WEB_CLIENT_REDIRECT', 'http://localhost:3000/callback'),
+                'is_personal_access_client' => false,
+                'is_password_client' => false,
+                'is_revoked' => false,
             ],
         );
 
-        // 2. Tạo một "Password Grant Client" cho các ứng dụng first-party
-        // Client này được tin tưởng để xử lý trực tiếp username/password của người dùng.
-        // Rất hữu ích cho ứng dụng di động hoặc SPA của chính bạn.
-        Client::firstOrCreate(
+        $mobileClient = Client::firstOrCreate(
             ['id' => '9c8824a7-85b4-431c-991b-3a5a101f7a2c'],
             [
                 'name' => 'My Mobile App',
-                // Password grant client vẫn nên là confidential và có secret.
-                'secret' => 'anotherSecretKeyYouShouldChange',
-                'redirect' => 'http://localhost', // Redirect URI vẫn bắt buộc nhưng không dùng trong luồng password.
-                'personal_access_client' => false,
-                'password_client' => true,
-                'revoked' => false,
+                'secret' => \Core\Support\Facades\Hash::make($mobileAppSecret),
+                $redirectColumn => 'http://localhost',
+                'is_personal_access_client' => false,
+                'is_password_client' => true,
+                'is_revoked' => false,
             ],
         );
 
-        // In ra thông tin để dễ dàng sử dụng
         $this->command->info('OAuth clients created successfully.');
         $this->command->line('  <fg=yellow>Web App (Auth Code) Client ID:</> 9c882444-76cf-4423-9216-a0a1f485b132');
+        
+        if ($webClient && isset($webClient->wasRecentlyCreated) && $webClient->wasRecentlyCreated && !env('OAUTH_WEB_CLIENT_SECRET')) {
+            $this->command->line('  <fg=red>Web App Client Secret:</> ' . $webAppSecret);
+            $this->command->warn('Save this secret! Add to .env: OAUTH_WEB_CLIENT_SECRET=' . $webAppSecret);
+        }
+        
         $this->command->line('  <fg=yellow>Mobile App (Password) Client ID:</> 9c8824a7-85b4-431c-991b-3a5a101f7a2c');
+        
+        if ($mobileClient && isset($mobileClient->wasRecentlyCreated) && $mobileClient->wasRecentlyCreated && !env('OAUTH_MOBILE_CLIENT_SECRET')) {
+            $this->command->line('  <fg=red>Mobile App Client Secret:</> ' . $mobileAppSecret);
+            $this->command->warn('Save this secret! Add to .env: OAUTH_MOBILE_CLIENT_SECRET=' . $mobileAppSecret);
+        }
     }
 }

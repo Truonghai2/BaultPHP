@@ -71,8 +71,15 @@ class SwoolePsr7Bridge
             }
 
             $values = \is_array($values) ? $values : [$values];
-            foreach ($values as $value) {
-                $swooleResponse->header((string) $name, (string) $value);
+            
+            if (strtolower($name) === 'set-cookie') {
+                foreach ($values as $cookieHeader) {
+                    $swooleResponse->header('Set-Cookie', (string) $cookieHeader, false);
+                }
+            } else {
+                foreach ($values as $value) {
+                    $swooleResponse->header((string) $name, (string) $value);
+                }
             }
         }
 

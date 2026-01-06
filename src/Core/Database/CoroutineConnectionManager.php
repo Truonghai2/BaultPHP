@@ -46,11 +46,11 @@ class CoroutineConnectionManager
         $context = Coroutine::getContext($cid);
 
         if (isset($context[$contextKey])) {
-            $this->logger->debug('Reusing DB connection from coroutine context.', ['cid' => $cid, 'connection' => $name]);
+            // Reusing existing connection from coroutine context
             return $context[$contextKey];
         }
 
-        $this->logger->debug('Fetching new DB connection from pool for coroutine.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $this->getPoolStats($name)]);
+        // Fetch new connection from pool
         $connection = SwoolePdoPool::get($name);
 
         if ($connection === false) {
@@ -72,7 +72,7 @@ class CoroutineConnectionManager
     public function release(PDO|PDOProxy $connection, string $name, int $cid): void
     {
         SwoolePdoPool::put($connection, $name);
-        $this->logger->debug('Released DB connection back to pool.', ['cid' => $cid, 'connection' => $name, 'pool_stats' => $this->getPoolStats($name)]);
+        // Connection released back to pool
     }
 
     /**

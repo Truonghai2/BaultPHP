@@ -17,14 +17,21 @@ class UserSeeder extends Seeder
      */
     public function run(): void
     {
-        $user = User::firstOrCreate(
-            ['email' => 'admin@bault.dev'],
-            [
-                'name' => 'Admin User',
-                'password' => Hash::make('password'),
-            ],
-        );
-
+        try {
+            $user = User::firstOrCreate(
+                ['email' => 'admin@bault.dev'],
+                [
+                    'name' => 'Admin User',
+                    'password' => Hash::make('password'),
+                ],
+            );
+        } catch (\Throwable $e) {
+            $this->command?->error('Failed to create admin user "admin@bault.dev". Error: ' . $e->getMessage());
+            // Log the full stack trace for detailed debugging
+            \Core\Support\Facades\Log::error('UserSeeder failed', ['exception' => $e]);
+            return;
+        }
+        
         if (!$user) {
             $this->command?->error('Could not find or create the admin user "admin@bault.dev". Aborting role assignment.');
             return;

@@ -14,11 +14,10 @@ class PagePolicy
      *
      * @param  \Modules\User\Infrastructure\Models\User  $user
      * @param  string  $ability The permission being checked.
-     * @return void|bool Returns true to grant all permissions.
+     * @return bool|null Returns true to grant all permissions.
      */
     public function before(User $user, string $ability)
     {
-        // Super admins can do anything.
         if ($user->can('system.manage-all')) {
             return true;
         }
@@ -44,7 +43,6 @@ class PagePolicy
      */
     public function view(User $user, Page $page): bool
     {
-        // For now, any user who can view the list can view a single page.
         return $user->can('pages:view');
     }
 
@@ -68,7 +66,6 @@ class PagePolicy
      */
     public function update(User $user, Page $page)
     {
-        // Only the author of the page can update it, provided they have the general update permission.
         if ($user->can('pages:update')) {
             return $user->id === $page->user_id
                 ? Response::allow()

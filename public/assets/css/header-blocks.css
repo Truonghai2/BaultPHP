@@ -1,0 +1,332 @@
+/**
+ * Header Blocks Styles
+ * 
+ * Modern styles for navigation and user menu blocks in header
+ */
+
+/* ============================================
+   SITE HEADER
+   ============================================ */
+
+.site-header {
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
+  transition: all 0.3s ease;
+}
+
+.site-header:hover {
+  box-shadow: 0 8px 30px -4px rgba(99, 102, 241, 0.2);
+}
+
+/* ============================================
+   NAVIGATION BLOCK
+   ============================================ */
+
+.header-navigation-block {
+  position: relative;
+}
+
+.header-navigation-block .nav-link {
+  position: relative;
+  overflow: hidden;
+}
+
+.header-navigation-block .nav-link::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.1) 0%,
+    rgba(168, 85, 247, 0.1) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.header-navigation-block .nav-link:hover::before {
+  opacity: 1;
+}
+
+.header-navigation-block .nav-indicator {
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.5);
+}
+
+/* Active state for current page */
+.header-navigation-block .nav-link.active {
+  background: rgba(99, 102, 241, 0.1);
+  color: white;
+}
+
+.header-navigation-block .nav-link.active .nav-indicator {
+  width: 75%;
+}
+
+/* ============================================
+   USER MENU BLOCK
+   ============================================ */
+
+.header-user-menu-block {
+  z-index: 50;
+}
+
+.user-menu-trigger {
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+}
+
+.user-menu-trigger::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.2) 0%,
+    rgba(168, 85, 247, 0.2) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.user-menu-trigger:hover::before {
+  opacity: 1;
+}
+
+.user-avatar {
+  position: relative;
+  animation: avatar-glow 3s ease-in-out infinite;
+}
+
+@keyframes avatar-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(168, 85, 247, 0.7);
+  }
+}
+
+/* Dropdown Menu */
+.user-menu-dropdown {
+  z-index: 100;
+  pointer-events: none;
+}
+
+.header-user-menu-block:hover .user-menu-dropdown {
+  pointer-events: auto;
+}
+
+.user-menu-dropdown .menu-item {
+  position: relative;
+  overflow: hidden;
+}
+
+.user-menu-dropdown .menu-item::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(to bottom, #6366f1, #a855f7);
+  transform: translateX(-100%);
+  transition: transform 0.3s ease;
+}
+
+.user-menu-dropdown .menu-item:hover::before {
+  transform: translateX(0);
+}
+
+.user-menu-dropdown form button {
+  border: none;
+  background: none;
+}
+
+/* Guest state buttons */
+.btn-login,
+.btn-register {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-register::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    135deg,
+    rgba(99, 102, 241, 0.3) 0%,
+    rgba(168, 85, 247, 0.3) 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  border-radius: inherit;
+}
+
+.btn-register:hover::before {
+  opacity: 1;
+}
+
+/* ============================================
+   MOBILE MENU
+   ============================================ */
+
+#mobile-menu {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Mobile navigation links */
+#mobile-menu .nav-link {
+  display: block;
+  width: 100%;
+  text-align: left;
+}
+
+#mobile-menu .header-navigation-block {
+  flex-direction: column;
+  width: 100%;
+}
+
+#mobile-menu .header-navigation-block .nav-link {
+  width: 100%;
+  justify-content: flex-start;
+}
+
+#mobile-menu .header-user-menu-block {
+  width: 100%;
+}
+
+#mobile-menu .user-menu-dropdown {
+  position: static;
+  opacity: 1;
+  visibility: visible;
+  transform: none;
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+/* ============================================
+   LOADING & TRANSITION STATES
+   ============================================ */
+
+.site-header.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.site-header.loading::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #6366f1,
+    #a855f7,
+    transparent
+  );
+  animation: loading-bar 1.5s ease-in-out infinite;
+}
+
+@keyframes loading-bar {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 1024px) {
+  .site-header nav {
+    padding: 0.75rem 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .header-navigation-block .nav-link {
+    padding: 0.75rem 1rem;
+  }
+
+  .user-avatar {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.75rem;
+  }
+}
+
+/* ============================================
+   ACCESSIBILITY
+   ============================================ */
+
+.nav-link:focus-visible,
+.user-menu-trigger:focus-visible,
+.menu-item:focus-visible,
+button:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+  border-radius: 0.375rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .header-navigation-block .nav-link,
+  .header-navigation-block .nav-indicator,
+  .user-menu-trigger,
+  .user-menu-dropdown {
+    transition: none;
+  }
+
+  .user-avatar {
+    animation: none;
+  }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+  .nav-link,
+  .user-menu-trigger,
+  .menu-item {
+    border: 1px solid currentColor;
+  }
+}
+
+/* ============================================
+   PRINT STYLES
+   ============================================ */
+
+@media print {
+  .site-header {
+    position: static;
+    background: white;
+    color: black;
+    box-shadow: none;
+    border-bottom: 1px solid black;
+  }
+
+  .user-menu-dropdown,
+  #mobile-menu-button,
+  .btn-register {
+    display: none !important;
+  }
+}

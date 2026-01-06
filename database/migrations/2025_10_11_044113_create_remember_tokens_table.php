@@ -11,8 +11,8 @@ return new class () extends Migration {
     {
         $this->schema->create('remember_tokens', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained('users')->onDelete('cascade');
-            $table->string('selector', 24)->unique();
+            $table->bigInteger('user_id');
+            $table->string('selector')->unique();
             $table->string('verifier_hash', 64);
             $table->string('user_agent', 255)->nullable();
             $table->string('ip_address', 45)->nullable();

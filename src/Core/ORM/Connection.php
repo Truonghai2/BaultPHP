@@ -43,6 +43,16 @@ class Connection
     }
 
     /**
+     * Get the default connection name.
+     *
+     * @return string
+     */
+    public function getDefaultConnection(): string
+    {
+        return $this->app->make('config')->get('database.default', 'mysql');
+    }
+
+    /**
      * Get a PDO connection instance.
      *
      * @param string|null $name The connection name.
@@ -52,8 +62,7 @@ class Connection
      */
     public function connection(string $name = null, string $type = 'write'): mixed
     {
-        $configRepo = $this->app->make('config');
-        $name ??= $configRepo->get('database.default', 'mysql');
+        $name ??= $this->getDefaultConnection();
 
         if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
             return $this->app->make(CoroutineConnectionManager::class)->get($name);
@@ -89,10 +98,20 @@ class Connection
         // In non-Swoole environments, connections are typically persistent per-request or per-script and don't need to be manually released.
     }
 
+    /**
+     * Get a query builder instance for the given table.
+     *
+     * @param string $table
+     * @return \Core\ORM\QueryBuilder
+     */
+    public function table(string $table): QueryBuilder
+    {
+        return (new QueryBuilder(''))->table($table);
+    }
+
     public function getGrammar(string $name = null): Grammar
     {
-        $configRepo = $this->app->make('config');
-        $name ??= $configRepo->get('database.default', 'mysql');
+        $name ??= $this->getDefaultConnection();
 
         if (isset($this->grammars[$name])) {
             return $this->grammars[$name];

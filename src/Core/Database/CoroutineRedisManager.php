@@ -28,10 +28,10 @@ class CoroutineRedisManager
      *
      * @param string|null $name The name of the connection pool to use. If null, the default will be used.
      * @return \Swoole\Coroutine\Client|\Redis
+     * @throws \RuntimeException If the Redis pool is not initialized
      */
     public function get(string $name = null): \Swoole\Coroutine\Client|\Redis
     {
-        // The default Redis connection name is 'default'.
         $name ??= 'default';
         $contextKey = self::CONTEXT_KEY_PREFIX . $name;
 
@@ -41,6 +41,11 @@ class CoroutineRedisManager
         if (isset($context[$contextKey])) {
             $this->logger->debug('Reusing Redis connection from coroutine context.', ['cid' => $cid, 'connection' => $name]);
             return $context[$contextKey];
+        }
+
+        if (!SwooleRedisPool::isInitialized($name)) {
+            $this->logger->warning("Redis pool '{$name}' is not initialized. Cannot get connection.", ['cid' => $cid]);
+            throw new \RuntimeException("Redis pool '{$name}' is not initialized. Ensure the pool is configured and enabled in config/server.php");
         }
 
         $poolStats = method_exists(SwooleRedisPool::class, 'getAllStats') ? (SwooleRedisPool::getAllStats()[$name] ?? null) : null;

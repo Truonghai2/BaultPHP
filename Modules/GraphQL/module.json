@@ -1,5 +1,0 @@
-{
-  "name": "GraphQL",
-  "version": "1.0.0",
-  "providers": ["Modules\\GraphQL\\Providers\\ModuleServiceProvider"]
-}

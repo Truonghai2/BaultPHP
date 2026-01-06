@@ -6,8 +6,10 @@ use App\Services\SanitizerService;
 use Core\Auth\TokenIssuerService;
 use Core\Console\Commands\MakeProviderCommand;
 use Core\Contracts\Http\Kernel as KernelContract;
+use Core\Contracts\Queue\Dispatcher;
 use Core\Contracts\StatefulService;
 use Core\Http\FormRequest;
+use Core\Queue\QueueDispatcher;
 use Core\Queue\QueueManager;
 use Core\Redis\FiberRedisManager;
 use Core\Services\HealthCheckService;
@@ -35,6 +37,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WebSocketManager::class);
 
         $this->app->singleton(QueueManager::class);
+        
+        $this->app->singleton(Dispatcher::class, QueueDispatcher::class);
 
         $this->configureFormRequestValidation();
 

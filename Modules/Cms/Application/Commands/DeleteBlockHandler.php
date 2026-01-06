@@ -1,45 +1,48 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Cms\Application\Commands;
 
 use Core\CQRS\Command;
 use Core\CQRS\CommandHandler;
 use Core\Support\Facades\Auth;
+use Modules\Cms\Domain\Entities\PageBlock;
 use Modules\Cms\Domain\Exceptions\PageBlockNotFoundException;
-use Modules\Cms\Infrastructure\Models\PageBlock;
+use Modules\Cms\Domain\Repositories\PageBlockRepositoryInterface;
+use Modules\Cms\Domain\Services\PageBlockService;
+use Modules\Cms\Domain\ValueObjects\PageBlockId;
 
 class DeleteBlockHandler implements CommandHandler
 {
+    public function __construct(
+        private readonly PageBlockService $pageBlockService,
+        private readonly PageBlockRepositoryInterface $pageBlockRepository
+    ) {
+    }
+
     /**
-     * Xử lý command xóa một block.
+     * Handle the command to delete a block.
      *
      * @param Command|DeleteBlockCommand $command
-     * @return PageBlock Trả về block đã bị xóa để có thể undo.
+     * @return PageBlock The deleted block to allow for undo.
      * @throws PageBlockNotFoundException|\App\Exceptions\AuthorizationException
      */
     public function handle(Command $command): PageBlock
     {
         /** @var DeleteBlockCommand $command */
-        /** @var PageBlock|null $block */
-        $block = PageBlock::find($command->pageBlockId);
-
-        if (!$block) {
-            throw new PageBlockNotFoundException("PageBlock with ID {$command->pageBlockId} not found.");
-        }
+        $blockId = new PageBlockId($command->pageBlockId);
+        $block = $this->pageBlockRepository->findById($blockId);
 
         /** @var \Modules\User\Infrastructure\Models\User $user */
         $user = Auth::user();
 
-        // Kiểm tra quyền. Phương thức `can` sẽ ném AuthorizationException nếu thất bại.
-        $user->can('delete', $block);
+        // Get Eloquent model for policy check
+        $blockModel = \Modules\Cms\Infrastructure\Models\PageBlock::find($command->pageBlockId);
+        if ($blockModel) {
+            $user->can('delete', $blockModel);
+        }
 
-        // Cập nhật lại thứ tự của các block còn lại trên cùng một trang.
-        PageBlock::where('page_id', '=', $block->page_id)
-                 ->where('order', '>', $block->order)
-                 ->decrement('order');
-
-        $block->delete();
-
-        return $block;
+        return $this->pageBlockService->deleteBlock($blockId);
     }
 }

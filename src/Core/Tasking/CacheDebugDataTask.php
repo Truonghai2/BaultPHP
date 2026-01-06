@@ -18,6 +18,11 @@ class CacheDebugDataTask implements Task
 
     public function handle(): void
     {
+        if (!SwooleRedisPool::isInitialized('default')) {
+            app(LoggerInterface::class)->debug('Redis pool not initialized, skipping debug data caching');
+            return;
+        }
+
         $redisClient = null;
         try {
             $redisClient = SwooleRedisPool::get('default');

@@ -287,6 +287,7 @@
     <div id="debug-bar-resize-handle"></div>
     <div id="debug-bar-header">
         <span class="debug-tab-link" data-tab="info" id="debug-info-request">Bault</span>
+        <span id="debug-route-info" style="margin-right: 15px; font-size: 12px; color: var(--color-muted);"></span>
         <span class="debug-tab-link" data-tab="queries" id="debug-info-queries"></span>
         <span class="debug-tab-link" data-tab="events" id="debug-info-events"></span>
         <span class="debug-tab-link" data-tab="cache" id="debug-info-cache"></span>
@@ -894,7 +895,44 @@ document.addEventListener('DOMContentLoaded', function () {
                 return;
             }
 
-            // Dữ liệu real-time từ server được gói trong 'payload'
+            // Handle debug_realtime messages
+            if (message.type === 'debug_realtime') {
+                const payload = message.payload;
+                if (!payload || !payload.type) return;
+
+                switch(payload.type) {
+                    case 'query':
+                        this.handleQueryUpdate(payload.data);
+                        break;
+                    case 'log':
+                        this.handleLogUpdate(payload.data);
+                        break;
+                    case 'event':
+                        this.handleEventUpdate(payload.data);
+                        break;
+                    case 'cache':
+                        this.handleCacheUpdate(payload.data);
+                        break;
+                    case 'session':
+                        this.handleSessionUpdate(payload.data);
+                        break;
+                    case 'cookie':
+                        this.handleCookieUpdate(payload.data);
+                        break;
+                    case 'queue':
+                        this.handleQueueUpdate(payload.data);
+                        break;
+                    case 'route':
+                        this.handleRouteUpdate(payload.data);
+                        break;
+                    case 'metrics':
+                        this.handleMetricsUpdate(payload.data);
+                        break;
+                }
+                return;
+            }
+
+            // Handle legacy format
             const payload = message.payload;
             if (!payload || !payload.type) return;
 
@@ -965,16 +1003,203 @@ document.addEventListener('DOMContentLoaded', function () {
         },
 
         handleCacheUpdate(data) {
-            // Similar to logs, this is complex and might be better handled by a full data refresh.
-            console.log('BaultDebugBar [Cache]:', data);
+            const container = this.elements.debugContentCache;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                // Tạo mới container nếu chưa có
+                container.innerHTML = '<h3>Cache Events</h3>';
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const operation = (data.operation || 'UNKNOWN').toUpperCase();
+            const badgeClass = `badge-${operation.toLowerCase()}`;
+            const badge = `<span class="debug-cache-badge ${badgeClass}">${operation}</span>`;
+            
+            const dt = document.createElement('dt');
+            dt.innerHTML = badge + this.escapeHtml(data.key || '');
+            
+            const dd = document.createElement('dd');
+            if (data.value !== undefined && data.value !== null && operation !== 'MISS' && operation !== 'DELETE') {
+                const safeValue = typeof data.value === 'string' 
+                    ? this.escapeHtml(data.value) 
+                    : this.escapeHtml(this.safeStringify(data.value));
+                dd.innerHTML = `<pre><code>${safeValue}</code></pre>`;
+            } else {
+                dd.innerHTML = '<em>Value not shown.</em>';
+            }
+            
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+
+            // Update badge counters (simplified)
+            const cacheInfo = this.elements.debugInfoCache;
+            if (cacheInfo) {
+                const hits = dl.querySelectorAll('.badge-hit').length;
+                const misses = dl.querySelectorAll('.badge-miss').length;
+                const writes = dl.querySelectorAll('.badge-write').length;
+                cacheInfo.innerHTML = `Cache: <b>H:${hits} M:${misses} W:${writes}</b>`;
+            }
+        },
+
+        handleSessionUpdate(data) {
+            const container = this.elements.debugContentSession;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                container.innerHTML = '<h3>Session Operations</h3>';
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const operation = (data.operation || 'UNKNOWN').toUpperCase();
+            const badge = `<span class="debug-badge badge-${operation === 'SET' || operation === 'FLASH' ? 'write' : operation === 'GET' ? 'hit' : 'forget'}">${operation}</span>`;
+            
+            const dt = document.createElement('dt');
+            dt.innerHTML = badge + ' ' + this.escapeHtml(data.key || '');
+            
+            const dd = document.createElement('dd');
+            if (data.value !== undefined && data.value !== null && operation !== 'REMOVE' && operation !== 'FORGET') {
+                const safeValue = typeof data.value === 'string' 
+                    ? this.escapeHtml(data.value) 
+                    : this.escapeHtml(this.safeStringify(data.value));
+                dd.innerHTML = `<pre><code>${safeValue}</code></pre>`;
+            } else {
+                dd.innerHTML = '<em>No value</em>';
+            }
+            
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+
+            // Update counter
+            const count = dl.querySelectorAll('dt').length;
+            if (this.elements.debugInfoSession) {
+                this.elements.debugInfoSession.innerHTML = `Session: <b>${count}</b>`;
+            }
+        },
+
+        handleCookieUpdate(data) {
+            const container = this.elements.debugContentCookies;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                container.innerHTML = '<h3>Cookie Operations</h3>';
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const operation = (data.operation || 'UNKNOWN').toUpperCase();
+            const badge = `<span class="debug-badge badge-${operation === 'QUEUE' ? 'write' : operation === 'EXPIRE' ? 'forget' : 'default'}">${operation}</span>`;
+            
+            const dt = document.createElement('dt');
+            dt.innerHTML = badge + ' ' + this.escapeHtml(data.name || '');
+            
+            const dd = document.createElement('dd');
+            if (data.value !== undefined && data.value !== null) {
+                dd.innerHTML = `<pre><code>${this.escapeHtml(String(data.value))}</code></pre>`;
+            } else if (data.options && Object.keys(data.options).length > 0) {
+                dd.innerHTML = `<pre><code>${this.escapeHtml(this.safeStringify(data.options))}</code></pre>`;
+            } else {
+                dd.innerHTML = '<em>No data</em>';
+            }
+            
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+
+            // Update counter
+            const count = dl.querySelectorAll('dt').length;
+            if (this.elements.debugInfoCookies) {
+                this.elements.debugInfoCookies.innerHTML = `Cookies: <b>${count}</b>`;
+            }
+        },
+
+        handleQueueUpdate(data) {
+            // Add to events or create new queue tab
+            console.log('BaultDebugBar [Queue]:', data);
+            
+            // For now, show in events
+            const container = this.elements.debugContentEvents;
+            if (!container) return;
+
+            let dl = container.querySelector('dl');
+            if (!dl) {
+                dl = document.createElement('dl');
+                container.appendChild(dl);
+            }
+
+            const dt = document.createElement('dt');
+            dt.innerHTML = `<span class="debug-badge badge-info">QUEUE</span> ${this.escapeHtml(data.job || '')}`;
+            
+            const dd = document.createElement('dd');
+            dd.innerHTML = `<pre><code>Queue: ${this.escapeHtml(data.queue || 'default')}\nData: ${this.escapeHtml(this.safeStringify(data.data || {}))}</code></pre>`;
+            
+            dl.prepend(dd);
+            dl.prepend(dt);
+            dt.classList.add('debug-item-highlight');
+        },
+
+        handleRouteUpdate(data) {
+            // Update route info in header
+            const routeInfo = document.getElementById('debug-route-info');
+            if (routeInfo) {
+                const methodClass = `badge-route-${(data.method || '').toLowerCase()}`;
+                routeInfo.innerHTML = `<span class="debug-badge ${methodClass}">${this.escapeHtml(data.method || '')}</span> ${this.escapeHtml(data.uri || '')}`;
+            }
+
+            // Also show in routes tab
+            const container = this.elements.debugContentRoutes;
+            if (container && !container.querySelector('.current-route')) {
+                const currentRoute = document.createElement('div');
+                currentRoute.className = 'current-route';
+                currentRoute.innerHTML = `
+                    <h4 style="color: var(--color-primary);">Current Route</h4>
+                    <dl>
+                        <dt><span class="debug-badge ${`badge-route-${(data.method || '').toLowerCase()}`}">${this.escapeHtml(data.method || '')}</span>${this.escapeHtml(data.uri || '')}</dt>
+                        <dd><pre><code>Action: ${this.escapeHtml(data.action || '')}\nMiddleware: ${this.escapeHtml((data.middleware || []).join(', '))}</code></pre></dd>
+                    </dl>
+                `;
+                container.insertBefore(currentRoute, container.firstChild);
+            }
+        },
+
+        handleMetricsUpdate(data) {
+            // Update time and memory in header
+            if (this.elements.debugInfoDuration) {
+                this.elements.debugInfoDuration.innerHTML = `Time: <b>${data.time_ms || 0}ms</b>`;
+            }
+            if (this.elements.debugInfoMemory) {
+                this.elements.debugInfoMemory.innerHTML = `Memory: <b>${data.memory_mb || 0} MB</b> (Peak: <b>${data.memory_peak_mb || 0} MB</b>)`;
+            }
         }
     };
 
     BaultDebugBar.init();
 
     @php
+        // Lấy request ID từ application container
+        $requestId = app()->has('request_id') ? app('request_id') : null;
+        
+        // Lấy debug data nếu có (cho render ngay lập tức)
         $debugData = app()->has('debug_manager') ? app('debug_manager')->getData() : null;
     @endphp
+
+    // Inject request ID vào debug bar
+    if ('{{ $requestId }}') {
+        BaultDebugBar.state.lastRequestId = '{{ $requestId }}';
+        sessionStorage.setItem('bault-debug-last-id', '{{ $requestId }}');
+        
+        // Fetch debug data sau khi page load (sau khi middleware đã collect xong)
+        setTimeout(() => {
+            BaultDebugBar.fetchDebugData();
+        }, 500);
+    }
 
     try {
         const initialDebugData = {!! json_encode($debugData) !!};

@@ -1,4 +1,5 @@
 import morphdom from "https://jspm.dev/morphdom";
+import { CsrfTokenManager } from "./spa-utils.js";
 
 /**
  * "Trái tim" của hệ thống component tương tác BaultPHP.
@@ -25,14 +26,13 @@ function debounce(key, callback, time = 150) {
   debounceTimers.set(key, timer);
 }
 
-// Helper to get CSRF token from meta tag
+// Helper to get CSRF token from meta tag (using centralized manager)
 function getCsrfToken() {
-  const tokenEl = document.querySelector('meta[name="csrf-token"]');
-  if (tokenEl) {
-    return tokenEl.getAttribute("content");
+  const token = CsrfTokenManager.getToken();
+  if (!token) {
+    console.warn("Bault: CSRF token not found.");
   }
-  console.warn("Bault: CSRF token meta tag not found.");
-  return null;
+  return token;
 }
 
 function findComponent(el) {

@@ -34,4 +34,12 @@ class CsrfManager
         $token = new CsrfToken($tokenId, $tokenValue ?? '');
         return $this->symfonyManager->isTokenValid($token);
     }
+
+    /**
+     * Refresh/regenerate a CSRF token.
+     */
+    public function refreshToken(string $tokenId = '_token'): void
+    {
+        $this->symfonyManager->refreshToken($tokenId);
+    }
 }

@@ -156,6 +156,10 @@ final class RequestLifecycle
             $this->handleDebugTermination();
         }
 
+        // Call terminating callbacks (password rehashing, etc.)
+        // These run AFTER response is sent but BEFORE cleanup
+        $this->app->callTerminatingCallbacks();
+
         $this->stateResetter->reset();
 
         $this->app->forgetInstance(ServerRequestInterface::class);
@@ -176,14 +180,14 @@ final class RequestLifecycle
 
                 if ($this->app->bound(ServerRequestInterface::class)) {
                     $request = $this->app->make(ServerRequestInterface::class);
-                    $this->debugManager->add('cookies', $request->getCookieParams());
+                    $this->debugManager->set('cookies', $request->getCookieParams());
                 }
 
                 if ($this->app->bound(SessionInterface::class)) {
                     /** @var SessionInterface $session */
                     $session = $this->app->make(SessionInterface::class);
                     if ($session->isStarted()) {
-                        $this->debugManager->add('session', $session->all());
+                        $this->debugManager->set('session', $session->all());
                     }
                 }
 

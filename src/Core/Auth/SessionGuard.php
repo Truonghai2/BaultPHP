@@ -59,13 +59,17 @@ class SessionGuard implements Guard
         }
 
         $id = $this->session->get($this->getName());
+        $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
 
         if (!is_null($id)) {
             $user = $this->provider->retrieveById($id);
             if (!is_null($user)) {
+                $this->setUser($user);
+                $logger->info('SessionGuard: User restored from session', ['user_id' => $id]);
                 $this->fireAuthenticatedEvent($user);
                 return $this->user;
             }
+            $logger->warning('SessionGuard: User ID in session but user not found', ['user_id' => $id]);
         }
 
         $recaller = $this->getRecallerFromCookie();
@@ -74,6 +78,7 @@ class SessionGuard implements Guard
             $user = $this->userFromRecaller($recaller);
 
             if (!is_null($user)) {
+                $logger->info('SessionGuard: User restored from remember token', ['user_id' => $user->getAuthIdentifier()]);
                 $this->updateSession($user->getAuthIdentifier());
 
                 $this->dispatcher?->dispatch(new Login('session', $user, true));
@@ -137,7 +142,11 @@ class SessionGuard implements Guard
 
     public function attempt(array $credentials = [], bool $remember = false): ?Authenticatable
     {
+        $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
+        
+        $start = microtime(true);
         $user = $this->provider->retrieveByCredentials($credentials);
+        $logger->info('SessionGuard: User retrieval', ['duration_ms' => (microtime(true) - $start) * 1000]);
 
         if ($this->hasValidCredentials($user, $credentials)) {
             $this->login($user, $remember);
@@ -153,7 +162,87 @@ class SessionGuard implements Guard
             return false;
         }
 
-        return Hash::check($credentials['password'], $user->getAuthPassword());
+        $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
+        $start = microtime(true);
+        $result = Hash::check($credentials['password'], $user->getAuthPassword());
+        $logger->info('SessionGuard: Password verification', ['duration_ms' => (microtime(true) - $start) * 1000]);
+        
+        // Auto-rehash password if needed (when hashing config changes)
+        if ($result && Hash::needsRehash($user->getAuthPassword())) {
+            $this->rehashPasswordAfterLogin($user, $credentials['password']);
+        }
+        
+        return $result;
+    }
+    
+    /**
+     * Rehash user's password with current hashing configuration.
+     * This happens asynchronously after successful login to avoid blocking the response.
+     */
+    protected function rehashPasswordAfterLogin(Authenticatable $user, string $plainPassword): void
+    {
+        // Defer rehashing to after response is sent
+        $this->app->terminating(function () use ($user, $plainPassword) {
+            try {
+                // Determine risk level based on user role
+                $riskLevel = $this->determineUserRiskLevel($user);
+                
+                // Use adaptive hashing if available
+                $hasher = $this->app->make('hash');
+                if ($hasher instanceof \Core\Hashing\AdaptiveHashManager) {
+                    $newHash = $hasher->makeWithRisk($plainPassword, $riskLevel);
+                } else {
+                    $newHash = $hasher->make($plainPassword);
+                }
+                
+                // Update password in database
+                if (method_exists($user, 'updatePassword')) {
+                    $user->updatePassword($newHash);
+                } else {
+                    // Fallback: direct update
+                    $user->password = $newHash;
+                    $user->save();
+                }
+                
+                $this->app->make(\Psr\Log\LoggerInterface::class)->info('Password rehashed for user', [
+                    'user_id' => $user->getAuthIdentifier(),
+                    'risk_level' => $riskLevel,
+                ]);
+            } catch (\Throwable $e) {
+                $this->app->make(\Psr\Log\LoggerInterface::class)->warning('Failed to rehash password', [
+                    'user_id' => $user->getAuthIdentifier(),
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        });
+    }
+    
+    /**
+     * Determine the risk level for a user based on their roles and permissions.
+     * This is used for adaptive hashing with different security parameters.
+     */
+    protected function determineUserRiskLevel(Authenticatable $user): string
+    {
+        // Check if user has isSuperAdmin method (from your User model)
+        if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
+            return 'critical';
+        }
+        
+        // Check if user has hasRole method
+        if (method_exists($user, 'hasRole')) {
+            // Check for admin roles
+            if ($user->hasRole('admin') || $user->hasRole('administrator')) {
+                return 'high';
+            }
+            
+            // Check for moderator or manager roles
+            if ($user->hasRole('moderator') || $user->hasRole('manager')) {
+                return 'standard';
+            }
+        }
+        
+        // Default to standard risk for regular users
+        return 'standard';
     }
 
     public function setUser(Authenticatable $user): void
@@ -186,7 +275,17 @@ class SessionGuard implements Guard
         $logger->info('Updating session and migrating ID.', ['user_id' => $id]);
 
         $this->session->set($this->getName(), $id);
-        $this->session->regenerate(true);
+        
+        $this->session->regenerate(false);
+        
+        try {
+            $csrfManager = $this->app->make(\Core\Security\CsrfManager::class);
+            $csrfManager->refreshToken('_token');
+        } catch (\Exception $e) {
+            $logger->warning('Failed to refresh CSRF token', ['error' => $e->getMessage()]);
+        }
+        
+        $this->session->save();
 
         $duration = microtime(true) - $startTime;
 
@@ -219,7 +318,10 @@ class SessionGuard implements Guard
      */
     protected function getRecallerFromCookie(): ?array
     {
-        $cookie = $this->cookieManager->get($this->getRememberMeCookieName());
+        $cookieName = $this->getRememberMeCookieName();
+        $cookie = $this->cookieManager->get($cookieName);
+        
+        $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
 
         if (!$cookie || !str_contains($cookie, ':')) {
             return null;

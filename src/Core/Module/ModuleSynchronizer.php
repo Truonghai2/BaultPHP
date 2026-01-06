@@ -16,7 +16,7 @@ class ModuleSynchronizer
     /**
      * Scans the filesystem for modules and synchronizes them with the database.
      *
-     * @return array An array containing 'added' and 'removed' module names.
+     * @return array An array containing 'added', 'updated', and 'removed' module names.
      */
     public function sync(): array
     {
@@ -29,6 +29,7 @@ class ModuleSynchronizer
         $databaseModuleNames = $databaseModules->keys()->all();
 
         $newlyAdded = [];
+        $updated = [];
         $staleRemoved = [];
 
         // Modules to add to DB
@@ -41,26 +42,57 @@ class ModuleSynchronizer
                     'name' => $meta['name'],
                     'version' => $meta['version'] ?? '1.0.0',
                     'description' => $meta['description'] ?? '',
-                    'enabled' => false, // Always add as disabled by default
+                    'enabled' => false, 
+                    'status' => 'pending', 
                 ]);
                 $newlyAdded[] = $moduleName;
 
-                // Broadcast the new module detection via RPC
                 $this->broadcastNewModule($meta);
             }
         }
 
-        // Modules to remove from DB (stale records)
+        $existingModules = array_intersect($filesystemModuleNames, $databaseModuleNames);
+        if (!empty($existingModules)) {
+            Log::info('Checking for version updates in existing modules...', ['modules' => $existingModules]);
+            foreach ($existingModules as $moduleName) {
+                $meta = $filesystemModules[$moduleName];
+                $dbModule = $databaseModules->get($moduleName);
+
+                $filesystemVersion = $meta['version'] ?? '1.0.0';
+                $databaseVersion = $dbModule->version ?? '1.0.0';
+
+                if (version_compare($filesystemVersion, $databaseVersion, '>')) {
+                    Log::info("Module '{$moduleName}' has a newer version", [
+                        'old_version' => $databaseVersion,
+                        'new_version' => $filesystemVersion,
+                    ]);
+
+                    $dbModule->update([
+                        'version' => $filesystemVersion,
+                        'description' => $meta['description'] ?? $dbModule->description,
+                    ]);
+
+                    $updated[] = $moduleName;
+                }
+            }
+        }
+
         $staleModules = array_diff($databaseModuleNames, $filesystemModuleNames);
         if (!empty($staleModules)) {
             Log::info('Stale module records found, removing...', ['modules' => $staleModules]);
             Module::whereIn('name', $staleModules)->delete();
             $staleRemoved = $staleModules;
         }
-        Log::info('Module synchronization complete.');
+        
+        Log::info('Module synchronization complete.', [
+            'added' => count($newlyAdded),
+            'updated' => count($updated),
+            'removed' => count($staleRemoved),
+        ]);
 
         return [
             'added' => $newlyAdded,
+            'updated' => $updated,
             'removed' => $staleRemoved,
         ];
     }

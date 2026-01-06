@@ -138,4 +138,53 @@ class ColumnDefinition extends Fluent
 
         return $this;
     }
+
+    /**
+     * Place the column "after" another column (MySQL).
+     *
+     * @param  string  $column
+     * @return $this
+     */
+    public function after(string $column): self
+    {
+        $this->after = $column;
+
+        return $this;
+    }
+
+    /**
+     * Place the column "first" in the table (MySQL).
+     *
+     * @return $this
+     */
+    public function first(): self
+    {
+        $this->first = true;
+
+        return $this;
+    }
+
+    /**
+     * Specify that the column should auto-increment (primary key).
+     *
+     * @return $this
+     */
+    public function autoIncrement(): self
+    {
+        $this->autoIncrement = true;
+
+        return $this;
+    }
+
+    /**
+     * Specify that the column should be unsigned (numbers).
+     *
+     * @return $this
+     */
+    public function unsigned(): self
+    {
+        $this->unsigned = true;
+
+        return $this;
+    }
 }

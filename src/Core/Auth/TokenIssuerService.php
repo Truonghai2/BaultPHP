@@ -8,7 +8,7 @@ use Lcobucci\JWT\Signer\Hmac\Sha256;
 use Lcobucci\JWT\Signer\Key\InMemory;
 
 /**
- * Dịch vụ chuyên tạo JWT token.
+ * Service for issuing JWT tokens.
  */
 class TokenIssuerService
 {
@@ -23,7 +23,7 @@ class TokenIssuerService
     }
 
     /**
-     * Tạo một token cho một user với các scope và thời gian sống nhất định.
+     * Issue a token for a user with specific scopes and lifetime.  
      */
     public function issue(Authenticatable $user, array $scopes = [], int $lifetime = 3600): string
     {

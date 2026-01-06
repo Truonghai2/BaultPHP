@@ -239,7 +239,7 @@ return [
         'guzzle' => [
             'enabled' => env('GUZZLE_POOL_ENABLED', true),
             'class' => \Core\Http\Swoole\SwooleGuzzlePool::class,
-            'config_prefix' => 'services.guzzle.clients', // Nơi lấy cấu hình chi tiết cho từng client
+            'config_prefix' => 'services.guzzle.clients',
 
             'defaults' => [
                 'worker_pool_size' => env('GUZZLE_POOL_WORKER_SIZE', 15),
@@ -252,12 +252,9 @@ return [
             ],
 
             'connections' => [
-                // Cấu hình cho một client Guzzle mặc định
                 'default' => [
-                    // Các tùy chọn Guzzle sẽ được lấy từ 'services.guzzle.clients.default'
                 ],
 
-                // Ví dụ về một client khác để gọi một API cụ thể
                 'weather_api' => [
                     'worker_pool_size' => 5,
                 ],

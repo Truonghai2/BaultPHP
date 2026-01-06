@@ -17,9 +17,8 @@ use Psr\EventDispatcher\EventDispatcherInterface;
 use Psr\Http\Message\ServerRequestInterface;
 
 /**
- * A guard that validates OAuth2 access tokens (JWTs) for stateless authentication.
- * This guard centralizes the logic for validating tokens from both HTTP requests
- * and direct token strings (e.g., for WebSockets).
+ * A guard that validates JWT tokens for stateless authentication.
+ * This guard centralizes the logic for validating tokens from HTTP requests.
  */
 class TokenGuard implements Guard
 {
@@ -123,6 +122,8 @@ class TokenGuard implements Guard
         $this->validatedRequestAttributes = [
             'oauth_user_id' => $validatedRequest->getAttribute('oauth_user_id'),
             'oauth_scopes' => $validatedRequest->getAttribute('oauth_scopes', []),
+            'oauth_access_token_id' => $validatedRequest->getAttribute('oauth_access_token_id'),
+            'oauth_client_id' => $validatedRequest->getAttribute('oauth_client_id'),
         ];
 
         $userId = $this->validatedRequestAttributes['oauth_user_id'];
@@ -131,30 +132,66 @@ class TokenGuard implements Guard
             return null;
         }
 
+        // Check in-memory cache first (valid for current request lifecycle only)
         if (isset(self::$userCache[$userId])) {
             $user = self::$userCache[$userId];
         } else {
-            $cacheKey = "user:{$userId}";
-            $user = $this->cache->rememberForever($cacheKey, function () use ($userId) {
+            $cacheKey = "oauth:user:{$userId}";
+            
+            // Cache user data for the duration of access token TTL
+            // This prevents stale data if user is deleted/updated
+            $cacheTtl = $this->getAccessTokenTTL();
+            
+            $user = $this->cache->remember($cacheKey, $cacheTtl, function () use ($userId) {
                 return User::find($userId);
             });
         }
 
         if (!$user) {
+            // Invalidate cache on user not found
+            $this->cache->forget("oauth:user:{$userId}");
             throw new OAuthServerException('Access token is not associated with a valid user.', 10, 'invalid_grant', 401);
         }
 
         $this->dispatcher?->dispatch(new Authenticated('token', $user));
 
-        // Store the user in the static cache for subsequent calls within the same request.
+        // Store in request-scoped cache
         self::$userCache[$userId] = $user;
 
         return $user;
     }
 
+    /**
+     * Get the access token TTL in seconds.
+     */
+    protected function getAccessTokenTTL(): int
+    {
+        $ttl = $this->app->make('config')->get('oauth2.access_token_ttl', 'PT1H');
+        
+        try {
+            $interval = new \DateInterval($ttl);
+            $reference = new \DateTime();
+            $endTime = $reference->add($interval);
+            return $endTime->getTimestamp() - (new \DateTime())->getTimestamp();
+        } catch (\Exception $e) {
+            // Default to 1 hour if parsing fails
+            return 3600;
+        }
+    }
+
     public function getScopes(): array
     {
         return $this->validatedRequestAttributes['oauth_scopes'] ?? [];
+    }
+
+    public function getTokenId(): ?string
+    {
+        return $this->validatedRequestAttributes['oauth_access_token_id'] ?? null;
+    }
+
+    public function getClientId(): ?string
+    {
+        return $this->validatedRequestAttributes['oauth_client_id'] ?? null;
     }
 
     protected function getRequest(): ?ServerRequestInterface
@@ -169,14 +206,10 @@ class TokenGuard implements Guard
     }
 
     /**
-     * Log a user into the application.
-     *
-     * For a token-based guard, this doesn't create a session. It simply sets
-     * the user for the current request instance.
+     * Log a user into the application. This doesn't create a session. It simply sets the user for the current request instance.
      */
     public function login(Authenticatable $user, bool $remember = false): void
     {
-        // Dispatch event để đảm bảo tính nhất quán với SessionGuard
         $this->dispatcher?->dispatch(new Login('token', $user, false));
         $this->setUser($user);
     }

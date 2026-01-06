@@ -1,0 +1,213 @@
+/**
+ * SPA Navigation Animations
+ * Enhanced transitions for better UX
+ */
+
+/* Loading state */
+body.spa-loading {
+  cursor: wait;
+}
+
+/* Content transitions */
+.spa-content-exiting {
+  animation: spa-fade-out 0.2s ease-out;
+}
+
+.spa-content-entering {
+  animation: spa-fade-in 0.3s ease-in;
+}
+
+@keyframes spa-fade-out {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes spa-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Alternative slide animations - uncomment to use */
+/*
+.spa-content-exiting {
+  animation: spa-slide-out-left 0.2s ease-out;
+}
+
+.spa-content-entering {
+  animation: spa-slide-in-right 0.3s ease-in;
+}
+
+@keyframes spa-slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+}
+
+@keyframes spa-slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+*/
+
+/* Loading skeleton - optional */
+.spa-loading .spa-skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: spa-skeleton-loading 1.5s ease-in-out infinite;
+}
+
+@keyframes spa-skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Smooth scroll behavior for SPA navigation */
+html {
+  scroll-behavior: smooth;
+}
+
+/* Disable smooth scroll during SPA transitions to prevent jarring */
+html.spa-navigating {
+  scroll-behavior: auto;
+}
+
+/* Link hover effect for prefetch indication */
+a[href]:not([data-no-spa]):hover::after {
+  content: "";
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: currentColor;
+  opacity: 0.2;
+  animation: spa-link-prefetch 0.3s ease-out;
+}
+
+@keyframes spa-link-prefetch {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 0.2;
+  }
+}
+
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  .spa-content-exiting,
+  .spa-content-entering {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  html {
+    scroll-behavior: auto !important;
+  }
+
+  #spa-progress .spa-progress-bar {
+    transition: none !important;
+  }
+}
+
+/* Mobile optimizations */
+@media (max-width: 768px) {
+  .spa-content-exiting,
+  .spa-content-entering {
+    animation-duration: 0.15s !important;
+  }
+}
+
+/* Accessibility: Focus styles for keyboard navigation */
+a:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+/* Loading overlay (optional - uncomment to use) */
+/*
+body.spa-loading::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(2px);
+  z-index: 9998;
+  pointer-events: none;
+  animation: spa-overlay-fade-in 0.2s ease-out;
+}
+
+@keyframes spa-overlay-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+*/
+
+/* Bault component loading states */
+[wire\:id].bault-loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease-out;
+}
+
+/* Optional spinner for Bault components */
+/*
+[wire\:id].bault-loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 3px solid rgba(59, 130, 246, 0.2);
+  border-top-color: #3b82f6;
+  border-radius: 50%;
+  animation: bault-spinner 0.6s linear infinite;
+  z-index: 100;
+}
+
+@keyframes bault-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+*/

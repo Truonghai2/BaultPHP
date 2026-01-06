@@ -1,0 +1,14 @@
+{
+  "name": "ExampleModule",
+  "display_name": "Example Module with Dependencies",
+  "version": "1.0.0",
+  "description": "Example module demonstrating how to use Composer dependencies",
+  "author": "BaultFrame Team",
+  "enabled": false,
+  "require": {
+    "php": "^8.2",
+    "ext-gd": "*",
+    "monolog/monolog": "^3.0",
+    "intervention/image": "^2.7"
+  }
+}

@@ -2,26 +2,48 @@
 
 namespace Modules\User\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\Contracts\Auth\Authenticatable;
 use Core\ORM\Model;
+use Core\ORM\Relations\BelongsToMany;
 use Core\ORM\Relations\HasMany;
 use Modules\User\Domain\Services\AccessControlService;
 
 /**
+ * User Model
+ * 
+ * Represents a user in the system with authentication and authorization capabilities.
+ * Auto-logs all changes for security and compliance.
+ * 
  * @property int $id
  * @property string $name
  * @property string $email
  * @property string $password
  * @property-read \DateTimeInterface|null $created_at
  * @property-read \DateTimeInterface|null $updated_at
+ * @property-read \Core\Support\Collection<int, \Modules\User\Infrastructure\Models\Role> $roles
+ * @property-read \Core\Support\Collection<int, \Modules\User\Infrastructure\Models\RoleAssignment> $roleAssignments
  */
 class User extends Model implements Authenticatable
 {
+    use Auditable;
+
     protected static string $table = 'users';
 
     protected array $fillable = ['name', 'email', 'password'];
 
     protected array $hidden = ['password', 'remember_token'];
+
+    /**
+     * Define which events should be audited.
+     */
+    protected array $auditableEvents = ['created', 'updated', 'deleted'];
+
+    /**
+     * Define which attributes should be tracked in audit logs.
+     * Password changes are tracked but value is hidden.
+     */
+    protected array $auditableAttributes = ['name', 'email'];
 
     protected static function booted(): void
     {
@@ -69,6 +91,33 @@ class User extends Model implements Authenticatable
     }
 
     /**
+     * Get all roles assigned to the user across all contexts.
+     * This relationship returns unique roles regardless of context.
+     */
+    public function roles(): BelongsToMany
+    {
+        return $this->belongsToMany(Role::class, 'role_assignments')
+            ->withPivot(['context_id'])
+            ->withTimestamps();
+    }
+
+    /**
+     * Get all unique role names for the user across all contexts.
+     * Returns an array of role names like ['super-admin', 'editor', 'viewer']
+     * 
+     * @return array<string>
+     */
+    public function getRoles(): array
+    {
+        if (isset($this->relations['roles'])) {
+            return $this->relations['roles']->pluck('name')->unique()->values()->toArray();
+        }
+
+        $roles = $this->roles()->get();
+        return $roles->pluck('name')->unique()->values()->toArray();
+    }
+
+    /**
      * Check if the user has a specific permission, potentially in a given context.
      *
      * @param string $permissionName The name of the permission (e.g., 'post.edit').
@@ -77,7 +126,6 @@ class User extends Model implements Authenticatable
      */
     public function can(string $permissionName, $context = null): bool
     {
-        // Lấy service từ container thay vì tạo mới, tuân thủ Dependency Injection.
         return app(AccessControlService::class)->check($this, $permissionName, $context);
     }
 
@@ -90,8 +138,6 @@ class User extends Model implements Authenticatable
      */
     public function hasRole(string $roleName, $context = null): bool
     {
-        // Delegate the role check to the optimized AccessControlService.
-        // This leverages the central caching mechanism and respects context hierarchy.
         return app(AccessControlService::class)->hasRole($this, $roleName, $context);
     }
 

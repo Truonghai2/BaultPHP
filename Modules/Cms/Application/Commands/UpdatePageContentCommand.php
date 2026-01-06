@@ -7,16 +7,17 @@ namespace Modules\Cms\Application\Commands;
 use Core\CQRS\Command;
 
 /**
- * Command để cập nhật nội dung của một trang.
- * Class này là một Data Transfer Object (DTO) đơn giản, chứa tất cả
- * dữ liệu cần thiết để thực thi hành động.
+ * Update Page Content Command
+ * 
+ * Command để cập nhật nội dung page
  */
-class UpdatePageContentCommand implements Command
+final class UpdatePageContentCommand implements Command
 {
     public function __construct(
         public readonly int $pageId,
         public readonly array $blocks,
-        public readonly ?string $featuredImagePath,
+        public readonly ?string $featuredImagePath = null,
+        public readonly ?int $userId = null
     ) {
     }
 }

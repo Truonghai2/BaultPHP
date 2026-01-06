@@ -1,15 +1,23 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Cms\Application\Commands;
 
 use App\Exceptions\AuthorizationException;
 use Core\CQRS\Command;
 use Core\CQRS\CommandHandler;
 use Core\Support\Facades\Auth;
-use Modules\Cms\Infrastructure\Models\PageBlock;
+use Modules\Cms\Domain\Entities\PageBlock;
+use Modules\Cms\Domain\Services\PageBlockService;
 
 class AddBlockToPageHandler implements CommandHandler
 {
+    public function __construct(
+        private readonly PageBlockService $pageBlockService
+    ) {
+    }
+
     /**
      * Handle the command to add a new block to a page.
      *
@@ -23,22 +31,11 @@ class AddBlockToPageHandler implements CommandHandler
         /** @var \Modules\User\Infrastructure\Models\User|null $user */
         $user = Auth::user();
 
-        // Logic phân quyền được đặt ở đây là hợp lý nhất vì nó cần context của $page.
         $user->can('update', $command->page);
 
-        $currentBlockCount = PageBlock::where('page_id', '=', $command->page->id)->count();
-
-        $newBlock = PageBlock::create([
-            'page_id' => $command->page->id,
-            'component_class' => $command->componentClass,
-            'order' => $currentBlockCount,
-        ]);
-
-        if (!$newBlock) {
-            // This should ideally not happen, but it's good practice to handle the failure case.
-            throw new \RuntimeException("Failed to create a new page block for page ID: {$command->page->id}.");
-        }
-
-        return $newBlock;
+        return $this->pageBlockService->addBlockToPage(
+            $command->page->id,
+            $command->componentClass
+        );
     }
 }

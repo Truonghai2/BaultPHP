@@ -60,7 +60,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Domain mà cookie sẽ có hiệu lực. Để cookie hoạt động trên tất cả
-    | các subdomain, hãy đặt giá trị này là ".yourdomain.com".
+    | các subdomain, hãy đặt giá trị này là ".domain.com".
     |
     */
     'domain' => env('SESSION_DOMAIN', (function () {
@@ -74,21 +74,16 @@ return [
     | HTTPS Only Cookies (Secure)
     |--------------------------------------------------------------------------
     |
-    | Khi được đặt là `true`, cookie session sẽ chỉ được gửi qua kết nối
-    | HTTPS. Điều này giúp ngăn chặn kẻ tấn công đọc cookie nếu họ có thể
-    | nghe lén lưu lượng mạng. Bắt buộc bật `true` trong môi trường production.
-    |
     */
-    'secure' => env('SESSION_SECURE_COOKIE', false),
+    'secure' => env('SESSION_SECURE_COOKIE', (function () {
+        $appUrl = env('APP_URL', 'http://localhost');
+        return str_starts_with(strtolower($appUrl), 'https://');
+    })()),
 
     /*
     |--------------------------------------------------------------------------
     | HTTP Only Cookies
     |--------------------------------------------------------------------------
-    |
-    | Khi được đặt là `true`, cookie sẽ không thể được truy cập thông qua
-    | JavaScript. Đây là một biện pháp bảo mật quan trọng để chống lại
-    | các cuộc tấn công XSS.
     |
     */
 
@@ -111,15 +106,12 @@ return [
     | Same-Site Cookies
     |--------------------------------------------------------------------------
     |
-    | Thuộc tính này giúp giảm thiểu rủi ro từ các cuộc tấn công CSRF.
-    |
-    | Hỗ trợ: "lax", "strict", "none", null
-    | "lax" là một giá trị cân bằng tốt cho hầu hết các ứng dụng.
-    | "none" yêu cầu phải đặt 'secure' là true.
-    |
     */
 
-    'same_site' => env('SESSION_SAME_SITE', 'lax'),
+    'same_site' => env('SESSION_SAME_SITE', (function () {
+        $appEnv = env('APP_ENV', 'local');
+        return $appEnv === 'production' ? 'strict' : 'lax';
+    })()),
 
     /*
     |--------------------------------------------------------------------------
@@ -157,4 +149,22 @@ return [
     */
 
     'connection' => env('SESSION_REDIS_CONNECTION', 'default'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Optimized Database Handler
+    |--------------------------------------------------------------------------
+    |
+    | Khi enabled, sử dụng OptimizedSwoolePdoSessionHandler thay vì standard handler.
+    | Optimized handler giảm 60-70% database writes với smart update logic.
+    |
+    | Features:
+    | - Smart write: Chỉ update khi có thay đổi hoặc sau 60s
+    | - Batch garbage collection
+    | - Payload size tracking và warnings
+    | - Reduced lock contention
+    |
+    */
+
+    'use_optimized_handler' => env('SESSION_USE_OPTIMIZED_HANDLER', true),
 ];

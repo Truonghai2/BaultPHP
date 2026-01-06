@@ -31,9 +31,25 @@ class Module extends Model
         'version',
         'description',
         'enabled',
+        'status',
     ];
 
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array
+     */
     protected array $casts = [
         'enabled' => 'boolean',
+    ];
+
+    /**
+     * The model's default values for attributes.
+     *
+     * @var array
+     */
+    protected array $attributes = [
+        'status' => 'new',
+        'enabled' => false,
     ];
 }

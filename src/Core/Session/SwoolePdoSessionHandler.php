@@ -83,17 +83,22 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
             }
 
             $ipAddress = null;
+            $userAgent = null;
+            
             if (function_exists('app') && app()->has(ServerRequestInterface::class)) {
                 $request = app(ServerRequestInterface::class);
                 $serverParams = $request->getServerParams();
                 $ipAddress = $serverParams['remote_addr'] ?? $serverParams['REMOTE_ADDR'] ?? null;
+                
+                // Lấy user agent từ request header
+                $userAgent = $request->getHeaderLine('User-Agent') ?: null;
             }
 
-            $sql = "INSERT INTO {$this->table} (id, user_id, ip_address, payload, last_activity, lifetime)
-                    VALUES (:id, :user_id, :ip_address, :data, :time, :lifetime)
+            $sql = "INSERT INTO {$this->table} (id, user_id, ip_address, user_agent, payload, last_activity, lifetime)
+                    VALUES (:id, :user_id, :ip_address, :user_agent, :data, :time, :lifetime)
                     ON DUPLICATE KEY UPDATE
                     payload = VALUES(payload), last_activity = VALUES(last_activity), lifetime = VALUES(lifetime),
-                    user_id = VALUES(user_id), ip_address = VALUES(ip_address)";
+                    user_id = VALUES(user_id), ip_address = VALUES(ip_address), user_agent = VALUES(user_agent)";
 
             $stmt = $pdo->prepare($sql);
             $stmt->bindParam(':id', $sessionId, PDO::PARAM_STR);
@@ -102,6 +107,7 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
             $stmt->bindValue(':lifetime', $this->lifetime, PDO::PARAM_INT);
             $stmt->bindValue(':user_id', $userId, $userId === null ? PDO::PARAM_NULL : PDO::PARAM_INT);
             $stmt->bindValue(':ip_address', $ipAddress, PDO::PARAM_STR);
+            $stmt->bindValue(':user_agent', $userAgent, PDO::PARAM_STR);
 
             return $stmt->execute();
         });

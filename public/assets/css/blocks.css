@@ -1,0 +1,335 @@
+/**
+ * CMS Block System Styles
+ * 
+ * Styles for rendering blocks on frontend
+ */
+
+/* Region Containers */
+.region {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.region-header {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.region-content {
+  flex: 1;
+  padding: 2rem 0;
+}
+
+.region-sidebar,
+.region-sidebar-left,
+.region-sidebar-right {
+  width: 100%;
+  padding: 1rem 0;
+}
+
+.region-footer {
+  width: 100%;
+  padding: 2rem 0;
+  margin-top: 3rem;
+}
+
+/* Block Containers */
+.block {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  transition: all 0.2s ease;
+}
+
+.block:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(59, 130, 246, 0.3);
+}
+
+.block:last-child {
+  margin-bottom: 0;
+}
+
+/* Block Header */
+.block-header {
+  margin-bottom: 1rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.block-title {
+  margin: 0;
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+}
+
+/* Block Body */
+.block-body {
+  color: rgba(255, 255, 255, 0.85);
+  line-height: 1.6;
+}
+
+.block-body h1,
+.block-body h2,
+.block-body h3,
+.block-body h4,
+.block-body h5,
+.block-body h6 {
+  color: rgba(255, 255, 255, 0.95);
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.block-body h1 {
+  font-size: 2rem;
+}
+.block-body h2 {
+  font-size: 1.75rem;
+}
+.block-body h3 {
+  font-size: 1.5rem;
+}
+.block-body h4 {
+  font-size: 1.25rem;
+}
+.block-body h5 {
+  font-size: 1.125rem;
+}
+.block-body h6 {
+  font-size: 1rem;
+}
+
+.block-body p {
+  margin-bottom: 1rem;
+}
+
+.block-body a {
+  color: rgb(96, 165, 250);
+  text-decoration: underline;
+  transition: color 0.2s;
+}
+
+.block-body a:hover {
+  color: rgb(59, 130, 246);
+}
+
+.block-body ul,
+.block-body ol {
+  margin-left: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.block-body li {
+  margin-bottom: 0.5rem;
+}
+
+.block-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.block-body code {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.875rem;
+}
+
+.block-body pre {
+  background: rgba(0, 0, 0, 0.3);
+  padding: 1rem;
+  border-radius: 6px;
+  overflow-x: auto;
+  margin-bottom: 1rem;
+}
+
+.block-body pre code {
+  background: none;
+  padding: 0;
+}
+
+/* Hidden Blocks (only visible in edit mode) */
+.block-hidden {
+  display: none;
+}
+
+/* Block Type Specific Styles */
+.block-text {
+  /* Text blocks - default styling */
+}
+
+.block-html {
+  /* HTML blocks - full HTML support */
+}
+
+.block-menu nav {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.block-menu nav a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  transition: all 0.2s;
+  background: rgba(59, 130, 246, 0.1);
+}
+
+.block-menu nav a:hover {
+  background: rgba(59, 130, 246, 0.2);
+  color: white;
+}
+
+.block-recent-pages ul {
+  list-style: none;
+  margin-left: 0;
+}
+
+.block-recent-pages li {
+  padding: 0.75rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.block-recent-pages li:last-child {
+  border-bottom: none;
+}
+
+.block-recent-pages a {
+  color: rgba(255, 255, 255, 0.9);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: color 0.2s;
+}
+
+.block-recent-pages a:hover {
+  color: rgb(96, 165, 250);
+}
+
+.block-recent-pages .page-date {
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.5);
+  margin-left: auto;
+}
+
+/* Responsive Design */
+@media (min-width: 768px) {
+  .region-sidebar,
+  .region-sidebar-left,
+  .region-sidebar-right {
+    width: 300px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .region-sidebar,
+  .region-sidebar-left,
+  .region-sidebar-right {
+    width: 350px;
+  }
+}
+
+/* Light Mode Overrides */
+@media (prefers-color-scheme: light) {
+  .block {
+    background: rgba(0, 0, 0, 0.02);
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .block:hover {
+    background: rgba(0, 0, 0, 0.04);
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+
+  .block-header {
+    border-color: rgba(0, 0, 0, 0.1);
+  }
+
+  .block-title {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .block-body {
+    color: rgba(0, 0, 0, 0.8);
+  }
+
+  .block-body h1,
+  .block-body h2,
+  .block-body h3,
+  .block-body h4,
+  .block-body h5,
+  .block-body h6 {
+    color: rgba(0, 0, 0, 0.9);
+  }
+
+  .block-body code {
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .block-body pre {
+    background: rgba(0, 0, 0, 0.05);
+  }
+}
+
+/* Error Display (Debug Mode) */
+.block-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 6px;
+  padding: 1rem;
+  color: rgb(252, 165, 165);
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* Loading State */
+.block.loading {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.block.loading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2rem;
+  height: 2rem;
+  border: 3px solid rgba(59, 130, 246, 0.3);
+  border-top-color: rgb(59, 130, 246);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+/* Empty State */
+.region:empty::after {
+  content: attr(data-region) " (no blocks)";
+  display: block;
+  padding: 2rem;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.3);
+  font-style: italic;
+}
+
+/* Hide empty message in production */
+body:not([data-debug]) .region:empty::after {
+  display: none;
+}

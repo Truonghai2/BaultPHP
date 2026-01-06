@@ -56,6 +56,10 @@ class Application implements ContainerInterface, \ArrayAccess
     /** @var array<string, string> The mapping of deferred services to their providers. */
     protected array $deferredServices = [];
     protected array $resolvingCallbacks = [];
+    
+    /** @var array<int, callable> Callbacks to run after the response is sent. */
+    protected array $terminatingCallbacks = [];
+    
     protected string $basePath;
 
     public function __construct(string $basePath = null)
@@ -807,5 +811,46 @@ class Application implements ContainerInterface, \ArrayAccess
     public function getAppKey(): string
     {
         return $this->make('config')->get('app.key');
+    }
+
+    /**
+     * Register a terminating callback to be called after the response is sent.
+     * These callbacks are executed in Swoole coroutine context using defer.
+     *
+     * @param  callable  $callback
+     * @return $this
+     */
+    public function terminating(callable $callback): static
+    {
+        $this->terminatingCallbacks[] = $callback;
+        
+        return $this;
+    }
+
+    /**
+     * Call all of the terminating callbacks.
+     * This should be called AFTER the response has been sent to the client.
+     *
+     * @return void
+     */
+    public function callTerminatingCallbacks(): void
+    {
+        foreach ($this->terminatingCallbacks as $callback) {
+            try {
+                $this->call($callback);
+            } catch (\Throwable $e) {
+                // Log but don't throw - terminating callbacks should not break the response
+                if ($this->bound('log')) {
+                    $this->make('log')->error('Terminating callback failed', [
+                        'error' => $e->getMessage(),
+                        'file' => $e->getFile(),
+                        'line' => $e->getLine(),
+                    ]);
+                }
+            }
+        }
+        
+        // Clear callbacks for next request (Swoole keeps worker alive)
+        $this->terminatingCallbacks = [];
     }
 }

@@ -58,6 +58,13 @@ abstract class Model
     protected array $touches = [];
 
     /**
+     * Indicates if the model should be timestamped.
+     *
+     * @var bool
+     */
+    public bool $timestamps = true;
+
+    /**
      * The array of global scopes on the model.
      * @var array
      */
@@ -139,6 +146,16 @@ abstract class Model
     }
 
     /**
+     * Get the original attributes of the model.
+     *
+     * @return array
+     */
+    public function getOriginal(): array
+    {
+        return $this->original;
+    }
+
+    /**
      * Get all the current attributes on the model.
      *
      * @return array
@@ -168,6 +185,11 @@ abstract class Model
         }
 
         $query = $this->newQuery();
+
+        // Update timestamps before saving
+        if ($this->usesTimestamps()) {
+            $this->updateTimestamps();
+        }
 
         if ($this->exists()) {
             $dirty = $this->getDirty();
@@ -288,6 +310,31 @@ abstract class Model
         return $dirty;
     }
 
+    /**
+     * Determine if the model or any of the given attribute(s) have been modified.
+     *
+     * @param  string|array|null  $attributes
+     * @return bool
+     */
+    public function isDirty($attributes = null): bool
+    {
+        $dirty = $this->getDirty();
+
+        if (is_null($attributes)) {
+            return count($dirty) > 0;
+        }
+
+        $attributes = is_array($attributes) ? $attributes : [$attributes];
+
+        foreach ($attributes as $attribute) {
+            if (array_key_exists($attribute, $dirty)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     public function syncOriginal(): void
     {
         $this->original = $this->attributes;
@@ -309,6 +356,16 @@ abstract class Model
     }
 
     /**
+     * Determine if the model uses timestamps.
+     *
+     * @return bool
+     */
+    public function usesTimestamps(): bool
+    {
+        return $this->timestamps;
+    }
+
+    /**
      * Get the name of the "created at" column.
      *
      * @return string
@@ -326,6 +383,58 @@ abstract class Model
     public function getUpdatedAtColumn(): string
     {
         return defined('static::UPDATED_AT') ? static::UPDATED_AT : 'updated_at';
+    }
+
+    /**
+     * Get a fresh timestamp for the model.
+     *
+     * @return string
+     */
+    public function freshTimestamp(): string
+    {
+        return date('Y-m-d H:i:s');
+    }
+
+    /**
+     * Set the value of the "created at" attribute.
+     *
+     * @param  string  $value
+     * @return $this
+     */
+    public function setCreatedAt(string $value): static
+    {
+        $this->setAttribute($this->getCreatedAtColumn(), $value);
+        return $this;
+    }
+
+    /**
+     * Set the value of the "updated at" attribute.
+     *
+     * @param  string  $value
+     * @return $this
+     */
+    public function setUpdatedAt(string $value): static
+    {
+        $this->setAttribute($this->getUpdatedAtColumn(), $value);
+        return $this;
+    }
+
+    /**
+     * Update the creation and update timestamps.
+     *
+     * @return void
+     */
+    protected function updateTimestamps(): void
+    {
+        $time = $this->freshTimestamp();
+
+        if (!$this->exists() && !$this->isDirty($this->getCreatedAtColumn())) {
+            $this->setCreatedAt($time);
+        }
+
+        if (!$this->isDirty($this->getUpdatedAtColumn())) {
+            $this->setUpdatedAt($time);
+        }
     }
 
     /**
@@ -390,11 +499,10 @@ abstract class Model
 
     public static function create(array $attributes = []): ?static
     {
-        $model = new static($attributes);
-        if ($model->save()) {
-            return $model;
-        }
-        return null;
+        $model = new static();
+        $model->fill($attributes);
+        $model->save();
+        return $model->exists() ? $model : null;
     }
 
     /**
@@ -476,9 +584,15 @@ abstract class Model
         return static::query()->get();
     }
 
-    public static function where(string $column, string $operator, $value = null): QueryBuilder
+    public static function where(string $column, $operator = null, $value = null): QueryBuilder
     {
-        return static::query()->where(...func_get_args());
+        // Support both 2 and 3 argument syntax like Laravel
+        // where('name', 'john') => where('name', '=', 'john')
+        // where('id', '>', 5) => where('id', '>', 5)
+        if (func_num_args() === 2) {
+            return static::query()->where($column, '=', $operator);
+        }
+        return static::query()->where($column, $operator, $value);
     }
 
     /**

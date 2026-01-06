@@ -68,7 +68,7 @@ class OAuthController extends Controller
         }
     }
 
-    #[Route('/oauth/token', method: 'POST')]
+    #[Route('/oauth/token', method: 'POST', middleware: ['throttle:20,1'])]
     public function token(ServerRequestInterface $request): ResponseInterface
     {
         try {
@@ -88,19 +88,25 @@ class OAuthController extends Controller
     #[Route('/oauth/revoke', method: 'POST', group: 'api')]
     public function revoke(ServerRequestInterface $request): ResponseInterface
     {
-        $tokenId = $request->getAttribute('oauth_token_id');
+        $guard = auth()->guard('api');
+        $tokenId = $guard->getTokenId();
 
         if (!$tokenId) {
             return response()->json(['message' => 'Unable to identify token for revocation.'], 400);
         }
 
         $this->accessTokenRepository->revokeAccessToken($tokenId);
-
-        $refreshToken = RefreshTokenModel::where('access_token_id', '=', $tokenId)->first();
-        if ($refreshToken) {
-            $this->refreshTokenRepository->revokeRefreshToken($refreshToken->id);
+        
+        $revokedCount = $this->refreshTokenRepository->revokeRefreshTokensByAccessToken($tokenId);
+        
+        $userId = $guard->id();
+        if ($userId) {
+            cache()->forget("oauth:user:{$userId}");
         }
 
-        return response()->json(['message' => 'Tokens revoked successfully.']);
+        return response()->json([
+            'message' => 'Tokens revoked successfully.',
+            'revoked_refresh_tokens' => $revokedCount,
+        ]);
     }
 }

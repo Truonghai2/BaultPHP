@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use Core\Contracts\Support\DeferrableProvider;
+use Core\Hashing\AdaptiveHashManager;
 use Core\Hashing\HashManager;
 use Core\Support\ServiceProvider;
 
@@ -16,7 +17,12 @@ class HashServiceProvider extends ServiceProvider implements DeferrableProvider
     public function register(): void
     {
         $this->app->singleton('hash', function ($app) {
-            return new HashManager($app);
+            // Use AdaptiveHashManager if enabled in config
+            $useAdaptive = $app['config']['hashing.adaptive'] ?? false;
+            
+            return $useAdaptive 
+                ? new AdaptiveHashManager($app)
+                : new HashManager($app);
         });
     }
 
@@ -29,6 +35,6 @@ class HashServiceProvider extends ServiceProvider implements DeferrableProvider
      */
     public function provides(): array
     {
-        return ['hash', HashManager::class];
+        return ['hash', HashManager::class, AdaptiveHashManager::class];
     }
 }

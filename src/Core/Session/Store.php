@@ -56,7 +56,8 @@ class Store implements SessionInterface
 
         $this->attributes['_flash'] = $newFlashes;
         $this->handler->write($this->getId(), serialize($this->attributes));
-        $this->started = false;
+        $this->dirty = false; // Reset dirty flag after saving
+        // Don't set $this->started = false; session should remain started after save
     }
 
     public function all(): array
@@ -101,11 +102,19 @@ class Store implements SessionInterface
 
     public function regenerate(bool $destroy = false): bool
     {
+        $oldId = $this->getId();
+        
         if ($destroy) {
-            $this->handler->destroy($this->getId());
+            $this->handler->destroy($oldId);
         }
+        
+        // Generate new session ID
         $this->setId($this->generateSessionId());
         $this->dirty = true;
+        
+        // Ensure session remains started after regeneration
+        $this->started = true;
+        
         return true;
     }
 

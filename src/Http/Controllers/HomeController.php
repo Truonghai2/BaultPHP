@@ -7,7 +7,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class HomeController extends \Core\Http\Controller
 {
-    #[Route('/', method: 'GET', name: 'home')]
+    #[Route('/', method: 'GET', name: 'home', group: 'web')]
     public function __invoke(): ResponseInterface
     {
         $data = [

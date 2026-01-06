@@ -4,6 +4,7 @@ namespace Core\ORM\Relations;
 
 use Core\ORM\Model;
 use Core\ORM\QueryBuilder;
+use Core\Support\Collection;
 
 abstract class Relation
 {
@@ -27,9 +28,9 @@ abstract class Relation
      * Execute the query as a "select" statement.
      * This is primarily used for eager loading.
      *
-     * @return array
+     * @return Collection
      */
-    public function get(): array
+    public function get(): Collection
     {
         return $this->query->get();
     }

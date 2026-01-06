@@ -72,7 +72,7 @@ class WorkCommand extends BaseCommand
             try {
                 $this->worker->runNextJob($connectionName, $queue);
             } catch (Throwable $e) {
-                $this->app->make(\Core\Contracts\Exceptions\Handler::class)->report($e);
+                $this->app->make(\Core\Contracts\Exceptions\Handler::class)->report(null, $e);
             }
 
             // Nếu chỉ chạy một lần, thoát khỏi vòng lặp.

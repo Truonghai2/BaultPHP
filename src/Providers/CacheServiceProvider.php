@@ -5,6 +5,8 @@ namespace App\Providers;
 use Core\Cache\CacheManager;
 use Core\Cache\CacheManager as CoreCacheManager;
 use Core\Cache\TraceableCacheManager;
+use Core\Debug\DebugBroadcaster;
+use Core\Debug\RealtimeTraceableCacheManager;
 use Core\Support\ServiceProvider;
 use Psr\SimpleCache\CacheInterface;
 
@@ -18,6 +20,14 @@ class CacheServiceProvider extends ServiceProvider
 
         $this->app->singleton('cache', function ($app) {
             $manager = $app->make('cache.factory');
+
+            if ((bool) config('debug.enabled', false) && $app->bound('debugbar') && $app->bound(DebugBroadcaster::class)) {
+                return new RealtimeTraceableCacheManager(
+                    $manager, 
+                    $app->make('debugbar'),
+                    $app->make(DebugBroadcaster::class)
+                );
+            }
 
             if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
                 return new TraceableCacheManager($manager, $app->make('debugbar'));

@@ -16,7 +16,7 @@ class VerifyCsrfToken implements MiddlewareInterface
      * @var array<int, string>
      */
     protected array $except = [
-        // Ví dụ: 'api/webhooks/*'
+        'oauth/token',
     ];
 
     public function __construct(protected CsrfManager $csrfManager)
@@ -31,9 +31,33 @@ class VerifyCsrfToken implements MiddlewareInterface
 
         $tokenValue = $this->getTokenFromRequest($request);
 
-        // Sử dụng Core CsrfManager để kiểm tra token.
+        if (config('app.debug', false)) {
+            $sessionToken = null;
+            try {
+                $sessionToken = $this->csrfManager->getTokenValue('_token');
+            } catch (\Throwable $e) {
+                \Core\Support\Facades\Log::error('CSRF: Cannot get session token', [
+                    'error' => $e->getMessage()
+                ]);
+            }
+            
+            \Core\Support\Facades\Log::debug('CSRF Token Check', [
+                'path' => $request->getUri()->getPath(),
+                'method' => $request->getMethod(),
+                'token_from_request' => $tokenValue ? substr($tokenValue, 0, 10) . '...' : 'null',
+                'token_from_session' => $sessionToken ? substr($sessionToken, 0, 10) . '...' : 'null',
+                'session_id' => session()->getId(),
+                'session_started' => session()->isStarted(),
+            ]);
+        }
+
         if (!$this->csrfManager->isTokenValid('_token', $tokenValue)) {
-            // Ném ra một exception, ExceptionHandler sẽ xử lý và trả về response 419
+            \Core\Support\Facades\Log::warning('CSRF token mismatch', [
+                'path' => $request->getUri()->getPath(),
+                'has_token_in_request' => !empty($tokenValue),
+                'session_id' => session()->getId(),
+            ]);
+            
             throw new \App\Exceptions\TokenMismatchException('CSRF token mismatch.');
         }
 

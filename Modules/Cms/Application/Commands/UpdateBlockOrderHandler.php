@@ -1,14 +1,21 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Modules\Cms\Application\Commands;
 
 use Core\CQRS\Command;
 use Core\CQRS\CommandHandler;
 use Core\Support\Facades\Auth;
-use Modules\Cms\Infrastructure\Models\PageBlock;
+use Modules\Cms\Domain\Services\PageBlockService;
 
 class UpdateBlockOrderHandler implements CommandHandler
 {
+    public function __construct(
+        private readonly PageBlockService $pageBlockService
+    ) {
+    }
+
     /**
      * Handle the command to update the order of blocks for a page.
      *
@@ -23,10 +30,9 @@ class UpdateBlockOrderHandler implements CommandHandler
 
         $user->can('update', $command->page);
 
-        foreach ($command->orderedIds as $index => $id) {
-            PageBlock::where('id', '=', $id)
-                ->where('page_id', '=', $command->page->id)
-                ->update(['order' => $index]);
-        }
+        $this->pageBlockService->updateBlockOrder(
+            $command->page->id,
+            $command->orderedIds
+        );
     }
 }

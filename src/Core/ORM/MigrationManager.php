@@ -10,7 +10,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
  */
 class MigrationManager
 {
-    protected \PDO $pdo; // Ensure this is using the global PDO
+    protected \PDO|\Core\Debug\RealtimeTraceablePdo $pdo;
     protected string $table;
     protected ?SymfonyStyle $io;
     protected Schema $schema;
@@ -21,7 +21,7 @@ class MigrationManager
      * @param Schema $schema
      * @param string $migrationTable
      */
-    public function __construct(\PDO $pdo, Schema $schema, string $migrationTable = 'migrations')
+    public function __construct(\PDO|\Core\Debug\RealtimeTraceablePdo $pdo, Schema $schema, string $migrationTable = 'migrations')
     {
         $this->pdo = $pdo;
         $this->schema = $schema;
@@ -126,6 +126,10 @@ class MigrationManager
             } catch (\Throwable $e) {
                 if ($e instanceof \PDOException && isset($e->errorInfo[1]) && $e->errorInfo[1] == 1050) {
                     $this->log('<warn>Skipped: ' . basename($file, '.php') . ' (Table already exists)</warn>');
+                } elseif ($e instanceof \PDOException && isset($e->errorInfo[1]) && in_array($e->errorInfo[1], [1366, 1292, 1406])) {
+                    $this->log("<error>Data Error in migration file: {$file}</error>");
+                    $this->log("<error>Message: {$e->getMessage()}</error>");
+                    throw $e;
                 } else {
                     $this->log("<error>FATAL ERROR in migration file: {$file}</error>");
                     throw $e;
@@ -177,14 +181,11 @@ class MigrationManager
         }
 
         $files = [];
-        foreach ($paths as $path) {
+        foreach ($paths as $path){
             if (!is_dir($path)) {
                 continue;
             }
-            $globResult = glob($path . '/*.php');
-            if ($globResult) {
-                $files = array_merge($files, $globResult);
-            }
+            $files = array_merge($files, glob($path . '/[0-9]*.php'));
         }
         sort($files);
         return $files;

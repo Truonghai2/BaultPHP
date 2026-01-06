@@ -7,7 +7,7 @@ use Core\CQRS\Command\Command;
 class DeleteBlockCommand implements Command
 {
     /**
-     * @param int $pageBlockId ID của PageBlock cần xóa.
+     * @param int $pageBlockId ID of the PageBlock to delete.
      */
     public function __construct(
         public readonly int $pageBlockId,

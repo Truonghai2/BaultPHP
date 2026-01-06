@@ -43,6 +43,21 @@ class DebugManager implements StatefulService
     }
 
     /**
+     * Set data trực tiếp cho một collector (không wrap trong array).
+     * Dùng cho cookies, session, cache summary, etc.
+     *
+     * @param string $collector Tên của bộ thu thập.
+     * @param mixed $data Dữ liệu cần set.
+     */
+    public function set(string $collector, mixed $data): void
+    {
+        if (!$this->enabled) {
+            return;
+        }
+        $this->data[$collector] = $data;
+    }
+
+    /**
      * Lấy tất cả dữ liệu đã thu thập.
      */
     public function getData(): array

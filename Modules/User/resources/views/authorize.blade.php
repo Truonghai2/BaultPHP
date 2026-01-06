@@ -37,6 +37,9 @@
         @endif
 
         <form method="POST" action="{{ route('oauth.approve') }}">
+            {{-- CSRF Protection --}}
+            <input type="hidden" name="_token" value="{{ csrf_token() }}">
+            
             @foreach ($request as $name => $value)
                 <input type="hidden" name="{{ $name }}" value="{{ $value }}">
             @endforeach

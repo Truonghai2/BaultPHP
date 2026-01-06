@@ -10,8 +10,14 @@ class CookieServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton(CookieManager::class);
-
+        $cookieManager = new CookieManager(
+            $this->app->make('log'),
+            $this->app->make('encrypter')
+        );
+        
+        $this->app->instance(CookieManager::class, $cookieManager);
+        $this->app->alias(CookieManager::class, 'cookies');
+        
         $this->app->tag(CookieManager::class, StatefulService::class);
     }
 }

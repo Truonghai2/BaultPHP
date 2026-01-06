@@ -47,4 +47,14 @@ class RefreshTokenRepository implements RefreshTokenRepositoryInterface
 
         return !$token || $token->revoked;
     }
+
+    /**
+     * Revoke all refresh tokens associated with an access token.
+     * This ensures proper token cascade revocation.
+     */
+    public function revokeRefreshTokensByAccessToken(string $accessTokenId): int
+    {
+        return RefreshTokenModel::where('access_token_id', '=', $accessTokenId)
+            ->update(['revoked' => true]);
+    }
 }

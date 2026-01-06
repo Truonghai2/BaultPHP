@@ -19,9 +19,28 @@ class EncryptCookies implements MiddlewareInterface
      * @var array<int, string>
      */
     protected array $except = [
+        'bault_session',
         'my_unencrypted_cookie',
         'test',
     ];
+    
+    /**
+     * Check if cookie name should be excluded from encryption.
+     */
+    protected function isExcepted(string $name): bool
+    {
+        // Exact matches
+        if (in_array($name, $this->except, true)) {
+            return true;
+        }
+        
+        // Pattern matches - Remember Me cookies
+        if (str_starts_with($name, 'remember_')) {
+            return true;
+        }
+        
+        return false;
+    }
 
     public function __construct(Encrypter $encrypter)
     {
@@ -48,7 +67,7 @@ class EncryptCookies implements MiddlewareInterface
         $cookies = $request->getCookieParams();
 
         foreach ($cookies as $key => $cookie) {
-            if (in_array($key, $this->except, true)) {
+            if ($this->isExcepted($key)) {
                 continue;
             }
             try {
@@ -70,11 +89,17 @@ class EncryptCookies implements MiddlewareInterface
     protected function encrypt(ResponseInterface $response): ResponseInterface
     {
         $cookiesToSet = [];
+        $setCookieHeaders = $response->getHeader('Set-Cookie');
 
-        foreach ($response->getHeader('Set-Cookie') as $cookieHeader) {
+        foreach ($setCookieHeaders as $cookieHeader) {
+            // Skip if cookieHeader is not a string (defensive programming)
+            if (!is_string($cookieHeader)) {
+                continue;
+            }
+            
             $cookie = Cookie::fromString($cookieHeader);
 
-            if (in_array($cookie->getName(), $this->except, true)) {
+            if ($this->isExcepted($cookie->getName())) {
                 $cookiesToSet[] = (string) $cookie;
                 continue;
             }
@@ -90,7 +115,6 @@ class EncryptCookies implements MiddlewareInterface
             $cookiesToSet[] = (string) $encryptedCookie;
         }
 
-        // Xóa tất cả các header 'Set-Cookie' cũ và thêm lại các header đã được xử lý
         $response = $response->withoutHeader('Set-Cookie');
         foreach ($cookiesToSet as $cookieString) {
             $response = $response->withAddedHeader('Set-Cookie', $cookieString);

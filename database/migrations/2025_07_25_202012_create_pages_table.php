@@ -13,7 +13,7 @@ return new class () extends Migration {
             $table->id();
             $table->string('name');
             $table->string('slug')->unique();
-            $table->foreignId('user_id')->nullable()->comment('The user who created the page.')->constrained('users')->onDelete('set null');
+            $table->bigInteger('user_id')->nullable();
             $table->timestamps();
         });
     }

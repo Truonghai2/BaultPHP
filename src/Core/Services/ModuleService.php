@@ -6,9 +6,10 @@ use Core\Cache\CacheManager;
 use Core\Exceptions\Module\ModuleDependencyException;
 use Core\Exceptions\Module\ModuleNotFoundException;
 use Core\FileSystem\Filesystem;
+use Core\Services\ComposerDependencyManager;
+use Core\Support\Facades\Log;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
-use Symfony\Component\Process\Process;
 
 /**
  * Handles business logic for managing modules.
@@ -97,22 +98,71 @@ class ModuleService
         }
 
         $newStatus = !$module->enabled;
-        $module->enabled = $newStatus;
+        return $this->setModuleStatus($module, $newStatus);
+    }
+
+    /**
+     * Enable a module.
+     *
+     * @param string $moduleName
+     * @return bool Always returns true on success
+     * @throws ModuleNotFoundException
+     */
+    public function enableModule(string $moduleName): bool
+    {
+        /** @var Module|null $module */
+        $module = Module::where('name', $moduleName)->first();
+
+        if (!$module) {
+            throw new ModuleNotFoundException("Module '{$moduleName}' không được tìm thấy trong cơ sở dữ liệu.");
+        }
+
+        return $this->setModuleStatus($module, true);
+    }
+
+    /**
+     * Disable a module.
+     *
+     * @param string $moduleName
+     * @return bool Always returns false on success
+     * @throws ModuleNotFoundException
+     */
+    public function disableModule(string $moduleName): bool
+    {
+        /** @var Module|null $module */
+        $module = Module::where('name', $moduleName)->first();
+
+        if (!$module) {
+            throw new ModuleNotFoundException("Module '{$moduleName}' không được tìm thấy trong cơ sở dữ liệu.");
+        }
+
+        return $this->setModuleStatus($module, false);
+    }
+
+    /**
+     * Set module status (enabled/disabled).
+     *
+     * @param Module $module
+     * @param bool $status
+     * @return bool The status that was set
+     */
+    private function setModuleStatus(Module $module, bool $status): bool
+    {
+        $module->enabled = $status;
         $module->save();
 
-        $jsonPath = $this->modulesPath . '/' . $moduleName . '/module.json';
+        $jsonPath = $this->modulesPath . '/' . $module->name . '/module.json';
         if ($this->fs->exists($jsonPath)) {
             $meta = json_decode($this->fs->get($jsonPath), true);
-            if (!$meta) {
-                return $newStatus;
+            if ($meta) {
+                $meta['enabled'] = $status;
+                $this->fs->put($jsonPath, json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
             }
-            $meta['enabled'] = $newStatus;
-            $this->fs->put($jsonPath, json_encode($meta, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES));
         }
 
         $this->cache->forget(self::CACHE_KEY);
 
-        return $newStatus;
+        return $status;
     }
 
     /**
@@ -138,26 +188,46 @@ class ModuleService
     }
 
     /**
-     * Đăng ký một module đã có trên hệ thống file vào cơ sở dữ liệu.
-     * Đây là bước cuối cùng để cài đặt một module được phát hiện.
+     * Register a module that is already present on the filesystem into the database.
+     * This is the final step to install a module that has been detected.
      *
-     * @param string $moduleName Tên thư mục của module.
-     * @throws \Exception Nếu module đã có trong CSDL hoặc file module.json bị thiếu/lỗi.
+     * @param string $moduleName The name of the module directory.
+     * @throws \Exception If the module already exists in the database or the module.json file is missing/invalid.
      */
     public function registerModule(string $moduleName): void
     {
         $jsonPath = $this->modulesPath . '/' . $moduleName . '/module.json';
 
         if (!$this->fs->exists($jsonPath)) {
-            throw new \Exception("Tệp module.json không tồn tại cho module '{$moduleName}'.");
+            throw new \Exception("The module.json file does not exist for module '{$moduleName}'.");
         }
 
         $meta = json_decode($this->fs->get($jsonPath), true);
         if (!$meta) {
-            throw new \Exception("Tệp module.json của module '{$moduleName}' không hợp lệ.");
+            throw new \Exception("The module.json file for module '{$moduleName}' is invalid.");
         }
 
-        if (Module::where('name', $moduleName)->exists()) {
+        $existingModule = Module::where('name', $moduleName)->first();
+        
+        if ($existingModule) {
+
+            $filesystemVersion = $meta['version'] ?? '1.0.0';
+            $databaseVersion = $existingModule->version ?? '1.0.0';
+
+            if (version_compare($filesystemVersion, $databaseVersion, '>')) {
+                Log::info("Updating module '{$moduleName}' from version {$databaseVersion} to {$filesystemVersion}");
+                
+                $existingModule->update([
+                    'version' => $filesystemVersion,
+                    'description' => $meta['description'] ?? $existingModule->description,
+                ]);
+
+                InstallModuleDependenciesJob::dispatch($moduleName);
+            } else {
+                InstallModuleDependenciesJob::dispatch($moduleName);
+            }
+            
+            $this->cache->forget(self::CACHE_KEY);
             return;
         }
 
@@ -175,53 +245,13 @@ class ModuleService
     }
 
     /**
-     * Cài đặt các thư viện mà module yêu cầu thông qua Composer.
-     *
-     * @param string $moduleName Tên module đang được cài đặt.
-     * @param array $dependencies Danh sách các yêu cầu từ module.json.
-     * @throws ModuleDependencyException Nếu quá trình cài đặt thất bại.
+     * @deprecated Use ComposerDependencyManager instead
+     * @see ComposerDependencyManager::installDependencies()
+     * 
      */
     public function handleDependencies(string $moduleName, array $dependencies): void
     {
-        if (empty($dependencies)) {
-            return;
-        }
-
-        $packages = array_filter($dependencies, function ($key) {
-            return !in_array($key, ['php'], true) && !str_starts_with($key, 'ext-');
-        }, ARRAY_FILTER_USE_KEY);
-
-        if (empty($packages)) {
-            return;
-        }
-
-        $command = [$this->findComposer(), 'require'];
-        foreach ($packages as $package => $version) {
-            $command[] = "{$package}:{$version}";
-        }
-
-        $command[] = '--no-interaction';
-        $command[] = '--no-progress';
-        $command[] = '--no-plugins';
-        $command[] = '--no-scripts';
-        $command[] = '--with-all-dependencies';
-
-        $process = new Process($command, base_path(), null, null, 300);
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            throw new ModuleDependencyException(
-                "Không thể cài đặt các thư viện cho module '{$moduleName}'. Lỗi Composer: " . $process->getErrorOutput(),
-            );
-        }
-    }
-
-    /**
-     * Tìm đường dẫn thực thi của Composer.
-     */
-    private function findComposer(): string
-    {
-        // Ưu tiên composer.phar trong thư mục gốc nếu có
-        return $this->fs->exists(base_path('composer.phar')) ? PHP_BINARY . ' composer.phar' : 'composer';
+        $composerManager = app(ComposerDependencyManager::class);
+        $composerManager->installDependencies($moduleName, $dependencies);
     }
 }
