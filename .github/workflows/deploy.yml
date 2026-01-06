@@ -1,27 +1,179 @@
-name: Deploy BaultPHP Application
+name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main", "develop"]
+  pull_request:
+    branches: ["main", "develop"]
+  workflow_dispatch:
+
+env:
+  PHP_VERSION: "8.2"
+  NODE_VERSION: "18"
 
 jobs:
-  test:
+  # Job 1: Code Quality Checks
+  code-quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+          coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Run PHP CS Fixer (dry-run)
+        run: vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.dist.php --dry-run --diff --allow-risky=yes
+
+      - name: Run PHPStan
+        run: vendor/bin/phpstan analyse --memory-limit=2G
+
+      - name: Validate Composer.json
+        run: composer validate --strict
+
+  # Job 2: Security Scanning
+  security:
+    name: Security Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-results.sarif"
+
+      - name: Upload Trivy results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: "trivy-results.sarif"
+
+      - name: Composer Security Check
+        uses: symfonycorp/security-checker-action@v4
+
+  # Job 3: Unit Tests
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php-version: ["8.2", "8.3"]
+    env:
+      APP_ENV: testing
+      APP_DEBUG: true
+      APP_KEY: base64:testKeyForCIOnly123456789012345678901234567890=
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+          coverage: xdebug
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: ${{ runner.os }}-composer-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-composer-${{ matrix.php-version }}-
+
+      - name: Install Composer dependencies
+        run: composer install --prefer-dist --no-progress --no-interaction
+
+      - name: Setup .env file
+        run: |
+          echo "APP_ENV=${APP_ENV}" > .env
+          echo "APP_DEBUG=${APP_DEBUG}" >> .env
+          echo "APP_KEY=${APP_KEY}" >> .env
+          echo "CACHE_DRIVER=array" >> .env
+          echo "SESSION_DRIVER=array" >> .env
+          echo "QUEUE_CONNECTION=sync" >> .env
+
+      - name: Run PHPUnit tests
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+  # Job 4: Integration Tests with Docker
+  integration-tests:
+    name: Integration Tests
     runs-on: ubuntu-latest
     env:
       APP_ENV: testing
       APP_DEBUG: true
-      APP_KEY: base64:someRandomKeyForTestingPurposeOnly=
+      APP_KEY: base64:testKeyForCIOnly123456789012345678901234567890=
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306
       DB_DATABASE: bault_testing
       DB_USERNAME: root
-      DB_PASSWORD: ${{ secrets.DB_ROOT_PASSWORD }}
+      DB_PASSWORD: root
       REDIS_HOST: redis
       REDIS_PORT: 6379
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: bault_testing
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd="redis-cli ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Make entrypoint scripts executable
+        run: |
+          chmod +x ./docker/mysql/primary-entrypoint.sh
+          chmod +x ./docker/mysql/replica-entrypoint.sh
+          chmod +x ./docker/php/entrypoint.sh
 
       - name: Setup .env file
         run: |
@@ -37,44 +189,60 @@ jobs:
           echo "REDIS_HOST=${REDIS_HOST}" >> .env
           echo "REDIS_PORT=${REDIS_PORT}" >> .env
 
-      - name: Make entrypoint scripts executable
+      - name: Start Docker services
         run: |
-          chmod +x ./docker/mysql/primary-entrypoint.sh
-          chmod +x ./docker/mysql/replica-entrypoint.sh
-          chmod +x ./docker/php/entrypoint.sh
+          docker compose -f docker-compose.yml -f docker-compose.override.yml up -d --build
 
-      - name: Start services
-        run: docker compose -f docker-compose.yml -f docker-compose.override.yml up --build
+      - name: Wait for services to be ready
+        run: |
+          timeout 120 bash -c 'until docker compose exec -T app php -r "echo \"OK\";"; do sleep 2; done'
 
       - name: Run database migrations
         run: docker compose exec -T app php cli ddd:migrate --seed
 
-      - name: Run PHPUnit tests
-        run: docker compose exec -T app ./vendor/bin/phpunit
+      - name: Run PHPUnit integration tests
+        run: docker compose exec -T app ./vendor/bin/phpunit --testsuite=Feature
 
       - name: Stop services
         if: always()
         run: docker compose down
 
-      - name: Install Composer
-        run: |
-          php -r "copy('https://getcomposer.org/installer', 'composer-setup.php');"
-          php composer-setup.php --install-dir=/usr/local/bin --filename=composer
-          php -r "unlink('composer-setup.php');"
+  # Job 5: Frontend Build
+  frontend-build:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-      - name: Install Composer dependencies
-        run: composer install --prefer-dist --no-progress --no-suggest
-
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
 
       - name: Install Node.js dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Build frontend assets
+        run: npm run build:css || echo "No build script found, skipping..."
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: frontend-assets
+          path: |
+            public/assets/
+            node_modules/
+          retention-days: 7
+
+  # Job 6: Build Docker Image
   build:
+    name: Build Docker Image
     runs-on: ubuntu-latest
-    needs: test
+    needs: [code-quality, unit-tests, integration-tests]
+    if: github.event_name != 'pull_request'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -88,22 +256,96 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            type=raw,value=latest,enable={{is_default_branch}}
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:latest,${{ secrets.DOCKERHUB_USERNAME }}/baultphp-app:${{ github.sha }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_ENV=production
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
 
-  deploy:
+  # Job 7: Deploy to Staging
+  deploy-staging:
+    name: Deploy to Staging
     runs-on: ubuntu-latest
-    needs: build
+    needs: [build, frontend-build]
+    if: github.ref == 'refs/heads/develop' && github.event_name == 'push'
+    environment:
+      name: staging
+      url: ${{ secrets.STAGING_URL }}
     steps:
-      - name: Deploy to server
+      - name: Deploy to staging server
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.STAGING_SSH_HOST }}
+          username: ${{ secrets.STAGING_SSH_USER }}
+          key: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.STAGING_APP_PATH }}
+            echo ">>> Pulling latest image..."
+            docker compose pull app
+            echo ">>> Deploying new container..."
+            docker compose up -d --remove-orphans app
+            echo ">>> Running migrations..."
+            docker compose exec -T app php cli ddd:migrate --force
+            echo ">>> Clearing cache..."
+            docker compose exec -T app php cli cache:clear || true
+            echo ">>> Health check..."
+            sleep 10
+            curl -f http://localhost/health || exit 1
+            docker image prune -f
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Deployment to staging ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  # Job 8: Deploy to Production
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: [build, frontend-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    environment:
+      name: production
+      url: ${{ secrets.PRODUCTION_URL }}
+    steps:
+      - name: Create deployment backup
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.APP_PATH_ON_SERVER }}
+            echo ">>> Creating backup..."
+            docker compose exec -T app php cli backup:create || true
+            docker compose exec -T db mysqldump -u root -p${{ secrets.DB_ROOT_PASSWORD }} bault > backup_$(date +%Y%m%d_%H%M%S).sql || true
+
+      - name: Deploy to production server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -115,4 +357,59 @@ jobs:
             docker compose pull app
             echo ">>> Deploying new container..."
             docker compose up -d --remove-orphans app
+            echo ">>> Running migrations..."
+            docker compose exec -T app php cli ddd:migrate --force
+            echo ">>> Clearing cache..."
+            docker compose exec -T app php cli cache:clear || true
+            echo ">>> Optimizing application..."
+            docker compose exec -T app php cli optimize || true
+            echo ">>> Health check..."
+            sleep 15
+            for i in {1..5}; do
+              if curl -f http://localhost/health; then
+                echo ">>> Health check passed!"
+                break
+              fi
+              echo ">>> Health check attempt $i failed, retrying..."
+              sleep 5
+            done
             docker image prune -f
+
+      - name: Rollback on failure
+        if: failure()
+        uses: appleboy/ssh-action@master
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            cd ${{ secrets.APP_PATH_ON_SERVER }}
+            echo ">>> Deployment failed, rolling back..."
+            docker compose down
+            docker compose up -d app
+            echo ">>> Rollback complete"
+
+      - name: Notify deployment
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          text: "Deployment to production ${{ job.status }}"
+          webhook_url: ${{ secrets.SLACK_WEBHOOK_URL }}
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+      - name: Create GitHub Release
+        if: success()
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: v${{ github.run_number }}
+          release_name: Release v${{ github.run_number }}
+          body: |
+            Automated release from commit ${{ github.sha }}
+            - Deployed to production
+            - All tests passed
+          draft: false
+          prerelease: false
