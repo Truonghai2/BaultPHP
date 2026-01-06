@@ -143,7 +143,7 @@ class SessionGuard implements Guard
     public function attempt(array $credentials = [], bool $remember = false): ?Authenticatable
     {
         $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
-        
+
         $start = microtime(true);
         $user = $this->provider->retrieveByCredentials($credentials);
         $logger->info('SessionGuard: User retrieval', ['duration_ms' => (microtime(true) - $start) * 1000]);
@@ -161,12 +161,12 @@ class SessionGuard implements Guard
      * Format: [email => ['count' => int, 'last_attempt' => timestamp]]
      */
     private static array $failedAttemptsCache = [];
-    
+
     /**
      * Maximum failed attempts before blocking (per request lifecycle)
      */
     private const MAX_FAILED_ATTEMPTS = 5;
-    
+
     /**
      * Block duration in seconds
      */
@@ -200,18 +200,18 @@ class SessionGuard implements Guard
 
         $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
         $start = microtime(true);
-        
+
         // Performance optimization: Early return if password is empty
         $hashedPassword = $user->getAuthPassword();
         if (empty($hashedPassword)) {
             return false;
         }
-        
+
         $result = Hash::check($credentials['password'], $hashedPassword);
         $duration = microtime(true) - $start;
-        
+
         $logger->info('SessionGuard: Password verification', ['duration_ms' => $duration * 1000]);
-        
+
         // Track failed attempts
         if (!$result && $email) {
             if (!isset(self::$failedAttemptsCache[$email])) {
@@ -219,19 +219,19 @@ class SessionGuard implements Guard
             }
             self::$failedAttemptsCache[$email]['count']++;
             self::$failedAttemptsCache[$email]['last_attempt'] = time();
-        } else if ($result && $email) {
+        } elseif ($result && $email) {
             // Clear failed attempts on success
             unset(self::$failedAttemptsCache[$email]);
         }
-        
+
         // Auto-rehash password if needed (when hashing config changes)
         if ($result && Hash::needsRehash($hashedPassword)) {
             $this->rehashPasswordAfterLogin($user, $credentials['password']);
         }
-        
+
         return $result;
     }
-    
+
     /**
      * Rehash user's password with current hashing configuration.
      * This happens asynchronously after successful login to avoid blocking the response.
@@ -243,7 +243,7 @@ class SessionGuard implements Guard
             try {
                 // Determine risk level based on user role
                 $riskLevel = $this->determineUserRiskLevel($user);
-                
+
                 // Use adaptive hashing if available
                 $hasher = $this->app->make('hash');
                 if ($hasher instanceof \Core\Hashing\AdaptiveHashManager) {
@@ -251,7 +251,7 @@ class SessionGuard implements Guard
                 } else {
                     $newHash = $hasher->make($plainPassword);
                 }
-                
+
                 // Update password in database
                 if (method_exists($user, 'updatePassword')) {
                     $user->updatePassword($newHash);
@@ -260,7 +260,7 @@ class SessionGuard implements Guard
                     $user->password = $newHash;
                     $user->save();
                 }
-                
+
                 $this->app->make(\Psr\Log\LoggerInterface::class)->info('Password rehashed for user', [
                     'user_id' => $user->getAuthIdentifier(),
                     'risk_level' => $riskLevel,
@@ -273,7 +273,7 @@ class SessionGuard implements Guard
             }
         });
     }
-    
+
     /**
      * Determine the risk level for a user based on their roles and permissions.
      * This is used for adaptive hashing with different security parameters.
@@ -284,20 +284,20 @@ class SessionGuard implements Guard
         if (method_exists($user, 'isSuperAdmin') && $user->isSuperAdmin()) {
             return 'critical';
         }
-        
+
         // Check if user has hasRole method
         if (method_exists($user, 'hasRole')) {
             // Check for admin roles
             if ($user->hasRole('admin') || (method_exists($user, 'hasRole') && $user->hasRole('administrator'))) {
                 return 'high';
             }
-            
+
             // Check for moderator or manager roles
             if ($user->hasRole('moderator') || (method_exists($user, 'hasRole') && $user->hasRole('manager'))) {
                 return 'standard';
             }
         }
-        
+
         // Default to standard risk for regular users
         return 'standard';
     }
@@ -332,16 +332,16 @@ class SessionGuard implements Guard
         $logger->info('Updating session and migrating ID.', ['user_id' => $id]);
 
         $this->session->set($this->getName(), $id);
-        
+
         $this->session->regenerate(false);
-        
+
         try {
             $csrfManager = $this->app->make(\Core\Security\CsrfManager::class);
             $csrfManager->refreshToken('_token');
         } catch (\Exception $e) {
             $logger->warning('Failed to refresh CSRF token', ['error' => $e->getMessage()]);
         }
-        
+
         $this->session->save();
 
         $duration = microtime(true) - $startTime;
@@ -361,7 +361,7 @@ class SessionGuard implements Guard
             $config['secure'] ?? false,
             $config['http_only'] ?? true,
             false,
-            $config['same_site'] ?? 'lax'
+            $config['same_site'] ?? 'lax',
         );
         $logger->info('Session ID migration finished.', [
             'duration_ms' => $duration * 1000,
@@ -377,7 +377,7 @@ class SessionGuard implements Guard
     {
         $cookieName = $this->getRememberMeCookieName();
         $cookie = $this->cookieManager->get($cookieName);
-        
+
         $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
 
         if (!$cookie || !str_contains($cookie, ':')) {
@@ -397,7 +397,7 @@ class SessionGuard implements Guard
 
     /**
      * Attempt to retrieve a user by the "remember me" cookie's data.
-     * 
+     *
      * PERFORMANCE OPTIMIZATION: Cache remember token lookups
      *
      * @param array $recaller
@@ -410,12 +410,12 @@ class SessionGuard implements Guard
         }
 
         $selector = $recaller['selector'];
-        
+
         // Performance optimization: Cache remember token lookup
         if (!isset(self::$rememberTokenCache[$selector])) {
             self::$rememberTokenCache[$selector] = RememberToken::where('selector', $selector)->first();
         }
-        
+
         $tokenRecord = self::$rememberTokenCache[$selector];
 
         if (!$tokenRecord) {
@@ -443,7 +443,7 @@ class SessionGuard implements Guard
         // Verify token hash (constant-time comparison for security)
         if (hash_equals($tokenRecord->verifier_hash, hash('sha256', $recaller['verifier']))) {
             $user = $this->provider->retrieveById($tokenRecord->user_id);
- 
+
             if ($user) {
                 // Regenerate token for security (token rotation)
                 $this->regenerateRememberToken($tokenRecord, $user);
@@ -451,7 +451,7 @@ class SessionGuard implements Guard
                 unset(self::$rememberTokenCache[$selector]);
                 return $user;
             }
- 
+
             // User not found, remove token
             $this->removeRememberToken($tokenRecord->selector);
             unset(self::$rememberTokenCache[$selector]);

@@ -9,7 +9,7 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * DeletePageHandler
- * 
+ *
  * Handles the DeletePageCommand.
  */
 class DeletePageHandler implements CommandHandlerInterface
@@ -17,7 +17,7 @@ class DeletePageHandler implements CommandHandlerInterface
     public function handle(CommandInterface $command): bool
     {
         $page = Page::find($command->pageId);
-        
+
         if (!$page) {
             throw new \Exception("Page with ID {$command->pageId} not found");
         }
@@ -33,12 +33,11 @@ class DeletePageHandler implements CommandHandlerInterface
             [
                 'page_id' => $command->pageId,
                 'slug' => $pageSlug,
-                'action' => 'page_deleted'
+                'action' => 'page_deleted',
             ],
-            'warning'
+            'warning',
         );
 
         return true;
     }
 }
-

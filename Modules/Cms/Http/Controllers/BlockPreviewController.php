@@ -5,15 +5,15 @@ namespace Modules\Cms\Http\Controllers;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
-use Modules\Cms\Infrastructure\Models\BlockType;
-use Modules\Cms\Domain\Services\BlockRenderer;
 use Modules\Cms\Domain\Services\BlockRegistry;
+use Modules\Cms\Domain\Services\BlockRenderer;
+use Modules\Cms\Infrastructure\Models\BlockType;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Block Preview Controller
- * 
+ *
  * Preview blocks before adding them to pages
  */
 #[Route(prefix: '/admin/blocks', middleware: ['auth'], group: 'web')]
@@ -21,7 +21,7 @@ class BlockPreviewController extends Controller
 {
     public function __construct(
         private readonly BlockRegistry $blockRegistry,
-        private readonly BlockRenderer $blockRenderer
+        private readonly BlockRenderer $blockRenderer,
     ) {
     }
 
@@ -42,7 +42,7 @@ class BlockPreviewController extends Controller
 
         if (empty($data['block_type_name'])) {
             return response()->json([
-                'error' => 'block_type_name is required'
+                'error' => 'block_type_name is required',
             ], 400);
         }
 
@@ -56,7 +56,7 @@ class BlockPreviewController extends Controller
 
             if (!$block) {
                 return response()->json([
-                    'error' => 'Block type not found'
+                    'error' => 'Block type not found',
                 ], 404);
             }
 
@@ -75,7 +75,7 @@ class BlockPreviewController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to preview block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -98,7 +98,7 @@ class BlockPreviewController extends Controller
 
             if (!$block) {
                 return response()->json([
-                    'error' => 'Block type not found'
+                    'error' => 'Block type not found',
                 ], 404);
             }
 
@@ -106,7 +106,7 @@ class BlockPreviewController extends Controller
 
             if (!$blockType) {
                 return response()->json([
-                    'error' => 'Block type not found in database'
+                    'error' => 'Block type not found in database',
                 ], 404);
             }
 
@@ -124,7 +124,7 @@ class BlockPreviewController extends Controller
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to get block schema',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -141,8 +141,7 @@ class BlockPreviewController extends Controller
             </div>',
             htmlspecialchars($blockType),
             htmlspecialchars($blockType),
-            $html
+            $html,
         );
     }
 }
-

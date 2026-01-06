@@ -28,7 +28,7 @@ class OAuthClientListCommand extends BaseCommand
         $showRevoked = $this->option('revoked');
 
         $query = Client::query();
-        
+
         if (!$showRevoked) {
             $query->where('revoked', '=', false);
         }
@@ -55,7 +55,7 @@ class OAuthClientListCommand extends BaseCommand
 
         $this->io->table(
             ['Client ID', 'Name', 'Redirect', 'Type', 'Password', 'Personal', 'Revoked'],
-            $rows
+            $rows,
         );
 
         $this->io->writeln("\nTotal clients: " . count($rows));
@@ -63,4 +63,3 @@ class OAuthClientListCommand extends BaseCommand
         return self::SUCCESS;
     }
 }
-

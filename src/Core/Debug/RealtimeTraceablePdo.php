@@ -3,7 +3,6 @@
 namespace Core\Debug;
 
 use PDO;
-use PDOStatement;
 
 /**
  * PDO Wrapper với real-time broadcasting capability.
@@ -36,14 +35,14 @@ class RealtimeTraceablePdo
     public function query($statement, $mode = null, ...$fetch_mode_args): \PDOStatement|false
     {
         $start = microtime(true);
-        
+
         // Call query() properly based on arguments provided
         if ($mode === null) {
             $result = $this->pdo->query($statement);
         } else {
             $result = $this->pdo->query($statement, $mode, ...$fetch_mode_args);
         }
-        
+
         $duration = (microtime(true) - $start) * 1000;
         $this->broadcastQuery($statement, [], $duration, $result !== false);
 
@@ -70,7 +69,7 @@ class RealtimeTraceablePdo
     public function prepare($statement, $options = []): \PDOStatement|false
     {
         $stmt = $this->pdo->prepare($statement, $options);
-        
+
         if ($stmt !== false && $this->broadcaster) {
             // Wrap statement để intercept execute
             $stmt = new RealtimeTraceableStatement($stmt, $statement, $this->broadcaster);
@@ -150,4 +149,3 @@ class RealtimeTraceablePdo
         ]);
     }
 }
-

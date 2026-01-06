@@ -10,7 +10,7 @@ use Modules\Cms\Domain\ValueObjects\Slug;
 
 /**
  * Page Domain Entity
- * 
+ *
  * Pure domain entity không phụ thuộc vào infrastructure
  */
 class Page
@@ -32,7 +32,7 @@ class Page
         ?PageContent $content = null,
         ?string $featuredImagePath = null,
         ?\DateTimeImmutable $createdAt = null,
-        ?\DateTimeImmutable $updatedAt = null
+        ?\DateTimeImmutable $updatedAt = null,
     ) {
         $this->id = $id;
         $this->name = $name;
@@ -133,7 +133,7 @@ class Page
             isset($data['content']) ? PageContent::fromArray($data['content']) : null,
             $data['featured_image_path'] ?? null,
             isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
-            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null
+            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null,
         );
     }
 
@@ -154,4 +154,3 @@ class Page
         ];
     }
 }
-

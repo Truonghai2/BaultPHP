@@ -6,7 +6,7 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * UpdateModuleSettingCommand
- * 
+ *
  * Command to update a module setting.
  */
 class UpdateModuleSettingCommand implements CommandInterface
@@ -17,13 +17,12 @@ class UpdateModuleSettingCommand implements CommandInterface
         public readonly mixed $value,
         public readonly string $type = 'string',
         public readonly ?string $description = null,
-        public readonly ?string $group = null
-    ) {}
+        public readonly ?string $group = null,
+    ) {
+    }
 
-    
     public function getCommandName(): string
     {
         return 'admin.module.update_setting';
     }
 }
-

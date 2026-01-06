@@ -4,8 +4,8 @@ namespace Modules\User\Http\Controllers\Admin;
 
 use Http\JsonResponse;
 use InvalidArgumentException;
-use Modules\User\Application\Commands\User\AssignRoleCommand;
 use Modules\User\Application\CommandHandlers\User\AssignRoleHandler;
+use Modules\User\Application\Commands\User\AssignRoleCommand;
 use Modules\User\Domain\Exceptions\RoleNotFoundException;
 use Modules\User\Domain\Exceptions\UserNotFoundException;
 use Modules\User\Http\Requests\AssignRoleRequest;

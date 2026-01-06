@@ -35,7 +35,7 @@ class EloquentPageBlockRepository implements PageBlockRepositoryInterface
         return PageBlockModel::where('page_id', $pageId)
             ->orderBy('order', 'asc')
             ->get()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -103,4 +103,3 @@ class EloquentPageBlockRepository implements PageBlockRepositoryInterface
         ]);
     }
 }
-

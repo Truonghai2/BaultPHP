@@ -6,7 +6,7 @@ use Core\Audit\AuditLogger;
 
 /**
  * Audit Facade
- * 
+ *
  * @method static \Core\Audit\Models\AuditLog oauth(string $eventType, array $data = [], string $severity = 'info')
  * @method static \Core\Audit\Models\AuditLog auth(string $eventType, ?\Core\Contracts\Auth\Authenticatable $user = null, array $data = [], string $severity = 'info')
  * @method static \Core\Audit\Models\AuditLog model(string $action, $model, ?array $oldValues = null, ?array $newValues = null)
@@ -23,4 +23,3 @@ class Audit extends Facade
         return AuditLogger::class;
     }
 }
-

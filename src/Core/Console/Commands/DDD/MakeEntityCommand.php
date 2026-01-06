@@ -41,9 +41,9 @@ class MakeEntityCommand extends BaseCommand
         $this->createEntity($modulePath, $module, $name);
 
         $this->io->success("Entity [{$name}] created successfully!");
-        $this->io->comment("Next steps:");
+        $this->io->comment('Next steps:');
         $this->io->listing([
-            "1. Define entity properties and business rules",
+            '1. Define entity properties and business rules',
             "2. Create value objects: php cli make:value-object {$module} YourValue",
             "3. Create repository interface: php cli ddd:make-repository {$module} {$name}",
             "4. Create Eloquent model: php cli make:model {$module} {$name}",
@@ -56,7 +56,7 @@ class MakeEntityCommand extends BaseCommand
     {
         $path = "{$modulePath}/Domain/Entities/{$name}.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -68,7 +68,7 @@ class MakeEntityCommand extends BaseCommand
 
         $stub = $this->getEntityStub($module, $name);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Domain/Entities/{$name}.php");
     }
 
@@ -159,4 +159,3 @@ class {$name}
 PHP;
     }
 }
-

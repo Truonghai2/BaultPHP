@@ -3,8 +3,7 @@
 use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migration.
      */
@@ -20,12 +19,12 @@ return new class extends Migration
             $table->string('country_code', 5)->nullable();
             $table->string('device_type', 20)->nullable(); // desktop, mobile, tablet
             $table->timestamp('viewed_at');
-            
+
             $table->index('page_id');
             $table->index('viewed_at');
             $table->index(['page_id', 'viewed_at']);
         });
-        
+
         // Add foreign key for page_views
         try {
             $this->schema->getConnection()->exec('

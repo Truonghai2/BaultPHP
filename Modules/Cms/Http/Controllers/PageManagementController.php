@@ -5,23 +5,23 @@ namespace Modules\Cms\Http\Controllers;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
+use Modules\Cms\Domain\Services\PageBlockRenderer;
+use Modules\Cms\Infrastructure\Models\BlockType;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
-use Modules\Cms\Infrastructure\Models\BlockType;
-use Modules\Cms\Domain\Services\PageBlockRenderer;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Page Management Controller
- * 
+ *
  * Admin API for managing pages and their blocks
  */
 #[Route(prefix: '/admin/pages', middleware: ['auth'], group: 'web')]
 class PageManagementController extends Controller
 {
     public function __construct(
-        private readonly PageBlockRenderer $pageBlockRenderer
+        private readonly PageBlockRenderer $pageBlockRenderer,
     ) {
     }
 
@@ -113,21 +113,21 @@ class PageManagementController extends Controller
                 'name' => $page->name,
                 'slug' => $page->slug,
             ],
-            'page_blocks' => $pageBlocks->map(fn($b) => [
+            'page_blocks' => $pageBlocks->map(fn ($b) => [
                 'id' => $b->id,
                 'block_type_id' => $b->block_type_id,
                 'region' => $b->region,
                 'visible' => $b->visible,
                 'sort_order' => $b->sort_order,
             ]),
-            'block_instances' => $blockInstances->map(fn($i) => [
+            'block_instances' => $blockInstances->map(fn ($i) => [
                 'id' => $i->id,
                 'title' => $i->title,
                 'region_id' => $i->region_id,
                 'visible' => $i->visible,
                 'weight' => $i->weight,
             ]),
-            'regions' => $regions->map(fn($r) => [
+            'regions' => $regions->map(fn ($r) => [
                 'id' => $r->id,
                 'name' => $r->name,
             ]),
@@ -185,7 +185,7 @@ class PageManagementController extends Controller
 
         // Get all regions for this page
         $regions = $page->getRegions();
-        
+
         // Get blocks for each region using new PageBlock structure
         $blocksData = [];
         foreach ($regions as $regionName) {
@@ -218,7 +218,7 @@ class PageManagementController extends Controller
                 'created_at' => $page->created_at,
                 'updated_at' => $page->updated_at,
             ],
-            'regions' => array_map(fn($name) => $name, $regions),
+            'regions' => array_map(fn ($name) => $name, $regions),
             'blocks' => $blocksData,
         ]);
     }
@@ -245,14 +245,14 @@ class PageManagementController extends Controller
         // Validation
         if (empty($data['name']) || empty($data['slug'])) {
             return response()->json([
-                'error' => 'name and slug are required'
+                'error' => 'name and slug are required',
             ], 400);
         }
 
         // Check if slug already exists
         if (Page::where('slug', $data['slug'])->exists()) {
             return response()->json([
-                'error' => 'Slug already exists'
+                'error' => 'Slug already exists',
             ], 422);
         }
 
@@ -270,7 +270,7 @@ class PageManagementController extends Controller
             if (!empty($data['template'])) {
                 $this->applyTemplate($page, $data['template'], $user->id);
             }
-            
+
             $this->clearRouteCache();
 
             return response()->json([
@@ -285,7 +285,7 @@ class PageManagementController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to create page',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -306,7 +306,7 @@ class PageManagementController extends Controller
         $templates = \Database\Seeders\PageTemplateSeeder::getTemplates();
 
         return response()->json([
-            'templates' => array_map(function($key, $template) {
+            'templates' => array_map(function ($key, $template) {
                 return [
                     'key' => $key,
                     'name' => $template['name'],
@@ -314,7 +314,7 @@ class PageManagementController extends Controller
                     'regions' => $template['regions'],
                     'block_count' => array_sum(array_map('count', $template['blocks'])),
                 ];
-            }, array_keys($templates), $templates)
+            }, array_keys($templates), $templates),
         ]);
     }
 
@@ -352,7 +352,7 @@ class PageManagementController extends Controller
                 // Check if new slug already exists (except current page)
                 if (Page::where('slug', $data['slug'])->where('id', '!=', $id)->exists()) {
                     return response()->json([
-                        'error' => 'Slug already exists'
+                        'error' => 'Slug already exists',
                     ], 422);
                 }
                 $page->slug = $data['slug'];
@@ -371,7 +371,7 @@ class PageManagementController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to update page',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -404,17 +404,17 @@ class PageManagementController extends Controller
             PageBlock::where('page_id', $page->id)->delete();
 
             $page->delete();
-            
+
             // Clear route cache after page deletion
             $this->clearRouteCache();
 
             return response()->json([
-                'message' => 'Page deleted successfully'
+                'message' => 'Page deleted successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to delete page',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -446,7 +446,7 @@ class PageManagementController extends Controller
 
         if (!isset($data['block_type_id']) || !isset($data['region']) || $data['region'] === '') {
             return response()->json([
-                'error' => 'block_type_id and region are required'
+                'error' => 'block_type_id and region are required',
             ], 400);
         }
 
@@ -484,7 +484,7 @@ class PageManagementController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to assign block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -524,12 +524,12 @@ class PageManagementController extends Controller
             $block->delete();
 
             return response()->json([
-                'message' => 'Block removed successfully'
+                'message' => 'Block removed successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to remove block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -561,7 +561,7 @@ class PageManagementController extends Controller
 
         if (empty($data['blocks']) || !is_array($data['blocks'])) {
             return response()->json([
-                'error' => 'blocks array is required'
+                'error' => 'blocks array is required',
             ], 400);
         }
 
@@ -573,12 +573,12 @@ class PageManagementController extends Controller
             }
 
             return response()->json([
-                'message' => 'Blocks reordered successfully'
+                'message' => 'Blocks reordered successfully',
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to reorder blocks',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -612,7 +612,7 @@ class PageManagementController extends Controller
         foreach ($regions as $regionData) {
             BlockRegion::firstOrCreate(
                 ['name' => $regionData['name']],
-                array_merge($regionData, ['is_active' => true])
+                array_merge($regionData, ['is_active' => true]),
             );
         }
     }
@@ -623,7 +623,7 @@ class PageManagementController extends Controller
     private function applyTemplate(Page $page, string $templateKey, int $userId): void
     {
         $template = \Database\Seeders\PageTemplateSeeder::getTemplate($templateKey);
-        
+
         if (!$template) {
             return;
         }
@@ -639,7 +639,7 @@ class PageManagementController extends Controller
             $weight = 0;
             foreach ($blocks as $blockData) {
                 $blockType = BlockType::where('name', $blockData['type'])->first();
-                
+
                 if (!$blockType) {
                     continue;
                 }
@@ -659,10 +659,10 @@ class PageManagementController extends Controller
             }
         }
     }
-    
+
     /**
      * Clear route cache to ensure dynamic routes are updated
-     * 
+     *
      * This is called after page create/delete to ensure the /{slug} route
      * can immediately resolve the new/removed pages.
      */
@@ -672,7 +672,7 @@ class PageManagementController extends Controller
         if (file_exists($cachedPath)) {
             @unlink($cachedPath);
         }
-        
+
         // Also clear view cache for good measure
         $viewCachePath = base_path('storage/framework/views');
         if (is_dir($viewCachePath)) {
@@ -683,4 +683,3 @@ class PageManagementController extends Controller
         }
     }
 }
-

@@ -14,7 +14,7 @@ final class PageBlockId
     public function __construct(int $value)
     {
         if ($value <= 0) {
-            throw new \InvalidArgumentException("PageBlock ID must be positive");
+            throw new \InvalidArgumentException('PageBlock ID must be positive');
         }
         $this->value = $value;
     }
@@ -34,4 +34,3 @@ final class PageBlockId
         return (string) $this->value;
     }
 }
-

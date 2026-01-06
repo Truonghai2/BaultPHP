@@ -8,7 +8,7 @@ use Psr\Http\Message\ServerRequestInterface;
 
 /**
  * Central Audit Logger
- * 
+ *
  * Provides convenient methods to log various types of events.
  */
 class AuditLogger
@@ -38,14 +38,14 @@ class AuditLogger
     public function oauth(
         string $eventType,
         array $data = [],
-        string $severity = 'info'
+        string $severity = 'info',
     ): AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'oauth',
             metadata: $data,
             severity: $severity,
-            isSensitive: true
+            isSensitive: true,
         );
     }
 
@@ -56,7 +56,7 @@ class AuditLogger
         string $eventType,
         ?Authenticatable $user = null,
         array $data = [],
-        string $severity = 'info'
+        string $severity = 'info',
     ): AuditLog {
         return $this->log(
             eventType: $eventType,
@@ -64,7 +64,7 @@ class AuditLogger
             user: $user,
             metadata: $data,
             severity: $severity,
-            isSensitive: true
+            isSensitive: true,
         );
     }
 
@@ -75,7 +75,7 @@ class AuditLogger
         string $action, // created, updated, deleted
         $model,
         ?array $oldValues = null,
-        ?array $newValues = null
+        ?array $newValues = null,
     ): AuditLog {
         $modelClass = get_class($model);
         $modelId = method_exists($model, 'getKey') ? $model->getKey() : null;
@@ -88,7 +88,7 @@ class AuditLogger
             oldValues: $oldValues,
             newValues: $newValues,
             description: "{$modelClass} {$action}",
-            severity: 'info'
+            severity: 'info',
         );
     }
 
@@ -99,14 +99,14 @@ class AuditLogger
         string $eventType,
         string $description,
         array $metadata = [],
-        string $severity = 'info'
+        string $severity = 'info',
     ): AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'system',
             description: $description,
             metadata: $metadata,
-            severity: $severity
+            severity: $severity,
         );
     }
 
@@ -117,7 +117,7 @@ class AuditLogger
         string $eventType,
         string $description,
         array $metadata = [],
-        string $severity = 'warning'
+        string $severity = 'warning',
     ): AuditLog {
         return $this->log(
             eventType: $eventType,
@@ -125,7 +125,7 @@ class AuditLogger
             description: $description,
             metadata: $metadata,
             severity: $severity,
-            isSensitive: true
+            isSensitive: true,
         );
     }
 
@@ -143,7 +143,7 @@ class AuditLogger
         ?array $newValues = null,
         ?array $metadata = null,
         string $severity = 'info',
-        bool $isSensitive = false
+        bool $isSensitive = false,
     ): AuditLog {
         $user = $user ?? $this->user;
 
@@ -177,7 +177,7 @@ class AuditLogger
         }
 
         $serverParams = $this->request->getServerParams();
-        
+
         // Check for proxy headers
         $headers = [
             'HTTP_X_FORWARDED_FOR',
@@ -229,4 +229,3 @@ class AuditLogger
         return $this;
     }
 }
-

@@ -4,7 +4,7 @@ namespace Core\CQRS\Contracts;
 
 /**
  * Command Interface
- * 
+ *
  * All commands must implement this interface.
  * Commands represent write operations (mutations).
  */
@@ -15,4 +15,3 @@ interface CommandInterface
      */
     public function getCommandName(): string;
 }
-

@@ -13,7 +13,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Auto Sync Blocks Middleware
- * 
+ *
  * Automatically syncs blocks in development mode
  * Only runs in local environment and respects cache
  */
@@ -21,7 +21,7 @@ class AutoSyncBlocksMiddleware implements MiddlewareInterface
 {
     public function __construct(
         private readonly BlockSyncService $syncService,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -43,4 +43,3 @@ class AutoSyncBlocksMiddleware implements MiddlewareInterface
         return $handler->handle($request);
     }
 }
-

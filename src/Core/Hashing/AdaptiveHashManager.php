@@ -9,12 +9,12 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Adaptive Hash Manager with Risk-Based Hashing
- * 
+ *
  * This manager automatically adjusts hashing parameters based on:
  * - User risk level (admin, regular user, etc.)
  * - Security context (login from new device, suspicious activity)
  * - Performance requirements
- * 
+ *
  * Features:
  * - Risk-based parameter adjustment
  * - Timing attack protection
@@ -40,11 +40,11 @@ class AdaptiveHashManager extends HashManager
     {
         $profile = $this->getRiskProfile($riskLevel);
         $mergedOptions = array_merge($profile, $options);
-        
+
         $startTime = microtime(true);
         $hash = $this->make($value, $mergedOptions);
         $duration = (microtime(true) - $startTime) * 1000;
-        
+
         // Log if hashing takes too long
         if ($duration > 500) {
             $this->logger->warning('Slow password hashing detected', [
@@ -53,7 +53,7 @@ class AdaptiveHashManager extends HashManager
                 'algorithm' => $this->getDefaultDriver(),
             ]);
         }
-        
+
         return $hash;
     }
 
@@ -63,19 +63,19 @@ class AdaptiveHashManager extends HashManager
     public function checkSecure(string $value, string $hashedValue, array $options = []): bool
     {
         $startTime = microtime(true);
-        
+
         // Always perform verification even for empty hash to prevent timing attacks
         $result = parent::check($value, $hashedValue, $options);
-        
+
         // Add minimum processing time to prevent timing attacks
         // This makes all verifications take roughly the same time
         $minDuration = 0.05; // 50ms minimum
         $elapsed = microtime(true) - $startTime;
-        
+
         if ($elapsed < $minDuration) {
             usleep((int)(($minDuration - $elapsed) * 1000000));
         }
-        
+
         return $result;
     }
 
@@ -88,16 +88,16 @@ class AdaptiveHashManager extends HashManager
         if ($this->needsRehash($hashedValue)) {
             return true;
         }
-        
+
         // Check if hash algorithm is outdated
         $info = $this->info($hashedValue);
         $algoName = $info['algoName'] ?? 'unknown';
-        
+
         // Upgrade bcrypt or Argon2i to Argon2id
         if (in_array($algoName, ['bcrypt', 'argon2i'])) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -121,21 +121,21 @@ class AdaptiveHashManager extends HashManager
                 'time_cost' => 1,          // Fast
                 'threads' => 1,
             ],
-            
+
             // Standard risk: Most users
             'standard' => [
                 'memory_cost' => 65536,   // 64MB
                 'time_cost' => 2,          // Balanced
                 'threads' => 1,
             ],
-            
+
             // High risk: Admin users, privileged accounts
             'high' => [
                 'memory_cost' => 131072,  // 128MB
                 'time_cost' => 3,          // Slower but more secure
                 'threads' => 2,
             ],
-            
+
             // Critical: Super admins, system accounts
             'critical' => [
                 'memory_cost' => 262144,  // 256MB
@@ -152,13 +152,13 @@ class AdaptiveHashManager extends HashManager
     {
         $key = "hash_attempts:{$identifier}";
         $cache = $this->app->make('cache');
-        
+
         $attempts = (int) $cache->get($key, 0);
         $attempts++;
-        
+
         // Store for 1 hour
         $cache->put($key, $attempts, 3600);
-        
+
         // Alert on suspicious activity
         if ($attempts > 10) {
             $this->logger->warning('Excessive password hashing attempts detected', [
@@ -177,4 +177,3 @@ class AdaptiveHashManager extends HashManager
         return new Argon2idHasher($config);
     }
 }
-

@@ -11,7 +11,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 class CorsMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private CorsOriginsManager $originsManager
+        private CorsOriginsManager $originsManager,
     ) {
     }
 
@@ -36,7 +36,7 @@ class CorsMiddleware implements MiddlewareInterface
     private function handlePreflightRequest(
         ServerRequestInterface $request,
         string $requestOrigin,
-        array $config
+        array $config,
     ): ResponseInterface {
         $response = response('', 204); // No Content
 
@@ -61,7 +61,7 @@ class CorsMiddleware implements MiddlewareInterface
     private function addCorsHeaders(
         ResponseInterface $response,
         string $requestOrigin,
-        array $config
+        array $config,
     ): ResponseInterface {
         // Kiểm tra origin có được phép không
         $allowedOrigin = $this->originsManager->getAllowedOriginHeader($requestOrigin);
@@ -76,20 +76,20 @@ class CorsMiddleware implements MiddlewareInterface
         // Methods
         $response = $response->withHeader(
             'Access-Control-Allow-Methods',
-            implode(', ', $config['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'])
+            implode(', ', $config['allowed_methods'] ?? ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']),
         );
 
         // Headers
         $response = $response->withHeader(
             'Access-Control-Allow-Headers',
-            implode(', ', $config['allowed_headers'] ?? ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-TOKEN'])
+            implode(', ', $config['allowed_headers'] ?? ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-TOKEN']),
         );
 
         // Exposed headers
         if (!empty($config['exposed_headers'])) {
             $response = $response->withHeader(
                 'Access-Control-Expose-Headers',
-                implode(', ', $config['exposed_headers'])
+                implode(', ', $config['exposed_headers']),
             );
         }
 

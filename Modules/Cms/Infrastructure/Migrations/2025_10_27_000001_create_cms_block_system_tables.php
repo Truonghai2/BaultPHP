@@ -5,14 +5,13 @@ use Core\Schema\Migration;
 
 /**
  * Migration for CMS Block System (Moodle-like)
- * 
+ *
  * Tạo 3 bảng cho hệ thống block:
  * - block_types: Các loại block (TextBlock, HtmlBlock, etc.)
  * - block_regions: Các vùng (region) để đặt block (header, sidebar, etc.)
  * - block_instances: Các instance cụ thể của block
  */
-return new class extends Migration
-{
+return new class () extends Migration {
     public function up(): void
     {
         // Block Types Table
@@ -54,31 +53,31 @@ return new class extends Migration
             $table->id();
             $table->foreignId('block_type_id')->constrained('block_types')->onDelete('cascade');
             $table->foreignId('region_id')->nullable()->constrained('block_regions')->onDelete('set null');
-            
+
             // Context
             $table->string('context_type', 50)->default('global')->comment('Context: global, page, user');
             $table->unsignedBigInteger('context_id')->nullable()->comment('Context ID');
-            
+
             // Content
             $table->string('title', 255)->nullable()->comment('Custom title');
             $table->json('config')->nullable()->comment('Instance configuration');
             $table->text('content')->nullable()->comment('Block content');
-            
+
             // Display
             $table->integer('weight')->default(0)->comment('Sort order');
             $table->boolean('visible')->default(true)->comment('Is visible');
-            
+
             // Visibility rules
             $table->string('visibility_mode', 50)->default('always')->comment('Visibility mode');
             $table->json('visibility_rules')->nullable()->comment('Visibility rules');
             $table->json('allowed_roles')->nullable()->comment('Allowed roles');
             $table->json('denied_roles')->nullable()->comment('Denied roles');
-            
+
             // Metadata
             $table->unsignedBigInteger('created_by')->nullable()->comment('User ID who created this block');
             $table->timestamp('last_modified_at')->nullable();
             $table->timestamps();
-            
+
             // Add index for created_by (no foreign key to avoid dependency on users table)
             $table->index('created_by');
 
@@ -97,4 +96,3 @@ return new class extends Migration
         $this->schema->dropIfExists('block_types');
     }
 };
-

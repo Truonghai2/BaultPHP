@@ -12,4 +12,3 @@ interface Dispatcher
      */
     public function dispatch($job): void;
 }
-

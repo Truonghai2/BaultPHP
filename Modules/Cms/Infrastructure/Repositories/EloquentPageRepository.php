@@ -13,7 +13,7 @@ use Modules\Cms\Infrastructure\Models\Page as PageModel;
 
 /**
  * Eloquent Page Repository
- * 
+ *
  * Implementation of the repository using Eloquent
  * Convert between Domain Entities and Infrastructure Models
  */
@@ -62,7 +62,7 @@ class EloquentPageRepository implements PageRepositoryInterface
     public function getAll(): array
     {
         return PageModel::all()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -70,7 +70,7 @@ class EloquentPageRepository implements PageRepositoryInterface
     {
         return PageModel::where('user_id', $userId)
             ->get()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -120,4 +120,3 @@ class EloquentPageRepository implements PageRepositoryInterface
         ]);
     }
 }
-

@@ -44,7 +44,7 @@ class EloquentBlockInstanceRepository implements BlockInstanceRepositoryInterfac
         }
 
         return $query->get()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -63,7 +63,7 @@ class EloquentBlockInstanceRepository implements BlockInstanceRepositoryInterfac
         }
 
         return $query->get()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -136,4 +136,3 @@ class EloquentBlockInstanceRepository implements BlockInstanceRepositoryInterfac
         ]);
     }
 }
-

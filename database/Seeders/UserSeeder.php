@@ -31,7 +31,7 @@ class UserSeeder extends Seeder
             \Core\Support\Facades\Log::error('UserSeeder failed', ['exception' => $e]);
             return;
         }
-        
+
         if (!$user) {
             $this->command?->error('Could not find or create the admin user "admin@bault.dev". Aborting role assignment.');
             return;

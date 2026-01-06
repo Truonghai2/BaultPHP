@@ -8,10 +8,10 @@ use Modules\Cms\Domain\Aggregates\PageAggregate;
 
 /**
  * Page Domain Service
- * 
+ *
  * PURE business logic - NO infrastructure dependencies.
  * Contains complex domain rules that don't belong in aggregate.
- * 
+ *
  * Location: Domain/Services (CORRECT)
  * Why: Pure business logic with no infrastructure
  */
@@ -19,7 +19,7 @@ class PageDomainService
 {
     /**
      * Check if page can be published
-     * 
+     *
      * Business rules:
      * - Must have a name
      * - Must not be deleted
@@ -49,7 +49,7 @@ class PageDomainService
 
     /**
      * Validate page name
-     * 
+     *
      * Business rules for page names
      */
     public function validatePageName(string $name): void
@@ -74,7 +74,7 @@ class PageDomainService
 
     /**
      * Validate slug
-     * 
+     *
      * Business rules for slugs
      */
     public function validateSlug(string $slug): void
@@ -86,7 +86,7 @@ class PageDomainService
         // Business rule: Slug must be URL-safe
         if (!preg_match('/^[a-z0-9]+(?:-[a-z0-9]+)*$/', $slug)) {
             throw new \DomainException(
-                'Slug must be lowercase, alphanumeric, and use hyphens only'
+                'Slug must be lowercase, alphanumeric, and use hyphens only',
             );
         }
 
@@ -104,7 +104,7 @@ class PageDomainService
             'dashboard',
             'system',
             'config',
-            'settings'
+            'settings',
         ];
 
         if (in_array($slug, $reservedSlugs, true)) {
@@ -114,7 +114,7 @@ class PageDomainService
 
     /**
      * Check if page can be deleted
-     * 
+     *
      * Business rules for deletion
      */
     public function canDelete(PageAggregate $page): bool
@@ -133,7 +133,7 @@ class PageDomainService
 
     /**
      * Validate content update
-     * 
+     *
      * Business rules for content
      */
     public function validateContentUpdate(array $oldContent, array $newContent): void
@@ -154,7 +154,7 @@ class PageDomainService
 
     /**
      * Check if rename is allowed
-     * 
+     *
      * Business rules for renaming
      */
     public function canRename(PageAggregate $page, string $newSlug): bool
@@ -175,7 +175,7 @@ class PageDomainService
 
     /**
      * Calculate SEO score
-     * 
+     *
      * Domain logic for SEO evaluation
      */
     public function calculateSeoScore(PageAggregate $page): array
@@ -227,7 +227,7 @@ class PageDomainService
         return [
             'score' => max(0, $score),
             'issues' => $issues,
-            'rating' => $this->getScoreRating($score)
+            'rating' => $this->getScoreRating($score),
         ];
     }
 
@@ -247,7 +247,7 @@ class PageDomainService
 
     /**
      * Validate block addition
-     * 
+     *
      * Business rules for adding blocks
      */
     public function validateBlockAddition(PageAggregate $page, int $blockCount): void
@@ -266,7 +266,7 @@ class PageDomainService
 
     /**
      * Generate suggested slug from name
-     * 
+     *
      * Domain logic for slug generation
      */
     public function generateSlug(string $name): string
@@ -291,20 +291,20 @@ class PageDomainService
 
     /**
      * Check if content has changed significantly
-     * 
+     *
      * Used to determine if update is worth recording
      */
     public function hasSignificantContentChange(array $oldContent, array $newContent): bool
     {
         // Trivial changes might not be worth an event
-        
+
         // Check if only whitespace changed
         $oldJson = json_encode($oldContent, JSON_PRETTY_PRINT);
         $newJson = json_encode($newContent, JSON_PRETTY_PRINT);
-        
+
         $oldNormalized = preg_replace('/\s+/', '', $oldJson);
         $newNormalized = preg_replace('/\s+/', '', $newJson);
-        
+
         if ($oldNormalized === $newNormalized) {
             return false; // Only whitespace changed
         }
@@ -320,4 +320,3 @@ class PageDomainService
         return true;
     }
 }
-

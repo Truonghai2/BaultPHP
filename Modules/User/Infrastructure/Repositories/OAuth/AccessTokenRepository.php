@@ -12,7 +12,7 @@ use Modules\User\Infrastructure\Models\OAuth\AccessToken as AccessTokenModel;
 
 /**
  * Optimized AccessTokenRepository with caching for token validation.
- * 
+ *
  * PERFORMANCE OPTIMIZATIONS:
  * - Cache token revocation status
  * - Request-level cache for validation results
@@ -23,17 +23,17 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
      * Request-level cache for token revocation status
      */
     private static array $revocationCache = [];
-    
+
     /**
      * Cache manager for persistent caching
      */
     private ?CacheManager $cacheManager = null;
-    
+
     /**
      * Application instance
      */
     private ?Application $app = null;
-    
+
     /**
      * Cache TTL for token validation (short TTL for security)
      */
@@ -42,7 +42,7 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
     public function __construct(?Application $app = null)
     {
         $this->app = $app;
-        
+
         // Get cache manager if available
         if ($app && $app->has(CacheManager::class)) {
             $this->cacheManager = $app->make(CacheManager::class);
@@ -80,20 +80,20 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * PERFORMANCE: Clear cache when revoking
      */
     public function revokeAccessToken($tokenId)
     {
         AccessTokenModel::where('id', '=', $tokenId)->update(['revoked' => true]);
-        
+
         // Clear caches
         $this->clearTokenCache($tokenId);
     }
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * PERFORMANCE: Cache validation results
      */
     public function isAccessTokenRevoked($tokenId)
@@ -119,30 +119,30 @@ class AccessTokenRepository implements AccessTokenRepositoryInterface
 
         // Cache the result
         self::$revocationCache[$tokenId] = $revoked;
-        
+
         if ($this->cacheManager) {
             $this->cacheManager->store()->set(
                 "oauth:token:revoked:{$tokenId}",
                 $revoked ? 1 : 0,
-                self::VALIDATION_CACHE_TTL
+                self::VALIDATION_CACHE_TTL,
             );
         }
 
         return $revoked;
     }
-    
+
     /**
      * Clear cache for a specific token.
      */
     private function clearTokenCache(string $tokenId): void
     {
         unset(self::$revocationCache[$tokenId]);
-        
+
         if ($this->cacheManager) {
             $this->cacheManager->store()->delete("oauth:token:revoked:{$tokenId}");
         }
     }
-    
+
     /**
      * Clear all caches (useful for testing or maintenance).
      */

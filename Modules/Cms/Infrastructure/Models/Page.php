@@ -2,15 +2,15 @@
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\HasMany;
-use Core\Audit\Traits\Auditable;
 
 /**
  * Page Model
- * 
+ *
  * Represents a page in the CMS with its associated blocks
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $slug
@@ -26,9 +26,9 @@ class Page extends Model
     protected static string $table = 'pages';
 
     // Status constants
-    const STATUS_DRAFT = 'draft';
-    const STATUS_PUBLISHED = 'published';
-    const STATUS_ARCHIVED = 'archived';
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_ARCHIVED = 'archived';
 
     protected array $fillable = [
         'name',
@@ -48,7 +48,7 @@ class Page extends Model
         'robots',
         'schema_data',
     ];
-    
+
     protected $casts = [
         'status' => 'string',
         'published_at' => 'datetime',
@@ -61,9 +61,9 @@ class Page extends Model
 
     /**
      * Get all blocks for this page (Direct connection to block_types)
-     * 
+     *
      * Returns page_blocks ordered by region and order
-     * 
+     *
      * @return HasMany
      */
     public function blocks(): HasMany
@@ -75,9 +75,9 @@ class Page extends Model
 
     /**
      * Get blocks for a specific region
-     * 
+     *
      * PERFORMANCE OPTIMIZATION: Query result caching with short TTL
-     * 
+     *
      * @param string $region Region name (e.g., 'hero', 'content', 'sidebar')
      * @param \Modules\User\Infrastructure\Models\User|null $user Optional user for visibility pre-filtering
      * @return \Core\Support\Collection<int, PageBlock>
@@ -86,41 +86,41 @@ class Page extends Model
     {
         // Performance optimization: Cache query results with short TTL
         $cacheKey = "page_{$this->id}_blocks_region_{$region}";
-        
+
         // Include user context in cache key if provided (for role-based filtering)
         if ($user) {
             $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
             $roleHash = md5(serialize($userRoles));
             $cacheKey .= "_{$roleHash}";
         } else {
-            $cacheKey .= "_guest";
+            $cacheKey .= '_guest';
         }
-        
+
         // Cache for 60 seconds (short TTL to balance performance and freshness)
-        return cache()->remember($cacheKey, 60, function() use ($region, $user) {
+        return cache()->remember($cacheKey, 60, function () use ($region, $user) {
             $query = PageBlock::where('page_id', $this->id)
                 ->where('region', $region)
                 ->where('visible', true);
-            
+
             // Performance optimization: Pre-filter by roles if user provided
             if ($user) {
                 $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
-                
+
                 // If user has roles, filter blocks that allow those roles or have no restriction
                 if (!empty($userRoles)) {
-                    $query->where(function($q) use ($userRoles) {
+                    $query->where(function ($q) use ($userRoles) {
                         $q->whereNull('allowed_roles')
                           ->orWhereJsonContains('allowed_roles', $userRoles);
                     });
                 }
             } else {
                 // Guest: only blocks with 'guest' role or no role restriction
-                $query->where(function($q) {
+                $query->where(function ($q) {
                     $q->whereNull('allowed_roles')
                       ->orWhereJsonContains('allowed_roles', 'guest');
                 });
             }
-            
+
             return $query->with('blockType')
                 ->orderBy('sort_order')
                 ->get();
@@ -129,7 +129,7 @@ class Page extends Model
 
     /**
      * Get all regions used by this page
-     * 
+     *
      * @return array Array of region names: ['hero', 'content', 'sidebar', 'footer']
      */
     public function getRegions(): array
@@ -138,13 +138,13 @@ class Page extends Model
             ->select('region')
             ->distinct()
             ->pluck('region');
-        
+
         return array_values(array_unique($regions));
     }
 
     /**
      * LEGACY: Get block instances (for backward compatibility with global blocks)
-     * 
+     *
      * @return HasMany
      */
     public function blockInstances(): HasMany
@@ -158,7 +158,7 @@ class Page extends Model
 
     /**
      * Check if page has any blocks
-     * 
+     *
      * @return bool
      */
     public function hasBlocks(): bool
@@ -168,7 +168,7 @@ class Page extends Model
 
     /**
      * Get visible blocks count
-     * 
+     *
      * @return int
      */
     public function visibleBlocksCount(): int
@@ -180,7 +180,7 @@ class Page extends Model
 
     /**
      * Add a block to this page
-     * 
+     *
      * @param BlockType|int $blockType BlockType instance or ID
      * @param string $region Region name
      * @return PageBlock
@@ -188,12 +188,12 @@ class Page extends Model
     public function addBlock($blockType, string $region = 'content'): PageBlock
     {
         $blockTypeId = $blockType instanceof BlockType ? $blockType->id : $blockType;
-        
+
         // Get max sort_order in this region
         $maxOrder = $this->blocks()
             ->where('region', $region)
             ->max('sort_order') ?? 0;
-        
+
         $pageBlock = new PageBlock([
             'page_id' => $this->id,
             'block_type_id' => $blockTypeId,
@@ -201,15 +201,15 @@ class Page extends Model
             'sort_order' => $maxOrder + 1,
             'visible' => true,
         ]);
-        
+
         $pageBlock->save();
-        
+
         return $pageBlock;
     }
 
     /**
      * Remove a block from this page
-     * 
+     *
      * @param int $blockId
      * @return bool
      */
@@ -220,7 +220,7 @@ class Page extends Model
 
     /**
      * Duplicate all blocks to another page
-     * 
+     *
      * @param Page $targetPage
      * @return int Number of blocks duplicated
      */
@@ -228,12 +228,12 @@ class Page extends Model
     {
         $blocks = $this->blocks()->get();
         $count = 0;
-        
+
         foreach ($blocks as $block) {
             $block->duplicateTo($targetPage);
             $count++;
         }
-        
+
         return $count;
     }
 
@@ -355,7 +355,7 @@ class Page extends Model
 
     /**
      * Render blocks in a region
-     * 
+     *
      * @param string $region
      * @param \Modules\User\Infrastructure\Models\User|null $user
      * @return string
@@ -364,11 +364,11 @@ class Page extends Model
     {
         $blocks = $this->blocksInRegion($region);
         $html = '';
-        
+
         foreach ($blocks as $block) {
             $html .= $block->render($user);
         }
-        
+
         return $html;
     }
 }

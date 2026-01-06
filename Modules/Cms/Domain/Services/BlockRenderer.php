@@ -12,7 +12,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Block Renderer Domain Service
- * 
+ *
  * Render blocks for display
  */
 class BlockRenderer
@@ -20,13 +20,13 @@ class BlockRenderer
     public function __construct(
         private readonly BlockRegistry $registry,
         private readonly CacheManager $cache,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     /**
      * Render a single block instance
-     * 
+     *
      * @param BlockInstance $instance Block instance to render
      * @param array|null $userRoles User roles for visibility check
      * @param array|null $context Additional context data from controller/view
@@ -41,7 +41,7 @@ class BlockRenderer
 
             $blockType = BlockType::find($instance->block_type_id);
             if (!$blockType) {
-                $this->logger->warning("Block type not found", [
+                $this->logger->warning('Block type not found', [
                     'block_type_id' => $instance->block_type_id,
                     'instance_id' => $instance->id,
                 ]);
@@ -49,9 +49,9 @@ class BlockRenderer
             }
 
             $block = $this->registry->getBlock($blockType->name);
-            
+
             if (!$block) {
-                $this->logger->warning("Block type not found in registry", [
+                $this->logger->warning('Block type not found in registry', [
                     'block_type' => $blockType->name,
                     'instance_id' => $instance->id,
                 ]);
@@ -71,7 +71,7 @@ class BlockRenderer
                 'title' => $instance->title,
                 'content' => $instance->content,
             ]);
-            
+
             // Ensure config is array (handle cast issues)
             $config = $instance->config;
             if (is_string($config)) {
@@ -79,7 +79,7 @@ class BlockRenderer
             } elseif (!is_array($config)) {
                 $config = [];
             }
-            
+
             $content = $block->render($config, $blockContext);
 
             $html = $this->wrapBlock($instance, $content, $blockType);
@@ -90,9 +90,8 @@ class BlockRenderer
             // }
 
             return $html;
-
         } catch (\Throwable $e) {
-            $this->logger->error("Failed to render block", [
+            $this->logger->error('Failed to render block', [
                 'instance_id' => $instance->id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -101,7 +100,7 @@ class BlockRenderer
             if (config('app.debug')) {
                 return sprintf(
                     '<div class="block-error">Block render error: %s</div>',
-                    htmlspecialchars($e->getMessage())
+                    htmlspecialchars($e->getMessage()),
                 );
             }
 
@@ -126,7 +125,7 @@ class BlockRenderer
         $html = sprintf(
             '<div class="%s" data-block-id="%d">',
             htmlspecialchars($cssClasses),
-            $instance->id
+            $instance->id,
         );
 
         $config = $instance->config ?? [];
@@ -134,7 +133,7 @@ class BlockRenderer
         if ($instance->title && $showTitle) {
             $html .= sprintf(
                 '<div class="block-header"><h3 class="block-title">%s</h3></div>',
-                htmlspecialchars($instance->title)
+                htmlspecialchars($instance->title),
             );
         }
 
@@ -150,7 +149,7 @@ class BlockRenderer
     protected function buildAttributesString(array $attributes): string
     {
         $parts = [];
-        
+
         foreach ($attributes as $key => $value) {
             $parts[] = sprintf('%s="%s"', $key, htmlspecialchars($value));
         }
@@ -160,7 +159,7 @@ class BlockRenderer
 
     /**
      * Render all blocks in a region
-     * 
+     *
      * @param string $regionName Region name
      * @param string|null $contextType Context type (global, page, user)
      * @param int|null $contextId Context ID
@@ -169,11 +168,11 @@ class BlockRenderer
      * @return string Rendered HTML
      */
     public function renderRegion(
-        string $regionName, 
-        ?string $contextType = 'global', 
-        ?int $contextId = null, 
+        string $regionName,
+        ?string $contextType = 'global',
+        ?int $contextId = null,
         ?array $userRoles = null,
-        ?array $context = null
+        ?array $context = null,
     ): string {
         try {
             $blocks = $this->getVisibleBlocks($regionName, $contextType, $contextId, $userRoles);
@@ -182,9 +181,10 @@ class BlockRenderer
                 return '';
             }
 
-            $html = sprintf('<div class="region region-%s" data-region="%s">', 
-                htmlspecialchars($regionName), 
-                htmlspecialchars($regionName)
+            $html = sprintf(
+                '<div class="region region-%s" data-region="%s">',
+                htmlspecialchars($regionName),
+                htmlspecialchars($regionName),
             );
 
             foreach ($blocks as $block) {
@@ -194,9 +194,8 @@ class BlockRenderer
             $html .= '</div>';
 
             return $html;
-
         } catch (\Throwable $e) {
-            $this->logger->error("Failed to render region", [
+            $this->logger->error('Failed to render region', [
                 'region' => $regionName,
                 'error' => $e->getMessage(),
             ]);
@@ -211,7 +210,7 @@ class BlockRenderer
     protected function getVisibleBlocks(string $regionName, ?string $contextType, ?int $contextId, ?array $userRoles): array
     {
         $region = BlockRegion::where('name', $regionName)->first();
-        
+
         if (!$region) {
             return [];
         }
@@ -219,17 +218,17 @@ class BlockRenderer
         $query = BlockInstance::where('region_id', $region->id)
             ->where('visible', true)
             ->where('context_type', $contextType ?? 'global');
-            
+
         if ($contextId !== null) {
             $query->where('context_id', $contextId);
         }
-        
+
         $blocks = $query->orderBy('weight')->get()->all();
 
         if ($userRoles !== null) {
             return array_filter(
                 $blocks,
-                fn(BlockInstance $block) => $block->isVisibleTo($userRoles)
+                fn (BlockInstance $block) => $block->isVisibleTo($userRoles),
             );
         }
 
@@ -281,8 +280,7 @@ class BlockRenderer
             'block.%d.%s.%s',
             $instance->id,
             $instance->context_type,
-            $instance->context_id ?? 'null'
+            $instance->context_id ?? 'null',
         );
     }
 }
-

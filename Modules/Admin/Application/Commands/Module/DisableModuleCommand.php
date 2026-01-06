@@ -6,18 +6,18 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * DisableModuleCommand
- * 
+ *
  * Command to disable a module in the system.
  */
 class DisableModuleCommand implements CommandInterface
 {
     public function __construct(
-        public readonly string $moduleName
-    ) {}
+        public readonly string $moduleName,
+    ) {
+    }
 
     public function getCommandName(): string
     {
         return 'admin.module.disable';
     }
 }
-

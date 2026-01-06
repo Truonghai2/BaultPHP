@@ -8,10 +8,10 @@ use Core\ORM\Relations\BelongsToMany;
 
 /**
  * Permission Model
- * 
+ *
  * Represents a system permission that can be assigned to roles.
  * Auto-logs all permission changes for security compliance.
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $description

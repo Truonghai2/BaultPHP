@@ -42,8 +42,8 @@ class ModuleSynchronizer
                     'name' => $meta['name'],
                     'version' => $meta['version'] ?? '1.0.0',
                     'description' => $meta['description'] ?? '',
-                    'enabled' => false, 
-                    'status' => 'pending', 
+                    'enabled' => false,
+                    'status' => 'pending',
                 ]);
                 $newlyAdded[] = $moduleName;
 
@@ -83,7 +83,7 @@ class ModuleSynchronizer
             Module::whereIn('name', $staleModules)->delete();
             $staleRemoved = $staleModules;
         }
-        
+
         Log::info('Module synchronization complete.', [
             'added' => count($newlyAdded),
             'updated' => count($updated),

@@ -7,7 +7,7 @@ use Core\ORM\Model;
 
 /**
  * ModuleSettings Model
- * 
+ *
  * Stores module configuration that can be changed at runtime.
  * Auto-logs all configuration changes for audit trail.
  *
@@ -116,4 +116,3 @@ class ModuleSettings extends Model
         return $query->where('is_public', true);
     }
 }
-

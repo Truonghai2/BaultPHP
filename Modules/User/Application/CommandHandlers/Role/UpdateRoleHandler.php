@@ -9,8 +9,8 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * UpdateRoleHandler
- * 
- * Handles the UpdateRoleCommand.   
+ *
+ * Handles the UpdateRoleCommand.
  */
 class UpdateRoleHandler implements CommandHandlerInterface
 {
@@ -45,12 +45,11 @@ class UpdateRoleHandler implements CommandHandlerInterface
             "Role updated: {$role->name}",
             [
                 'role_id' => $role->id,
-                'action' => 'role_updated'
+                'action' => 'role_updated',
             ],
-            'info'
+            'info',
         );
 
         return true;
     }
 }
-

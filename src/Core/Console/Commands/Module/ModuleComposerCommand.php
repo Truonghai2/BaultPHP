@@ -10,7 +10,7 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * Command để quản lý Composer dependencies cho modules.
- * 
+ *
  * Usage:
  *   php cli module:composer --install=Blog      # Cài dependencies cho module Blog
  *   php cli module:composer --update=Blog       # Update dependencies của module Blog
@@ -116,7 +116,6 @@ class ModuleComposerCommand extends BaseCommand
             $this->io->writeln("\n" . trim($result['output']));
 
             return self::SUCCESS;
-
         } catch (\Throwable $e) {
             $this->io->error('Failed to dump autoload: ' . $e->getMessage());
             return self::FAILURE;
@@ -155,7 +154,7 @@ class ModuleComposerCommand extends BaseCommand
             $dependencies = $meta['require'] ?? [];
 
             if (empty($dependencies)) {
-                $this->io->info("No dependencies defined in module.json");
+                $this->io->info('No dependencies defined in module.json');
                 return self::SUCCESS;
             }
 
@@ -199,7 +198,6 @@ class ModuleComposerCommand extends BaseCommand
 
             $this->io->error('Installation failed');
             return self::FAILURE;
-
         } catch (\Throwable $e) {
             $this->io->error('Error: ' . $e->getMessage());
             Log::error('Module composer install failed', [
@@ -229,7 +227,7 @@ class ModuleComposerCommand extends BaseCommand
             $dependencies = $meta['require'] ?? [];
 
             if (empty($dependencies)) {
-                $this->io->info("No dependencies to update");
+                $this->io->info('No dependencies to update');
                 return self::SUCCESS;
             }
 
@@ -244,7 +242,6 @@ class ModuleComposerCommand extends BaseCommand
 
             $this->io->error('Update failed');
             return self::FAILURE;
-
         } catch (\Throwable $e) {
             $this->io->error('Error: ' . $e->getMessage());
             return self::FAILURE;
@@ -269,7 +266,7 @@ class ModuleComposerCommand extends BaseCommand
             $dependencies = $meta['require'] ?? [];
 
             if (empty($dependencies)) {
-                $this->io->info("No dependencies to remove");
+                $this->io->info('No dependencies to remove');
                 return self::SUCCESS;
             }
 
@@ -279,7 +276,7 @@ class ModuleComposerCommand extends BaseCommand
             });
 
             if (empty($packages)) {
-                $this->io->info("No composer packages to remove (only PHP/extensions)");
+                $this->io->info('No composer packages to remove (only PHP/extensions)');
                 return self::SUCCESS;
             }
 
@@ -302,7 +299,6 @@ class ModuleComposerCommand extends BaseCommand
 
             $this->io->error('Removal failed');
             return self::FAILURE;
-
         } catch (\Throwable $e) {
             $this->io->error('Error: ' . $e->getMessage());
             return self::FAILURE;
@@ -326,7 +322,7 @@ class ModuleComposerCommand extends BaseCommand
             // Check module.json
             $jsonPath = "{$modulePath}/module.json";
             if (!file_exists($jsonPath)) {
-                $this->io->error("module.json not found");
+                $this->io->error('module.json not found');
                 return self::FAILURE;
             }
 
@@ -335,7 +331,7 @@ class ModuleComposerCommand extends BaseCommand
 
             $this->io->section('module.json Dependencies:');
             if (empty($dependencies)) {
-                $this->io->writeln("  <fg=gray>No dependencies defined</>");
+                $this->io->writeln('  <fg=gray>No dependencies defined</>');
             } else {
                 foreach ($dependencies as $package => $version) {
                     $this->io->writeln("  • {$package}: <fg=cyan>{$version}</>");
@@ -350,7 +346,7 @@ class ModuleComposerCommand extends BaseCommand
                 $this->io->section('Module composer.json:');
                 if ($validation['valid']) {
                     $this->io->success('composer.json is valid');
-                    
+
                     $composerData = $validation['data'];
                     if (!empty($composerData['require'])) {
                         $this->io->writeln("\n<fg=yellow>Require:</>");
@@ -358,7 +354,7 @@ class ModuleComposerCommand extends BaseCommand
                             $this->io->writeln("  • {$package}: <fg=cyan>{$version}</>");
                         }
                     }
-                    
+
                     if (!empty($composerData['require-dev'])) {
                         $this->io->writeln("\n<fg=yellow>Require-dev:</>");
                         foreach ($composerData['require-dev'] as $package => $version) {
@@ -389,16 +385,14 @@ class ModuleComposerCommand extends BaseCommand
                     default => 'gray',
                 };
                 $this->io->writeln("  Status: <fg={$statusColor}>{$module->status}</>");
-                $this->io->writeln("  Enabled: " . ($module->enabled ? '<fg=green>Yes</>' : '<fg=red>No</>'));
+                $this->io->writeln('  Enabled: ' . ($module->enabled ? '<fg=green>Yes</>' : '<fg=red>No</>'));
                 $this->io->writeln("  Version: <fg=cyan>{$module->version}</>");
             }
 
             return self::SUCCESS;
-
         } catch (\Throwable $e) {
             $this->io->error('Error: ' . $e->getMessage());
             return self::FAILURE;
         }
     }
 }
-

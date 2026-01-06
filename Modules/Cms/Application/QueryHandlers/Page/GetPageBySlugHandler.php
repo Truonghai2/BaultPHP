@@ -7,7 +7,7 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * GetPageBySlugHandler
- * 
+ *
  * Handles queries for retrieving pages by slug.
  */
 class GetPageBySlugHandler implements QueryHandlerInterface
@@ -21,7 +21,7 @@ class GetPageBySlugHandler implements QueryHandlerInterface
         }
 
         $page = $pageQuery->first();
-        
+
         if (!$page) {
             return null;
         }
@@ -30,14 +30,14 @@ class GetPageBySlugHandler implements QueryHandlerInterface
 
         if ($query->withBlocks) {
             $blocks = $page->blocks()->get();
-            $pageData['blocks'] = $blocks->map(function($block) {
+            $pageData['blocks'] = $blocks->map(function ($block) {
                 return [
                     'id' => $block->id,
                     'block_type_id' => $block->block_type_id,
                     'region' => $block->region,
                     'content' => $block->content,
                     'sort_order' => $block->sort_order,
-                    'visible' => $block->visible
+                    'visible' => $block->visible,
                 ];
             })->toArray();
         }

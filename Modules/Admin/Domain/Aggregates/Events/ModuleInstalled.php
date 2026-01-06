@@ -18,7 +18,7 @@ class ModuleInstalled extends DomainEvent
         ?string $eventId = null,
         ?DateTimeImmutable $occurredAt = null,
         int $eventVersion = 1,
-        array $eventMetadata = []
+        array $eventMetadata = [],
     ) {
         parent::__construct($eventId, $occurredAt, $eventVersion, $eventMetadata);
     }
@@ -34,7 +34,7 @@ class ModuleInstalled extends DomainEvent
             eventId: $data['eventId'],
             occurredAt: new DateTimeImmutable($data['occurredAt']),
             eventVersion: $data['eventVersion'] ?? 1,
-            eventMetadata: $data['eventMetadata'] ?? []
+            eventMetadata: $data['eventMetadata'] ?? [],
         );
     }
 
@@ -53,4 +53,3 @@ class ModuleInstalled extends DomainEvent
         ];
     }
 }
-

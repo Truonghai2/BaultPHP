@@ -11,14 +11,14 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * Clear Block Cache Command
- * 
+ *
  * CLI command to clear block-related caches
  */
 class ClearBlockCacheCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly BlockCacheManager $cacheManager
+        private readonly BlockCacheManager $cacheManager,
     ) {
         parent::__construct($app);
     }
@@ -52,12 +52,12 @@ class ClearBlockCacheCommand extends BaseCommand
                 // Clear global region
                 $this->cacheManager->invalidateGlobalRegion($region);
                 $this->success("Cleared global region cache: {$region}");
-                
+
             } elseif ($region && $pageId) {
                 // Clear specific region on page
                 $this->cacheManager->invalidatePageRegion((int)$pageId, $region);
                 $this->success("Cleared region '{$region}' on page {$pageId}");
-                
+
             } elseif ($pageId) {
                 // Clear all regions for page
                 $page = Page::find((int)$pageId);
@@ -65,10 +65,10 @@ class ClearBlockCacheCommand extends BaseCommand
                     $this->error("Page not found: {$pageId}");
                     return self::FAILURE;
                 }
-                
+
                 $this->cacheManager->invalidatePage($page);
                 $this->success("Cleared all caches for page: {$page->name}");
-                
+
             } else {
                 // Nuclear option - clear all
                 $this->warn('Clearing ALL block caches...');
@@ -87,11 +87,10 @@ class ClearBlockCacheCommand extends BaseCommand
                     ['Valid Classes', $stats['registry']['valid_classes']],
                     ['Invalid Classes', $stats['registry']['invalid_classes']],
                     ['Cache Driver', $stats['cache_driver']],
-                ]
+                ],
             );
 
             return self::SUCCESS;
-            
         } catch (\Throwable $e) {
             $this->error("Failed to clear cache: {$e->getMessage()}");
             if ($this->io->isVerbose()) {
@@ -101,4 +100,3 @@ class ClearBlockCacheCommand extends BaseCommand
         }
     }
 }
-

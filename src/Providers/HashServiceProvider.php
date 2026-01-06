@@ -19,8 +19,8 @@ class HashServiceProvider extends ServiceProvider implements DeferrableProvider
         $this->app->singleton('hash', function ($app) {
             // Use AdaptiveHashManager if enabled in config
             $useAdaptive = $app['config']['hashing.adaptive'] ?? false;
-            
-            return $useAdaptive 
+
+            return $useAdaptive
                 ? new AdaptiveHashManager($app)
                 : new HashManager($app);
         });

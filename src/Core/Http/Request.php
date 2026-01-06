@@ -13,7 +13,7 @@ use Psr\Http\Message\UriInterface;
 class Request implements ServerRequestInterface
 {
     public function __construct(
-        private ServerRequestInterface $request
+        private ServerRequestInterface $request,
     ) {
     }
 
@@ -112,7 +112,7 @@ class Request implements ServerRequestInterface
     {
         $data = array_merge(
             $this->getQueryParams(),
-            (array) $this->getParsedBody()
+            (array) $this->getParsedBody(),
         );
 
         return $data[$key] ?? $default;
@@ -125,7 +125,7 @@ class Request implements ServerRequestInterface
     {
         return array_merge(
             $this->getQueryParams(),
-            (array) $this->getParsedBody()
+            (array) $this->getParsedBody(),
         );
     }
 
@@ -167,10 +167,10 @@ class Request implements ServerRequestInterface
             'HTTP_X_FORWARDED',
             'HTTP_FORWARDED_FOR',
             'HTTP_FORWARDED',
-            'REMOTE_ADDR'
+            'REMOTE_ADDR',
         ];
 
-        return collect($headers)->map(fn($header) => $serverParams[$header] ?? null)->filter()->first();
+        return collect($headers)->map(fn ($header) => $serverParams[$header] ?? null)->filter()->first();
     }
 
     // Delegate all PSR-7 methods to the wrapped request

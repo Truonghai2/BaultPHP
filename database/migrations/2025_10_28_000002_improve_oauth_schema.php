@@ -13,37 +13,37 @@ return new class () extends Migration {
         }
 
         try {
-            $this->schema->statement("CREATE INDEX oauth_access_tokens_client_id_idx ON oauth_access_tokens(client_id)");
-        } catch (\Exception $e) {
-        }
-        
-        try {
-            $this->schema->statement("CREATE INDEX oauth_access_tokens_user_revoked_idx ON oauth_access_tokens(user_id, revoked)");
-        } catch (\Exception $e) {
-        }
-        
-        try {
-            $this->schema->statement("CREATE INDEX oauth_access_tokens_expires_at_idx ON oauth_access_tokens(expires_at)");
+            $this->schema->statement('CREATE INDEX oauth_access_tokens_client_id_idx ON oauth_access_tokens(client_id)');
         } catch (\Exception $e) {
         }
 
         try {
-            $this->schema->statement("CREATE INDEX oauth_refresh_tokens_access_token_idx ON oauth_refresh_tokens(access_token_id)");
-        } catch (\Exception $e) {
-        }
-        
-        try {
-            $this->schema->statement("CREATE INDEX oauth_refresh_tokens_expires_at_idx ON oauth_refresh_tokens(expires_at)");
+            $this->schema->statement('CREATE INDEX oauth_access_tokens_user_revoked_idx ON oauth_access_tokens(user_id, revoked)');
         } catch (\Exception $e) {
         }
 
         try {
-            $this->schema->statement("CREATE INDEX oauth_auth_codes_client_id_idx ON oauth_auth_codes(client_id)");
+            $this->schema->statement('CREATE INDEX oauth_access_tokens_expires_at_idx ON oauth_access_tokens(expires_at)');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("CREATE INDEX oauth_auth_codes_expires_at_idx ON oauth_auth_codes(expires_at)");
+            $this->schema->statement('CREATE INDEX oauth_refresh_tokens_access_token_idx ON oauth_refresh_tokens(access_token_id)');
+        } catch (\Exception $e) {
+        }
+
+        try {
+            $this->schema->statement('CREATE INDEX oauth_refresh_tokens_expires_at_idx ON oauth_refresh_tokens(expires_at)');
+        } catch (\Exception $e) {
+        }
+
+        try {
+            $this->schema->statement('CREATE INDEX oauth_auth_codes_client_id_idx ON oauth_auth_codes(client_id)');
+        } catch (\Exception $e) {
+        }
+
+        try {
+            $this->schema->statement('CREATE INDEX oauth_auth_codes_expires_at_idx ON oauth_auth_codes(expires_at)');
         } catch (\Exception $e) {
         }
 
@@ -54,37 +54,37 @@ return new class () extends Migration {
     public function down(): void
     {
         try {
-            $this->schema->statement("DROP INDEX oauth_auth_codes_client_id_idx ON oauth_auth_codes");
+            $this->schema->statement('DROP INDEX oauth_auth_codes_client_id_idx ON oauth_auth_codes');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_auth_codes_expires_at_idx ON oauth_auth_codes");
+            $this->schema->statement('DROP INDEX oauth_auth_codes_expires_at_idx ON oauth_auth_codes');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_refresh_tokens_access_token_idx ON oauth_refresh_tokens");
+            $this->schema->statement('DROP INDEX oauth_refresh_tokens_access_token_idx ON oauth_refresh_tokens');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_refresh_tokens_expires_at_idx ON oauth_refresh_tokens");
+            $this->schema->statement('DROP INDEX oauth_refresh_tokens_expires_at_idx ON oauth_refresh_tokens');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_access_tokens_client_id_idx ON oauth_access_tokens");
+            $this->schema->statement('DROP INDEX oauth_access_tokens_client_id_idx ON oauth_access_tokens');
         } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_access_tokens_user_revoked_idx ON oauth_access_tokens");
-        } catch (\Exception $e) {   
+            $this->schema->statement('DROP INDEX oauth_access_tokens_user_revoked_idx ON oauth_access_tokens');
+        } catch (\Exception $e) {
         }
-        
+
         try {
-            $this->schema->statement("DROP INDEX oauth_access_tokens_expires_at_idx ON oauth_access_tokens");
+            $this->schema->statement('DROP INDEX oauth_access_tokens_expires_at_idx ON oauth_access_tokens');
         } catch (\Exception $e) {
             // Ignore
         }

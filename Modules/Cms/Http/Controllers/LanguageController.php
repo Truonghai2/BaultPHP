@@ -13,7 +13,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Language Controller
- * 
+ *
  * Manage languages for multi-language support
  */
 #[Route(prefix: '/admin/languages', middleware: ['auth'], group: 'web')]
@@ -101,7 +101,7 @@ class LanguageController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to create language',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -128,11 +128,19 @@ class LanguageController extends Controller
         $data = $request->getParsedBody();
 
         try {
-            if (isset($data['name'])) $language->name = $data['name'];
-            if (isset($data['native_name'])) $language->native_name = $data['native_name'];
-            if (isset($data['is_active'])) $language->is_active = $data['is_active'];
-            if (isset($data['direction'])) $language->direction = $data['direction'];
-            
+            if (isset($data['name'])) {
+                $language->name = $data['name'];
+            }
+            if (isset($data['native_name'])) {
+                $language->native_name = $data['native_name'];
+            }
+            if (isset($data['is_active'])) {
+                $language->is_active = $data['is_active'];
+            }
+            if (isset($data['direction'])) {
+                $language->direction = $data['direction'];
+            }
+
             if (isset($data['is_default']) && $data['is_default']) {
                 // Unset other defaults
                 Language::where('id', '!=', $language->id)
@@ -150,7 +158,7 @@ class LanguageController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to update language',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -190,7 +198,7 @@ class LanguageController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to delete language',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -229,4 +237,3 @@ class LanguageController extends Controller
         ]);
     }
 }
-

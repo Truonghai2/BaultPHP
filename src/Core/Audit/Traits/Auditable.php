@@ -7,14 +7,14 @@ use Core\Audit\Observers\AuditObserver;
 
 /**
  * Auditable Trait
- * 
+ *
  * Add this trait to any model to automatically log creates, updates, and deletes.
- * 
+ *
  * Usage:
  * ```php
  * class User extends Model {
  *     use Auditable;
- * 
+ *
  *     protected array $auditableEvents = ['created', 'updated', 'deleted'];
  *     protected array $auditableAttributes = ['name', 'email', 'role'];
  * }
@@ -80,9 +80,9 @@ trait Auditable
     {
         $changes = $this->getChanges();
         $original = $this->getOriginal();
-        
+
         $auditableAttrs = $this->getAuditableAttributes();
-        
+
         // Filter only auditable attributes
         $oldValues = array_intersect_key($original, array_flip($auditableAttrs));
         $newValues = array_intersect_key($changes, array_flip($auditableAttrs));
@@ -153,4 +153,3 @@ trait Auditable
             ->get();
     }
 }
-

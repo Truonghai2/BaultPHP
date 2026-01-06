@@ -13,8 +13,8 @@ use Core\Http\Controller;
 use Core\Module\ModuleSynchronizer;
 use Core\Routing\Attributes\Route;
 use Core\Services\ModuleInstallerService;
-use Core\Support\Facades\Cache;
 use Core\Services\ModuleService;
+use Core\Support\Facades\Cache;
 use Core\Support\Facades\Log;
 use Modules\Cms\Domain\Services\BlockSynchronizer;
 use Psr\Http\Message\RequestInterface;
@@ -29,7 +29,7 @@ class ModuleController extends Controller
         private ModuleService $moduleService,
         private ModuleInstallerService $installerService,
         private ModuleSynchronizer $moduleSynchronizer,
-        private BlockSynchronizer $blockSynchronizer
+        private BlockSynchronizer $blockSynchronizer,
     ) {
     }
 
@@ -76,9 +76,9 @@ class ModuleController extends Controller
         try {
             // Install module with full integration
             $result = $this->installerService->install($zipPath, runMigrations: true, installDependencies: true);
-            
+
             Cache::forget(self::MODULE_LIST_CACHE_KEY); // Xóa cache sau khi cài đặt
-            
+
             return response()->json([
                 'message' => 'Cài đặt module thành công!',
                 'module' => $result['module'] ?? null,
@@ -168,7 +168,7 @@ class ModuleController extends Controller
 
         return response(view('admin::modules.install-confirm', ['modules' => $modulesToInstall]));
     }
-    
+
     /**
      * Xử lý việc cài đặt các module đã được người dùng xác nhận.
      * Cài tất cả module được chọn và enable nếu user chọn option.
@@ -177,9 +177,9 @@ class ModuleController extends Controller
     public function processInstall(RequestInterface $request): ResponseInterface
     {
         $body = $request->getParsedBody();
-        $modulesToInstall = $body['modules'] ?? []; 
+        $modulesToInstall = $body['modules'] ?? [];
         $enableAfterInstall = isset($body['enable_modules']) && $body['enable_modules'] === 'on';
-        
+
         if (empty($modulesToInstall)) {
             return redirect('/admin/modules')->with('error', 'Không có module nào được chọn để cài đặt.');
         }
@@ -194,7 +194,7 @@ class ModuleController extends Controller
             Log::info('Đồng bộ modules với database...');
             $syncResult = $this->moduleSynchronizer->sync();
             Log::info('Đồng bộ hoàn tất', $syncResult);
-            
+
             $installed = [];
             $errors = [];
             $enabledModules = [];
@@ -204,19 +204,19 @@ class ModuleController extends Controller
             foreach ($modulesToInstall as $moduleName) {
                 try {
                     Log::info("Xử lý module: {$moduleName}");
-                    
+
                     // Kiểm tra module tồn tại trên filesystem
                     $modulePath = base_path("Modules/{$moduleName}");
                     if (!is_dir($modulePath)) {
-                        $errors[$moduleName] = "Module không tồn tại trên filesystem";
+                        $errors[$moduleName] = 'Module không tồn tại trên filesystem';
                         Log::warning("Module '{$moduleName}' không tồn tại");
                         continue;
                     }
-                    
+
                     // Trigger dependencies job (registerModule tự động skip nếu đã tồn tại)
                     $this->moduleService->registerModule($moduleName);
                     $installed[] = $moduleName;
-                    
+
                     // Bước 3: Enable module nếu user chọn
                     if ($enableAfterInstall) {
                         try {
@@ -228,7 +228,7 @@ class ModuleController extends Controller
                             // Không throw - module đã được cài, chỉ không enable được
                         }
                     }
-                    
+
                 } catch (\Throwable $e) {
                     $errors[$moduleName] = $e->getMessage();
                     Log::error("Lỗi khi cài đặt module '{$moduleName}'", [
@@ -240,7 +240,7 @@ class ModuleController extends Controller
 
             // Clear cache
             Cache::forget(self::MODULE_LIST_CACHE_KEY);
-            
+
             // Clear session và middleware cache
             session()->remove('pending_modules');
             session()->remove('pending_modules_count');
@@ -249,21 +249,21 @@ class ModuleController extends Controller
 
             // Prepare flash messages
             $flash = [];
-            
+
             // Thông báo về module được cập nhật version
             if (!empty($syncResult['updated'])) {
                 $updatedCount = count($syncResult['updated']);
                 $flash['info'] = "Đã cập nhật version cho {$updatedCount} module: " . implode(', ', $syncResult['updated']) . '.';
             }
-            
+
             if (!empty($installed)) {
                 $successMsg = 'Đã cài đặt thành công ' . count($installed) . ' module: ' . implode(', ', $installed) . '.';
-                
+
                 if ($enableAfterInstall) {
                     if (!empty($enabledModules)) {
                         $successMsg .= ' Đã kích hoạt: ' . implode(', ', $enabledModules) . '.';
                     }
-                    
+
                     $notEnabled = array_diff($installed, $enabledModules);
                     if (!empty($notEnabled)) {
                         $successMsg .= ' Module chưa kích hoạt: ' . implode(', ', $notEnabled) . ' (có thể enable sau).';
@@ -271,21 +271,21 @@ class ModuleController extends Controller
                 } else {
                     $successMsg .= ' Tất cả module ở trạng thái disabled. Bạn có thể enable trong quản lý module.';
                 }
-                
+
                 $successMsg .= ' Dependencies và migrations sẽ tự động cài đặt trong nền.';
                 $flash['success'] = $successMsg;
             }
-            
+
             if (!empty($errors)) {
                 $errorCount = count($errors);
                 $errorList = array_map(
-                    fn ($name, $msg) => "<li><strong>{$name}:</strong> " . htmlspecialchars($msg) . '</li>', 
-                    array_keys($errors), 
-                    $errors
+                    fn ($name, $msg) => "<li><strong>{$name}:</strong> " . htmlspecialchars($msg) . '</li>',
+                    array_keys($errors),
+                    $errors,
                 );
                 $flash['error'] = "Có {$errorCount} module gặp lỗi:<ul>" . implode('', $errorList) . '</ul>';
             }
-            
+
             if (empty($installed) && empty($errors)) {
                 $flash['warning'] = 'Không có module nào được cài đặt.';
             }
@@ -295,14 +295,13 @@ class ModuleController extends Controller
             $this->blockSynchronizer->sync();
 
             return redirect('/admin/modules')->with($flash);
-            
         } catch (\Throwable $e) {
             Log::error('Lỗi nghiêm trọng trong quá trình cài đặt modules', [
                 'error' => $e->getMessage(),
                 'modules' => $modulesToInstall,
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             return redirect('/admin/modules')->with('error', 'Lỗi nghiêm trọng: ' . $e->getMessage());
         }
     }
@@ -314,12 +313,12 @@ class ModuleController extends Controller
     public function skipInstall(): ResponseInterface
     {
         $user = auth()->user();
-        
+
         if ($user && $user->isSuperAdmin()) {
             // Set cache skip 30 phút
             $skipKey = 'modules:user_skip:' . $user->id;
             cache()->put($skipKey, true, 1800); // 30 phút
-            
+
             session()->remove('pending_modules_notified');
         }
 

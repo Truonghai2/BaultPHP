@@ -8,8 +8,8 @@ use Modules\Cms\Domain\Aggregates\Events\PageCreated;
 use Modules\Cms\Domain\Aggregates\Events\PageDeleted;
 use Modules\Cms\Domain\Aggregates\Events\PagePublished;
 use Modules\Cms\Domain\Aggregates\Events\PageRenamed;
-use Modules\Cms\Domain\Aggregates\Events\PageUnpublished;
 use Modules\Cms\Domain\Aggregates\Events\PageRestored;
+use Modules\Cms\Domain\Aggregates\Events\PageUnpublished;
 use Modules\Cms\Infrastructure\Models\PageListItem;
 
 /**
@@ -32,7 +32,7 @@ class PageListProjection
                 'slug' => $event->slug,
                 'author_id' => $event->userId,
                 'status' => 'draft',
-            ]
+            ],
         );
     }
 

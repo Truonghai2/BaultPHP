@@ -6,7 +6,7 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * UpdatePermissionCommand
- * 
+ *
  * Command to update a permission.
  */
 class UpdatePermissionCommand implements CommandInterface
@@ -15,12 +15,12 @@ class UpdatePermissionCommand implements CommandInterface
         public readonly int $permissionId,
         public readonly ?string $name = null,
         public readonly ?string $description = null,
-        public readonly ?string $captype = null
-    ) {}
+        public readonly ?string $captype = null,
+    ) {
+    }
 
     public function getCommandName(): string
     {
         return 'user.permission.update';
     }
 }
-

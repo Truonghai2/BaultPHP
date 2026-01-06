@@ -15,4 +15,3 @@ interface MiddlewareInterface
      */
     public function handle(CommandInterface|QueryInterface $message, callable $next): mixed;
 }
-

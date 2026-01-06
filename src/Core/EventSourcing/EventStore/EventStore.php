@@ -2,20 +2,18 @@
 
 namespace Core\EventSourcing\EventStore;
 
-use Core\EventSourcing\AggregateRoot;
-use Core\EventSourcing\Events\DomainEvent;
 use PDO;
 
 /**
  * Event Store
- * 
+ *
  * Persistent storage for domain events.
  * Uses PostgreSQL for ACID guarantees and JSON support.
  */
 class EventStore
 {
     public function __construct(
-        private PDO $connection
+        private PDO $connection,
     ) {
     }
 
@@ -26,7 +24,7 @@ class EventStore
         string $aggregateType,
         string $aggregateId,
         array $events,
-        int $expectedVersion
+        int $expectedVersion,
     ): void {
         if (empty($events)) {
             return;
@@ -37,9 +35,9 @@ class EventStore
         try {
             // Lock aggregate for optimistic concurrency control
             $stmt = $this->connection->prepare(
-                "SELECT version FROM aggregates 
+                'SELECT version FROM aggregates 
                  WHERE aggregate_type = ? AND aggregate_id = ? 
-                 FOR UPDATE"
+                 FOR UPDATE',
             );
             $stmt->execute([$aggregateType, $aggregateId]);
             $row = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -50,13 +48,13 @@ class EventStore
             if ($currentVersion !== $expectedVersion) {
                 throw new \RuntimeException(
                     "Concurrency conflict: Expected version {$expectedVersion}, " .
-                    "but aggregate is at version {$currentVersion}"
+                    "but aggregate is at version {$currentVersion}",
                 );
             }
 
             // Insert events
             $stmt = $this->connection->prepare(
-                "INSERT INTO events (
+                'INSERT INTO events (
                     event_id,
                     aggregate_type,
                     aggregate_id,
@@ -66,13 +64,13 @@ class EventStore
                     aggregate_version,
                     metadata,
                     occurred_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
             );
 
             $version = $currentVersion;
             foreach ($events as $event) {
                 $version++;
-                
+
                 $stmt->execute([
                     $event->eventId,
                     $aggregateType,
@@ -89,15 +87,15 @@ class EventStore
             // Update aggregate version
             if ($currentVersion === 0) {
                 $stmt = $this->connection->prepare(
-                    "INSERT INTO aggregates (aggregate_type, aggregate_id, version, updated_at)
-                     VALUES (?, ?, ?, NOW())"
+                    'INSERT INTO aggregates (aggregate_type, aggregate_id, version, updated_at)
+                     VALUES (?, ?, ?, NOW())',
                 );
                 $stmt->execute([$aggregateType, $aggregateId, $version]);
             } else {
                 $stmt = $this->connection->prepare(
-                    "UPDATE aggregates 
+                    'UPDATE aggregates 
                      SET version = ?, updated_at = NOW()
-                     WHERE aggregate_type = ? AND aggregate_id = ?"
+                     WHERE aggregate_type = ? AND aggregate_id = ?',
                 );
                 $stmt->execute([$version, $aggregateType, $aggregateId]);
             }
@@ -115,12 +113,12 @@ class EventStore
     public function getEvents(string $aggregateType, string $aggregateId): array
     {
         $stmt = $this->connection->prepare(
-            "SELECT event_type, event_data, occurred_at
+            'SELECT event_type, event_data, occurred_at
              FROM events
              WHERE aggregate_type = ? AND aggregate_id = ?
-             ORDER BY aggregate_version ASC"
+             ORDER BY aggregate_version ASC',
         );
-        
+
         $stmt->execute([$aggregateType, $aggregateId]);
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -128,7 +126,7 @@ class EventStore
         foreach ($rows as $row) {
             $eventClass = $row['event_type'];
             $eventData = json_decode($row['event_data'], true);
-            
+
             if (class_exists($eventClass)) {
                 $events[] = $eventClass::fromArray($eventData);
             }
@@ -142,16 +140,16 @@ class EventStore
      */
     public function getAllEvents(?string $fromEventId = null, int $limit = 1000): array
     {
-        $sql = "SELECT event_id, event_type, event_data, aggregate_type, aggregate_id, occurred_at
-                FROM events ";
-        
+        $sql = 'SELECT event_id, event_type, event_data, aggregate_type, aggregate_id, occurred_at
+                FROM events ';
+
         $params = [];
         if ($fromEventId) {
-            $sql .= "WHERE event_id > ? ";
+            $sql .= 'WHERE event_id > ? ';
             $params[] = $fromEventId;
         }
-        
-        $sql .= "ORDER BY id ASC LIMIT ?";
+
+        $sql .= 'ORDER BY id ASC LIMIT ?';
         $params[] = $limit;
 
         $stmt = $this->connection->prepare($sql);
@@ -166,15 +164,14 @@ class EventStore
     public function getEventsByType(string $eventType, int $limit = 1000): array
     {
         $stmt = $this->connection->prepare(
-            "SELECT event_id, event_data, aggregate_type, aggregate_id, occurred_at
+            'SELECT event_id, event_data, aggregate_type, aggregate_id, occurred_at
              FROM events
              WHERE event_type = ?
              ORDER BY id ASC
-             LIMIT ?"
+             LIMIT ?',
         );
-        
+
         $stmt->execute([$eventType, $limit]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 }
-

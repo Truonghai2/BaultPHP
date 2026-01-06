@@ -24,7 +24,7 @@ class StartSession implements MiddlewareInterface
     {
         /** @var SessionInterface $session */
         $session = $this->app->make('session');
-      
+
         $cookies = $request->getCookieParams();
         if (isset($cookies[$session->getName()])) {
             $session->setId($cookies[$session->getName()]);

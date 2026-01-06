@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Homepage Stats Block
- * 
+ *
  * Renders the statistics section with customizable metrics
  */
 class HomepageStatsBlock extends AbstractBlock
@@ -41,7 +41,7 @@ class HomepageStatsBlock extends AbstractBlock
         return [
             'title' => 'Trusted by developers worldwide',
             'description' => 'Join the growing community of developers building with BaultPHP',
-            
+
             'stats' => [
                 [
                     'label' => 'Active Installations',
@@ -66,15 +66,15 @@ class HomepageStatsBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Color schemes for stat cards
         $colors = [
             ['from' => 'indigo', 'to' => 'blue'],
             ['from' => 'purple', 'to' => 'pink'],
             ['from' => 'cyan', 'to' => 'teal'],
-            ['from' => 'orange', 'to' => 'red']
+            ['from' => 'orange', 'to' => 'red'],
         ];
-        
+
         // Render using Blade template (much cleaner!)
         return $this->renderView('cms::blocks.homepage-stats', [
             'title' => $config['title'],
@@ -94,4 +94,3 @@ class HomepageStatsBlock extends AbstractBlock
         return 1800; // 30 minutes (stats might update more frequently)
     }
 }
-

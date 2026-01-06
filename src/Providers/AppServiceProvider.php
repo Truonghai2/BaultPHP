@@ -37,7 +37,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->singleton(WebSocketManager::class);
 
         $this->app->singleton(QueueManager::class);
-        
+
         $this->app->singleton(Dispatcher::class, QueueDispatcher::class);
 
         $this->configureFormRequestValidation();

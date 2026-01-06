@@ -6,7 +6,7 @@ use Core\CQRS\Contracts\QueryInterface;
 
 /**
  * GetEnabledModulesQuery
- * 
+ *
  * Query to retrieve all enabled modules.
  */
 class GetEnabledModulesQuery implements QueryInterface
@@ -18,4 +18,3 @@ class GetEnabledModulesQuery implements QueryInterface
         return 'admin.module.get_enabled';
     }
 }
-

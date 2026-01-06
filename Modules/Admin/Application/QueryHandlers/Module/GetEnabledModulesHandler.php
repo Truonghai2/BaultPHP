@@ -8,7 +8,7 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * GetEnabledModulesHandler
- * 
+ *
  * Handles GetEnabledModulesQuery.
  */
 class GetEnabledModulesHandler implements QueryHandlerInterface
@@ -21,4 +21,3 @@ class GetEnabledModulesHandler implements QueryHandlerInterface
             ->toArray();
     }
 }
-

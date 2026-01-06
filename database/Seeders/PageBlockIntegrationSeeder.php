@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Core\Database\Seeder;
+use Modules\Cms\Infrastructure\Models\BlockType;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
-use Modules\Cms\Infrastructure\Models\BlockType;
 
 /**
  * Page-Block Integration Seeder
- * 
+ *
  * Assigns blocks to pages using simplified architecture
  * Uses ONLY real block types - NO FAKE DATA
- * 
+ *
  * Pages → PageBlocks → BlockTypes (which have default configs)
  */
 class PageBlockIntegrationSeeder extends Seeder
@@ -54,11 +54,11 @@ class PageBlockIntegrationSeeder extends Seeder
             case 'home':
                 $this->createHomePageBlocks($page);
                 break;
-                
+
             case 'about-us':
                 $this->createAboutPageBlocks($page);
                 break;
-                
+
             default:
                 // Other pages use default layout
                 $this->command->info("  - Page '{$page->name}' uses default layout (no page-specific blocks)");
@@ -80,7 +80,7 @@ class PageBlockIntegrationSeeder extends Seeder
 
         foreach ($blocks as $blockData) {
             $blockType = BlockType::where('name', $blockData['name'])->first();
-            
+
             if (!$blockType) {
                 $this->command->warn("  ⚠ Block type '{$blockData['name']}' not found, skipping...");
                 continue;
@@ -105,7 +105,7 @@ class PageBlockIntegrationSeeder extends Seeder
 
         foreach ($blocks as $blockData) {
             $blockType = BlockType::where('name', $blockData['name'])->first();
-            
+
             if (!$blockType) {
                 $this->command->warn("  ⚠ Block type '{$blockData['name']}' not found, skipping...");
                 continue;
@@ -124,7 +124,7 @@ class PageBlockIntegrationSeeder extends Seeder
         Page $page,
         BlockType $blockType,
         string $region,
-        int $order
+        int $order,
     ): void {
         // Check if block already exists
         $existing = PageBlock::where('page_id', $page->id)

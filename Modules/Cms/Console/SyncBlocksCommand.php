@@ -10,7 +10,7 @@ use Modules\Cms\Domain\Services\BlockSyncService;
 
 /**
  * Sync Blocks Command
- * 
+ *
  * Automatically discovers and syncs block types to database
  * Usage: php cli cms:sync-blocks [--force]
  */
@@ -18,7 +18,7 @@ class SyncBlocksCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly BlockSyncService $syncService
+        private readonly BlockSyncService $syncService,
     ) {
         parent::__construct($app);
     }
@@ -59,7 +59,7 @@ class SyncBlocksCommand extends BaseCommand
                     ['Regions Created', $stats['regions_created']],
                     ['Regions Updated', $stats['regions_updated']],
                     ['Total Time', $stats['total_time'] . 's'],
-                ]
+                ],
             );
 
             $this->io->newLine();
@@ -71,10 +71,9 @@ class SyncBlocksCommand extends BaseCommand
             }
 
             return self::SUCCESS;
-
         } catch (\Throwable $e) {
             $this->error('Failed to sync blocks: ' . $e->getMessage());
-            
+
             if ($this->input->getOption('verbose')) {
                 $this->io->newLine();
                 $this->line($e->getTraceAsString());

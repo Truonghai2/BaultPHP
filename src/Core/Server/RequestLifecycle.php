@@ -31,17 +31,17 @@ final class RequestLifecycle
     private ?ResponseInterface $response = null;
     private ?DebugManager $debugManager = null;
     private ?float $endTime = null;
-    
+
     /**
      * Static request counter for periodic cleanup (shared across instances in same worker)
      */
     private static int $requestCount = 0;
-    
+
     /**
      * Memory usage threshold for warnings (100MB)
      */
     private const MEMORY_WARNING_THRESHOLD = 100 * 1024 * 1024;
-    
+
     /**
      * Interval for periodic garbage collection (every 100 requests)
      */
@@ -66,7 +66,7 @@ final class RequestLifecycle
     {
         // Increment request counter for periodic cleanup
         self::$requestCount++;
-        
+
         try {
             $this->initialize($swooleRequest);
             $psr7Request = $this->transformRequest($swooleRequest);
@@ -96,7 +96,7 @@ final class RequestLifecycle
             $this->debugManager->enable();
         }
     }
-    
+
     /**
      * Check if debug should be enabled for this request.
      * Only enable if explicitly requested via cookie or header.
@@ -106,16 +106,16 @@ final class RequestLifecycle
         if (isset($request->cookie['X-DEBUG-ENABLED']) && $request->cookie['X-DEBUG-ENABLED'] === '1') {
             return true;
         }
-        
+
         if (isset($request->header['x-debug-enabled']) && strtolower($request->header['x-debug-enabled']) === 'true') {
             return true;
         }
-        
+
         $onDemand = config('debug.on_demand', false);
         if ($onDemand) {
             return false;
         }
-        
+
         return true;
     }
 
@@ -207,7 +207,7 @@ final class RequestLifecycle
         $this->app->forgetInstance(ServerRequestInterface::class);
         $this->app->forgetInstance(SwooleRequest::class);
         $this->app->forgetInstance('request_id');
-        
+
         // Clear response instance if cached
         if ($this->app->bound(ResponseInterface::class)) {
             $this->app->forgetInstance(ResponseInterface::class);
@@ -216,7 +216,7 @@ final class RequestLifecycle
         // Memory management: Periodic garbage collection and monitoring
         $this->performMemoryManagement();
     }
-    
+
     /**
      * Performs memory management tasks including periodic GC and monitoring.
      */
@@ -228,7 +228,7 @@ final class RequestLifecycle
             gc_collect_cycles();
             $afterGC = memory_get_usage(true);
             $freed = $beforeGC - $afterGC;
-            
+
             if ($freed > 0) {
                 $this->getLogger()->debug('Periodic garbage collection performed', [
                     'request_count' => self::$requestCount,
@@ -237,11 +237,11 @@ final class RequestLifecycle
                 ]);
             }
         }
-        
+
         // Memory monitoring (warn if usage is high)
         $memoryUsage = memory_get_usage(true);
         $memoryPeak = memory_get_peak_usage(true);
-        
+
         if ($memoryUsage > self::MEMORY_WARNING_THRESHOLD) {
             $this->getLogger()->warning('High memory usage detected', [
                 'request_id' => $this->requestId,
@@ -250,7 +250,7 @@ final class RequestLifecycle
                 'request_count' => self::$requestCount,
             ]);
         }
-        
+
         // Debug mode: Log memory stats periodically
         if ($this->isDebug && self::$requestCount % 10 === 0) {
             $this->getLogger()->debug('Memory stats', [

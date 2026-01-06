@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\Permission;
 
 /**
  * GetPermissionsHandler
- * 
+ *
  * Handles GetPermissionsQuery.
  */
 class GetPermissionsHandler implements QueryHandlerInterface
@@ -33,16 +33,15 @@ class GetPermissionsHandler implements QueryHandlerInterface
 
         $permissions = $permissionQuery->orderBy('name', 'asc')->get();
 
-        return $permissions->map(function($permission) {
+        return $permissions->map(function ($permission) {
             return [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'description' => $permission->description,
                 'captype' => $permission->captype,
                 'created_at' => $permission->created_at,
-                'updated_at' => $permission->updated_at
+                'updated_at' => $permission->updated_at,
             ];
         })->toArray();
     }
 }
-

@@ -54,4 +54,3 @@ class RealtimeTraceableStatement extends \PDOStatement
         $this->statement->{$name} = $value;
     }
 }
-

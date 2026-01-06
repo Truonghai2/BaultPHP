@@ -2,8 +2,6 @@
 
 namespace Core\ORM;
 
-use Core\Application;
-
 /**
  * @method static QueryBuilder table(string $table)
  * @method static \PDO|\Swoole\Database\PDOProxy connection(string $name = null, string $type = 'write')

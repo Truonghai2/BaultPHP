@@ -3,8 +3,7 @@
 use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migrations.
      */
@@ -18,13 +17,13 @@ return new class extends Migration
                     ->after('slug');
             });
         }
-        
+
         if (!$this->schema->hasColumn('pages', 'published_at')) {
             $this->schema->table('pages', function (Blueprint $table) {
                 $table->timestamp('published_at')->nullable()->after('status');
             });
         }
-        
+
         if (!$this->schema->hasColumn('pages', 'scheduled_publish_at')) {
             $this->schema->table('pages', function (Blueprint $table) {
                 $table->timestamp('scheduled_publish_at')->nullable()->after('published_at');
@@ -43,10 +42,16 @@ return new class extends Migration
     public function down(): void
     {
         $columns = [];
-        if ($this->schema->hasColumn('pages', 'status')) $columns[] = 'status';
-        if ($this->schema->hasColumn('pages', 'published_at')) $columns[] = 'published_at';
-        if ($this->schema->hasColumn('pages', 'scheduled_publish_at')) $columns[] = 'scheduled_publish_at';
-        
+        if ($this->schema->hasColumn('pages', 'status')) {
+            $columns[] = 'status';
+        }
+        if ($this->schema->hasColumn('pages', 'published_at')) {
+            $columns[] = 'published_at';
+        }
+        if ($this->schema->hasColumn('pages', 'scheduled_publish_at')) {
+            $columns[] = 'scheduled_publish_at';
+        }
+
         if (!empty($columns)) {
             $this->schema->table('pages', function (Blueprint $table) use ($columns) {
                 $table->dropColumn($columns);

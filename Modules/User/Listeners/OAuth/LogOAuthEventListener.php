@@ -11,7 +11,7 @@ use Modules\User\Events\OAuth\TokenValidationFailedEvent;
 class LogOAuthEventListener
 {
     public function __construct(
-        protected AuditLogger $auditLogger
+        protected AuditLogger $auditLogger,
     ) {
     }
 
@@ -41,7 +41,7 @@ class LogOAuthEventListener
                 'grant_type' => $event->grantType,
                 'ip_address' => $event->ipAddress,
             ],
-            severity: 'info'
+            severity: 'info',
         );
     }
 
@@ -67,7 +67,7 @@ class LogOAuthEventListener
                 'reason' => $event->reason,
                 'ip_address' => $event->ipAddress,
             ],
-            severity: 'warning'
+            severity: 'warning',
         );
     }
 
@@ -92,7 +92,7 @@ class LogOAuthEventListener
                 'ip_address' => $event->ipAddress,
                 'token_identifier' => $event->tokenIdentifier,
             ],
-            severity: 'warning'
+            severity: 'warning',
         );
     }
 
@@ -108,4 +108,3 @@ class LogOAuthEventListener
         ];
     }
 }
-

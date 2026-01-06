@@ -11,23 +11,23 @@ use Modules\Cms\Application\Services\PageBlockAggregateService;
 
 /**
  * Page Event Sourcing Command
- * 
+ *
  * Demonstrates Event Sourcing usage with Page aggregate in CMS.
- * 
+ *
  * Usage examples:
  * ```
  * # Create a page
  * php cli cms:event-sourcing create --name="My Page" --slug="my-page"
- * 
+ *
  * # Update page content
  * php cli cms:event-sourcing update-content --page-id=<id> --title="New Title"
- * 
+ *
  * # Publish page
  * php cli cms:event-sourcing publish --page-id=<id>
- * 
+ *
  * # Show page state
  * php cli cms:event-sourcing show --page-id=<id>
- * 
+ *
  * # Add block to page
  * php cli cms:event-sourcing add-block --page-id=<id> --component="TextBlock"
  * ```
@@ -65,7 +65,7 @@ class PageEventSourcingCommand extends BaseCommand
     {
         /** @var PageAggregateService $pageService */
         $pageService = $this->app->make(PageAggregateService::class);
-        
+
         /** @var PageBlockAggregateService $blockService */
         $blockService = $this->app->make(PageBlockAggregateService::class);
 
@@ -76,34 +76,24 @@ class PageEventSourcingCommand extends BaseCommand
             switch ($action) {
                 case 'create':
                     return $this->createPage($pageService, $userId);
-
                 case 'update-content':
                     return $this->updateContent($pageService, $userId);
-
                 case 'rename':
                     return $this->renamePage($pageService, $userId);
-
                 case 'publish':
                     return $this->publishPage($pageService, $userId);
-
                 case 'unpublish':
                     return $this->unpublishPage($pageService, $userId);
-
                 case 'delete':
                     return $this->deletePage($pageService, $userId);
-
                 case 'restore':
                     return $this->restorePage($pageService, $userId);
-
                 case 'add-block':
                     return $this->addBlock($pageService, $blockService, $userId);
-
                 case 'show':
                     return $this->showPage($pageService);
-
                 case 'history':
                     return $this->showHistory($pageService);
-
                 default:
                     $this->io->error("Unknown action: {$action}");
                     $this->showHelp();
@@ -124,7 +114,7 @@ class PageEventSourcingCommand extends BaseCommand
         $slug = $this->option('slug') ?? $service->suggestSlug($name);
 
         if (!$this->option('slug')) {
-            $slug = $this->io->ask("Page Slug:", $slug);
+            $slug = $this->io->ask('Page Slug:', $slug);
         }
 
         $this->io->writeln('<info>Creating page via Event Sourcing...</info>');
@@ -139,8 +129,8 @@ class PageEventSourcingCommand extends BaseCommand
                 ['Name', $name],
                 ['Slug', $slug],
                 ['Status', 'draft'],
-                ['User ID', $userId]
-            ]
+                ['User ID', $userId],
+            ],
         );
 
         $this->io->newLine();
@@ -155,7 +145,7 @@ class PageEventSourcingCommand extends BaseCommand
     private function updateContent(PageAggregateService $service, string $userId): int
     {
         $pageId = $this->getRequiredOption('page-id', 'Page ID is required');
-        
+
         $title = $this->option('title') ?? $this->io->ask('Content Title:', 'Page Title');
         $body = $this->option('body') ?? $this->io->ask('Content Body:', 'Page content goes here...');
 
@@ -163,7 +153,7 @@ class PageEventSourcingCommand extends BaseCommand
             'title' => $title,
             'body' => $body,
             'updated_by' => $userId,
-            'updated_at' => date('Y-m-d H:i:s')
+            'updated_at' => date('Y-m-d H:i:s'),
         ];
 
         $this->io->writeln('<info>Updating page content via Event Sourcing...</info>');
@@ -179,12 +169,12 @@ class PageEventSourcingCommand extends BaseCommand
     private function renamePage(PageAggregateService $service, string $userId): int
     {
         $pageId = $this->getRequiredOption('page-id', 'Page ID is required');
-        
+
         $newName = $this->option('name') ?? $this->io->ask('New Name:');
         $newSlug = $this->option('slug') ?? $service->suggestSlug($newName);
 
         if (!$this->option('slug')) {
-            $newSlug = $this->io->ask("New Slug:", $newSlug);
+            $newSlug = $this->io->ask('New Slug:', $newSlug);
         }
 
         $this->io->writeln('<info>Renaming page via Event Sourcing...</info>');
@@ -258,10 +248,10 @@ class PageEventSourcingCommand extends BaseCommand
     private function addBlock(
         PageAggregateService $pageService,
         PageBlockAggregateService $blockService,
-        string $userId
+        string $userId,
     ): int {
         $pageId = $this->getRequiredOption('page-id', 'Page ID is required');
-        
+
         $component = $this->option('component') ?? $this->io->ask('Component Class:', 'TextBlock');
         $order = (int) ($this->option('order') ?? $this->io->ask('Sort Order:', '0'));
 
@@ -279,8 +269,8 @@ class PageEventSourcingCommand extends BaseCommand
             [
                 ['Block ID', $blockId],
                 ['Component', $component],
-                ['Order', $order]
-            ]
+                ['Order', $order],
+            ],
         );
 
         $this->io->newLine();
@@ -301,7 +291,7 @@ class PageEventSourcingCommand extends BaseCommand
         }
 
         $this->io->writeln('<info>Page State (reconstituted from events):</info>');
-        
+
         $tableData = [
             ['Page ID', $state['id']],
             ['Name', $state['name']],
@@ -331,8 +321,8 @@ class PageEventSourcingCommand extends BaseCommand
             ['Metric', 'Value'],
             [
                 ['Score', $seoScore['score'] . '/100'],
-                ['Rating', $seoScore['rating']]
-            ]
+                ['Rating', $seoScore['rating']],
+            ],
         );
 
         if (!empty($seoScore['issues'])) {
@@ -361,14 +351,14 @@ class PageEventSourcingCommand extends BaseCommand
             ['Field', 'Value'],
             [
                 ['Page ID', $history['page_id']],
-                ['Current Version', $history['current_version']]
-            ]
+                ['Current Version', $history['current_version']],
+            ],
         );
 
         $this->io->newLine();
         $this->io->writeln('<comment>Full event stream would be displayed here in production</comment>');
         $this->io->writeln('<comment>Showing current state:</comment>');
-        
+
         return $this->showPage($service);
     }
 
@@ -402,7 +392,7 @@ class PageEventSourcingCommand extends BaseCommand
     private function getRequiredOption(string $name, string $message): string
     {
         $value = $this->option($name);
-        
+
         if (!$value) {
             $this->io->error($message);
             throw new \RuntimeException($message);
@@ -411,4 +401,3 @@ class PageEventSourcingCommand extends BaseCommand
         return (string) $value;
     }
 }
-

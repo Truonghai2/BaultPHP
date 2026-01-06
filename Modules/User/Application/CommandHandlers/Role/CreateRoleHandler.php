@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * CreateRoleHandler
- * 
+ *
  * Handles the CreateRoleCommand.
  */
 class CreateRoleHandler implements CommandHandlerInterface
@@ -22,7 +22,7 @@ class CreateRoleHandler implements CommandHandlerInterface
 
         $role = Role::create([
             'name' => $command->name,
-            'description' => $command->description
+            'description' => $command->description,
         ]);
 
         if (!empty($command->permissionIds)) {
@@ -36,12 +36,11 @@ class CreateRoleHandler implements CommandHandlerInterface
                 'role_id' => $role->id,
                 'name' => $command->name,
                 'permission_count' => count($command->permissionIds),
-                'action' => 'role_created'
+                'action' => 'role_created',
             ],
-            'info'
+            'info',
         );
 
         return $role->id;
     }
 }
-

@@ -9,7 +9,7 @@ use DateTimeImmutable;
 
 /**
  * Block Added To Page Event
- * 
+ *
  * Emitted when a new block is added to a page
  */
 class BlockAddedToPage extends DomainEvent
@@ -23,7 +23,7 @@ class BlockAddedToPage extends DomainEvent
         ?string $eventId = null,
         ?DateTimeImmutable $occurredAt = null,
         int $eventVersion = 1,
-        array $metadata = []
+        array $metadata = [],
     ) {
         parent::__construct($eventId, $occurredAt, $eventVersion, $metadata);
     }
@@ -39,7 +39,7 @@ class BlockAddedToPage extends DomainEvent
             eventId: $data['eventId'],
             occurredAt: new DateTimeImmutable($data['occurredAt']),
             eventVersion: $data['eventVersion'] ?? 1,
-            metadata: $data['metadata'] ?? []
+            metadata: $data['metadata'] ?? [],
         );
     }
 
@@ -58,4 +58,3 @@ class BlockAddedToPage extends DomainEvent
         ];
     }
 }
-

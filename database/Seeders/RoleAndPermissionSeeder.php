@@ -35,7 +35,7 @@ class RoleAndPermissionSeeder extends Seeder
         foreach ($rolesToCreate as $roleName => $details) {
             Role::firstOrCreate(
                 ['name' => $roleName],
-                $details
+                $details,
             );
             $this->command?->line("  - Ensured role '{$roleName}' exists.");
         }

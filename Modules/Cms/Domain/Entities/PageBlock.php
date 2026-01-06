@@ -8,7 +8,7 @@ use Modules\Cms\Domain\ValueObjects\PageBlockId;
 
 /**
  * PageBlock Domain Entity
- * 
+ *
  * Represents a content block within a page (page editor system)
  */
 class PageBlock
@@ -21,7 +21,7 @@ class PageBlock
         private int $pageId,
         private string $componentClass,
         private int $sortOrder,
-        private array $content = []
+        private array $content = [],
     ) {
         $this->createdAt = new \DateTimeImmutable();
         $this->updatedAt = new \DateTimeImmutable();
@@ -31,7 +31,7 @@ class PageBlock
         PageBlockId $id,
         int $pageId,
         string $componentClass,
-        int $sortOrder
+        int $sortOrder,
     ): self {
         return new self($id, $pageId, $componentClass, $sortOrder);
     }
@@ -70,7 +70,7 @@ class PageBlock
     public function updateSortOrder(int $sortOrder): void
     {
         if ($sortOrder < 0) {
-            throw new \DomainException("Sort order must be non-negative");
+            throw new \DomainException('Sort order must be non-negative');
         }
         $this->sortOrder = $sortOrder;
         $this->updatedAt = new \DateTimeImmutable();
@@ -97,7 +97,7 @@ class PageBlock
             $this->pageId,
             $this->componentClass,
             $this->sortOrder + 1,
-            $this->content
+            $this->content,
         );
     }
 
@@ -121,7 +121,7 @@ class PageBlock
             $data['page_id'],
             $data['component_class'],
             $data['sort_order'] ?? $data['order'] ?? 0,
-            $data['content'] ?? []
+            $data['content'] ?? [],
         );
 
         if (isset($data['created_at'])) {
@@ -134,4 +134,3 @@ class PageBlock
         return $block;
     }
 }
-

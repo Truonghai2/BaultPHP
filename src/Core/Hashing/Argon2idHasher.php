@@ -8,10 +8,10 @@ use RuntimeException;
 
 /**
  * Argon2id Hasher - Best password hashing algorithm
- * 
- * Argon2id combines the benefits of Argon2i (side-channel resistance) 
+ *
+ * Argon2id combines the benefits of Argon2i (side-channel resistance)
  * and Argon2d (GPU cracking resistance), making it the most secure option.
- * 
+ *
  * Winner of the Password Hashing Competition 2015.
  */
 class Argon2idHasher implements HasherInterface
@@ -24,7 +24,7 @@ class Argon2idHasher implements HasherInterface
     {
         // Add pepper if configured (server-side secret key)
         $value = $this->applyPepper($value);
-        
+
         $hash = @password_hash($value, PASSWORD_ARGON2ID, $this->options($options));
 
         if ($hash === false) {
@@ -67,7 +67,7 @@ class Argon2idHasher implements HasherInterface
     protected function applyPepper(string $value): string
     {
         $pepper = $this->options['pepper'] ?? null;
-        
+
         if (!$pepper) {
             return $value;
         }
@@ -77,4 +77,3 @@ class Argon2idHasher implements HasherInterface
         return hash_hmac('sha256', $value, $pepper);
     }
 }
-

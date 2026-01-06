@@ -8,7 +8,7 @@ use Core\CQRS\Middleware\MiddlewareInterface;
 
 /**
  * Command Bus
- * 
+ *
  * Dispatches commands to their handlers.
  * Supports middleware for cross-cutting concerns.
  */
@@ -55,17 +55,16 @@ class CommandBus
         $handler = app($handlerClass);
 
         if (!$handler instanceof CommandHandlerInterface) {
-            throw new \RuntimeException("Handler must implement CommandHandlerInterface");
+            throw new \RuntimeException('Handler must implement CommandHandlerInterface');
         }
 
         // Build middleware pipeline
         $pipeline = array_reduce(
             array_reverse($this->middleware),
-            fn($next, $middleware) => fn($cmd) => $middleware->handle($cmd, $next),
-            fn($cmd) => $handler->handle($cmd)
+            fn ($next, $middleware) => fn ($cmd) => $middleware->handle($cmd, $next),
+            fn ($cmd) => $handler->handle($cmd),
         );
 
         return $pipeline($command);
     }
 }
-

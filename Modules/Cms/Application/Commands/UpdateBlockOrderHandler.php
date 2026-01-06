@@ -12,7 +12,7 @@ use Modules\Cms\Domain\Services\PageBlockService;
 class UpdateBlockOrderHandler implements CommandHandler
 {
     public function __construct(
-        private readonly PageBlockService $pageBlockService
+        private readonly PageBlockService $pageBlockService,
     ) {
     }
 
@@ -32,7 +32,7 @@ class UpdateBlockOrderHandler implements CommandHandler
 
         $this->pageBlockService->updateBlockOrder(
             $command->page->id,
-            $command->orderedIds
+            $command->orderedIds,
         );
     }
 }

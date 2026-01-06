@@ -14,7 +14,7 @@ use Modules\Cms\Infrastructure\Models\Page;
 class RestoreBlockHandler implements CommandHandler
 {
     public function __construct(
-        private readonly PageBlockService $pageBlockService
+        private readonly PageBlockService $pageBlockService,
     ) {
     }
 
@@ -41,7 +41,7 @@ class RestoreBlockHandler implements CommandHandler
             $command->pageId,
             $command->componentClass,
             $command->order,
-            $command->content
+            $command->content,
         );
     }
 }

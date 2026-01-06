@@ -9,7 +9,7 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * DeleteBlockHandler
- * 
+ *
  * Handles the DeleteBlockCommand.
  */
 class DeleteBlockHandler implements CommandHandlerInterface
@@ -17,7 +17,7 @@ class DeleteBlockHandler implements CommandHandlerInterface
     public function handle(CommandInterface $command): bool
     {
         $block = PageBlock::find($command->blockId);
-        
+
         if (!$block) {
             throw new \Exception("Block with ID {$command->blockId} not found");
         }
@@ -31,17 +31,16 @@ class DeleteBlockHandler implements CommandHandlerInterface
         // Audit log (deletion is auto-logged)
         Audit::log(
             'data_change',
-            "Block deleted from page",
+            'Block deleted from page',
             [
                 'block_id' => $command->blockId,
                 'page_id' => $pageId,
                 'block_type_id' => $blockTypeId,
-                'action' => 'block_deleted'
+                'action' => 'block_deleted',
             ],
-            'warning'
+            'warning',
         );
 
         return true;
     }
 }
-

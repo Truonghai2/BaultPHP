@@ -2,8 +2,8 @@
 
 namespace Modules\User\Application\CommandHandlers\User;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Modules\User\Application\Commands\User\AssignRoleCommand;
 use Modules\User\Infrastructure\Models\Role;
@@ -12,7 +12,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * AssignRoleHandler
- * 
+ *
  * Handles the AssignRoleCommand.
  */
 class AssignRoleHandler implements CommandHandlerInterface
@@ -45,7 +45,7 @@ class AssignRoleHandler implements CommandHandlerInterface
         $assignment = RoleAssignment::create([
             'user_id' => $command->userId,
             'role_id' => $command->roleId,
-            'context_id' => $command->contextId
+            'context_id' => $command->contextId,
         ]);
 
         Audit::security(
@@ -55,8 +55,8 @@ class AssignRoleHandler implements CommandHandlerInterface
                 'role_id' => $command->roleId,
                 'role_name' => $role->name,
                 'context_id' => $command->contextId,
-                'action' => 'role_assigned'
-            ]
+                'action' => 'role_assigned',
+            ],
         );
 
         return $assignment->id;

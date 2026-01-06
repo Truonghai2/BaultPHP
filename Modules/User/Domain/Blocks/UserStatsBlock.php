@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * User Statistics Block
- * 
+ *
  * Displays platform-wide user statistics
  */
 class UserStatsBlock extends AbstractBlock
@@ -53,7 +53,7 @@ class UserStatsBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Get real stats from database
         $stats = $this->getStats($config['period']);
 
@@ -111,4 +111,3 @@ class UserStatsBlock extends AbstractBlock
         return 300; // 5 minutes
     }
 }
-

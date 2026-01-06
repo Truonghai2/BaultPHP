@@ -8,8 +8,8 @@ use Modules\Cms\Application\Policies\PagePolicy;
 use Modules\Cms\Application\Queries\CachingPageFinder;
 use Modules\Cms\Application\Queries\PageFinder;
 use Modules\Cms\Application\Queries\PageFinderInterface;
-use Modules\Cms\Domain\Services\BlockRegistry;
 use Modules\Cms\Console\SyncBlocksCommand;
+use Modules\Cms\Domain\Services\BlockRegistry;
 use Modules\Cms\Http\Controllers\PageController;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
@@ -22,25 +22,25 @@ class CmsServiceProvider extends BaseServiceProvider
         // Page Repository
         $this->app->bind(
             \Modules\Cms\Domain\Repositories\PageRepositoryInterface::class,
-            \Modules\Cms\Infrastructure\Repositories\EloquentPageRepository::class
+            \Modules\Cms\Infrastructure\Repositories\EloquentPageRepository::class,
         );
 
         // PageBlock Repository (Page Editor System)
         $this->app->bind(
             \Modules\Cms\Domain\Repositories\PageBlockRepositoryInterface::class,
-            \Modules\Cms\Infrastructure\Repositories\EloquentPageBlockRepository::class
+            \Modules\Cms\Infrastructure\Repositories\EloquentPageBlockRepository::class,
         );
 
         // BlockInstance Repository (Moodle-like Block System)
         $this->app->bind(
             \Modules\Cms\Domain\Repositories\BlockInstanceRepositoryInterface::class,
-            \Modules\Cms\Infrastructure\Repositories\EloquentBlockInstanceRepository::class
+            \Modules\Cms\Infrastructure\Repositories\EloquentBlockInstanceRepository::class,
         );
 
         // BlockRegion Repository
         $this->app->bind(
             \Modules\Cms\Domain\Repositories\BlockRegionRepositoryInterface::class,
-            \Modules\Cms\Infrastructure\Repositories\EloquentBlockRegionRepository::class
+            \Modules\Cms\Infrastructure\Repositories\EloquentBlockRegionRepository::class,
         );
 
         // Domain Services
@@ -49,19 +49,19 @@ class CmsServiceProvider extends BaseServiceProvider
         $this->app->singleton(BlockRegistry::class);
         $this->app->singleton(\Modules\Cms\Domain\Services\BlockManager::class);
         $this->app->singleton(\Modules\Cms\Domain\Services\BlockRenderer::class);
-        
+
         // Block Rendering Optimization
         $this->app->singleton(\Modules\Cms\Domain\Services\BlockClassRegistry::class, function ($app) {
             return new \Modules\Cms\Domain\Services\BlockClassRegistry(
-                $app->make(\Psr\Log\LoggerInterface::class)
+                $app->make(\Psr\Log\LoggerInterface::class),
             );
         });
-        
+
         $this->app->singleton(\Modules\Cms\Domain\Services\PageBlockRenderer::class, function ($app) {
             return new \Modules\Cms\Domain\Services\PageBlockRenderer(
                 $app->make(\Psr\Log\LoggerInterface::class),
                 $app->make(\Modules\Cms\Domain\Services\BlockClassRegistry::class),
-                $app->make(\Modules\Cms\Domain\Services\BlockCacheManager::class)
+                $app->make(\Modules\Cms\Domain\Services\BlockCacheManager::class),
             );
         });
 
@@ -108,7 +108,7 @@ class CmsServiceProvider extends BaseServiceProvider
 
     /**
      * Load block rendering helpers
-     * 
+     *
      * Note: Block helpers are now in src/Core/helpers.php
      * This method is kept for backward compatibility
      */
@@ -139,7 +139,7 @@ class CmsServiceProvider extends BaseServiceProvider
         if (!is_dir($viewPath)) {
             $viewPath = $modulePath . '/resources/views';
         }
-        
+
         // Only load views if directory exists
         if (is_dir($viewPath)) {
             $this->loadViewsFrom($viewPath, 'cms');
@@ -159,7 +159,7 @@ class CmsServiceProvider extends BaseServiceProvider
 
     /**
      * Register auto-sync middleware for blocks
-     * 
+     *
      * Automatically syncs blocks in development mode on every request
      * Cache is used to prevent too frequent syncs
      */
@@ -182,7 +182,7 @@ class CmsServiceProvider extends BaseServiceProvider
 
     /**
      * Discover and register blocks from all enabled modules
-     * 
+     *
      * This method automatically:
      * 1. Scans Domain/Blocks/ in all enabled modules
      * 2. Registers view namespaces for module blocks
@@ -191,14 +191,14 @@ class CmsServiceProvider extends BaseServiceProvider
     private function discoverModuleBlocks(): void
     {
         $discovery = new \Core\Module\ModuleBlockDiscovery($this->app);
-        
+
         $cachePath = $this->app->basePath('bootstrap/cache/module-blocks.php');
-        
+
         if (config('app.env') === 'production' && file_exists($cachePath)) {
             $data = $discovery->loadFromCache($cachePath);
         } else {
             $data = $discovery->discover();
-            
+
             if (config('app.env') === 'production') {
                 $discovery->cacheDiscovery($cachePath);
             }
@@ -206,7 +206,7 @@ class CmsServiceProvider extends BaseServiceProvider
 
         /** @var \Core\View\ViewFactory $viewFactory */
         $viewFactory = $this->app->make('view');
-        
+
         foreach ($data['views'] ?? [] as $alias => $path) {
             if (!$viewFactory->exists($alias . '::test')) {
                 $this->loadViewsFrom($path, $alias);
@@ -216,8 +216,8 @@ class CmsServiceProvider extends BaseServiceProvider
         if (config('app.debug') && !file_exists($cachePath)) {
             $blocksCount = count($data['blocks'] ?? []);
             $modulesCount = count(array_unique(array_values($data['blocks'] ?? [])));
-            
-            \Core\Support\Facades\Log::info("Module blocks discovered (cache rebuilt)", [
+
+            \Core\Support\Facades\Log::info('Module blocks discovered (cache rebuilt)', [
                 'blocks_count' => $blocksCount,
                 'modules_count' => $modulesCount,
                 'blocks' => array_keys($data['blocks'] ?? []),

@@ -7,25 +7,26 @@ namespace Modules\Cms\Http\Controllers;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
-use Modules\Cms\Infrastructure\Models\Page;
-use Modules\Cms\Infrastructure\Models\PageBlock;
-use Modules\Cms\Infrastructure\Models\BlockType;
+use Modules\Cms\Domain\Services\BlockRegistry;
 use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\BlockRegion;
-use Modules\Cms\Domain\Services\BlockRegistry;
+use Modules\Cms\Infrastructure\Models\BlockType;
+use Modules\Cms\Infrastructure\Models\Page;
+use Modules\Cms\Infrastructure\Models\PageBlock;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Block Management Controller
- * 
+ *
  * API endpoints for block management
  */
 #[Route(prefix: '/admin/blocks', middleware: ['auth'], group: 'web')]
 class BlockManagementController extends Controller
 {
-    public function __construct(private readonly BlockRegistry $blockRegistry) {
+    public function __construct(private readonly BlockRegistry $blockRegistry)
+    {
     }
 
     /**
@@ -46,13 +47,13 @@ class BlockManagementController extends Controller
         if (!config('app.debug') && !$user->can('cms.blocks.manage')) {
             return response()->json([
                 'error' => 'Forbidden',
-                'message' => 'You do not have permission to manage blocks.'
+                'message' => 'You do not have permission to manage blocks.',
             ], 403);
         }
 
         // Get block types from database and convert to array
         $blockTypes = $this->blockRegistry->getAvailableBlockTypes();
-        $blockTypesArray = $blockTypes->map(function($blockType) {
+        $blockTypesArray = $blockTypes->map(function ($blockType) {
             return [
                 'id' => $blockType->id,
                 'name' => $blockType->name,
@@ -71,9 +72,9 @@ class BlockManagementController extends Controller
         // Get categories with blocks converted to arrays
         $categoriesRaw = $this->blockRegistry->getCategories();
         $categories = [];
-        
+
         foreach ($categoriesRaw as $category => $blocks) {
-            $categories[$category] = array_map(function($block) {
+            $categories[$category] = array_map(function ($block) {
                 return [
                     'name' => $block->getName(),
                     'title' => $block->getTitle(),
@@ -110,7 +111,7 @@ class BlockManagementController extends Controller
         }
 
         $regions = BlockRegion::where('is_active', true)->get()->all();
-        $regionsData = array_map(fn($region) => $region->toArray(), $regions);
+        $regionsData = array_map(fn ($region) => $region->toArray(), $regions);
 
         return response()->json(['regions' => $regionsData]);
     }
@@ -189,7 +190,7 @@ class BlockManagementController extends Controller
         // Validation
         if (empty($data['block_type_name']) || empty($data['region'])) {
             return response()->json([
-                'error' => 'block_type_name and region are required'
+                'error' => 'block_type_name and region are required',
             ], 400);
         }
 
@@ -235,12 +236,12 @@ class BlockManagementController extends Controller
 
             return response()->json([
                 'message' => 'Block created successfully',
-                'block' => $instance->toArray()
+                'block' => $instance->toArray(),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to create block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -274,13 +275,21 @@ class BlockManagementController extends Controller
             }
 
             $updateData = [];
-            if (isset($data['content'])) $updateData['content'] = $data['content'];
-            if (isset($data['visible'])) $updateData['visible'] = $data['visible'];
+            if (isset($data['content'])) {
+                $updateData['content'] = $data['content'];
+            }
+            if (isset($data['visible'])) {
+                $updateData['visible'] = $data['visible'];
+            }
 
             // PageBlock doesn't have title/config, BlockInstance does
             if ($instance instanceof BlockInstance) {
-                if (isset($data['title'])) $updateData['title'] = $data['title'];
-                if (isset($data['config'])) $updateData['config'] = $data['config'];
+                if (isset($data['title'])) {
+                    $updateData['title'] = $data['title'];
+                }
+                if (isset($data['config'])) {
+                    $updateData['config'] = $data['config'];
+                }
             }
 
             if (!empty($updateData)) {
@@ -289,12 +298,12 @@ class BlockManagementController extends Controller
 
             return response()->json([
                 'message' => 'Block updated successfully',
-                'block' => $instance->toArray()
+                'block' => $instance->toArray(),
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to update block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -326,12 +335,12 @@ class BlockManagementController extends Controller
             }
 
             return response()->json([
-                'message' => 'Block deleted successfully'
+                'message' => 'Block deleted successfully',
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to delete block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -372,12 +381,12 @@ class BlockManagementController extends Controller
             }
 
             return response()->json([
-                'message' => 'Block moved up successfully'
+                'message' => 'Block moved up successfully',
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to move block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -417,12 +426,12 @@ class BlockManagementController extends Controller
             }
 
             return response()->json([
-                'message' => 'Block moved down successfully'
+                'message' => 'Block moved down successfully',
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to move block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -456,12 +465,12 @@ class BlockManagementController extends Controller
 
             return response()->json([
                 'message' => 'Block visibility toggled',
-                'visible' => $instance->visible
+                'visible' => $instance->visible,
             ]);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to toggle visibility',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -500,12 +509,12 @@ class BlockManagementController extends Controller
 
             return response()->json([
                 'message' => 'Block duplicated successfully',
-                'block' => $newInstance->toArray()
+                'block' => $newInstance->toArray(),
             ], 201);
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to duplicate block',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -531,7 +540,7 @@ class BlockManagementController extends Controller
 
         if (empty($data['block_ids']) || !is_array($data['block_ids']) || empty($data['context_type'])) {
             return response()->json([
-                'error' => 'block_ids array and context_type are required'
+                'error' => 'block_ids array and context_type are required',
             ], 400);
         }
 
@@ -544,18 +553,18 @@ class BlockManagementController extends Controller
                     BlockInstance::where('id', $blockId)->update(['weight' => $order]);
                 }
             }
-            
+
             // This is a more robust way to reorder
             // $this->blockManager->reorderBlocks($data['block_ids']);
-            
+
             return response()->json([
-                'message' => 'Blocks reordered successfully'
+                'message' => 'Blocks reordered successfully',
             ]);
 
         } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Failed to reorder blocks',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }

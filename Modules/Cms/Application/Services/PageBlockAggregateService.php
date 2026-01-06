@@ -11,13 +11,13 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * Page Block Aggregate Service
- * 
+ *
  * Application service for page block operations
  */
 class PageBlockAggregateService
 {
     public function __construct(
-        private AggregateRepository $aggregateRepository
+        private AggregateRepository $aggregateRepository,
     ) {
     }
 
@@ -28,7 +28,7 @@ class PageBlockAggregateService
         string $pageId,
         string $componentClass,
         int $sortOrder,
-        string $userId
+        string $userId,
     ): string {
         $blockId = Uuid::uuid4()->toString();
 
@@ -39,15 +39,15 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block created via Event Sourcing",
+            'Block created via Event Sourcing',
             [
                 'block_id' => $blockId,
                 'page_id' => $pageId,
                 'component_class' => $componentClass,
                 'user_id' => $userId,
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
 
         return $blockId;
@@ -59,7 +59,7 @@ class PageBlockAggregateService
     public function updateBlockContent(
         string $blockId,
         array $content,
-        string $userId
+        string $userId,
     ): void {
         $block = $this->loadBlock($blockId);
 
@@ -69,13 +69,13 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block content updated",
+            'Block content updated',
             [
                 'block_id' => $blockId,
                 'user_id' => $userId,
-                'content_size' => strlen(json_encode($content))
+                'content_size' => strlen(json_encode($content)),
             ],
-            'info'
+            'info',
         );
     }
 
@@ -85,7 +85,7 @@ class PageBlockAggregateService
     public function changeBlockOrder(
         string $blockId,
         int $newOrder,
-        string $userId
+        string $userId,
     ): void {
         $block = $this->loadBlock($blockId);
 
@@ -95,13 +95,13 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block order changed",
+            'Block order changed',
             [
                 'block_id' => $blockId,
                 'new_order' => $newOrder,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -111,7 +111,7 @@ class PageBlockAggregateService
     public function duplicateBlock(
         string $blockId,
         int $newOrder,
-        string $userId
+        string $userId,
     ): string {
         $block = $this->loadBlock($blockId);
 
@@ -128,7 +128,7 @@ class PageBlockAggregateService
             $block->getPageId(),
             $block->getComponentClass(),
             $newOrder,
-            $userId
+            $userId,
         );
 
         // Copy content
@@ -140,13 +140,13 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block duplicated",
+            'Block duplicated',
             [
                 'original_block_id' => $blockId,
                 'new_block_id' => $newBlockId,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
 
         return $newBlockId;
@@ -165,12 +165,12 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block deleted",
+            'Block deleted',
             [
                 'block_id' => $blockId,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'warning'
+            'warning',
         );
     }
 
@@ -187,12 +187,12 @@ class PageBlockAggregateService
 
         Audit::log(
             'cms_action',
-            "Block restored",
+            'Block restored',
             [
                 'block_id' => $blockId,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -215,7 +215,7 @@ class PageBlockAggregateService
             'content' => $block->getContent(),
             'is_deleted' => $block->isDeleted(),
             'deleted_at' => $block->getDeletedAt()?->format('Y-m-d H:i:s'),
-            'version' => $block->getVersion()
+            'version' => $block->getVersion(),
         ];
     }
 
@@ -241,4 +241,3 @@ class PageBlockAggregateService
         return $block;
     }
 }
-

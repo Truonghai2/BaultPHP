@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Welcome Banner Block
- * 
+ *
  * Display welcome message with customizable content
  */
 class WelcomeBannerBlock extends AbstractBlock
@@ -52,7 +52,7 @@ class WelcomeBannerBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.welcome-banner', $config);
     }
 
@@ -66,4 +66,3 @@ class WelcomeBannerBlock extends AbstractBlock
         return 3600;
     }
 }
-

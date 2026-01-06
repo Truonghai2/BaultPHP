@@ -35,4 +35,3 @@ class ModuleSettingsServiceProvider extends BaseServiceProvider
         }
     }
 }
-

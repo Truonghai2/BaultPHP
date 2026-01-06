@@ -63,7 +63,7 @@ class RouteServiceProvider extends ServiceProvider
             if (str_starts_with($path, '/api/')) {
                 throw new RouteNotFoundException("Route not found for GET {$path}");
             }
-            
+
             if (preg_match('/\\.[a-zA-Z0-9]+$/', $path)) {
                 throw new RouteNotFoundException("Route not found for GET {$path}");
             }

@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * GetUsersHandler
- * 
+ *
  * Handles GetUsersQuery.
  */
 class GetUsersHandler implements QueryHandlerInterface
@@ -19,7 +19,7 @@ class GetUsersHandler implements QueryHandlerInterface
 
         // Apply search filter
         if ($query->search) {
-            $userQuery->where(function($q) use ($query) {
+            $userQuery->where(function ($q) use ($query) {
                 $q->where('name', 'LIKE', "%{$query->search}%")
                   ->orWhere('email', 'LIKE', "%{$query->search}%");
             });
@@ -37,24 +37,23 @@ class GetUsersHandler implements QueryHandlerInterface
         $users = $userQuery->orderBy('created_at', 'desc')->get();
 
         // Map to array
-        return $users->map(function($user) use ($query) {
+        return $users->map(function ($user) use ($query) {
             $userData = $user->getAttributes();
-            
+
             if ($query->withRoles) {
                 $roles = $user->roles()->get();
-                $userData['roles'] = $roles->map(fn($role) => [
+                $userData['roles'] = $roles->map(fn ($role) => [
                     'id' => $role->id,
                     'name' => $role->name,
-                    'description' => $role->description
+                    'description' => $role->description,
                 ])->toArray();
             }
-            
+
             // Remove password from response
             unset($userData['password']);
             unset($userData['remember_token']);
-            
+
             return $userData;
         })->toArray();
     }
 }
-

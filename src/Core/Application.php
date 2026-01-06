@@ -56,10 +56,10 @@ class Application implements ContainerInterface, \ArrayAccess
     /** @var array<string, string> The mapping of deferred services to their providers. */
     protected array $deferredServices = [];
     protected array $resolvingCallbacks = [];
-    
+
     /** @var array<int, callable> Callbacks to run after the response is sent. */
     protected array $terminatingCallbacks = [];
-    
+
     protected string $basePath;
 
     public function __construct(string $basePath = null)
@@ -823,7 +823,7 @@ class Application implements ContainerInterface, \ArrayAccess
     public function terminating(callable $callback): static
     {
         $this->terminatingCallbacks[] = $callback;
-        
+
         return $this;
     }
 
@@ -849,7 +849,7 @@ class Application implements ContainerInterface, \ArrayAccess
                 }
             }
         }
-        
+
         // Clear callbacks for next request (Swoole keeps worker alive)
         $this->terminatingCallbacks = [];
     }

@@ -13,14 +13,14 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * Cache Management Controller
- * 
+ *
  * Admin interface for managing block caches
  */
 #[RouteGroup(prefix: '/admin/cache', middleware: ['auth', 'admin'])]
 class CacheManagementController
 {
     public function __construct(
-        private readonly BlockCacheManager $cacheManager
+        private readonly BlockCacheManager $cacheManager,
     ) {
     }
 
@@ -31,7 +31,7 @@ class CacheManagementController
     public function index(): Response
     {
         $stats = $this->cacheManager->getStats();
-        
+
         return response(view('cms.admin.cache.index', [
             'stats' => $stats,
         ]));
@@ -45,12 +45,12 @@ class CacheManagementController
     {
         try {
             $this->cacheManager->clearAll();
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'All block caches cleared successfully',
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -68,12 +68,12 @@ class CacheManagementController
         try {
             $page = Page::findOrFail($id);
             $this->cacheManager->invalidatePage($page);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Cache cleared for page: {$page->name}",
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -99,12 +99,12 @@ class CacheManagementController
                 $this->cacheManager->invalidateGlobalRegion($region);
                 $message = "Cache cleared for global region '{$region}'";
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => $message,
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -122,12 +122,12 @@ class CacheManagementController
         try {
             $page = Page::findOrFail($id);
             $this->cacheManager->warmUpPage($page);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Cache warmed up for page: {$page->name}",
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -160,12 +160,12 @@ class CacheManagementController
                     ]);
                 }
             }
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "Cache warmed up for {$count} page(s)",
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -182,12 +182,12 @@ class CacheManagementController
     {
         try {
             $stats = $this->cacheManager->getStats();
-            
+
             return response()->json([
                 'success' => true,
                 'stats' => $stats,
             ]);
-            
+
         } catch (\Throwable $e) {
             return response()->json([
                 'success' => false,
@@ -196,4 +196,3 @@ class CacheManagementController
         }
     }
 }
-

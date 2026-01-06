@@ -9,7 +9,7 @@ use DateTimeImmutable;
 
 /**
  * Page Restored Event
- * 
+ *
  * Emitted when a deleted page is restored
  */
 class PageRestored extends DomainEvent
@@ -20,7 +20,7 @@ class PageRestored extends DomainEvent
         ?string $eventId = null,
         ?DateTimeImmutable $occurredAt = null,
         int $eventVersion = 1,
-        array $metadata = []
+        array $metadata = [],
     ) {
         parent::__construct($eventId, $occurredAt, $eventVersion, $metadata);
     }
@@ -33,7 +33,7 @@ class PageRestored extends DomainEvent
             eventId: $data['eventId'],
             occurredAt: new DateTimeImmutable($data['occurredAt']),
             eventVersion: $data['eventVersion'] ?? 1,
-            metadata: $data['metadata'] ?? []
+            metadata: $data['metadata'] ?? [],
         );
     }
 
@@ -49,4 +49,3 @@ class PageRestored extends DomainEvent
         ];
     }
 }
-

@@ -6,17 +6,17 @@ use OpenTelemetry\API\Trace\SpanInterface;
 use OpenTelemetry\API\Trace\TracerInterface;
 use OpenTelemetry\API\Trace\TracerProviderInterface;
 use OpenTelemetry\Context\Context;
+use OpenTelemetry\Contrib\Otlp\SpanExporter;
 use OpenTelemetry\SDK\Common\Attribute\Attributes;
 use OpenTelemetry\SDK\Resource\ResourceInfo;
 use OpenTelemetry\SDK\Resource\ResourceInfoFactory;
 use OpenTelemetry\SDK\Trace\Sampler\AlwaysOnSampler;
 use OpenTelemetry\SDK\Trace\SpanProcessor\SimpleSpanProcessor;
 use OpenTelemetry\SDK\Trace\TracerProvider;
-use OpenTelemetry\Contrib\Otlp\SpanExporter;
 
 /**
  * OpenTelemetry Manager
- * 
+ *
  * Centralized tracing, metrics, and logging management.
  * Provides automatic instrumentation for:
  * - HTTP requests
@@ -34,7 +34,7 @@ class TelemetryManager
     public function __construct(
         private string $serviceName,
         private string $serviceVersion,
-        private ?string $exporterEndpoint = null
+        private ?string $exporterEndpoint = null,
     ) {
         $this->initialize();
     }
@@ -50,7 +50,7 @@ class TelemetryManager
                 'service.name' => $this->serviceName,
                 'service.version' => $this->serviceVersion,
                 'deployment.environment' => config('app.env', 'production'),
-            ]))
+            ])),
         );
 
         // Setup exporter (OTLP to Jaeger/Tempo/etc)
@@ -61,13 +61,13 @@ class TelemetryManager
         $this->tracerProvider = new TracerProvider(
             new SimpleSpanProcessor($exporter),
             new AlwaysOnSampler(),
-            $resource
+            $resource,
         );
 
         // Get tracer instance
         $this->tracer = $this->tracerProvider->getTracer(
             instrumentationName: 'bault-php',
-            instrumentationVersion: $this->serviceVersion
+            instrumentationVersion: $this->serviceVersion,
         );
     }
 
@@ -77,7 +77,7 @@ class TelemetryManager
     public function startSpan(
         string $name,
         array $attributes = [],
-        ?Context $context = null
+        ?Context $context = null,
     ): SpanInterface {
         $builder = $this->tracer->spanBuilder($name);
 
@@ -101,7 +101,7 @@ class TelemetryManager
     public function endSpan(?SpanInterface $span = null): void
     {
         $span = $span ?? $this->currentSpan;
-        
+
         if ($span) {
             $span->end();
             $this->currentSpan = null;
@@ -114,7 +114,7 @@ class TelemetryManager
     public function traceHttpRequest(
         string $method,
         string $uri,
-        callable $callback
+        callable $callback,
     ): mixed {
         $span = $this->startSpan("HTTP {$method}", [
             'http.method' => $method,
@@ -124,16 +124,16 @@ class TelemetryManager
 
         try {
             $result = $callback();
-            
+
             $span->setAttribute('http.status_code', 200);
             $span->setStatus('ok');
-            
+
             return $result;
         } catch (\Throwable $e) {
             $span->recordException($e);
             $span->setAttribute('http.status_code', 500);
             $span->setStatus('error', $e->getMessage());
-            
+
             throw $e;
         } finally {
             $this->endSpan($span);
@@ -146,7 +146,7 @@ class TelemetryManager
     public function traceDbQuery(
         string $query,
         array $bindings,
-        callable $callback
+        callable $callback,
     ): mixed {
         $span = $this->startSpan('DB Query', [
             'db.system' => 'mysql',
@@ -178,7 +178,7 @@ class TelemetryManager
     public function traceCache(
         string $operation,
         string $key,
-        callable $callback
+        callable $callback,
     ): mixed {
         $span = $this->startSpan("Cache {$operation}", [
             'cache.operation' => $operation,
@@ -187,10 +187,10 @@ class TelemetryManager
 
         try {
             $result = $callback();
-            
+
             $span->setAttribute('cache.hit', $result !== null);
             $span->setStatus('ok');
-            
+
             return $result;
         } catch (\Throwable $e) {
             $span->recordException($e);
@@ -207,7 +207,7 @@ class TelemetryManager
     public function traceJob(
         string $jobName,
         array $payload,
-        callable $callback
+        callable $callback,
     ): mixed {
         $span = $this->startSpan("Job: {$jobName}", [
             'job.name' => $jobName,
@@ -238,7 +238,7 @@ class TelemetryManager
     public function traceExternalApi(
         string $service,
         string $endpoint,
-        callable $callback
+        callable $callback,
     ): mixed {
         $span = $this->startSpan("External API: {$service}", [
             'peer.service' => $service,
@@ -299,7 +299,7 @@ class TelemetryManager
         // Replace actual values with placeholders
         $query = preg_replace("/'[^']*'/", "'?'", $query);
         $query = preg_replace('/\b\d+\b/', '?', $query);
-        
+
         return substr($query, 0, 500); // Limit length
     }
 
@@ -309,12 +309,20 @@ class TelemetryManager
     private function getQueryOperation(string $query): string
     {
         $query = trim(strtoupper($query));
-        
-        if (str_starts_with($query, 'SELECT')) return 'SELECT';
-        if (str_starts_with($query, 'INSERT')) return 'INSERT';
-        if (str_starts_with($query, 'UPDATE')) return 'UPDATE';
-        if (str_starts_with($query, 'DELETE')) return 'DELETE';
-        
+
+        if (str_starts_with($query, 'SELECT')) {
+            return 'SELECT';
+        }
+        if (str_starts_with($query, 'INSERT')) {
+            return 'INSERT';
+        }
+        if (str_starts_with($query, 'UPDATE')) {
+            return 'UPDATE';
+        }
+        if (str_starts_with($query, 'DELETE')) {
+            return 'DELETE';
+        }
+
         return 'QUERY';
     }
 
@@ -328,4 +336,3 @@ class TelemetryManager
         }
     }
 }
-

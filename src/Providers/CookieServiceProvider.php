@@ -12,12 +12,12 @@ class CookieServiceProvider extends ServiceProvider
     {
         $cookieManager = new CookieManager(
             $this->app->make('log'),
-            $this->app->make('encrypter')
+            $this->app->make('encrypter'),
         );
-        
+
         $this->app->instance(CookieManager::class, $cookieManager);
         $this->app->alias(CookieManager::class, 'cookies');
-        
+
         $this->app->tag(CookieManager::class, StatefulService::class);
     }
 }

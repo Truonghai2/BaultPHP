@@ -11,7 +11,7 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * AddBlockToPageHandler
- * 
+ *
  * Handles the AddBlockToPageCommand.
  */
 class AddBlockToPageHandler implements CommandHandlerInterface
@@ -38,7 +38,7 @@ class AddBlockToPageHandler implements CommandHandlerInterface
             'content' => $command->content,
             'sort_order' => $command->sortOrder,
             'visible' => true,
-            'created_by' => auth()->id()
+            'created_by' => auth()->id(),
         ]);
 
         // Audit log (creation is auto-logged)
@@ -50,12 +50,11 @@ class AddBlockToPageHandler implements CommandHandlerInterface
                 'block_id' => $block->id,
                 'block_type' => $blockType->name,
                 'region' => $command->region,
-                'action' => 'block_added'
+                'action' => 'block_added',
             ],
-            'info'
+            'info',
         );
 
         return $block->id;
     }
 }
-

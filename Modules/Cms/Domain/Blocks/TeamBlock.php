@@ -40,17 +40,16 @@ class TeamBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         $team = $context['team'] ?? $config['team'] ?? [];
-        
+
         // If no team data, try fetch from database
         if (empty($team) && function_exists('model')) {
             // $team = model('TeamMember')::active()->get()->toArray();
         }
-        
+
         return $this->renderView('cms::blocks.team', array_merge($config, [
             'team' => $team,
         ]));
     }
 }
-

@@ -9,7 +9,7 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * InstallModuleHandler
- * 
+ *
  * Handles the InstallModuleCommand.
  */
 class InstallModuleHandler implements CommandHandlerInterface
@@ -17,7 +17,7 @@ class InstallModuleHandler implements CommandHandlerInterface
     public function handle(CommandInterface $command): int
     {
         $existing = Module::where('name', '=', $command->moduleName)->first();
-        
+
         if ($existing) {
             throw new \Exception("Module '{$command->moduleName}' is already installed");
         }
@@ -37,7 +37,7 @@ class InstallModuleHandler implements CommandHandlerInterface
             'version' => $command->version,
             'description' => $command->description,
             'enabled' => false,
-            'status' => 'installed'
+            'status' => 'installed',
         ]);
 
         Audit::log(
@@ -47,12 +47,11 @@ class InstallModuleHandler implements CommandHandlerInterface
                 'module' => $command->moduleName,
                 'version' => $command->version,
                 'dependencies' => $command->dependencies,
-                'action' => 'install'
+                'action' => 'install',
             ],
-            'info'
+            'info',
         );
 
         return $module->id;
     }
 }
-

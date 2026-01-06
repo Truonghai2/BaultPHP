@@ -2,12 +2,9 @@
 
 namespace Modules\Cms\Domain\Blocks;
 
-use Modules\Cms\Infrastructure\Models\BlockInstance;
-use Modules\User\Infrastructure\Models\User;
-
 /**
  * Menu Block
- * 
+ *
  * Block để hiển thị navigation menu
  */
 class MenuBlock extends AbstractBlock
@@ -44,7 +41,7 @@ class MenuBlock extends AbstractBlock
             'style' => 'vertical',
             'show_icons' => false,
         ];
-    }   
+    }
 
     public function getConfigSchema(): array
     {
@@ -84,7 +81,7 @@ class MenuBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.menu', $config);
     }
 
@@ -98,4 +95,3 @@ class MenuBlock extends AbstractBlock
         return 3600;
     }
 }
-

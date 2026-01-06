@@ -12,19 +12,19 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * Page Aggregate Service
- * 
+ *
  * APPLICATION SERVICE (not Domain Service!)
- * 
+ *
  * Responsibilities:
  * - Use case orchestration
  * - Transaction boundaries
  * - Infrastructure coordination (Repository, Audit, Cache, etc.)
  * - DTO transformation
  * - Authorization checks (in real app)
- * 
+ *
  * Does NOT contain:
  * - Pure business logic (that's in Domain layer)
- * 
+ *
  * Location: Application/Services (CORRECT)
  * Why: Has infrastructure dependencies + orchestrates use cases
  */
@@ -32,7 +32,7 @@ class PageAggregateService
 {
     public function __construct(
         private AggregateRepository $aggregateRepository,
-        private PageDomainService $domainService
+        private PageDomainService $domainService,
     ) {
     }
 
@@ -42,7 +42,7 @@ class PageAggregateService
     public function createPage(
         string $name,
         string $slug,
-        ?int $userId = null
+        ?int $userId = null,
     ): string {
         // Validate using domain service
         $this->domainService->validatePageName($name);
@@ -63,9 +63,9 @@ class PageAggregateService
                 'name' => $name,
                 'slug' => $slug,
                 'user_id' => $userId,
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
 
         return $pageId;
@@ -77,7 +77,7 @@ class PageAggregateService
     public function updatePageContent(
         string $pageId,
         array $content,
-        string $userId
+        string $userId,
     ): void {
         $page = $this->loadPage($pageId);
 
@@ -103,9 +103,9 @@ class PageAggregateService
                 'page_id' => $pageId,
                 'user_id' => $userId,
                 'content_size' => strlen(json_encode($content)),
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
     }
 
@@ -116,7 +116,7 @@ class PageAggregateService
         string $pageId,
         string $newName,
         string $newSlug,
-        string $userId
+        string $userId,
     ): void {
         $page = $this->loadPage($pageId);
 
@@ -141,9 +141,9 @@ class PageAggregateService
                 'new_name' => $newName,
                 'old_slug' => $page->getSlug(),
                 'new_slug' => $newSlug,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -158,7 +158,7 @@ class PageAggregateService
         if (!$this->domainService->canPublish($page)) {
             $seoScore = $this->domainService->calculateSeoScore($page);
             throw new \DomainException(
-                'Page cannot be published. Issues: ' . implode(', ', $seoScore['issues'])
+                'Page cannot be published. Issues: ' . implode(', ', $seoScore['issues']),
             );
         }
 
@@ -172,9 +172,9 @@ class PageAggregateService
             [
                 'page_id' => $pageId,
                 'user_id' => $userId,
-                'slug' => $page->getSlug()
+                'slug' => $page->getSlug(),
             ],
-            'info'
+            'info',
         );
 
         // In production, you might:
@@ -200,9 +200,9 @@ class PageAggregateService
             "Page unpublished: {$page->getName()}",
             [
                 'page_id' => $pageId,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -212,7 +212,7 @@ class PageAggregateService
     public function deletePage(
         string $pageId,
         string $userId,
-        string $reason = ''
+        string $reason = '',
     ): void {
         $page = $this->loadPage($pageId);
 
@@ -230,9 +230,9 @@ class PageAggregateService
             [
                 'page_id' => $pageId,
                 'user_id' => $userId,
-                'reason' => $reason
+                'reason' => $reason,
             ],
-            'warning'
+            'warning',
         );
     }
 
@@ -252,9 +252,9 @@ class PageAggregateService
             "Page restored: {$page->getName()}",
             [
                 'page_id' => $pageId,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -264,7 +264,7 @@ class PageAggregateService
     public function changeFeaturedImage(
         string $pageId,
         ?string $imagePath,
-        string $userId
+        string $userId,
     ): void {
         $page = $this->loadPage($pageId);
 
@@ -278,9 +278,9 @@ class PageAggregateService
             [
                 'page_id' => $pageId,
                 'image_path' => $imagePath,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -292,7 +292,7 @@ class PageAggregateService
         string $blockId,
         string $componentClass,
         int $sortOrder,
-        string $userId
+        string $userId,
     ): void {
         $page = $this->loadPage($pageId);
 
@@ -311,9 +311,9 @@ class PageAggregateService
                 'page_id' => $pageId,
                 'block_id' => $blockId,
                 'component_class' => $componentClass,
-                'user_id' => $userId
+                'user_id' => $userId,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -345,7 +345,7 @@ class PageAggregateService
             'block_ids' => $page->getBlockIds(),
             'block_count' => count($page->getBlockIds()),
             'version' => $page->getVersion(),
-            'seo_score' => $seoScore
+            'seo_score' => $seoScore,
         ];
     }
 
@@ -359,7 +359,7 @@ class PageAggregateService
 
     /**
      * Get page history (all events)
-     * 
+     *
      * Useful for audit trail, time travel debugging
      */
     public function getPageHistory(string $pageId): array
@@ -375,7 +375,7 @@ class PageAggregateService
         return [
             'page_id' => $pageId,
             'current_version' => $page->getVersion(),
-            'current_state' => $this->getPageState($pageId)
+            'current_state' => $this->getPageState($pageId),
             // Would include: event stream, timestamps, user actions, etc.
         ];
     }
@@ -402,4 +402,3 @@ class PageAggregateService
         return $page;
     }
 }
-

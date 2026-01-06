@@ -41,12 +41,12 @@ class MakeAggregateServiceCommand extends BaseCommand
         $this->createAggregateService($modulePath, $module, $aggregate);
 
         $this->io->success("Aggregate service [{$aggregate}AggregateService] created successfully!");
-        $this->io->comment("Next steps:");
+        $this->io->comment('Next steps:');
         $this->io->listing([
             "1. Inject {$aggregate}AggregateService in your controllers",
             "2. Implement use case methods (e.g., create{$aggregate}, update{$aggregate})",
-            "3. Use AggregateRepository to load/save aggregates",
-            "4. Optionally create a DomainService for complex business logic",
+            '3. Use AggregateRepository to load/save aggregates',
+            '4. Optionally create a DomainService for complex business logic',
         ]);
 
         return self::SUCCESS;
@@ -56,7 +56,7 @@ class MakeAggregateServiceCommand extends BaseCommand
     {
         $path = "{$modulePath}/Application/Services/{$aggregate}AggregateService.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -68,7 +68,7 @@ class MakeAggregateServiceCommand extends BaseCommand
 
         $stub = $this->getServiceStub($module, $aggregate);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Application/Services/{$aggregate}AggregateService.php");
     }
 
@@ -164,4 +164,3 @@ class {$aggregate}AggregateService
 PHP;
     }
 }
-

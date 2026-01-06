@@ -6,13 +6,13 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * Transaction Middleware
- * 
+ *
  * Wraps command execution in a database transaction.
  */
 class TransactionMiddleware implements MiddlewareInterface
 {
     public function __construct(
-        private \PDO $connection
+        private \PDO $connection,
     ) {
     }
 
@@ -35,4 +35,3 @@ class TransactionMiddleware implements MiddlewareInterface
         }
     }
 }
-

@@ -17,7 +17,7 @@ class CookieManager implements StatefulService
      * @var array
      */
     protected static array $sharedQueue = [];
-    
+
     protected array $queued = [];
     protected array $config;
 
@@ -91,7 +91,7 @@ class CookieManager implements StatefulService
             false, // The value is already encoded by the encrypter, so we don't need raw handling here.
             $sameSite ?? $this->config['same_site'] ?? 'lax',
         );
-        
+
         // Queue to both instance and static shared queue
         $this->queued[$name] = $cookie;
         self::$sharedQueue[$name] = $cookie;
@@ -112,7 +112,7 @@ class CookieManager implements StatefulService
     {
         // Use shared queue instead of instance queue
         $queue = self::$sharedQueue;
-        
+
         foreach ($queue as $cookie) {
             $cookieString = (string) $cookie;
             $response = $response->withAddedHeader('Set-Cookie', $cookieString);

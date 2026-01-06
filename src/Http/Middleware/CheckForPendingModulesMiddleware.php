@@ -23,12 +23,12 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
      * Cache key để lưu danh sách module pending
      */
     private const PENDING_CHECK_CACHE_KEY = 'modules:pending_check';
-    
+
     /**
      * Cache key để lưu thời gian user skip
      */
     private const USER_SKIP_CACHE_KEY = 'modules:user_skip:';
-    
+
     /**
      * Thời gian skip (30 phút)
      */
@@ -76,7 +76,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
 
         $pendingModules = $this->cache->remember(
             self::PENDING_CHECK_CACHE_KEY,
-            600, 
+            600,
             fn () => $this->scanForPendingModules(),
         );
 
@@ -87,14 +87,14 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             $isAjax = strtolower($request->getHeaderLine('X-Requested-With')) === 'xmlhttprequest';
             $isGet = $request->getMethod() === 'GET';
             $currentPath = $request->getUri()->getPath();
-            
+
             $isOnModulePage = str_starts_with($currentPath, '/admin/modules');
-            
+
             $hasNotified = session()->get('pending_modules_notified', false);
-            
+
             if ($isGet && !$isAjax && !$hasNotified && !$isOnModulePage) {
                 session()->set('pending_modules_notified', true);
-                session()->save(); 
+                session()->save();
                 return $this->redirector->to('/admin/modules/install/confirm');
             }
         } else {
@@ -109,7 +109,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
     /**
      * Lấy danh sách các module có trên hệ thống file nhưng chưa được đăng ký trong CSDL.
      * Kèm theo thông tin chi tiết từ module.json
-     * 
+     *
      * Sử dụng logic tương tự module:sync để phát hiện module pending
      */
     private function scanForPendingModules(): array
@@ -123,7 +123,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             // Lấy danh sách module từ filesystem
             $allModuleDirs = $this->fs->directories($modulesPath);
             $filesystemModules = [];
-            
+
             foreach ($allModuleDirs as $dir) {
                 $moduleName = basename($dir);
                 $moduleInfo = $this->getModuleInfo($dir);
@@ -142,7 +142,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
 
             // Tìm module chưa đăng ký (pending)
             $pendingNames = array_diff(array_keys($filesystemModules), $registeredModules);
-            
+
             if (empty($pendingNames)) {
                 return [];
             }
@@ -164,7 +164,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
     {
         try {
             $jsonPath = $modulePath . '/module.json';
-            
+
             if (!$this->fs->exists($jsonPath)) {
                 return null;
             }
@@ -190,7 +190,7 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             return null;
         }
     }
-    
+
     /**
      * Clear cache khi cần force re-check
      */

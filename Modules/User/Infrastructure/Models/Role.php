@@ -8,10 +8,10 @@ use Core\ORM\Relations\BelongsToMany;
 
 /**
  * Role Model
- * 
+ *
  * Represents a user role with associated permissions.
  * Auto-logs all role changes for security audit.
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $description

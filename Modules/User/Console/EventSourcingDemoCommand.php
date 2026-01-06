@@ -8,7 +8,7 @@ use Modules\User\Application\Services\UserAggregateService;
 
 /**
  * EventSourcingDemoCommand
- * 
+ *
  * Demonstrates Event Sourcing usage with User aggregate.
  */
 class EventSourcingDemoCommand extends BaseCommand
@@ -44,19 +44,14 @@ class EventSourcingDemoCommand extends BaseCommand
             switch ($action) {
                 case 'register':
                     return $this->registerUser($service);
-
                 case 'change-email':
                     return $this->changeEmail($service);
-
                 case 'verify':
                     return $this->verifyEmail($service);
-
                 case 'suspend':
                     return $this->suspendUser($service);
-
                 case 'show':
                     return $this->showUser($service);
-
                 default:
                     $this->io->error("Unknown action: {$action}");
                     return self::FAILURE;
@@ -83,8 +78,8 @@ class EventSourcingDemoCommand extends BaseCommand
                 ['User ID', $userId],
                 ['Email', $email],
                 ['Name', $name],
-                ['Status', 'pending']
-            ]
+                ['Status', 'pending'],
+            ],
         );
 
         $this->io->newLine();
@@ -177,11 +172,10 @@ class EventSourcingDemoCommand extends BaseCommand
                 ['Status', $state['status']],
                 ['Is Active', $state['is_active'] ? 'Yes' : 'No'],
                 ['Is Verified', $state['is_verified'] ? 'Yes' : 'No'],
-                ['Version', $state['version']]
-            ]
+                ['Version', $state['version']],
+            ],
         );
 
         return self::SUCCESS;
     }
 }
-

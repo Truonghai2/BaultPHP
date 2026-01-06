@@ -8,7 +8,7 @@ use Modules\Cms\Domain\Blocks\AbstractBlock;
 
 /**
  * Admin Dashboard Stats Block
- * 
+ *
  * Displays key metrics for admin dashboard
  */
 class AdminDashboardStatsBlock extends AbstractBlock
@@ -51,7 +51,7 @@ class AdminDashboardStatsBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Check admin permission
         if (!auth()->check() || !auth()->user()->can('admin.dashboard.view')) {
             return '<div class="text-center py-8 text-red-400">Access Denied</div>';
@@ -107,4 +107,3 @@ class AdminDashboardStatsBlock extends AbstractBlock
         return false; // Real-time admin stats
     }
 }
-

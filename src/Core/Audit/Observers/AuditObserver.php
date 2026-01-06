@@ -7,7 +7,7 @@ use Core\ORM\Model;
 
 /**
  * AuditObserver
- * 
+ *
  * Observes model events and creates audit logs.
  */
 class AuditObserver
@@ -49,9 +49,9 @@ class AuditObserver
 
         $changes = $model->getDirty();
         $original = $model->getOriginal();
-        
+
         $auditableAttrs = $this->getAuditableAttributes($model);
-        
+
         // Filter only auditable attributes
         if (!empty($auditableAttrs)) {
             $oldValues = array_intersect_key($original, array_flip($auditableAttrs));
@@ -140,7 +140,7 @@ class AuditObserver
     protected function getAuditableValues(Model $model): array
     {
         $attributes = $this->getAuditableAttributes($model);
-        
+
         if (empty($attributes)) {
             // Return all attributes
             return $model->getAttributes();
@@ -226,8 +226,7 @@ class AuditObserver
             AuditLog::create($data);
         } catch (\Exception $e) {
             // Log error but don't fail the main operation
-            error_log("Failed to create audit log: " . $e->getMessage());
+            error_log('Failed to create audit log: ' . $e->getMessage());
         }
     }
 }
-

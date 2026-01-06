@@ -5,7 +5,6 @@ namespace Modules\Admin\Http\Controllers;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Services\HealthCheckService;
-use Http\JsonResponse;
 
 class HealthController extends Controller
 {

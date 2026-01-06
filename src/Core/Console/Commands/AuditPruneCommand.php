@@ -52,7 +52,7 @@ class AuditPruneCommand extends BaseCommand
 
         $confirmed = $this->io->confirm(
             "This will delete {$count} audit log(s). Continue?",
-            false
+            false,
         );
 
         if (!$confirmed) {
@@ -67,4 +67,3 @@ class AuditPruneCommand extends BaseCommand
         return self::SUCCESS;
     }
 }
-

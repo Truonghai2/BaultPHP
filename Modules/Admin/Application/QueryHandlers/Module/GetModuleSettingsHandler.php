@@ -8,7 +8,7 @@ use Modules\Admin\Application\Queries\Module\GetModuleSettingsQuery;
 
 /**
  * GetModuleSettingsHandler
- * 
+ *
  * Handles GetModuleSettingsQuery.
  */
 class GetModuleSettingsHandler implements QueryHandlerInterface
@@ -42,4 +42,3 @@ class GetModuleSettingsHandler implements QueryHandlerInterface
         })->toArray();
     }
 }
-

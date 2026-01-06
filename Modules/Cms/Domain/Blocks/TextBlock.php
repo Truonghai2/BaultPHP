@@ -2,12 +2,9 @@
 
 namespace Modules\Cms\Domain\Blocks;
 
-use Modules\Cms\Infrastructure\Models\BlockInstance;
-use Modules\User\Infrastructure\Models\User;
-
 /**
  * Text Block
- * 
+ *
  * Block đơn giản để hiển thị text/HTML content
  */
 class TextBlock extends AbstractBlock
@@ -69,17 +66,17 @@ class TextBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         $content = $context['content'] ?? '';
         $format = $config['format'] ?? 'html';
-        
+
         // Process content based on format
         $processedContent = match ($format) {
             'markdown' => $this->renderMarkdown($content),
             'plain' => $this->escapeHtml($content),
             default => $content,
         };
-        
+
         return $this->renderView('cms::blocks.text', array_merge($config, [
             'title' => $context['title'] ?? '',
             'content' => $processedContent,
@@ -109,4 +106,3 @@ class TextBlock extends AbstractBlock
         return $errors;
     }
 }
-

@@ -10,18 +10,18 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * UserAggregateService
- * 
+ *
  * APPLICATION SERVICE (not Domain Service!)
- * 
+ *
  * Responsibilities:
  * - Use case orchestration
  * - Transaction boundaries
  * - Infrastructure coordination (Repository, Audit, etc.)
  * - DTO transformation
- * 
+ *
  * Does NOT contain:
  * - Pure business logic (that's in Domain layer)
- * 
+ *
  * Location: Application/Services (CORRECT)
  * Why: Has infrastructure dependencies + orchestrates use cases
  */
@@ -29,8 +29,9 @@ class UserAggregateService
 {
     public function __construct(
         private AggregateRepository $aggregateRepository,
-        private UserDomainService $domainService
-    ) {}
+        private UserDomainService $domainService,
+    ) {
+    }
 
     /**
      * Register a new user (Event Sourced)
@@ -38,7 +39,7 @@ class UserAggregateService
     public function registerUser(string $email, string $name): string
     {
         $userId = Uuid::uuid4()->toString();
-        
+
         $user = new UserAggregate();
         $user->register($userId, $email, $name);
 
@@ -51,9 +52,9 @@ class UserAggregateService
                 'user_id' => $userId,
                 'email' => $email,
                 'name' => $name,
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
 
         return $userId;
@@ -73,7 +74,7 @@ class UserAggregateService
         $oldEmail = $user->getEmail();
 
         if (!$this->domainService->canChangeEmail($user)) {
-            throw new \DomainException("Cannot change email: User is suspended");
+            throw new \DomainException('Cannot change email: User is suspended');
         }
 
         $this->domainService->validateEmailChange($oldEmail, $newEmail);
@@ -89,9 +90,9 @@ class UserAggregateService
                 'user_id' => $userId,
                 'old_email' => $oldEmail,
                 'new_email' => $newEmail,
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
     }
 
@@ -107,18 +108,18 @@ class UserAggregateService
         }
 
         if (!$this->domainService->canVerifyEmail($user)) {
-            throw new \DomainException("Cannot verify: User must be in pending status");
+            throw new \DomainException('Cannot verify: User must be in pending status');
         }
 
         $user->verifyEmail();
-        
+
         $this->aggregateRepository->save($user);
 
         Audit::log(
             'user_action',
             "User email verified: {$user->getEmail()}",
             ['user_id' => $userId],
-            'info'
+            'info',
         );
     }
 
@@ -141,9 +142,9 @@ class UserAggregateService
             "User suspended: {$user->getEmail()}",
             [
                 'user_id' => $userId,
-                'reason' => $reason
+                'reason' => $reason,
             ],
-            'warning'
+            'warning',
         );
     }
 
@@ -173,7 +174,7 @@ class UserAggregateService
             'status' => $user->getStatus(),
             'is_active' => $user->isActive(),
             'is_verified' => $user->isEmailVerified(),
-            'version' => $user->getVersion()
+            'version' => $user->getVersion(),
         ];
     }
 }

@@ -181,7 +181,7 @@ class MigrationManager
         }
 
         $files = [];
-        foreach ($paths as $path){
+        foreach ($paths as $path) {
             if (!is_dir($path)) {
                 continue;
             }

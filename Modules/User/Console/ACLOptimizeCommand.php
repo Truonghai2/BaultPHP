@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * ACLOptimizeCommand
- * 
+ *
  * CLI command for ACL optimization tasks.
  */
 class ACLOptimizeCommand extends BaseCommand
@@ -35,25 +35,21 @@ class ACLOptimizeCommand extends BaseCommand
     {
         /** @var ACLOptimizer $optimizer */
         $optimizer = $this->app->make(ACLOptimizer::class);
-        
+
         $action = $this->argument('action');
 
         switch ($action) {
             case 'warm':
                 return $this->warmCache($optimizer);
-                
             case 'metrics':
                 return $this->showMetrics($optimizer);
-                
             case 'report':
                 return $this->showReport($optimizer);
-                
             case 'reset':
                 return $this->resetMetrics($optimizer);
-                
             default:
                 $this->io->error("Unknown action: {$action}");
-                $this->io->writeln("Available actions: warm, metrics, report, reset");
+                $this->io->writeln('Available actions: warm, metrics, report, reset');
                 return self::FAILURE;
         }
     }
@@ -64,20 +60,20 @@ class ACLOptimizeCommand extends BaseCommand
 
         // Get users to warm
         $userIds = [];
-        
+
         if ($userOption = $this->option('users')) {
             // Specific users
             $userIds = array_map('intval', explode(',', $userOption));
         } else {
             // All active users (last 30 days)
             $this->io->writeln('<info>No users specified. Warming cache for all active users (last 30 days)...</info>');
-            
+
             $activeUsers = User::where('updated_at', '>=', date('Y-m-d H:i:s', strtotime('-30 days')))
                 ->where('status', '=', 'active')
                 ->select('id')
                 ->limit(1000) // Safety limit
                 ->get();
-            
+
             $userIds = $activeUsers->pluck('id')->toArray();
         }
 
@@ -86,8 +82,8 @@ class ACLOptimizeCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        $this->io->writeln("<info>Warming cache for " . count($userIds) . " users...</info>");
-        
+        $this->io->writeln('<info>Warming cache for ' . count($userIds) . ' users...</info>');
+
         $stats = $optimizer->warmCache($userIds);
 
         $this->io->success('Cache warming complete!');
@@ -98,8 +94,8 @@ class ACLOptimizeCommand extends BaseCommand
                 ['Warmed', $stats['warmed']],
                 ['Failed', $stats['failed']],
                 ['Duration', $stats['duration']],
-                ['Avg Time', $stats['avg_time']]
-            ]
+                ['Avg Time', $stats['avg_time']],
+            ],
         );
 
         return self::SUCCESS;
@@ -111,7 +107,7 @@ class ACLOptimizeCommand extends BaseCommand
 
         $this->io->writeln('<info>ACL Performance Metrics:</info>');
         $this->io->newLine();
-        
+
         $this->io->table(
             ['Metric', 'Value'],
             [
@@ -121,8 +117,8 @@ class ACLOptimizeCommand extends BaseCommand
                 ['Total Checks', $metrics['total_checks']],
                 ['Batch Checks', $metrics['batch_checks']],
                 ['Cache Invalidations', $metrics['cache_invalidations']],
-                ['Hit Rate', $optimizer->getCacheHitRate() . '%']
-            ]
+                ['Hit Rate', $optimizer->getCacheHitRate() . '%'],
+            ],
         );
 
         return self::SUCCESS;
@@ -143,8 +139,8 @@ class ACLOptimizeCommand extends BaseCommand
                 ['L1 Hits', $report['cache_performance']['l1_hits']],
                 ['L2 Hits', $report['cache_performance']['l2_hits']],
                 ['Cache Misses', $report['cache_performance']['cache_misses']],
-                ['Hit Rate', $report['cache_performance']['hit_rate']]
-            ]
+                ['Hit Rate', $report['cache_performance']['hit_rate']],
+            ],
         );
 
         // Operations
@@ -155,17 +151,17 @@ class ACLOptimizeCommand extends BaseCommand
             [
                 ['Total Checks', $report['operations']['total_checks']],
                 ['Batch Checks', $report['operations']['batch_checks']],
-                ['Cache Invalidations', $report['operations']['cache_invalidations']]
-            ]
+                ['Cache Invalidations', $report['operations']['cache_invalidations']],
+            ],
         );
 
         // Health
         $this->io->newLine();
         $status = $report['health']['status'];
         $color = $status === 'excellent' ? 'green' : ($status === 'good' ? 'yellow' : 'red');
-        
-        $this->io->writeln("Status: <fg={$color}>" . strtoupper($status) . "</>");
-        $this->io->writeln("Recommendation: " . $report['health']['recommendation']);
+
+        $this->io->writeln("Status: <fg={$color}>" . strtoupper($status) . '</>');
+        $this->io->writeln('Recommendation: ' . $report['health']['recommendation']);
 
         return self::SUCCESS;
     }
@@ -177,4 +173,3 @@ class ACLOptimizeCommand extends BaseCommand
         return self::SUCCESS;
     }
 }
-

@@ -16,7 +16,7 @@ class PageBlockController extends Controller
     /**
      * Handle the request to delete a page block.
      * Authorization is handled by the 'permission' middleware and re-verified in the command handler.
-     * 
+     *
      * Note: This uses old PageBlock system. For new block system, use BlockManagementController
      */
     #[Route('/page-blocks/{block}', method: 'DELETE', name: 'admin.page-blocks.destroy', middleware: ['permission:delete,block'])]

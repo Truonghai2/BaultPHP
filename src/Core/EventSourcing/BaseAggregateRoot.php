@@ -22,7 +22,7 @@ abstract class BaseAggregateRoot implements AggregateRoot
     protected int $version = 0;
 
     abstract public function getAggregateRootId(): string;
-    
+
     public function getRecordedEvents(): array
     {
         return $this->recordedEvents;
@@ -36,7 +36,7 @@ abstract class BaseAggregateRoot implements AggregateRoot
     public static function reconstituteFromHistory(\Traversable $history): static
     {
         $instance = new static();
-        
+
         foreach ($history as $event) {
             $instance->apply($event);
             $instance->version++;

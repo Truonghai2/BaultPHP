@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * User Menu Block
- * 
+ *
  * Display login/logout and user profile links
  */
 class UserMenuBlock extends AbstractBlock
@@ -39,7 +39,7 @@ class UserMenuBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $user = auth()->user();
-        
+
         return $this->renderView('cms::blocks.user-menu', [
             'user' => $user,
             'initials' => $user ? $this->getInitials($user->name ?? 'User') : '',
@@ -61,4 +61,3 @@ class UserMenuBlock extends AbstractBlock
         return false;
     }
 }
-

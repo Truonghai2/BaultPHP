@@ -4,21 +4,21 @@ namespace Modules\Cms\Http\Controllers;
 
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Domain\Services\PageBlockRenderer;
+use Modules\Cms\Infrastructure\Models\Page;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Page View Controller
- * 
+ *
  * Public-facing controller for displaying pages with their blocks
  */
 #[Route(prefix: '', middleware: [], group: 'web')]
 class PageViewController extends Controller
 {
     public function __construct(
-        private readonly PageBlockRenderer $pageBlockRenderer
+        private readonly PageBlockRenderer $pageBlockRenderer,
     ) {
     }
 
@@ -30,16 +30,16 @@ class PageViewController extends Controller
     public function show(string $slug): Response
     {
         $query = Page::where('slug', $slug);
-        
+
         if (!auth()->check() || !auth()->user()->can('cms.pages.view')) {
             $query->where('status', 'published');
         }
-        
+
         $page = $query->with(['blocks' => function ($query) {
-                $query->where('visible', true)
-                      ->orderBy('sort_order')
-                      ->with('blockType');
-            }])
+            $query->where('visible', true)
+                  ->orderBy('sort_order')
+                  ->with('blockType');
+        }])
             ->first();
 
         if (!$page) {
@@ -48,7 +48,7 @@ class PageViewController extends Controller
 
         $userRoles = null;
         $isDraft = ($page->status ?? 'published') === 'draft';
-        
+
         if (auth()->check()) {
             $userRoles = auth()->user()->getRoles() ?? [];
         }
@@ -67,7 +67,7 @@ class PageViewController extends Controller
     #[Route('/', method: 'GET', name: 'home')]
     public function home(Request $request): Response
     {
-        $queryBuilder = function($query) {
+        $queryBuilder = function ($query) {
             if (!auth()->check() || !auth()->user()->can('cms.pages.view')) {
                 $query->where('status', 'published');
             }
@@ -77,13 +77,13 @@ class PageViewController extends Controller
                   ->with('blockType');
             }]);
         };
-        
+
         $page = $queryBuilder(Page::where('slug', 'home'))->first();
-        
+
         if (!$page) {
             $page = $queryBuilder(Page::where('name', 'Home'))->first();
         }
-        
+
         if (!$page) {
             $page = $queryBuilder(Page::orderBy('id', 'asc'))->first();
         }
@@ -94,7 +94,7 @@ class PageViewController extends Controller
 
         $userRoles = null;
         $isDraft = ($page->status ?? 'published') === 'draft';
-        
+
         if (auth()->check()) {
             $userRoles = auth()->user()->getRoles() ?? [];
         }

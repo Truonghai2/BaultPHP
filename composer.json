@@ -71,7 +71,8 @@
     },
     "autoload-dev": {
       "psr-4": {
-        "Database\\Factories\\": "database/factories/"
+        "Database\\Factories\\": "database/factories/",
+        "Tests\\": "tests/"
       }
     },
     "files": [

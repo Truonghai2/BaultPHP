@@ -13,7 +13,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 class TerminateSession implements MiddlewareInterface
 {
     public function __construct(
-        protected Application $app
+        protected Application $app,
     ) {
     }
 
@@ -23,7 +23,7 @@ class TerminateSession implements MiddlewareInterface
 
         /** @var SessionInterface $session */
         $session = $this->app->make('session');
-        
+
         $session->save();
 
         // Queue session cookie để gửi về trình duyệt
@@ -44,10 +44,10 @@ class TerminateSession implements MiddlewareInterface
 
         $config = config('session');
         $lifetime = $config['lifetime'] ?? 120; // minutes
-        
+
         /** @var CookieManager $cookieManager */
         $cookieManager = app(CookieManager::class);
-        
+
         $cookieManager->queue(
             name: $session->getName(),
             value: $session->getId(),
@@ -57,7 +57,7 @@ class TerminateSession implements MiddlewareInterface
             secure: $config['secure'] ?? false,
             httpOnly: $config['http_only'] ?? true,
             raw: true, // Session ID không cần encrypt
-            sameSite: $config['same_site'] ?? 'lax'
+            sameSite: $config['same_site'] ?? 'lax',
         );
     }
 }

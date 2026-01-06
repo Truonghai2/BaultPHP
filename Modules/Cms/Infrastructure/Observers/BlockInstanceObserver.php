@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Observers;
 
-use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Domain\Events\BlockUpdated;
+use Modules\Cms\Infrastructure\Models\BlockInstance;
 
 /**
  * BlockInstance Model Observer
- * 
+ *
  * Fires events when BlockInstance models are modified
  */
 class BlockInstanceObserver
@@ -44,4 +44,3 @@ class BlockInstanceObserver
         }
     }
 }
-

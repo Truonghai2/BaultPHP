@@ -16,7 +16,7 @@ class UpdateBlockContentHandler implements CommandHandler
 {
     public function __construct(
         private readonly PageBlockService $pageBlockService,
-        private readonly PageBlockRepositoryInterface $pageBlockRepository
+        private readonly PageBlockRepositoryInterface $pageBlockRepository,
     ) {
     }
 

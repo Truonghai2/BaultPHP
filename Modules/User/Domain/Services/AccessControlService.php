@@ -33,14 +33,14 @@ class AccessControlService
      * Format: [userId => ['contexts' => [contextId => ['roles' => [...], 'permissions' => [...]]]]]
      */
     private array $permissionCache = [];
-    
+
     /**
      * Cache for role-permission matrix to avoid repeated joins.
      * Format: [roleId => [permissionName1, permissionName2, ...]]
      * This is shared across all users and contexts.
      */
     private static ?array $rolePermissionMatrix = null;
-    
+
     /**
      * Cache for context hierarchy paths to avoid repeated parsing.
      * Format: [contextId => [parentIds...]]
@@ -427,13 +427,13 @@ class AccessControlService
     {
         // Performance optimization: Cache context hierarchy parsing
         $contextId = $context->id;
-        
+
         if (!isset($this->contextHierarchyCache[$contextId])) {
             // Use the Materialized Path to get all IDs in the hierarchy.
             // e.g., a path of '1/5/12/' will return [1, 5, 12].
             $this->contextHierarchyCache[$contextId] = explode('/', rtrim($context->path, '/'));
         }
-        
+
         return $this->contextHierarchyCache[$contextId];
     }
 
@@ -461,12 +461,12 @@ class AccessControlService
                 $decoded = json_decode($cachedPermissions, true);
                 if (is_array($decoded)) {
                     $this->permissionCache[$user->id] = $decoded;
-                    
+
                     // Store in L1 cache for next time
                     if (function_exists('apcu_store')) {
                         apcu_store($l1Key, $decoded, 60); // 1 minute TTL
                     }
-                    
+
                     return;
                 }
             }
@@ -488,12 +488,12 @@ class AccessControlService
                     $decoded = json_decode($cached, true);
                     if (is_array($decoded)) {
                         $this->permissionCache[$user->id] = $decoded;
-                        
+
                         // Store in L1
                         if (function_exists('apcu_store')) {
                             apcu_store($l1Key, $decoded, 60);
                         }
-                        
+
                         return;
                     }
                 }
@@ -507,7 +507,7 @@ class AccessControlService
                 $ttl = $this->app->make('config')->get('auth.cache.permissions_ttl', 3600);
                 $this->cacheStore->set($cacheKey, json_encode($permissionsData), $ttl);
             }
-            
+
             // 2d. Store in L1 cache (APCu).
             if (function_exists('apcu_store')) {
                 apcu_store($l1Key, $permissionsData, 60);
@@ -523,7 +523,7 @@ class AccessControlService
 
     /**
      * Build permissions from database with optimized query.
-     * 
+     *
      * PERFORMANCE OPTIMIZATIONS:
      * - Cache role-permission matrix to avoid repeated joins
      * - Use optimized query with proper indexes
@@ -533,7 +533,7 @@ class AccessControlService
     {
         // Performance optimization: Load role-permission matrix once (shared across all users)
         $rolePermissionMatrix = $this->getRolePermissionMatrix();
-        
+
         // Get user's role assignments (optimized query with indexes)
         $roleAssignments = RoleAssignment::query()
             ->where('user_id', '=', $user->id)
@@ -541,7 +541,7 @@ class AccessControlService
             ->get();
 
         $permissionsByContext = [];
-        
+
         foreach ($roleAssignments as $assignment) {
             $contextId = $assignment->context_id ?? self::SYSTEM_CONTEXT_ID;
             $roleId = $assignment->role_id;
@@ -554,7 +554,7 @@ class AccessControlService
             $role = $this->getRoleById($roleId);
             if ($role) {
                 $permissionsByContext[$contextId]['roles'][$roleId] = $role->name;
-                
+
                 // Add all permissions for this role (from cached matrix)
                 if (isset($rolePermissionMatrix[$roleId])) {
                     foreach ($rolePermissionMatrix[$roleId] as $permissionName) {
@@ -566,11 +566,11 @@ class AccessControlService
 
         return ['contexts' => $permissionsByContext];
     }
-    
+
     /**
      * Get role-permission matrix (cached to avoid repeated joins).
      * This matrix is shared across all users and contexts.
-     * 
+     *
      * @return array [roleId => [permissionName1, permissionName2, ...]]
      */
     private function getRolePermissionMatrix(): array
@@ -579,7 +579,7 @@ class AccessControlService
         if (self::$rolePermissionMatrix !== null) {
             return self::$rolePermissionMatrix;
         }
-        
+
         // Check persistent cache
         $cacheKey = 'acl:role_permission_matrix';
         if ($this->cacheStore) {
@@ -591,17 +591,17 @@ class AccessControlService
                 }
             }
         }
-        
+
         // Build matrix from database (one-time query)
         $pdo = $this->app->make(\PDO::class);
-        $stmt = $pdo->prepare("
+        $stmt = $pdo->prepare('
             SELECT pr.role_id, p.name as permission_name
             FROM permission_role pr
             INNER JOIN permissions p ON pr.permission_id = p.id
-        ");
+        ');
         $stmt->execute();
         $results = $stmt->fetchAll(\PDO::FETCH_OBJ);
-        
+
         $matrix = [];
         foreach ($results as $row) {
             $roleId = $row->role_id;
@@ -610,33 +610,33 @@ class AccessControlService
             }
             $matrix[$roleId][] = $row->permission_name;
         }
-        
+
         // Cache for 1 hour (role-permission relationships don't change often)
         if ($this->cacheStore) {
             $this->cacheStore->set($cacheKey, json_encode($matrix), 3600);
         }
-        
+
         return self::$rolePermissionMatrix = $matrix;
     }
-    
+
     /**
      * Get role by ID with simple caching.
      */
     private function getRoleById(int $roleId): ?\Modules\User\Infrastructure\Models\Role
     {
         static $roleCache = [];
-        
+
         if (!isset($roleCache[$roleId])) {
             $roleCache[$roleId] = \Modules\User\Infrastructure\Models\Role::find($roleId);
         }
-        
+
         return $roleCache[$roleId];
     }
 
     /**
      * Xóa cache quyền cho một người dùng cụ thể.
      * Bao gồm cả cache bền vững (Redis/file) và cache trong request.
-     * 
+     *
      * PERFORMANCE OPTIMIZATION: Clear all cache levels (L1, L2, in-memory)
      *
      * @param int $userId ID của người dùng cần xóa cache.
@@ -647,7 +647,7 @@ class AccessControlService
         if (function_exists('apcu_delete')) {
             apcu_delete("acl:l1:{$userId}");
         }
-        
+
         // L2: Clear persistent cache (Redis/file)
         if ($this->cacheStore) {
             $this->cacheStore->delete("acl:all_perms:{$userId}");
@@ -655,12 +655,12 @@ class AccessControlService
 
         // In-memory: Clear request cache
         unset($this->permissionCache[$userId]);
-        
+
         // Clear context hierarchy cache for this user's contexts
         // (Note: This is a simple approach, could be more selective)
         $this->contextHierarchyCache = [];
     }
-    
+
     /**
      * Flush role-permission matrix cache.
      * Should be called when role permissions are changed.
@@ -668,15 +668,15 @@ class AccessControlService
     public function flushRolePermissionMatrix(): void
     {
         self::$rolePermissionMatrix = null;
-        
+
         if ($this->cacheStore) {
             $this->cacheStore->delete('acl:role_permission_matrix');
         }
     }
-    
+
     /**
      * Batch check multiple permissions for a user (optimized).
-     * 
+     *
      * @param User $user
      * @param array $permissions Array of permission names
      * @param mixed $context
@@ -688,13 +688,13 @@ class AccessControlService
         if (!isset($this->permissionCache[$user->id])) {
             $this->loadAndCacheUserPermissions($user);
         }
-        
+
         $context = $this->resolveContext($context);
         $contextIds = $this->getContextHierarchyIds($context);
         $userContexts = $this->permissionCache[$user->id]['contexts'] ?? [];
-        
+
         $results = [];
-        
+
         // Pre-build permission lookup map for O(1) access
         $permissionMap = [];
         foreach ($contextIds as $contextId) {
@@ -706,12 +706,12 @@ class AccessControlService
                 }
             }
         }
-        
+
         // Check all permissions using the map
         foreach ($permissions as $permission) {
             $results[$permission] = isset($permissionMap[$permission]);
         }
-        
+
         return $results;
     }
 }

@@ -37,10 +37,10 @@ class VerifyCsrfToken implements MiddlewareInterface
                 $sessionToken = $this->csrfManager->getTokenValue('_token');
             } catch (\Throwable $e) {
                 \Core\Support\Facades\Log::error('CSRF: Cannot get session token', [
-                    'error' => $e->getMessage()
+                    'error' => $e->getMessage(),
                 ]);
             }
-            
+
             \Core\Support\Facades\Log::debug('CSRF Token Check', [
                 'path' => $request->getUri()->getPath(),
                 'method' => $request->getMethod(),
@@ -57,7 +57,7 @@ class VerifyCsrfToken implements MiddlewareInterface
                 'has_token_in_request' => !empty($tokenValue),
                 'session_id' => session()->getId(),
             ]);
-            
+
             throw new \App\Exceptions\TokenMismatchException('CSRF token mismatch.');
         }
 

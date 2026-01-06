@@ -9,7 +9,7 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * UpdatePageHandler
- * 
+ *
  * Handles the UpdatePageCommand.
  */
 class UpdatePageHandler implements CommandHandlerInterface
@@ -17,7 +17,7 @@ class UpdatePageHandler implements CommandHandlerInterface
     public function handle(CommandInterface $command): bool
     {
         $page = Page::find($command->pageId);
-        
+
         if (!$page) {
             throw new \Exception("Page with ID {$command->pageId} not found");
         }
@@ -36,7 +36,7 @@ class UpdatePageHandler implements CommandHandlerInterface
                     ->exists()) {
                 throw new \Exception("Slug '{$command->slug}' is already in use");
             }
-            
+
             $page->slug = $command->slug;
         }
 
@@ -61,12 +61,11 @@ class UpdatePageHandler implements CommandHandlerInterface
             [
                 'page_id' => $page->id,
                 'slug' => $page->slug,
-                'action' => 'page_updated'
+                'action' => 'page_updated',
             ],
-            'info'
+            'info',
         );
 
         return true;
     }
 }
-

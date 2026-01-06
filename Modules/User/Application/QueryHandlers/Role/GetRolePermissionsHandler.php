@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * GetRolePermissionsHandler
- * 
+ *
  * Handles GetRolePermissionsQuery.
  */
 class GetRolePermissionsHandler implements QueryHandlerInterface
@@ -23,15 +23,14 @@ class GetRolePermissionsHandler implements QueryHandlerInterface
 
         $permissions = $role->permissions()->get();
 
-        return $permissions->map(function($permission) {
+        return $permissions->map(function ($permission) {
             return [
                 'id' => $permission->id,
                 'name' => $permission->name,
                 'description' => $permission->description,
                 'captype' => $permission->captype,
-                'created_at' => $permission->created_at
+                'created_at' => $permission->created_at,
             ];
         })->toArray();
     }
 }
-

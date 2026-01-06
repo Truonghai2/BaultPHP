@@ -8,7 +8,7 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * GetBlockByIdHandler
- * 
+ *
  * Handles GetBlockByIdQuery.
  */
 class GetBlockByIdHandler implements QueryHandlerInterface
@@ -16,7 +16,7 @@ class GetBlockByIdHandler implements QueryHandlerInterface
     public function handle(GetBlockByIdQuery $query): ?array
     {
         $block = PageBlock::find($query->blockId);
-        
+
         if (!$block) {
             return null;
         }
@@ -33,8 +33,7 @@ class GetBlockByIdHandler implements QueryHandlerInterface
             'allowed_roles' => $block->allowed_roles,
             'created_by' => $block->created_by,
             'created_at' => $block->created_at,
-            'updated_at' => $block->updated_at
+            'updated_at' => $block->updated_at,
         ];
     }
 }
-

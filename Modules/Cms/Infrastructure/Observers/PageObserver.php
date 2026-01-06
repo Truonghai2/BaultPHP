@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Observers;
 
-use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Domain\Events\PageUpdated;
+use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * Page Model Observer
- * 
+ *
  * Fires events when Page models are modified
  */
 class PageObserver
@@ -44,4 +44,3 @@ class PageObserver
         }
     }
 }
-

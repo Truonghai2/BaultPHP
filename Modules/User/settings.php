@@ -2,7 +2,7 @@
 
 /**
  * User Module Settings Configuration
- * 
+ *
  * Define all configurable settings for the User module.
  * These can be managed through the admin panel at /admin/modules/User/settings
  */
@@ -238,4 +238,3 @@ return [
         ],
     ],
 ];
-

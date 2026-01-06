@@ -39,7 +39,7 @@ class MakeUseCaseCommand extends BaseCommand
             // Use separate directories for Command/Query handlers (CQRS pattern)
             $dtoSubPath = $isQuery ? 'Queries' : 'Commands';
             $handlerSubPath = $isQuery ? 'QueryHandlers' : 'CommandHandlers';
-            
+
             $dtoPath = base_path("Modules/{$module}/Application/{$dtoSubPath}/{$dtoClassName}.php");
             $handlerPath = base_path("Modules/{$module}/Application/{$handlerSubPath}/{$handlerClassName}.php");
 
@@ -51,7 +51,7 @@ class MakeUseCaseCommand extends BaseCommand
             $this->createHandlerFile($handlerPath, $module, $dtoSubPath, $handlerSubPath, $dtoClassName, $handlerClassName, $isQuery);
 
             $this->io->success("Use Case [{$name}] created successfully in module [{$module}].");
-            $this->io->comment("Files created:");
+            $this->io->comment('Files created:');
             $this->io->listing([
                 "Application/{$dtoSubPath}/{$dtoClassName}.php",
                 "Application/{$handlerSubPath}/{$handlerClassName}.php",
@@ -85,7 +85,7 @@ class MakeUseCaseCommand extends BaseCommand
         // Generate inline stub for better control
         $namespace = "Modules\\{$module}\\Application\\{$subPath}";
         $type = $isQuery ? 'Query' : 'Command';
-        
+
         $content = <<<PHP
 <?php
 
@@ -117,7 +117,7 @@ PHP;
         $dtoImport = "Modules\\{$module}\\Application\\{$dtoSubPath}\\{$dtoClassName}";
         $dtoVariable = lcfirst($dtoClassName);
         $type = $isQuery ? 'Query' : 'Command';
-        
+
         $content = <<<PHP
 <?php
 

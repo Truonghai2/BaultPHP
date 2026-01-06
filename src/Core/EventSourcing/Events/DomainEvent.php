@@ -7,7 +7,7 @@ use Ramsey\Uuid\Uuid;
 
 /**
  * Base Domain Event
- * 
+ *
  * All domain events must extend this class.
  * Events are immutable and contain all data needed to reconstruct state.
  */
@@ -37,7 +37,7 @@ abstract class DomainEvent
         ?string $eventId = null,
         ?DateTimeImmutable $occurredAt = null,
         int $eventVersion = 1,
-        array $metadata = []
+        array $metadata = [],
     ) {
         $this->eventId = $eventId ?? Uuid::uuid4()->toString();
         $this->occurredAt = $occurredAt ?? new DateTimeImmutable();
@@ -60,7 +60,7 @@ abstract class DomainEvent
     {
         $data = get_object_vars($this);
         $data['occurredAt'] = $this->occurredAt->format('Y-m-d H:i:s.u');
-        
+
         return $data;
     }
 
@@ -74,4 +74,3 @@ abstract class DomainEvent
         throw new \RuntimeException('fromArray must be implemented in child class');
     }
 }
-

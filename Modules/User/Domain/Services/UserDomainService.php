@@ -6,7 +6,7 @@ use Core\EventSourcing\Examples\UserAggregate;
 
 /**
  * UserDomainService
- * 
+ *
  * PURE business logic - NO infrastructure dependencies.
  * Contains complex domain rules that don't belong in aggregate.
  */
@@ -14,7 +14,7 @@ class UserDomainService
 {
     /**
      * Check if email change is allowed
-     * 
+     *
      * Business rule: Can't change email if user is suspended
      */
     public function canChangeEmail(UserAggregate $user): bool
@@ -33,21 +33,21 @@ class UserDomainService
     public function validateEmailChange(string $oldEmail, string $newEmail): void
     {
         // Business rule: Can't change to same domain competitor
-        $oldDomain = substr(strrchr($oldEmail, "@"), 1);
-        $newDomain = substr(strrchr($newEmail, "@"), 1);
+        $oldDomain = substr(strrchr($oldEmail, '@'), 1);
+        $newDomain = substr(strrchr($newEmail, '@'), 1);
 
         $competitorDomains = ['competitor.com', 'rival.com'];
-        
+
         if (in_array($newDomain, $competitorDomains)) {
             throw new \DomainException(
-                "Cannot change email to competitor domain: {$newDomain}"
+                "Cannot change email to competitor domain: {$newDomain}",
             );
         }
     }
 
     /**
      * Calculate suspension penalty
-     * 
+     *
      * Business rule: Suspension duration based on violation count
      */
     public function calculateSuspensionDuration(int $violationCount): int
@@ -62,7 +62,7 @@ class UserDomainService
 
     /**
      * Check if user can be verified
-     * 
+     *
      * Business rule: Must be pending and not suspended
      */
     public function canVerifyEmail(UserAggregate $user): bool
@@ -70,4 +70,3 @@ class UserDomainService
         return $user->getStatus() === 'pending';
     }
 }
-

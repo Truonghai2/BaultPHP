@@ -14,10 +14,10 @@ use Modules\Cms\Domain\Aggregates\Events\BlockRestored;
 
 /**
  * Page Block Aggregate
- * 
+ *
  * Event-sourced aggregate for page blocks.
  * Tracks all changes to block content and positioning.
- * 
+ *
  * Features:
  * - Full audit trail of content changes
  * - Track order/position changes
@@ -41,14 +41,14 @@ class PageBlockAggregate extends AggregateRoot
         string $pageId,
         string $componentClass,
         int $sortOrder,
-        string $userId
+        string $userId,
     ): void {
         $this->recordThat(new BlockCreated(
             blockId: $id,
             pageId: $pageId,
             componentClass: $componentClass,
             sortOrder: $sortOrder,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -67,7 +67,7 @@ class PageBlockAggregate extends AggregateRoot
             blockId: $this->id,
             oldContent: $oldContent,
             newContent: $content,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -88,7 +88,7 @@ class PageBlockAggregate extends AggregateRoot
             blockId: $this->id,
             oldOrder: $this->sortOrder,
             newOrder: $newOrder,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -108,7 +108,7 @@ class PageBlockAggregate extends AggregateRoot
             componentClass: $this->componentClass,
             content: $this->content,
             sortOrder: $newOrder,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -123,7 +123,7 @@ class PageBlockAggregate extends AggregateRoot
 
         $this->recordThat(new BlockDeleted(
             blockId: $this->id,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -138,7 +138,7 @@ class PageBlockAggregate extends AggregateRoot
 
         $this->recordThat(new BlockRestored(
             blockId: $this->id,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -214,4 +214,3 @@ class PageBlockAggregate extends AggregateRoot
         return $this->deletedAt;
     }
 }
-

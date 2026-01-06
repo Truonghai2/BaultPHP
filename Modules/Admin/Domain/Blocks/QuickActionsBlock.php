@@ -8,7 +8,7 @@ use Modules\Cms\Domain\Blocks\AbstractBlock;
 
 /**
  * Quick Actions Block
- * 
+ *
  * Displays quick action buttons for admin
  */
 class QuickActionsBlock extends AbstractBlock
@@ -77,7 +77,7 @@ class QuickActionsBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Filter actions by permission
         $user = auth()->user();
         $allowedActions = [];
@@ -98,4 +98,3 @@ class QuickActionsBlock extends AbstractBlock
         return false; // User-specific permissions
     }
 }
-

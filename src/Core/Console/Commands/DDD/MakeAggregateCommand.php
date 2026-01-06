@@ -42,13 +42,13 @@ class MakeAggregateCommand extends BaseCommand
         $this->createExampleEvents($modulePath, $module, $name);
 
         $this->io->success("Aggregate [{$name}] created successfully!");
-        $this->io->comment("Next steps:");
+        $this->io->comment('Next steps:');
         $this->io->listing([
-            "1. Define domain events in Domain/Aggregates/Events/",
-            "2. Implement aggregate methods (business logic)",
-            "3. Create apply* methods for each event",
+            '1. Define domain events in Domain/Aggregates/Events/',
+            '2. Implement aggregate methods (business logic)',
+            '3. Create apply* methods for each event',
             "4. Create AggregateService: php cli make:aggregate-service {$module} {$name}",
-            "5. Configure in config/event-sourcing.php",
+            '5. Configure in config/event-sourcing.php',
         ]);
 
         return self::SUCCESS;
@@ -58,7 +58,7 @@ class MakeAggregateCommand extends BaseCommand
     {
         $path = "{$modulePath}/Domain/Aggregates/{$name}Aggregate.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -70,14 +70,14 @@ class MakeAggregateCommand extends BaseCommand
 
         $stub = $this->getAggregateStub($module, $name);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Domain/Aggregates/{$name}Aggregate.php");
     }
 
     private function createExampleEvents(string $modulePath, string $module, string $name): void
     {
         $eventsDir = "{$modulePath}/Domain/Aggregates/Events";
-        
+
         if (!is_dir($eventsDir)) {
             mkdir($eventsDir, 0755, true);
         }
@@ -85,7 +85,7 @@ class MakeAggregateCommand extends BaseCommand
         // Create example "Created" event
         $eventName = "{$name}Created";
         $eventPath = "{$eventsDir}/{$eventName}.php";
-        
+
         if (!file_exists($eventPath)) {
             $stub = $this->getEventStub($module, $name, $eventName);
             file_put_contents($eventPath, $stub);
@@ -216,4 +216,3 @@ class {$eventName} extends DomainEvent
 PHP;
     }
 }
-

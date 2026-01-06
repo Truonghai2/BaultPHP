@@ -59,4 +59,3 @@ final class Slug
         return new self($slug);
     }
 }
-

@@ -4,9 +4,9 @@ namespace Modules\User\Http\Controllers\Auth;
 
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Modules\User\Application\Commands\Auth\LoginCommand;
 use Modules\User\Application\CommandHandlers\Auth\LoginHandler;
 use Modules\User\Application\CommandHandlers\Auth\LogoutHandler;
+use Modules\User\Application\Commands\Auth\LoginCommand;
 use Modules\User\Http\Requests\LoginRequest;
 use Psr\Http\Message\ResponseInterface;
 
@@ -33,11 +33,11 @@ class LoginController extends Controller
     {
         $totalStart = microtime(true);
         $logger = app(\Psr\Log\LoggerInterface::class);
-        
+
         $start = microtime(true);
         $data = $request->validated();
         $logger->info('Login: Validation completed', ['duration_ms' => (microtime(true) - $start) * 1000]);
-        
+
         $remember = !empty($request->getParsedBody()['remember'] ?? false);
         $command = new LoginCommand($data['email'], $data['password'], $remember);
 
@@ -47,10 +47,10 @@ class LoginController extends Controller
 
         if ($user) {
             $start = microtime(true);
-            
+
             // Determine redirect destination based on user roles
             $defaultRoute = 'home';
-            
+
             // If user is admin, redirect to admin dashboard (if exists)
             if ($user->hasRole('admin') || $user->hasRole('super_admin')) {
                 // Try admin dashboard route, fallback to admin pages
@@ -60,7 +60,7 @@ class LoginController extends Controller
                     $defaultRoute = 'admin.pages.index';
                 }
             }
-            
+
             $response = redirect()->intended(route($defaultRoute))
                 ->with('success', __('Đăng nhập thành công!'));
             $logger->info('Login: Redirect prepared', ['duration_ms' => (microtime(true) - $start) * 1000]);

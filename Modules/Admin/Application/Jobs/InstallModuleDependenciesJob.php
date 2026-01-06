@@ -10,7 +10,7 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * Job cài đặt Composer dependencies cho module.
- * 
+ *
  * Job này sẽ:
  * - Kiểm tra module có composer.json riêng không
  * - Merge dependencies vào root composer.json (nếu có)
@@ -18,7 +18,7 @@ use Modules\Admin\Infrastructure\Models\Module;
  * - Regenerate autoload
  * - Chạy migrations (nếu có)
  * - Cập nhật trạng thái module trong database
- * 
+ *
  * @property string $moduleName Tên module cần cài dependencies
  */
 class InstallModuleDependenciesJob extends Job
@@ -29,7 +29,7 @@ class InstallModuleDependenciesJob extends Job
      * Số lần thử lại nếu job fail
      */
     public int $tries = 3;
-    
+
     /**
      * Timeout cho job (15 phút)
      */
@@ -58,12 +58,12 @@ class InstallModuleDependenciesJob extends Job
             if (!file_exists($jsonPath)) {
                 throw new \Exception("module.json not found for '{$this->moduleName}'");
             }
-            
+
             $meta = json_decode(file_get_contents($jsonPath), true);
             if (!$meta) {
                 throw new \Exception("Invalid module.json for '{$this->moduleName}'");
             }
-            
+
             $dependencies = $meta['require'] ?? [];
 
             $module->status = 'installing_dependencies';
@@ -71,14 +71,14 @@ class InstallModuleDependenciesJob extends Job
 
             $composerCheck = $composerManager->checkComposerInstallation();
             if (!$composerCheck['installed']) {
-                throw new \Exception("Composer is not installed or not accessible: " . ($composerCheck['error'] ?? 'Unknown error'));
+                throw new \Exception('Composer is not installed or not accessible: ' . ($composerCheck['error'] ?? 'Unknown error'));
             }
-            
-            Log::info("Composer detected", ['version' => $composerCheck['version']]);
+
+            Log::info('Composer detected', ['version' => $composerCheck['version']]);
 
             $result = $composerManager->installDependencies($this->moduleName, $dependencies);
-            
-            Log::info("Dependencies installation result", [
+
+            Log::info('Dependencies installation result', [
                 'status' => $result['status'],
                 'installed' => $result['installed'] ?? [],
                 'skipped' => $result['skipped'] ?? [],
@@ -99,18 +99,18 @@ class InstallModuleDependenciesJob extends Job
             Log::info("✅ Successfully completed dependency installation for module '{$this->moduleName}'", [
                 'installed_packages' => $result['installed'] ?? [],
             ]);
-            
+
         } catch (\Throwable $e) {
             Log::error("❌ Failed to install dependencies for module '{$this->moduleName}': " . $e->getMessage(), [
                 'exception' => get_class($e),
                 'trace' => $e->getTraceAsString(),
             ]);
-            
+
             $module->status = 'installation_failed';
             $errorMsg = 'Lỗi cài đặt thư viện: ' . $e->getMessage();
             $module->description = substr($errorMsg, 0, 500) . (strlen($errorMsg) > 500 ? '...' : '');
             $module->save();
-            
+
             // Re-throw để job system có thể retry
             throw $e;
         }
@@ -122,30 +122,30 @@ class InstallModuleDependenciesJob extends Job
     private function runMigrations(string $moduleName): void
     {
         $migrationsPath = base_path("Modules/{$moduleName}/migrations");
-        
+
         if (!is_dir($migrationsPath)) {
             Log::debug("No migrations directory found for module '{$moduleName}'");
             return;
         }
-        
+
         $migrationFiles = glob($migrationsPath . '/*.php');
-        
+
         if (empty($migrationFiles)) {
             Log::debug("No migration files found for module '{$moduleName}'");
             return;
         }
-        
+
         Log::info("Running migrations for module '{$moduleName}'", [
             'migrations_count' => count($migrationFiles),
         ]);
-        
+
         try {
             // TODO: Implement migration runner
             // Có thể gọi: php cli migrate --path=Modules/{$moduleName}/migrations
             // Hoặc sử dụng Migrator service nếu có
-            
+
             Log::info("Migrations completed for module '{$moduleName}'");
-            
+
         } catch (\Throwable $e) {
             Log::warning("Failed to run migrations for module '{$moduleName}': " . $e->getMessage());
             // Don't throw - migrations có thể chạy thủ công sau
@@ -161,7 +161,7 @@ class InstallModuleDependenciesJob extends Job
             'exception' => get_class($exception),
             'message' => $exception->getMessage(),
         ]);
-        
+
         // Update module status
         $module = Module::where('name', $this->moduleName)->first();
         if ($module) {
@@ -171,4 +171,3 @@ class InstallModuleDependenciesJob extends Job
         }
     }
 }
-

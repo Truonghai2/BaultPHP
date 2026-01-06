@@ -10,13 +10,13 @@ use Modules\Cms\Domain\ValueObjects\PageBlockId;
 
 /**
  * PageBlock Domain Service
- * 
+ *
  * Business logic for page block operations
  */
 class PageBlockService
 {
     public function __construct(
-        private readonly PageBlockRepositoryInterface $repository
+        private readonly PageBlockRepositoryInterface $repository,
     ) {
     }
 
@@ -32,7 +32,7 @@ class PageBlockService
             $newId,
             $pageId,
             $componentClass,
-            $currentCount
+            $currentCount,
         );
 
         $this->repository->save($block);
@@ -82,7 +82,7 @@ class PageBlockService
         // Increment orders after the original block
         $this->repository->incrementOrdersAfter(
             $duplicate->getPageId(),
-            $duplicate->getOrder()
+            $duplicate->getOrder(),
         );
 
         $this->repository->save($duplicate);
@@ -110,7 +110,7 @@ class PageBlockService
         int $pageId,
         string $componentClass,
         int $order,
-        array $content = []
+        array $content = [],
     ): PageBlock {
         $newId = $this->repository->nextId();
 
@@ -125,4 +125,3 @@ class PageBlockService
         return $block;
     }
 }
-

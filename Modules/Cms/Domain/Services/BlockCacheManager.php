@@ -5,17 +5,17 @@ declare(strict_types=1);
 namespace Modules\Cms\Domain\Services;
 
 use Core\Cache\CacheManager;
-use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\BlockInstance;
-use Modules\Cms\Infrastructure\Models\PageBlock;
 use Modules\Cms\Infrastructure\Models\BlockType;
+use Modules\Cms\Infrastructure\Models\Page;
+use Modules\Cms\Infrastructure\Models\PageBlock;
 use Psr\Log\LoggerInterface;
 
 /**
  * Block Cache Manager
- * 
+ *
  * Centralized cache invalidation strategy for the block system
- * 
+ *
  * CACHE LAYERS:
  * 1. Block Output Cache - Rendered HTML per block instance
  * 2. Page Region Cache - Full region HTML per page
@@ -30,16 +30,16 @@ class BlockCacheManager
     private const BLOCK_OUTPUT_PREFIX = 'block_output';
     private const BLOCK_DATA_PREFIX = 'block_data';
     private const REGION_PREFIX = 'region';
-    
+
     // Cache TTL (in seconds)
     private const DEFAULT_TTL = 3600; // 1 hour
     private const PAGE_CACHE_TTL = 1800; // 30 minutes
     private const BLOCK_DATA_TTL = 600; // 10 minutes
-    
+
     public function __construct(
         private readonly CacheManager $cache,
         private readonly BlockClassRegistry $registry,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -57,7 +57,7 @@ class BlockCacheManager
             self::BLOCK_OUTPUT_PREFIX,
             $instance->block_type_id,
             $instance->id,
-            md5(serialize($instance->config) . $instance->updated_at)
+            md5(serialize($instance->config) . $instance->updated_at),
         );
     }
 
@@ -72,7 +72,7 @@ class BlockCacheManager
             'page',
             $pageBlock->page_id,
             $pageBlock->id,
-            md5(serialize($pageBlock->content) . $pageBlock->updated_at)
+            md5(serialize($pageBlock->content) . $pageBlock->updated_at),
         );
     }
 
@@ -82,7 +82,7 @@ class BlockCacheManager
     public function getPageRegionKey(Page $page, string $region, ?array $userRoles = null): string
     {
         $roleHash = $userRoles ? md5(serialize($userRoles)) : 'guest';
-        
+
         return sprintf(
             '%s:%s:%d:%s:%s:v%s',
             self::PAGE_CACHE_PREFIX,
@@ -90,7 +90,7 @@ class BlockCacheManager
             $page->id,
             $region,
             $roleHash,
-            $page->updated_at
+            $page->updated_at,
         );
     }
 
@@ -103,7 +103,7 @@ class BlockCacheManager
             '%s:%s:%s',
             self::BLOCK_DATA_PREFIX,
             md5($blockClass),
-            md5(serialize($blockIds))
+            md5(serialize($blockIds)),
         );
     }
 
@@ -113,13 +113,13 @@ class BlockCacheManager
     public function getGlobalRegionKey(string $region, ?array $userRoles = null): string
     {
         $roleHash = $userRoles ? md5(serialize($userRoles)) : 'guest';
-        
+
         return sprintf(
             '%s:%s:%s:%s',
             self::CACHE_PREFIX,
             self::REGION_PREFIX,
             $region,
-            $roleHash
+            $roleHash,
         );
     }
 
@@ -132,10 +132,10 @@ class BlockCacheManager
      */
     public function getBlockOutput(BlockInstance|PageBlock $block): ?string
     {
-        $key = $block instanceof PageBlock 
+        $key = $block instanceof PageBlock
             ? $this->getPageBlockOutputKey($block)
             : $this->getBlockOutputKey($block);
-            
+
         return $this->cache->get($key);
     }
 
@@ -155,7 +155,7 @@ class BlockCacheManager
     {
         $key = $this->getBlockDataKey($blockClass, $blockIds);
         $data = $this->cache->get($key);
-        
+
         return is_array($data) ? $data : null;
     }
 
@@ -168,10 +168,10 @@ class BlockCacheManager
      */
     public function putBlockOutput(BlockInstance|PageBlock $block, string $html, ?int $ttl = null): void
     {
-        $key = $block instanceof PageBlock 
+        $key = $block instanceof PageBlock
             ? $this->getPageBlockOutputKey($block)
             : $this->getBlockOutputKey($block);
-            
+
         $this->cache->put($key, $html, $ttl ?? self::DEFAULT_TTL);
     }
 
@@ -199,7 +199,7 @@ class BlockCacheManager
 
     /**
      * STRATEGY 1: Invalidate when a block is updated
-     * 
+     *
      * What to clear:
      * - The block's own output cache
      * - All page regions containing this block
@@ -241,7 +241,7 @@ class BlockCacheManager
 
     /**
      * STRATEGY 2: Invalidate when a page is updated
-     * 
+     *
      * What to clear:
      * - All regions for this page
      * - Block data cache for blocks on this page
@@ -252,7 +252,7 @@ class BlockCacheManager
 
         // Clear all region caches for this page
         $regions = ['header', 'hero', 'content', 'sidebar-left', 'sidebar', 'footer'];
-        
+
         foreach ($regions as $region) {
             $this->invalidatePageRegion($page->id, $region);
         }
@@ -266,7 +266,7 @@ class BlockCacheManager
 
     /**
      * STRATEGY 3: Invalidate when a block type is updated
-     * 
+     *
      * What to clear:
      * - All instances of this block type
      * - Block class registry
@@ -308,9 +308,9 @@ class BlockCacheManager
         // Clear for all possible user role combinations
         // Pattern: page_blocks:region:{pageId}:{region}:*
         $pattern = sprintf('%s:%s:%d:%s:*', self::PAGE_CACHE_PREFIX, self::REGION_PREFIX, $pageId, $region);
-        
+
         $this->cache->forgetPattern($pattern);
-        
+
         $this->logger->debug('Invalidated page region', [
             'page_id' => $pageId,
             'region' => $region,
@@ -324,7 +324,7 @@ class BlockCacheManager
     {
         $pattern = sprintf('%s:%s:%s:*', self::CACHE_PREFIX, self::REGION_PREFIX, $region);
         $this->cache->forgetPattern($pattern);
-        
+
         $this->logger->debug('Invalidated global region', ['region' => $region]);
     }
 
@@ -333,10 +333,10 @@ class BlockCacheManager
      */
     private function clearBlockOutput(BlockInstance|PageBlock $block): void
     {
-        $key = $block instanceof PageBlock 
+        $key = $block instanceof PageBlock
             ? $this->getPageBlockOutputKey($block)
             : $this->getBlockOutputKey($block);
-            
+
         $this->cache->forget($key);
     }
 
@@ -374,7 +374,7 @@ class BlockCacheManager
         $this->cache->forgetPattern(self::PAGE_CACHE_PREFIX . ':*');
         $this->cache->forgetPattern(self::BLOCK_OUTPUT_PREFIX . ':*');
         $this->cache->forgetPattern(self::BLOCK_DATA_PREFIX . ':*');
-        
+
         $this->registry->clear();
     }
 
@@ -390,7 +390,7 @@ class BlockCacheManager
 
         foreach ($regions as $region) {
             $html = $renderer->renderPageBlocks($page, $region, null, $userRoles);
-            
+
             if (!empty($html)) {
                 $this->putPageRegion($page, $region, $html, $userRoles);
             }
@@ -408,4 +408,3 @@ class BlockCacheManager
         ];
     }
 }
-

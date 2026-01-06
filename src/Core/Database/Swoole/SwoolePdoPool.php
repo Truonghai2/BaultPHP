@@ -26,7 +26,7 @@ class SwoolePdoPool extends BaseSwoolePool
         $port = $connectionDetails['port'] ?? $config['port'];
         $database = $connectionDetails['database'] ?? $config['database'];
 
-        $dsn = "{$driver}:host={$host};port={$port};dbname={$database}"; 
+        $dsn = "{$driver}:host={$host};port={$port};dbname={$database}";
 
         if ($driver === 'mysql' && !empty($config['charset'])) {
             $dsn .= ';charset=' . $config['charset'];
@@ -43,7 +43,8 @@ class SwoolePdoPool extends BaseSwoolePool
                 $dsn,
                 $connectionDetails['username'] ?? $config['username'],
                 $connectionDetails['password'] ?? $config['password'],
-                $options);
+                $options,
+            );
             self::$lastUsedTimes[$pdo] = time();
             return $pdo;
         } catch (Throwable $e) {

@@ -2,10 +2,10 @@
 
 /**
  * Module Settings Schema Example
- * 
+ *
  * This file shows how to define settings for your module.
  * Copy this to your module directory as 'settings.php'
- * 
+ *
  * Example: Modules/YourModule/settings.php
  */
 
@@ -127,4 +127,3 @@ return [
         ],
     ],
 ];
-

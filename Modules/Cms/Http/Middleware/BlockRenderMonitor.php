@@ -12,9 +12,9 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Block Render Performance Monitor
- * 
+ *
  * Monitors performance metrics during block rendering in development mode
- * 
+ *
  * Features:
  * - Query counting
  * - Render time tracking
@@ -29,7 +29,7 @@ class BlockRenderMonitor implements MiddlewareInterface
     private const MEMORY_WARNING_THRESHOLD_MB = 20;
 
     public function __construct(
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -157,7 +157,8 @@ class BlockRenderMonitor implements MiddlewareInterface
         $timeClass = $metrics['time_ms'] > self::TIME_WARNING_THRESHOLD_MS ? 'text-red-600' : 'text-green-600';
         $memoryClass = $metrics['memory_mb'] > self::MEMORY_WARNING_THRESHOLD_MB ? 'text-red-600' : 'text-green-600';
 
-        return sprintf(<<<HTML
+        return sprintf(
+            <<<HTML
 <!-- Block Render Performance Monitor -->
 <div id="block-perf-monitor" style="position: fixed; bottom: 10px; right: 10px; background: rgba(0,0,0,0.9); color: white; padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px; z-index: 99999; max-width: 300px;">
     <div style="font-weight: bold; margin-bottom: 8px; border-bottom: 1px solid #444; padding-bottom: 4px;">
@@ -187,8 +188,7 @@ HTML,
             $metrics['time_ms'],
             $memoryClass,
             $metrics['memory_mb'],
-            $metrics['method']
+            $metrics['method'],
         );
     }
 }
-

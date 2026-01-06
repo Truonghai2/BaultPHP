@@ -2,15 +2,15 @@
 
 namespace Modules\User\Application\CommandHandlers\Permission;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Modules\User\Application\Commands\Permission\UpdatePermissionCommand;
 use Modules\User\Infrastructure\Models\Permission;
 
 /**
  * UpdatePermissionHandler
- * 
+ *
  * Handles the UpdatePermissionCommand.
  */
 class UpdatePermissionHandler implements CommandHandlerInterface
@@ -60,9 +60,9 @@ class UpdatePermissionHandler implements CommandHandlerInterface
             "Permission updated: {$permission->name}",
             [
                 'permission_id' => $permission->id,
-                'action' => 'permission_updated'
+                'action' => 'permission_updated',
             ],
-            'info'
+            'info',
         );
 
         return true;

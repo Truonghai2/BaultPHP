@@ -65,4 +65,3 @@ class DebugBroadcasterServiceProvider extends ServiceProvider
         });
     }
 }
-

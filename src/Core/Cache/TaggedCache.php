@@ -4,10 +4,10 @@ namespace Core\Cache;
 
 /**
  * Tagged Cache
- * 
+ *
  * Provides cache invalidation by tags.
  * Much more efficient than manual key tracking.
- * 
+ *
  * Usage:
  * ```php
  * cache()->tags(['users', 'user:123'])->put('user:123:profile', $data);
@@ -19,7 +19,7 @@ class TaggedCache
     private array $tags = [];
 
     public function __construct(
-        private CacheManager $cache
+        private CacheManager $cache,
     ) {
     }
 
@@ -92,7 +92,7 @@ class TaggedCache
     {
         $tagKey = $this->getTagKey($tag);
         $keys = $this->cache->get($tagKey, []);
-        
+
         if (!in_array($key, $keys)) {
             $keys[] = $key;
             $this->cache->put($tagKey, $keys, $ttl ?? 86400); // Default 24h
@@ -138,4 +138,3 @@ class TaggedCache
         return $this->cache->decrement($key, $value);
     }
 }
-

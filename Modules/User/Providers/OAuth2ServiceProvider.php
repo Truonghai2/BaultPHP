@@ -30,15 +30,15 @@ class OAuth2ServiceProvider extends BaseServiceProvider
         $this->app->singleton(ClientRepository::class, function ($app) {
             return new ClientRepository($app);
         });
-        
+
         $this->app->singleton(AccessTokenRepository::class, function ($app) {
             return new AccessTokenRepository($app);
         });
-        
+
         $this->app->singleton(ScopeRepository::class, function ($app) {
             return new ScopeRepository($app);
         });
-        
+
         $this->app->singleton(AuthorizationServer::class, function ($app) {
             $config = $app->make('config');
 

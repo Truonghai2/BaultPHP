@@ -71,7 +71,7 @@ class SessionManager extends Manager implements StatefulService
 
         // Use optimized handler nếu enable
         $useOptimized = $config->get('session.use_optimized_handler', true);
-        
+
         if ($useOptimized) {
             return new OptimizedSwoolePdoSessionHandler($connectionName, $table, $lifetime);
         }

@@ -137,11 +137,11 @@ class TokenGuard implements Guard
             $user = self::$userCache[$userId];
         } else {
             $cacheKey = "oauth:user:{$userId}";
-            
+
             // Cache user data for the duration of access token TTL
             // This prevents stale data if user is deleted/updated
             $cacheTtl = $this->getAccessTokenTTL();
-            
+
             $user = $this->cache->remember($cacheKey, $cacheTtl, function () use ($userId) {
                 return User::find($userId);
             });
@@ -167,7 +167,7 @@ class TokenGuard implements Guard
     protected function getAccessTokenTTL(): int
     {
         $ttl = $this->app->make('config')->get('oauth2.access_token_ttl', 'PT1H');
-        
+
         try {
             $interval = new \DateInterval($ttl);
             $reference = new \DateTime();

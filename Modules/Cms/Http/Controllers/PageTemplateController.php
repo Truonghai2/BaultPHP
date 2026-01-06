@@ -7,14 +7,14 @@ namespace Modules\Cms\Http\Controllers;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
-use Modules\Cms\Infrastructure\Models\PageTemplate;
 use Modules\Cms\Infrastructure\Models\BlockType;
+use Modules\Cms\Infrastructure\Models\PageTemplate;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Page Template Controller
- * 
+ *
  * Manage page templates
  */
 #[Route(prefix: '/admin/templates', middleware: ['auth'], group: 'web')]
@@ -95,7 +95,7 @@ class PageTemplateController extends Controller
 
         // Resolve block type IDs from names
         $blocksConfig = $template->blocks_config;
-        
+
         if ($blocksConfig) {
             foreach ($blocksConfig as &$blockConfig) {
                 if (isset($blockConfig['block_type_name'])) {
@@ -111,7 +111,7 @@ class PageTemplateController extends Controller
         return response()->json([
             'template' => array_merge($template->toArray(), [
                 'blocks_config' => $blocksConfig,
-            ])
+            ]),
         ]);
     }
 
@@ -155,7 +155,7 @@ class PageTemplateController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to create template',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -187,14 +187,30 @@ class PageTemplateController extends Controller
         $data = $request->getParsedBody();
 
         try {
-            if (isset($data['name'])) $template->name = $data['name'];
-            if (isset($data['description'])) $template->description = $data['description'];
-            if (isset($data['category'])) $template->category = $data['category'];
-            if (isset($data['thumbnail'])) $template->thumbnail = $data['thumbnail'];
-            if (isset($data['blocks_config'])) $template->blocks_config = $data['blocks_config'];
-            if (isset($data['default_seo'])) $template->default_seo = $data['default_seo'];
-            if (isset($data['is_active'])) $template->is_active = $data['is_active'];
-            if (isset($data['sort_order'])) $template->sort_order = $data['sort_order'];
+            if (isset($data['name'])) {
+                $template->name = $data['name'];
+            }
+            if (isset($data['description'])) {
+                $template->description = $data['description'];
+            }
+            if (isset($data['category'])) {
+                $template->category = $data['category'];
+            }
+            if (isset($data['thumbnail'])) {
+                $template->thumbnail = $data['thumbnail'];
+            }
+            if (isset($data['blocks_config'])) {
+                $template->blocks_config = $data['blocks_config'];
+            }
+            if (isset($data['default_seo'])) {
+                $template->default_seo = $data['default_seo'];
+            }
+            if (isset($data['is_active'])) {
+                $template->is_active = $data['is_active'];
+            }
+            if (isset($data['sort_order'])) {
+                $template->sort_order = $data['sort_order'];
+            }
 
             $template->save();
 
@@ -206,7 +222,7 @@ class PageTemplateController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to update template',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -246,9 +262,8 @@ class PageTemplateController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Failed to delete template',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
 }
-

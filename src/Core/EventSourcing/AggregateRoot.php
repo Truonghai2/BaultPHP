@@ -6,22 +6,22 @@ use Core\EventSourcing\Events\DomainEvent;
 
 /**
  * Aggregate Root Base Class
- * 
+ *
  * Core building block for Event Sourcing.
  * All domain entities that need event sourcing should extend this.
- * 
+ *
  * Usage:
  * ```php
  * class User extends AggregateRoot
  * {
  *     private string $email;
  *     private string $status;
- * 
+ *
  *     public function register(string $email): void
  *     {
  *         $this->recordThat(new UserRegistered($this->id, $email));
  *     }
- * 
+ *
  *     protected function applyUserRegistered(UserRegistered $event): void
  *     {
  *         $this->email = $event->email;
@@ -49,7 +49,7 @@ abstract class AggregateRoot
 
     /**
      * Record a new domain event
-     * 
+     *
      * The event will be applied immediately to update state,
      * and stored for later persistence.
      */
@@ -61,14 +61,14 @@ abstract class AggregateRoot
 
     /**
      * Apply an event to update aggregate state
-     * 
+     *
      * This should be overridden in child classes to handle
      * specific event types using pattern matching.
      */
     protected function apply(DomainEvent $event): void
     {
         $method = 'apply' . class_basename($event);
-        
+
         if (method_exists($this, $method)) {
             $this->$method($event);
         }
@@ -92,19 +92,19 @@ abstract class AggregateRoot
 
     /**
      * Reconstitute aggregate from event history
-     * 
+     *
      * Used when loading an aggregate from the event store.
      */
     public static function reconstituteFromHistory(string $id, array $events): static
     {
         $instance = new static();
         $instance->id = $id;
-        
+
         foreach ($events as $event) {
             $instance->apply($event);
             $instance->version++;
         }
-        
+
         return $instance;
     }
 
@@ -132,4 +132,3 @@ abstract class AggregateRoot
         $this->version++;
     }
 }
-

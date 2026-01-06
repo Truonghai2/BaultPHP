@@ -12,10 +12,10 @@ use Modules\User\Domain\Services\AccessControlService;
 
 /**
  * User Model
- * 
+ *
  * Represents a user in the system with authentication and authorization capabilities.
  * Auto-logs all changes for security and compliance.
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $email
@@ -106,7 +106,7 @@ class User extends Model implements Authenticatable
     /**
      * Get all unique role names for the user across all contexts.
      * Returns an array of role names like ['super-admin', 'editor', 'viewer']
-     * 
+     *
      * @return array<string>
      */
     public function getRoles(): array

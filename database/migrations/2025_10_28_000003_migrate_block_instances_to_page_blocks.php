@@ -1,20 +1,19 @@
 <?php
 
 use Core\Schema\Migration;
-use Modules\Cms\Infrastructure\Models\{Page, BlockInstance, PageBlock};
+use Modules\Cms\Infrastructure\Models\{BlockInstance, Page, PageBlock};
 
 /**
  * Migrate data from block_instances (page context) to page_blocks
- * 
+ *
  * This migration moves all page-specific blocks from block_instances
  * back to the simplified page_blocks table.
- * 
+ *
  * After this migration:
  * - page_blocks: stores all page-specific blocks (direct connection to block_types)
  * - block_instances: only stores global blocks and other context blocks
  */
-return new class extends Migration
-{
+return new class () extends Migration {
     public function up(): void
     {
         echo "🔄 Migrating page-specific block_instances to page_blocks...\n\n";
@@ -100,7 +99,7 @@ return new class extends Migration
         echo "\n📊 Migration Summary:\n";
         echo "  ✅ Migrated: {$migrated} block_instances → page_blocks\n";
         echo "  ⏭️  Skipped: {$skipped}\n";
-        echo "  📦 Total processed: " . ($migrated + $skipped) . "\n";
+        echo '  📦 Total processed: ' . ($migrated + $skipped) . "\n";
 
         if (!empty($errors)) {
             echo "\n⚠️  Errors encountered:\n";
@@ -108,7 +107,7 @@ return new class extends Migration
                 echo "  - {$error}\n";
             }
             if (count($errors) > 10) {
-                echo "  ... and " . (count($errors) - 10) . " more errors\n";
+                echo '  ... and ' . (count($errors) - 10) . " more errors\n";
             }
         }
 
@@ -143,7 +142,7 @@ return new class extends Migration
                         'description' => "Region for page {$pageBlock->page->name}",
                         'max_blocks' => 50,
                         'is_active' => true,
-                    ]
+                    ],
                 );
 
                 // Check if already exists
@@ -200,14 +199,14 @@ return new class extends Migration
         // If region exists, extract the simple name
         if ($instance->region) {
             $regionName = $instance->region->name;
-            
+
             // Remove page-specific prefix if exists
             // e.g., "page-home-content" -> "content"
             $prefix = "page-{$page->slug}-";
             if (str_starts_with($regionName, $prefix)) {
                 return substr($regionName, strlen($prefix));
             }
-            
+
             return $regionName;
         }
 
@@ -215,4 +214,3 @@ return new class extends Migration
         return 'content';
     }
 };
-

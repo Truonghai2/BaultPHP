@@ -2,14 +2,13 @@
 
 namespace Modules\User\Http\Controllers\Auth;
 
-use Core\Contracts\Session\SessionInterface;
 use Core\Contracts\View\View;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Modules\User\Application\Commands\Auth\RegisterCommand;
-use Modules\User\Application\CommandHandlers\Auth\RegisterHandler;
-use Modules\User\Http\Requests\RegisterRequest;
 use Core\Support\Facades\Auth;
+use Modules\User\Application\CommandHandlers\Auth\RegisterHandler;
+use Modules\User\Application\Commands\Auth\RegisterCommand;
+use Modules\User\Http\Requests\RegisterRequest;
 use Psr\Http\Message\ResponseInterface;
 
 #[Route(prefix: '/auth', name: 'auth.', group: 'web')]

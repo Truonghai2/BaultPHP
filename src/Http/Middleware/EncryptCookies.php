@@ -23,7 +23,7 @@ class EncryptCookies implements MiddlewareInterface
         'my_unencrypted_cookie',
         'test',
     ];
-    
+
     /**
      * Check if cookie name should be excluded from encryption.
      */
@@ -33,12 +33,12 @@ class EncryptCookies implements MiddlewareInterface
         if (in_array($name, $this->except, true)) {
             return true;
         }
-        
+
         // Pattern matches - Remember Me cookies
         if (str_starts_with($name, 'remember_')) {
             return true;
         }
-        
+
         return false;
     }
 
@@ -96,7 +96,7 @@ class EncryptCookies implements MiddlewareInterface
             if (!is_string($cookieHeader)) {
                 continue;
             }
-            
+
             $cookie = Cookie::fromString($cookieHeader);
 
             if ($this->isExcepted($cookie->getName())) {

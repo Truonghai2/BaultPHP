@@ -3,9 +3,7 @@
 use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 
-
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migrations.
      */
@@ -37,4 +35,3 @@ return new class extends Migration
         $this->schema->dropIfExists('module_settings');
     }
 };
-

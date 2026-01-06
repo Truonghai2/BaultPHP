@@ -2,15 +2,15 @@
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\HasMany;
-use Core\Audit\Traits\Auditable;
 
 /**
  * Block Type Model
- * 
+ *
  * Đại diện cho một loại block trong hệ thống (giống block plugin trong Moodle)
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $title
@@ -26,7 +26,7 @@ use Core\Audit\Traits\Auditable;
  */
 class BlockType extends Model
 {
-    use Auditable;  
+    use Auditable;
 
     protected static string $table = 'block_types';
 
@@ -104,4 +104,3 @@ class BlockType extends Model
         return $query->where('category', $category);
     }
 }
-

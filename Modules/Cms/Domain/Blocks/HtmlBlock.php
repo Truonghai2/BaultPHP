@@ -7,7 +7,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * HTML Block
- * 
+ *
  * Block để hiển thị raw HTML (cho advanced users)
  */
 class HtmlBlock extends AbstractBlock
@@ -64,7 +64,7 @@ class HtmlBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.html', [
             'html' => $context['content'] ?? '',
             'wrapInDiv' => $config['wrap_in_div'] ?? true,
@@ -83,4 +83,3 @@ class HtmlBlock extends AbstractBlock
         return $user->can('cms.blocks.html');
     }
 }
-

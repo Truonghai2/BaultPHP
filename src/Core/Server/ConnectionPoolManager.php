@@ -38,8 +38,12 @@ class ConnectionPoolManager
 
         // Reset circuit breakers on worker start, especially useful for development hot-reloading
         // to prevent temporary connection errors from tripping the breaker permanently.
-        if (class_exists(\Core\Database\Swoole\SwoolePdoPool::class)) \Core\Database\Swoole\SwoolePdoPool::resetCircuitBreakers();
-        if (class_exists(\Core\Database\Swoole\SwooleRedisPool::class)) \Core\Database\Swoole\SwooleRedisPool::resetCircuitBreakers();
+        if (class_exists(\Core\Database\Swoole\SwoolePdoPool::class)) {
+            \Core\Database\Swoole\SwoolePdoPool::resetCircuitBreakers();
+        }
+        if (class_exists(\Core\Database\Swoole\SwooleRedisPool::class)) {
+            \Core\Database\Swoole\SwooleRedisPool::resetCircuitBreakers();
+        }
         // Add other pool types here if necessary, e.g., Guzzle
         // if (class_exists(\Core\Http\Swoole\SwooleGuzzlePool::class)) \Core\Http\Swoole\SwooleGuzzlePool::resetCircuitBreakers();
 

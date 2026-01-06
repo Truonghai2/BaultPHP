@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\Permission;
 
 /**
  * CreatePermissionHandler
- * 
+ *
  * Handles the CreatePermissionCommand.
  */
 class CreatePermissionHandler implements CommandHandlerInterface
@@ -30,7 +30,7 @@ class CreatePermissionHandler implements CommandHandlerInterface
         $permission = Permission::create([
             'name' => $command->name,
             'description' => $command->description,
-            'captype' => $command->captype
+            'captype' => $command->captype,
         ]);
 
         // Audit log (creation is auto-logged)
@@ -41,12 +41,11 @@ class CreatePermissionHandler implements CommandHandlerInterface
                 'permission_id' => $permission->id,
                 'name' => $command->name,
                 'captype' => $command->captype,
-                'action' => 'permission_created'
+                'action' => 'permission_created',
             ],
-            'info'
+            'info',
         );
 
         return $permission->id;
     }
 }
-

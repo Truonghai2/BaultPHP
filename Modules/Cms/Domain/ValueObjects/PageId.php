@@ -35,4 +35,3 @@ final class PageId
         return (string) $this->value;
     }
 }
-

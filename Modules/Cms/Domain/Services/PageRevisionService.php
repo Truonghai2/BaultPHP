@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Modules\Cms\Domain\Services;
 
 use Modules\Cms\Infrastructure\Models\Page;
-use Modules\Cms\Infrastructure\Models\PageRevision;
 use Modules\Cms\Infrastructure\Models\PageBlock;
+use Modules\Cms\Infrastructure\Models\PageRevision;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * Page Revision Service
- * 
+ *
  * Handles creating, restoring, and managing page revisions
  */
 class PageRevisionService
@@ -24,7 +24,7 @@ class PageRevisionService
         User $user,
         string $summary = '',
         ?string $ipAddress = null,
-        ?string $userAgent = null
+        ?string $userAgent = null,
     ): PageRevision {
         // Get current page state with blocks
         $content = [
@@ -35,7 +35,7 @@ class PageRevisionService
             'meta_description' => $page->meta_description,
             'meta_keywords' => $page->meta_keywords,
             'og_image' => $page->og_image,
-            'blocks' => $page->blocks()->get()->map(function($block) {
+            'blocks' => $page->blocks()->get()->map(function ($block) {
                 return [
                     'block_type_id' => $block->block_type_id,
                     'region' => $block->region,
@@ -44,10 +44,10 @@ class PageRevisionService
                 ];
             })->toArray(),
         ];
-        
+
         // Get next revision number
         $revisionNumber = $this->getNextRevisionNumber($page);
-        
+
         // Create revision
         $revision = PageRevision::create([
             'page_id' => $page->id,
@@ -58,13 +58,13 @@ class PageRevisionService
             'ip_address' => $ipAddress ?? ($_SERVER['REMOTE_ADDR'] ?? null),
             'user_agent' => $userAgent ?? ($_SERVER['HTTP_USER_AGENT'] ?? null),
         ]);
-        
+
         // Clean old revisions (keep last 50)
         $this->cleanOldRevisions($page, 50);
-        
+
         return $revision;
     }
-    
+
     /**
      * Restore page to a specific revision
      */
@@ -72,10 +72,10 @@ class PageRevisionService
     {
         $content = $revision->content;
         $page = $revision->page;
-        
+
         // Create new revision before restore (safety)
         $this->createRevision($page, $user, "Before restoring to revision #{$revision->revision_number}");
-        
+
         // Restore page data
         $page->name = $content['name'];
         $page->slug = $content['slug'];
@@ -95,10 +95,10 @@ class PageRevisionService
             $page->og_image = $content['og_image'];
         }
         $page->save();
-        
+
         // Restore blocks
         $page->blocks()->delete();
-        
+
         if (isset($content['blocks'])) {
             foreach ($content['blocks'] as $blockData) {
                 PageBlock::create([
@@ -110,13 +110,13 @@ class PageRevisionService
                 ]);
             }
         }
-        
+
         // Create revision after restore
         $this->createRevision($page, $user, "Restored to revision #{$revision->revision_number}");
-        
+
         return $page;
     }
-    
+
     /**
      * Get all revisions for a page
      */
@@ -128,7 +128,7 @@ class PageRevisionService
             ->limit($limit)
             ->get();
     }
-    
+
     /**
      * Compare two revisions
      */
@@ -136,14 +136,14 @@ class PageRevisionService
     {
         $content1 = $revision1->content;
         $content2 = $revision2->content;
-        
+
         $changes = [];
-        
+
         // Compare fields
         foreach (['name', 'slug', 'status', 'meta_title', 'meta_description'] as $field) {
             $old = $content1[$field] ?? null;
             $new = $content2[$field] ?? null;
-            
+
             if ($old !== $new) {
                 $changes[$field] = [
                     'old' => $old,
@@ -151,21 +151,21 @@ class PageRevisionService
                 ];
             }
         }
-        
+
         // Compare blocks count
         $blocks1 = count($content1['blocks'] ?? []);
         $blocks2 = count($content2['blocks'] ?? []);
-        
+
         if ($blocks1 !== $blocks2) {
             $changes['blocks_count'] = [
                 'old' => $blocks1,
                 'new' => $blocks2,
             ];
         }
-        
+
         return $changes;
     }
-    
+
     /**
      * Get next revision number for a page
      */
@@ -174,20 +174,20 @@ class PageRevisionService
         $lastRevision = PageRevision::where('page_id', $page->id)
             ->orderBy('revision_number', 'desc')
             ->first();
-        
+
         return $lastRevision ? $lastRevision->revision_number + 1 : 1;
     }
-    
+
     /**
      * Clean old revisions (keep only recent ones)
      */
     private function cleanOldRevisions(Page $page, int $keep = 50): void
     {
         $count = PageRevision::where('page_id', $page->id)->count();
-        
+
         if ($count > $keep) {
             $toDelete = $count - $keep;
-            
+
             PageRevision::where('page_id', $page->id)
                 ->orderBy('revision_number', 'asc')
                 ->limit($toDelete)
@@ -195,4 +195,3 @@ class PageRevisionService
         }
     }
 }
-

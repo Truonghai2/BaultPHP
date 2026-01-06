@@ -3,8 +3,7 @@
 use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migrations.
      */
@@ -14,25 +13,25 @@ return new class extends Migration
             $table->id();
             $table->unsignedBigInteger('page_id');
             $table->unsignedBigInteger('user_id');
-            
+
             // Revision data
             $table->json('content');  // Full snapshot of page + blocks
             $table->integer('revision_number');
             $table->string('change_summary', 500)->nullable();
-            
+
             // Metadata
             $table->string('ip_address', 50)->nullable();
             $table->text('user_agent')->nullable();
-            
+
             $table->timestamps();
-            
+
             // Indexes
             $table->index('page_id');
             $table->index('user_id');
             $table->index('created_at');
             $table->index(['page_id', 'revision_number']);
         });
-        
+
         // Add foreign keys separately (workaround for Blueprint foreign() issue)
         try {
             $this->schema->getConnection()->exec('
@@ -43,7 +42,7 @@ return new class extends Migration
         } catch (\Exception $e) {
             // Foreign key might already exist
         }
-        
+
         try {
             $this->schema->getConnection()->exec('
                 ALTER TABLE page_revisions 

@@ -7,10 +7,10 @@ use Core\ORM\Model;
 
 /**
  * OAuth Scope Model
- * 
+ *
  * Represents available OAuth scopes for API access control.
  * Auto-logs all scope changes for security compliance.
- * 
+ *
  * @property string $id
  * @property string $name
  * @property string|null $description

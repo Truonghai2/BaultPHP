@@ -2,14 +2,14 @@
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsTo;
 use Modules\User\Infrastructure\Models\User;
-use Core\Audit\Traits\Auditable;
 
 /**
  * PageBlock Model
- * 
+ *
  * @property int $id
  * @property int $page_id
  * @property int $block_type_id
@@ -23,7 +23,7 @@ use Core\Audit\Traits\Auditable;
  * @property-read Page $page
  * @property-read BlockType $blockType
  * @property-read User|null $creator
- * 
+ *
  * Note: title and config are accessed via blockType relationship:
  * - $block->blockType->title
  * - $block->blockType->default_config
@@ -95,11 +95,11 @@ class PageBlock extends Model
 
     /**
      * Get block configuration (from block type)
-     * 
-     * PERFORMANCE OPTIMIZATION: 
+     *
+     * PERFORMANCE OPTIMIZATION:
      * - Instance-level cache to avoid repeated JSON decoding
      * - Static cache for block type level (shared across instances)
-     * 
+     *
      * @return array<string, mixed> Configuration array
      */
     public function getConfig(): array
@@ -108,7 +108,7 @@ class PageBlock extends Model
         if ($this->parsedConfigCache !== null) {
             return $this->parsedConfigCache;
         }
-        
+
         // In debug mode, always get fresh config
         if (config('app.debug', false)) {
             return $this->parsedConfigCache = $this->getFreshConfig();
@@ -116,24 +116,24 @@ class PageBlock extends Model
 
         // In production, use static cache (shared across instances of same block type)
         static $configCache = [];
-        
+
         if (!$this->blockType) {
             return $this->parsedConfigCache = [];
         }
-        
+
         $cacheKey = $this->block_type_id;
-        
+
         if (!isset($configCache[$cacheKey])) {
             $configCache[$cacheKey] = $this->getFreshConfig();
         }
-        
+
         // Cache at instance level too
         return $this->parsedConfigCache = $configCache[$cacheKey];
     }
 
     /**
      * Get fresh config without caching
-     * 
+     *
      * @return array<string, mixed>
      */
     private function getFreshConfig(): array
@@ -143,18 +143,18 @@ class PageBlock extends Model
         }
 
         $config = $this->blockType->default_config;
-        
+
         if (is_string($config)) {
             $decoded = json_decode($config, true);
             return is_array($decoded) ? $decoded : [];
         }
-        
+
         return is_array($config) ? $config : [];
     }
 
     /**
      * Get a specific config value
-     * 
+     *
      * @param string $key Config key
      * @param mixed $default Default value if key not found
      * @return mixed
@@ -175,7 +175,7 @@ class PageBlock extends Model
 
     /**
      * Render this block (optimized version with registry)
-     * 
+     *
      * @param User|null $user Current user for visibility checks
      * @param \Modules\Cms\Domain\Services\BlockClassRegistry|null $registry Block class registry (optional)
      * @param array|null $renderContext Additional context from the renderer (e.g., preloaded data)
@@ -192,7 +192,7 @@ class PageBlock extends Model
         }
 
         $blockClass = $this->blockType->class;
-        
+
         if (!$blockClass) {
             return "<!-- No block class defined for BlockType #{$this->block_type_id} -->";
         }
@@ -208,7 +208,7 @@ class PageBlock extends Model
             }
             $block = new $blockClass();
         }
-        
+
         if (method_exists($block, 'render')) {
             $context = $renderContext ?? [];
             $context['block_info'] = [
@@ -237,7 +237,7 @@ class PageBlock extends Model
             if (!$user) {
                 return in_array('guest', $this->allowed_roles);
             }
-            
+
             $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
             if (count(array_intersect($userRoles, $this->allowed_roles)) === 0) {
                 return false;
@@ -288,7 +288,6 @@ class PageBlock extends Model
         $this->save();
     }
 
-
     /**
      * Duplicate this block to another page
      */
@@ -297,7 +296,7 @@ class PageBlock extends Model
         $newBlock = $this->replicate();
         $newBlock->page_id = $targetPage->id;
         $newBlock->save();
-        
+
         return $newBlock;
     }
 

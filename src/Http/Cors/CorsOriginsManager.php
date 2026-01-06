@@ -17,7 +17,7 @@ class CorsOriginsManager implements StatefulService
     private array $originsConfig;
 
     public function __construct(
-        private ?CacheInterface $cache = null
+        private ?CacheInterface $cache = null,
     ) {
         $this->config = config('cors', []);
         $this->originsConfig = config('cors-origins', []);
@@ -95,7 +95,7 @@ class CorsOriginsManager implements StatefulService
         $regex = '/^' . str_replace(
             ['*', '.'],
             ['([a-z0-9\-]+\.)?', '\.'],
-            preg_quote($pattern, '/')
+            preg_quote($pattern, '/'),
         ) . '$/i';
 
         return preg_match($regex, $origin) === 1;
@@ -153,7 +153,7 @@ class CorsOriginsManager implements StatefulService
         if (($cacheConfig['enabled'] ?? false) && $this->cache) {
             $cacheKey = $cacheConfig['key'] ?? 'cors_allowed_origins';
             $cached = $this->cache->get($cacheKey);
-            
+
             if (is_array($cached)) {
                 $this->allowedOrigins = $cached;
                 return $this->allowedOrigins;
@@ -180,7 +180,7 @@ class CorsOriginsManager implements StatefulService
     private function loadOriginsFromConfig(): array
     {
         $origins = $this->originsConfig['allowed'] ?? [];
-        
+
         // Fallback to old config if cors-origins.php doesn't exist
         if (empty($origins)) {
             $origins = $this->config['allowed_origins'] ?? [];
@@ -189,9 +189,9 @@ class CorsOriginsManager implements StatefulService
         // Normalize: loại bỏ trailing slash, lowercase
         return array_unique(
             array_map(
-                fn($origin) => rtrim(strtolower($origin), '/'),
-                array_filter($origins, fn($o) => !empty($o))
-            )
+                fn ($origin) => rtrim(strtolower($origin), '/'),
+                array_filter($origins, fn ($o) => !empty($o)),
+            ),
         );
     }
 
@@ -211,7 +211,7 @@ class CorsOriginsManager implements StatefulService
         $this->allowedOrigins = $this->getAllowedOrigins();
         $this->allowedOrigins[] = rtrim(strtolower($origin), '/');
         $this->allowedOrigins = array_unique($this->allowedOrigins);
-        
+
         // Clear cache
         $this->clearCache();
     }
@@ -223,12 +223,12 @@ class CorsOriginsManager implements StatefulService
     {
         $this->allowedOrigins = $this->getAllowedOrigins();
         $origin = rtrim(strtolower($origin), '/');
-        
+
         $this->allowedOrigins = array_filter(
             $this->allowedOrigins,
-            fn($o) => $o !== $origin
+            fn ($o) => $o !== $origin,
         );
-        
+
         // Clear cache
         $this->clearCache();
     }
@@ -240,7 +240,7 @@ class CorsOriginsManager implements StatefulService
     {
         $this->allowedOrigins = null;
         $this->validatedCache = [];
-        
+
         if ($this->cache) {
             $cacheConfig = $this->originsConfig['cache'] ?? [];
             $cacheKey = $cacheConfig['key'] ?? 'cors_allowed_origins';
@@ -268,7 +268,7 @@ class CorsOriginsManager implements StatefulService
         }
 
         $normalizedOrigin = rtrim(strtolower($requestOrigin), '/');
-        
+
         if ($this->isAllowed($normalizedOrigin)) {
             return $requestOrigin; // Trả về original case
         }
@@ -276,4 +276,3 @@ class CorsOriginsManager implements StatefulService
         return null;
     }
 }
-

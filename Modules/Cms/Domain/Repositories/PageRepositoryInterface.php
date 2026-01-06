@@ -10,14 +10,14 @@ use Modules\Cms\Domain\ValueObjects\Slug;
 
 /**
  * Page Repository Interface
- * 
+ *
  * Domain interface
  */
 interface PageRepositoryInterface
 {
     /**
      * Find page by ID
-     * 
+     *
      * @throws \Modules\Cms\Domain\Exceptions\PageNotFoundException
      */
     public function findById(PageId $id): Page;
@@ -29,7 +29,7 @@ interface PageRepositoryInterface
 
     /**
      * Find page by slug
-     * 
+     *
      * @throws \Modules\Cms\Domain\Exceptions\PageNotFoundException
      */
     public function findBySlug(Slug $slug): Page;
@@ -41,14 +41,14 @@ interface PageRepositoryInterface
 
     /**
      * Get all pages
-     * 
+     *
      * @return Page[]
      */
     public function getAll(): array;
 
     /**
      * Get pages by user ID
-     * 
+     *
      * @return Page[]
      */
     public function getByUserId(int $userId): array;
@@ -68,4 +68,3 @@ interface PageRepositoryInterface
      */
     public function nextId(): PageId;
 }
-

@@ -44,7 +44,7 @@ class BlockInstance
         ?array $deniedRoles = null,
         ?int $createdBy = null,
         ?\DateTimeImmutable $createdAt = null,
-        ?\DateTimeImmutable $updatedAt = null
+        ?\DateTimeImmutable $updatedAt = null,
     ) {
         $this->id = $id;
         $this->blockTypeId = $blockTypeId;
@@ -217,7 +217,7 @@ class BlockInstance
             $data['denied_roles'] ?? null,
             $data['created_by'] ?? null,
             isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
-            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null
+            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null,
         );
     }
 
@@ -244,4 +244,3 @@ class BlockInstance
         ];
     }
 }
-

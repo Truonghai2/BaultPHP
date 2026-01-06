@@ -6,7 +6,7 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * InstallModuleCommand
- * 
+ *
  * Command to install a new module into the system.
  */
 class InstallModuleCommand implements CommandInterface
@@ -15,12 +15,12 @@ class InstallModuleCommand implements CommandInterface
         public readonly string $moduleName,
         public readonly string $version,
         public readonly string $description = '',
-        public readonly array $dependencies = []
-    ) {}
+        public readonly array $dependencies = [],
+    ) {
+    }
 
     public function getCommandName(): string
     {
         return 'admin.module.install';
     }
 }
-

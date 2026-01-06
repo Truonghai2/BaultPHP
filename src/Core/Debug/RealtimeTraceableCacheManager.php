@@ -39,7 +39,7 @@ class RealtimeTraceableCacheManager implements Factory
 
         // Wrap với TraceableCacheStore cho DebugBar collection
         $traceableStore = new TraceableCacheStore($store, $collector);
-        
+
         // Wrap thêm lần nữa với RealtimeTraceableCacheStore cho broadcasting
         return new RealtimeTraceableCacheStore($traceableStore, $this->broadcaster);
     }
@@ -52,4 +52,3 @@ class RealtimeTraceableCacheManager implements Factory
         return $this->manager->{$method}(...$parameters);
     }
 }
-

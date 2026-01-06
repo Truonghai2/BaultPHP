@@ -2,7 +2,7 @@
 
 /**
  * Admin Module - Event Sourcing Configuration
- * 
+ *
  * Module-specific event sourcing settings
  */
 
@@ -28,7 +28,7 @@ return [
     */
     'auto_record' => [
         'enabled' => env('EVENT_SOURCING_ADMIN_AUTO_RECORD', true),
-        
+
         'models' => [
             'Modules\Admin\Infrastructure\Models\Module',
         ],
@@ -43,12 +43,12 @@ return [
         'module' => [
             'enabled' => env('EVENT_SOURCING_ADMIN_MODULE_ENABLED', true),
             'class' => 'Modules\Admin\Domain\Aggregates\ModuleAggregate',
-            
+
             'snapshots' => [
                 'enabled' => false, // Modules don't need snapshots (low event count)
                 'frequency' => 50,
             ],
-            
+
             'observer' => 'Modules\Admin\Infrastructure\Observers\ModuleEventSourcingObserver',
         ],
     ],
@@ -61,13 +61,13 @@ return [
     'lifecycle' => [
         // Track all installations
         'track_installations' => env('ADMIN_TRACK_INSTALLATIONS', true),
-        
+
         // Track dependency resolution
         'track_dependencies' => env('ADMIN_TRACK_DEPENDENCIES', true),
-        
+
         // Track enable/disable
         'track_state_changes' => env('ADMIN_TRACK_STATE_CHANGES', true),
-        
+
         // Track updates
         'track_updates' => env('ADMIN_TRACK_UPDATES', true),
     ],
@@ -79,7 +79,7 @@ return [
     */
     'projections' => [
         'enabled' => false,
-        
+
         'registered' => [
             // 'module_status' => 'Modules\Admin\Application\Projections\ModuleStatusProjection',
         ],
@@ -93,7 +93,7 @@ return [
     'publish_events' => [
         'enabled' => env('EVENT_SOURCING_ADMIN_PUBLISH_ENABLED', false),
         'queue' => 'admin_events',
-        
+
         // Critical events to publish
         'event_types' => [
             'Modules\Admin\Domain\Aggregates\Events\ModuleInstalled',
@@ -121,4 +121,3 @@ return [
         'Modules\Admin\Console\ModuleEventSourcingCommand',
     ],
 ];
-

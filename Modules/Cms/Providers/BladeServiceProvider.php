@@ -4,17 +4,15 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Providers;
 
-use Core\View\ViewFactory;
-
 /**
  * Blade Directives Service Provider
- * 
+ *
  * Register custom Blade directives for CMS
  */
 class BladeServiceProvider
 {
     public function __construct(
-        private readonly \Core\Application $app
+        private readonly \Core\Application $app,
     ) {
     }
 
@@ -42,4 +40,3 @@ class BladeServiceProvider
         });
     }
 }
-

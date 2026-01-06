@@ -4,7 +4,7 @@ namespace Core\CQRS\Contracts;
 
 /**
  * Query Interface
- * 
+ *
  * All queries must implement this interface.
  * Queries represent read operations (no side effects).
  */
@@ -15,4 +15,3 @@ interface QueryInterface
      */
     public function getQueryName(): string;
 }
-

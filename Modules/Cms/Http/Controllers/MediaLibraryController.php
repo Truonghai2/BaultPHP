@@ -13,7 +13,7 @@ use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Media Library Controller
- * 
+ *
  * Manage media files (images, documents, etc.)
  */
 #[Route(prefix: '/admin/media', middleware: ['auth'], group: 'web')]
@@ -50,7 +50,7 @@ class MediaLibraryController extends Controller
         }
 
         if ($search) {
-            $query->where(function($q) use ($search) {
+            $query->where(function ($q) use ($search) {
                 $q->where('filename', 'like', "%{$search}%")
                   ->orWhere('original_filename', 'like', "%{$search}%")
                   ->orWhere('alt_text', 'like', "%{$search}%");
@@ -65,7 +65,7 @@ class MediaLibraryController extends Controller
         $perPage = 50;
         $page = (int)($queryParams['page'] ?? 1);
         $total = $query->count();
-        
+
         $media = $query->orderBy('created_at', 'desc')
             ->limit($perPage)
             ->offset(($page - 1) * $perPage)
@@ -108,7 +108,7 @@ class MediaLibraryController extends Controller
 
         try {
             $uploadedFiles = $request->getUploadedFiles();
-            
+
             if (!isset($uploadedFiles['file'])) {
                 return response()->json(['error' => 'No file uploaded'], 400);
             }
@@ -188,7 +188,7 @@ class MediaLibraryController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Upload failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -277,7 +277,7 @@ class MediaLibraryController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Delete failed',
-                'message' => $e->getMessage()
+                'message' => $e->getMessage(),
             ], 500);
         }
     }
@@ -298,4 +298,3 @@ class MediaLibraryController extends Controller
         return response()->json(['media' => $media]);
     }
 }
-

@@ -8,7 +8,7 @@ use Core\CQRS\Middleware\MiddlewareInterface;
 
 /**
  * Query Bus
- * 
+ *
  * Dispatches queries to their handlers.
  * Optimized for read operations.
  */
@@ -55,17 +55,16 @@ class QueryBus
         $handler = app($handlerClass);
 
         if (!$handler instanceof QueryHandlerInterface) {
-            throw new \RuntimeException("Handler must implement QueryHandlerInterface");
+            throw new \RuntimeException('Handler must implement QueryHandlerInterface');
         }
 
         // Build middleware pipeline
         $pipeline = array_reduce(
             array_reverse($this->middleware),
-            fn($next, $middleware) => fn($qry) => $middleware->handle($qry, $next),
-            fn($qry) => $handler->handle($qry)
+            fn ($next, $middleware) => fn ($qry) => $middleware->handle($qry, $next),
+            fn ($qry) => $handler->handle($qry),
         );
 
         return $pipeline($query);
     }
 }
-

@@ -8,7 +8,7 @@ use Psr\SimpleCache\CacheInterface;
 
 /**
  * ModuleSettingsManager
- * 
+ *
  * Manages module settings with caching, encryption, and validation support.
  */
 class ModuleSettingsManager implements StatefulService
@@ -18,7 +18,7 @@ class ModuleSettingsManager implements StatefulService
 
     public function __construct(
         private ?CacheInterface $cacheStore = null,
-        private ?Encrypter $encrypter = null
+        private ?Encrypter $encrypter = null,
     ) {
     }
 
@@ -327,7 +327,7 @@ class ModuleSettingsManager implements StatefulService
         if (isset($schema['type'])) {
             $expectedType = $schema['type'];
             $actualType = $this->inferType($value);
-            
+
             if ($expectedType !== $actualType) {
                 return false;
             }
@@ -363,4 +363,3 @@ class ModuleSettingsManager implements StatefulService
         return true;
     }
 }
-

@@ -19,9 +19,9 @@ class PageTemplateSeeder extends Seeder
         foreach ($templates as $template) {
             PageTemplate::firstOrCreate(
                 ['name' => $template['name']],
-                $template
+                $template,
             );
-            
+
             $this->command->line("  ✓ Template '{$template['name']}' created/updated");
         }
 
@@ -223,4 +223,3 @@ class PageTemplateSeeder extends Seeder
         ];
     }
 }
-

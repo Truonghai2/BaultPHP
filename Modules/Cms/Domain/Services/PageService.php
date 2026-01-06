@@ -11,13 +11,13 @@ use Modules\Cms\Domain\ValueObjects\Slug;
 
 /**
  * Page Domain Service
- * 
+ *
  * Contains business logic related to pages
  */
 class PageService
 {
     public function __construct(
-        private readonly PageRepositoryInterface $pageRepository
+        private readonly PageRepositoryInterface $pageRepository,
     ) {
     }
 
@@ -27,7 +27,7 @@ class PageService
     public function updateContent(
         Page $page,
         PageContent $content,
-        ?string $featuredImagePath = null
+        ?string $featuredImagePath = null,
     ): Page {
         // Business logic: validate content
         $this->validateContent($content);
@@ -82,4 +82,3 @@ class PageService
         return true;
     }
 }
-

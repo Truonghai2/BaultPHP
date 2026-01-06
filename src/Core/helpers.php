@@ -270,8 +270,8 @@ if (!function_exists('class_basename')) {
     }
 }
 
-use Psr\Http\Message\ServerRequestInterface;
 use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\ServerRequestInterface;
 
 if (!function_exists('request')) {
     /**
@@ -683,7 +683,6 @@ if (!function_exists('sdd')) {
     }
 }
 
-
 use Core\Module\ModuleSettingsManager;
 
 if (!function_exists('module_setting')) {
@@ -773,21 +772,18 @@ if (!function_exists('clear_module_settings_cache')) {
     }
 }
 
-
-
 // ============================================================
 // Block System Helpers
 // ============================================================
 
-use Modules\Cms\Domain\Services\BlockRenderer;
-use Modules\Cms\Domain\ValueObjects\RegionName;
-use Modules\Cms\Domain\ValueObjects\BlockId;
 use Modules\Cms\Domain\Repositories\BlockInstanceRepositoryInterface;
+use Modules\Cms\Domain\Services\BlockRenderer;
+use Modules\Cms\Domain\ValueObjects\BlockId;
 
 if (!function_exists('render_block_region')) {
     /**
      * Render all blocks in a region
-     * 
+     *
      * Supports both approaches:
      * 1. render_block_region('header') - Block tự fetch data
      * 2. render_block_region('header', ['user' => $user]) - Pass data from controller
@@ -804,7 +800,7 @@ if (!function_exists('render_block_region')) {
         ?array $context = null,
         string $contextType = 'global',
         ?int $contextId = null,
-        ?array $userRoles = null
+        ?array $userRoles = null,
     ): string {
         try {
             /** @var BlockRenderer $renderer */
@@ -816,13 +812,12 @@ if (!function_exists('render_block_region')) {
             }
 
             return $renderer->renderRegion($regionName, $contextType, $contextId, $userRoles, $context);
-
         } catch (\Throwable $e) {
             if (config('app.debug')) {
                 return sprintf(
                     '<!-- Block Region Error (%s): %s -->',
                     htmlspecialchars($regionName),
-                    htmlspecialchars($e->getMessage())
+                    htmlspecialchars($e->getMessage()),
                 );
             }
             return '';
@@ -833,7 +828,7 @@ if (!function_exists('render_block_region')) {
 if (!function_exists('render_page_blocks')) {
     /**
      * Render blocks for a specific page
-     * 
+     *
      * @param \Modules\Cms\Infrastructure\Models\Page|int $page Page model or ID
      * @param string $region Region name (hero, content, sidebar)
      * @param array|null $context Additional context data
@@ -845,7 +840,7 @@ if (!function_exists('render_page_blocks')) {
         if (is_int($page)) {
             $page = \Modules\Cms\Infrastructure\Models\Page::find($page);
         }
-        
+
         if (!$page) {
             if (config('app.debug')) {
                 return '<!-- No page found for render_page_blocks -->';
@@ -855,15 +850,15 @@ if (!function_exists('render_page_blocks')) {
 
         /** @var \Modules\Cms\Domain\Services\PageBlockRenderer $renderer */
         $renderer = app(\Modules\Cms\Domain\Services\PageBlockRenderer::class);
-        
+
         // DEBUG: Disable cache and add debug info
         if (config('app.debug')) {
             $renderer->withoutCache();
         }
-        
+
         try {
             $html = $renderer->renderPageBlocks($page, $region, $context, $userRoles);
-            
+
             // DEBUG: Add info about blocks
             if (config('app.debug') && empty($html)) {
                 $blocks = $page->blocksInRegion($region);
@@ -875,7 +870,7 @@ if (!function_exists('render_page_blocks')) {
                         $block->id,
                         $block->blockType ? $block->blockType->name : 'NULL',
                         $block->visible ? 'yes' : 'no',
-                        $block->blockType ? 'exists' : 'MISSING'
+                        $block->blockType ? 'exists' : 'MISSING',
                     );
                 }
                 return sprintf(
@@ -883,10 +878,10 @@ if (!function_exists('render_page_blocks')) {
                     $page->id,
                     $region,
                     $blockCount,
-                    implode("\n", $blockInfo)
+                    implode("\n", $blockInfo),
                 );
             }
-            
+
             return $html;
         } catch (\Throwable $e) {
             if (config('app.debug')) {
@@ -894,7 +889,7 @@ if (!function_exists('render_page_blocks')) {
                     '<!-- render_page_blocks ERROR: %s in %s:%d -->',
                     htmlspecialchars($e->getMessage()),
                     basename($e->getFile()),
-                    $e->getLine()
+                    $e->getLine(),
                 );
             }
             logger()->error('render_page_blocks failed', [
@@ -921,12 +916,12 @@ if (!function_exists('render_block')) {
         try {
             /** @var BlockRenderer $renderer */
             $renderer = app(BlockRenderer::class);
-            
+
             /** @var BlockInstanceRepositoryInterface $repository */
             $repository = app(BlockInstanceRepositoryInterface::class);
 
             $block = $repository->findById(new BlockId($blockId));
-            
+
             if (!$block) {
                 if (config('app.debug')) {
                     return sprintf('<!-- Block #%d not found -->', $blockId);
@@ -940,13 +935,12 @@ if (!function_exists('render_block')) {
             }
 
             return $renderer->renderBlock($block, $userRoles, $context);
-
         } catch (\Throwable $e) {
             if (config('app.debug')) {
                 return sprintf(
                     '<!-- Block Error (#%d): %s -->',
                     $blockId,
-                    htmlspecialchars($e->getMessage())
+                    htmlspecialchars($e->getMessage()),
                 );
             }
             return '';
@@ -966,7 +960,7 @@ if (!function_exists('has_blocks_in_region')) {
     function has_blocks_in_region(
         string $regionName,
         string $contextType = 'global',
-        ?int $contextId = null
+        ?int $contextId = null,
     ): bool {
         try {
             $html = render_block_region($regionName, null, $contextType, $contextId);
@@ -991,7 +985,7 @@ if (!function_exists('get_all_regions')) {
         ?array $context = null,
         string $contextType = 'global',
         ?int $contextId = null,
-        ?array $userRoles = null
+        ?array $userRoles = null,
     ): array {
         try {
             /** @var BlockRenderer $renderer */
@@ -1002,7 +996,6 @@ if (!function_exists('get_all_regions')) {
             }
 
             return $renderer->renderAllRegions($contextType, $contextId, $userRoles, $context);
-
         } catch (\Throwable $e) {
             return [];
         }
@@ -1012,7 +1005,7 @@ if (!function_exists('get_all_regions')) {
 if (!function_exists('render_block_with_data')) {
     /**
      * Shorthand helper to render a region with controller data
-     * 
+     *
      * Example:
      * Controller: return view('about', ['team' => $teamData]);
      * View: {!! render_block_with_data('team-section', ['team' => $team]) !!}
@@ -1027,14 +1020,12 @@ if (!function_exists('render_block_with_data')) {
     }
 }
 
-
 use Modules\Cms\Domain\Services\BlockSyncService;
-use Modules\Cms\Infrastructure\Models\BlockRegion;
 
 if (!function_exists('sync_blocks')) {
     /**
      * Manually trigger block sync
-     * 
+     *
      * @param bool $force Force sync even if recently synced
      * @return array Sync statistics
      */
@@ -1049,7 +1040,7 @@ if (!function_exists('sync_blocks')) {
 if (!function_exists('blocks_synced')) {
     /**
      * Check if blocks are synced
-     * 
+     *
      * @return bool
      */
     function blocks_synced(): bool
@@ -1063,7 +1054,7 @@ if (!function_exists('blocks_synced')) {
 if (!function_exists('last_block_sync')) {
     /**
      * Get last block sync time
-     * 
+     *
      * @return int|null Unix timestamp or null if never synced
      */
     function last_block_sync(): ?int
@@ -1077,7 +1068,7 @@ if (!function_exists('last_block_sync')) {
 if (!function_exists('clear_block_sync_cache')) {
     /**
      * Clear block sync cache to force next sync
-     * 
+     *
      * @return void
      */
     function clear_block_sync_cache(): void
@@ -1092,7 +1083,7 @@ if (!function_exists('auto_sync_blocks_on_boot')) {
     /**
      * Auto-sync blocks on application boot (development only)
      * Call this in your service provider's boot method
-     * 
+     *
      * @return void
      */
     function auto_sync_blocks_on_boot(): void
@@ -1131,9 +1122,9 @@ if (!function_exists('duplicate_block_to_pages')) {
     {
         /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
         $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
-        
+
         $block = \Modules\Cms\Infrastructure\Models\BlockInstance::find($blockId);
-        
+
         if (!$block) {
             return [
                 'success' => 0,
@@ -1141,7 +1132,7 @@ if (!function_exists('duplicate_block_to_pages')) {
                 'errors' => ['Block not found'],
             ];
         }
-        
+
         return $service->duplicateToPages($block, $targetPageIds, $keepOriginalRegion);
     }
 }
@@ -1158,13 +1149,13 @@ if (!function_exists('convert_block_to_global')) {
     {
         /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
         $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
-        
+
         $block = \Modules\Cms\Infrastructure\Models\BlockInstance::find($blockId);
-        
+
         if (!$block) {
             return false;
         }
-        
+
         return $service->convertToGlobal($block, $targetRegion);
     }
 }
@@ -1182,7 +1173,7 @@ if (!function_exists('duplicate_all_page_blocks')) {
     {
         /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
         $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
-        
+
         return $service->duplicateAllBlocksToPage($sourcePageId, $targetPageId, $includeHidden);
     }
 }
@@ -1200,7 +1191,7 @@ if (!function_exists('sync_block_type_config')) {
     {
         /** @var \Modules\Cms\Domain\Services\BlockDuplicationService $service */
         $service = app(\Modules\Cms\Domain\Services\BlockDuplicationService::class);
-        
+
         return $service->syncBlockTypeAcrossPages($blockTypeId, $config);
     }
 }
@@ -1212,7 +1203,7 @@ if (!function_exists('sync_block_type_config')) {
 if (!function_exists('add_page_block')) {
     /**
      * Add a block to a page
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
      * @param string|int|\Modules\Cms\Infrastructure\Models\BlockType $blockType Block type name, ID, or instance
      * @param string $region Region name (default: 'content')
@@ -1224,12 +1215,12 @@ if (!function_exists('add_page_block')) {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
         $BlockType = \Modules\Cms\Infrastructure\Models\BlockType::class;
         $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
-        
+
         // Resolve page
         if (!$page instanceof $Page) {
             $page = $Page::find($page);
             if (!$page) {
-                throw new \InvalidArgumentException("Page not found");
+                throw new \InvalidArgumentException('Page not found');
             }
         }
 
@@ -1241,7 +1232,7 @@ if (!function_exists('add_page_block')) {
         }
 
         if (!$blockType instanceof $BlockType) {
-            throw new \InvalidArgumentException("Invalid block type");
+            throw new \InvalidArgumentException('Invalid block type');
         }
 
         // Get max sort_order in region
@@ -1269,14 +1260,14 @@ if (!function_exists('add_page_block')) {
 if (!function_exists('remove_page_block')) {
     /**
      * Remove a block from a page
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $blockId Block ID or instance
      * @return bool
      */
     function remove_page_block($blockId): bool
     {
         $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
-        
+
         if ($blockId instanceof $PageBlock) {
             return $blockId->delete();
         }
@@ -1289,7 +1280,7 @@ if (!function_exists('remove_page_block')) {
 if (!function_exists('get_page_blocks')) {
     /**
      * Get all blocks for a page
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
      * @param string|null $region Optional region filter
      * @param bool $visibleOnly Only visible blocks (default: true)
@@ -1298,7 +1289,7 @@ if (!function_exists('get_page_blocks')) {
     function get_page_blocks($page, ?string $region = null, bool $visibleOnly = true): \Core\Support\Collection
     {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
-        
+
         if (!$page instanceof $Page) {
             $page = $Page::find($page);
             if (!$page) {
@@ -1323,7 +1314,7 @@ if (!function_exists('get_page_blocks')) {
 if (!function_exists('duplicate_page_blocks')) {
     /**
      * Duplicate all blocks from one page to another
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $sourcePage Source page ID or instance
      * @param int|\Modules\Cms\Infrastructure\Models\Page $targetPage Target page ID or instance
      * @return int Number of blocks duplicated
@@ -1331,18 +1322,18 @@ if (!function_exists('duplicate_page_blocks')) {
     function duplicate_page_blocks($sourcePage, $targetPage): int
     {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
-        
+
         if (!$sourcePage instanceof $Page) {
             $sourcePage = $Page::find($sourcePage);
             if (!$sourcePage) {
-                throw new \InvalidArgumentException("Source page not found");
+                throw new \InvalidArgumentException('Source page not found');
             }
         }
 
         if (!$targetPage instanceof $Page) {
             $targetPage = $Page::find($targetPage);
             if (!$targetPage) {
-                throw new \InvalidArgumentException("Target page not found");
+                throw new \InvalidArgumentException('Target page not found');
             }
         }
 
@@ -1353,7 +1344,7 @@ if (!function_exists('duplicate_page_blocks')) {
 if (!function_exists('reorder_page_block')) {
     /**
      * Reorder a page block
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
      * @param int $newOrder New order value
      * @return bool
@@ -1361,7 +1352,7 @@ if (!function_exists('reorder_page_block')) {
     function reorder_page_block($block, int $newOrder): bool
     {
         $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
-        
+
         if (!$block instanceof $PageBlock) {
             $block = $PageBlock::find($block);
             if (!$block) {
@@ -1377,7 +1368,7 @@ if (!function_exists('reorder_page_block')) {
 if (!function_exists('move_page_block_to_region')) {
     /**
      * Move a page block to a different region
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
      * @param string $newRegion New region name
      * @return bool
@@ -1385,7 +1376,7 @@ if (!function_exists('move_page_block_to_region')) {
     function move_page_block_to_region($block, string $newRegion): bool
     {
         $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
-        
+
         if (!$block instanceof $PageBlock) {
             $block = $PageBlock::find($block);
             if (!$block) {
@@ -1400,7 +1391,7 @@ if (!function_exists('move_page_block_to_region')) {
 
         $block->region = $newRegion;
         $block->sort_order = $maxOrder + 1;
-        
+
         return $block->save();
     }
 }
@@ -1408,14 +1399,14 @@ if (!function_exists('move_page_block_to_region')) {
 if (!function_exists('toggle_page_block_visibility')) {
     /**
      * Toggle visibility of a page block
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\PageBlock $block Block ID or instance
      * @return bool New visibility state
      */
     function toggle_page_block_visibility($block): bool
     {
         $PageBlock = \Modules\Cms\Infrastructure\Models\PageBlock::class;
-        
+
         if (!$block instanceof $PageBlock) {
             $block = $PageBlock::find($block);
             if (!$block) {
@@ -1431,7 +1422,7 @@ if (!function_exists('toggle_page_block_visibility')) {
 if (!function_exists('get_page_block_types')) {
     /**
      * Get all available block types
-     * 
+     *
      * @param bool $activeOnly Only active block types (default: true)
      * @param string|null $category Filter by category
      * @return \Core\Support\Collection
@@ -1456,7 +1447,7 @@ if (!function_exists('get_page_block_types')) {
 if (!function_exists('get_block_type_by_name')) {
     /**
      * Get a block type by name
-     * 
+     *
      * @param string $name Block type name
      * @return \Modules\Cms\Infrastructure\Models\BlockType|null
      */
@@ -1469,7 +1460,7 @@ if (!function_exists('get_block_type_by_name')) {
 if (!function_exists('page_has_blocks')) {
     /**
      * Check if a page has any blocks
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
      * @param string|null $region Optional region filter
      * @return bool
@@ -1477,7 +1468,7 @@ if (!function_exists('page_has_blocks')) {
     function page_has_blocks($page, ?string $region = null): bool
     {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
-        
+
         if (!$page instanceof $Page) {
             $page = $Page::find($page);
             if (!$page) {
@@ -1496,14 +1487,14 @@ if (!function_exists('page_has_blocks')) {
 if (!function_exists('get_page_regions')) {
     /**
      * Get all regions used by a page
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
      * @return array Array of region names
      */
     function get_page_regions($page): array
     {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
-        
+
         if (!$page instanceof $Page) {
             $page = $Page::find($page);
             if (!$page) {
@@ -1518,7 +1509,7 @@ if (!function_exists('get_page_regions')) {
 if (!function_exists('clear_page_blocks')) {
     /**
      * Remove all blocks from a page
-     * 
+     *
      * @param int|\Modules\Cms\Infrastructure\Models\Page $page Page ID or instance
      * @param string|null $region Optional region filter
      * @return int Number of blocks deleted
@@ -1526,7 +1517,7 @@ if (!function_exists('clear_page_blocks')) {
     function clear_page_blocks($page, ?string $region = null): int
     {
         $Page = \Modules\Cms\Infrastructure\Models\Page::class;
-        
+
         if (!$page instanceof $Page) {
             $page = $Page::find($page);
             if (!$page) {
@@ -1547,7 +1538,7 @@ if (!function_exists('clear_page_blocks')) {
 if (!function_exists('bulk_update_page_blocks_order')) {
     /**
      * Update order of multiple blocks at once
-     * 
+     *
      * @param array $blockOrders Array of ['block_id' => new_order]
      * @return int Number of blocks updated
      */
@@ -1577,7 +1568,7 @@ if (!function_exists('bulk_update_page_blocks_order')) {
 if (!function_exists('apcu_available')) {
     /**
      * Check if APCu extension is available and enabled.
-     * 
+     *
      * @return bool
      */
     function apcu_available(): bool
@@ -1594,7 +1585,7 @@ if (!function_exists('apcu_get')) {
     /**
      * Safely fetch a value from APCu cache.
      * Returns null if APCu is not available or key doesn't exist.
-     * 
+     *
      * @param string $key
      * @param mixed $default Default value if key doesn't exist
      * @return mixed
@@ -1608,7 +1599,7 @@ if (!function_exists('apcu_get')) {
         $success = false;
         /** @phpstan-ignore-next-line */
         $value = \apcu_fetch($key, $success);
-        
+
         return $success ? $value : $default;
     }
 }
@@ -1617,7 +1608,7 @@ if (!function_exists('apcu_set')) {
     /**
      * Safely store a value in APCu cache.
      * Returns false if APCu is not available.
-     * 
+     *
      * @param string $key
      * @param mixed $value
      * @param int $ttl Time to live in seconds (default: 0 = unlimited)
@@ -1638,7 +1629,7 @@ if (!function_exists('apcu_delete')) {
     /**
      * Safely delete a value from APCu cache.
      * Returns false if APCu is not available.
-     * 
+     *
      * @param string|string[] $key
      * @return bool|array
      */
@@ -1657,7 +1648,7 @@ if (!function_exists('apcu_clear')) {
     /**
      * Clear all APCu cache entries.
      * Returns false if APCu is not available.
-     * 
+     *
      * @return bool
      */
     function apcu_clear(): bool
@@ -1679,7 +1670,7 @@ if (!function_exists('oauth_cache_client')) {
     /**
      * Cache an OAuth client entity.
      * Uses multi-level caching: APCu (L2) and persistent cache (L3).
-     * 
+     *
      * @param string $clientId
      * @param mixed $clientEntity
      * @param int $apcuTtl APCu TTL in seconds (default: 300 = 5 minutes)
@@ -1689,12 +1680,12 @@ if (!function_exists('oauth_cache_client')) {
     function oauth_cache_client(string $clientId, mixed $clientEntity, int $apcuTtl = 300, int $persistentTtl = 600): void
     {
         $key = "oauth:client:{$clientId}";
-        
+
         // L2: APCu cache
         if (apcu_available()) {
             apcu_set($key, $clientEntity, $apcuTtl);
         }
-        
+
         // L3: Persistent cache
         cache()->set($key, $clientEntity, $persistentTtl);
     }
@@ -1704,14 +1695,14 @@ if (!function_exists('oauth_get_client')) {
     /**
      * Get an OAuth client entity from cache.
      * Checks APCu (L2) first, then persistent cache (L3).
-     * 
+     *
      * @param string $clientId
      * @return mixed|null
      */
     function oauth_get_client(string $clientId): mixed
     {
         $key = "oauth:client:{$clientId}";
-        
+
         // L2: Check APCu cache
         if (apcu_available()) {
             $cached = apcu_get($key);
@@ -1719,7 +1710,7 @@ if (!function_exists('oauth_get_client')) {
                 return $cached;
             }
         }
-        
+
         // L3: Check persistent cache
         return cache()->get($key);
     }
@@ -1728,19 +1719,19 @@ if (!function_exists('oauth_get_client')) {
 if (!function_exists('oauth_clear_client_cache')) {
     /**
      * Clear OAuth client cache for a specific client.
-     * 
+     *
      * @param string $clientId
      * @return void
      */
     function oauth_clear_client_cache(string $clientId): void
     {
         $key = "oauth:client:{$clientId}";
-        
+
         // Clear APCu
         if (apcu_available()) {
             apcu_delete($key);
         }
-        
+
         // Clear persistent cache
         cache()->delete($key);
     }
@@ -1750,7 +1741,7 @@ if (!function_exists('oauth_cache_scope')) {
     /**
      * Cache an OAuth scope entity.
      * Uses multi-level caching: APCu (L2) and persistent cache (L3).
-     * 
+     *
      * @param string $scopeId
      * @param mixed $scopeEntity
      * @param int $apcuTtl APCu TTL in seconds (default: 3600 = 1 hour)
@@ -1760,12 +1751,12 @@ if (!function_exists('oauth_cache_scope')) {
     function oauth_cache_scope(string $scopeId, mixed $scopeEntity, int $apcuTtl = 3600, int $persistentTtl = 3600): void
     {
         $key = "oauth:scope:{$scopeId}";
-        
+
         // L2: APCu cache
         if (apcu_available()) {
             apcu_set($key, $scopeEntity, $apcuTtl);
         }
-        
+
         // L3: Persistent cache
         cache()->set($key, $scopeEntity, $persistentTtl);
     }
@@ -1775,14 +1766,14 @@ if (!function_exists('oauth_get_scope')) {
     /**
      * Get an OAuth scope entity from cache.
      * Checks APCu (L2) first, then persistent cache (L3).
-     * 
+     *
      * @param string $scopeId
      * @return mixed|null
      */
     function oauth_get_scope(string $scopeId): mixed
     {
         $key = "oauth:scope:{$scopeId}";
-        
+
         // L2: Check APCu cache
         if (apcu_available()) {
             $cached = apcu_get($key);
@@ -1790,7 +1781,7 @@ if (!function_exists('oauth_get_scope')) {
                 return $cached;
             }
         }
-        
+
         // L3: Check persistent cache
         return cache()->get($key);
     }
@@ -1799,19 +1790,19 @@ if (!function_exists('oauth_get_scope')) {
 if (!function_exists('oauth_clear_scope_cache')) {
     /**
      * Clear OAuth scope cache for a specific scope.
-     * 
+     *
      * @param string $scopeId
      * @return void
      */
     function oauth_clear_scope_cache(string $scopeId): void
     {
         $key = "oauth:scope:{$scopeId}";
-        
+
         // Clear APCu
         if (apcu_available()) {
             apcu_delete($key);
         }
-        
+
         // Clear persistent cache
         cache()->delete($key);
     }

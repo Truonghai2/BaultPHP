@@ -1,6 +1,5 @@
 <?php
 
-use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 use Core\Support\Facades\Hash;
 use Modules\User\Infrastructure\Models\OAuth\Client;
@@ -29,4 +28,3 @@ return new class () extends Migration {
         echo "Cannot reverse password hashing. Client secrets remain hashed.\n";
     }
 };
-

@@ -41,7 +41,7 @@ class MakeValueObjectCommand extends BaseCommand
         $this->createValueObject($modulePath, $module, $name);
 
         $this->io->success("Value object [{$name}] created successfully!");
-        $this->io->comment("Remember: Value objects are immutable and compared by value, not identity.");
+        $this->io->comment('Remember: Value objects are immutable and compared by value, not identity.');
 
         return self::SUCCESS;
     }
@@ -50,7 +50,7 @@ class MakeValueObjectCommand extends BaseCommand
     {
         $path = "{$modulePath}/Domain/ValueObjects/{$name}.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -62,7 +62,7 @@ class MakeValueObjectCommand extends BaseCommand
 
         $stub = $this->getValueObjectStub($module, $name);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Domain/ValueObjects/{$name}.php");
     }
 
@@ -150,4 +150,3 @@ class {$name}
 PHP;
     }
 }
-

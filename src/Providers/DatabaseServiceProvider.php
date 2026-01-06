@@ -36,12 +36,12 @@ class DatabaseServiceProvider extends ServiceProvider
             if ((bool) config('debug.enabled', false)) {
                 // Wrap với RealtimeTraceablePdo cho real-time broadcasting
                 $traceablePdo = new RealtimeTraceablePdo($pdo);
-                
+
                 // Inject broadcaster nếu có
                 if ($app->bound(DebugBroadcaster::class)) {
                     $traceablePdo->setBroadcaster($app->make(DebugBroadcaster::class));
                 }
-                
+
                 // Add vào DebugBar collector nếu có
                 if ($app->bound('debugbar')) {
                     /** @var \DebugBar\DebugBar $debugbar */
@@ -50,7 +50,7 @@ class DatabaseServiceProvider extends ServiceProvider
                     $pdoCollector = $debugbar->getCollector('pdo');
                     $pdoCollector->addConnection($traceablePdo, $connection->getDefaultConnection());
                 }
-                
+
                 return $traceablePdo;
             }
             return $pdo;

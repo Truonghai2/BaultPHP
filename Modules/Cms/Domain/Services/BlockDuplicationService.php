@@ -5,25 +5,25 @@ declare(strict_types=1);
 namespace Modules\Cms\Domain\Services;
 
 use Modules\Cms\Infrastructure\Models\BlockInstance;
-use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\BlockRegion;
+use Modules\Cms\Infrastructure\Models\Page;
 use Psr\Log\LoggerInterface;
 
 /**
  * Block Duplication Service
- * 
+ *
  * Allows duplicating blocks across multiple pages or converting page-specific blocks to global blocks
  */
 class BlockDuplicationService
 {
     public function __construct(
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
     /**
      * Duplicate a block to other pages
-     * 
+     *
      * @param BlockInstance $sourceBlock The block to duplicate
      * @param array<int> $targetPageIds IDs of pages to duplicate to
      * @param bool $keepOriginalRegion Whether to use the same region name
@@ -40,7 +40,7 @@ class BlockDuplicationService
         foreach ($targetPageIds as $pageId) {
             try {
                 $targetPage = Page::find($pageId);
-                
+
                 if (!$targetPage) {
                     $stats['failed']++;
                     $stats['errors'][] = "Page {$pageId} not found";
@@ -57,7 +57,7 @@ class BlockDuplicationService
                 }
 
                 $targetRegion = BlockRegion::where('name', $targetRegionName)->first();
-                
+
                 if (!$targetRegion) {
                     // Create region if it doesn't exist
                     $targetRegion = BlockRegion::create([
@@ -94,7 +94,7 @@ class BlockDuplicationService
                 $duplicatedBlock->save();
 
                 $stats['success']++;
-                
+
                 $this->logger->info("Duplicated block {$sourceBlock->id} to page {$pageId}", [
                     'source_block_id' => $sourceBlock->id,
                     'target_page_id' => $pageId,
@@ -104,7 +104,7 @@ class BlockDuplicationService
             } catch (\Throwable $e) {
                 $stats['failed']++;
                 $stats['errors'][] = "Page {$pageId}: {$e->getMessage()}";
-                
+
                 $this->logger->error("Failed to duplicate block to page {$pageId}", [
                     'source_block_id' => $sourceBlock->id,
                     'target_page_id' => $pageId,
@@ -118,9 +118,9 @@ class BlockDuplicationService
 
     /**
      * Convert a page-specific block to a global block
-     * 
+     *
      * This makes the block appear on all pages in the same region
-     * 
+     *
      * @param BlockInstance $block The block to convert
      * @param string $targetRegionName Global region name (e.g., 'header', 'content', 'sidebar')
      * @return bool Success status
@@ -136,7 +136,7 @@ class BlockDuplicationService
                     'description' => "Global {$targetRegionName} region",
                     'max_blocks' => 20,
                     'is_active' => true,
-                ]
+                ],
             );
 
             // Get max weight in global region
@@ -157,9 +157,8 @@ class BlockDuplicationService
             ]);
 
             return true;
-
         } catch (\Throwable $e) {
-            $this->logger->error("Failed to convert block to global", [
+            $this->logger->error('Failed to convert block to global', [
                 'block_id' => $block->id,
                 'error' => $e->getMessage(),
             ]);
@@ -170,7 +169,7 @@ class BlockDuplicationService
 
     /**
      * Duplicate all blocks from one page to another
-     * 
+     *
      * @param int $sourcePageId Source page ID
      * @param int $targetPageId Target page ID
      * @param bool $includeHiddenBlocks Whether to duplicate hidden blocks
@@ -224,10 +223,10 @@ class BlockDuplicationService
 
     /**
      * Sync block across all pages
-     * 
+     *
      * Updates all instances of a block type across all pages
      * Useful for making mass changes to similar blocks
-     * 
+     *
      * @param int $blockTypeId Block type to sync
      * @param array $config New configuration to apply
      * @return int Number of blocks updated
@@ -250,14 +249,13 @@ class BlockDuplicationService
     private function extractRegionType(string $regionName): string
     {
         $parts = explode('-', $regionName);
-        
+
         // If it's a page-specific region (page-slug-type), return the last part
         if (count($parts) >= 3 && $parts[0] === 'page') {
             return end($parts);
         }
-        
+
         // Otherwise return as-is
         return $regionName;
     }
 }
-

@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * GetUserByIdHandler
- * 
+ *
  * Handles GetUserByIdQuery.
  */
 class GetUserByIdHandler implements QueryHandlerInterface
@@ -23,10 +23,10 @@ class GetUserByIdHandler implements QueryHandlerInterface
             if ($user) {
                 $roles = $user->roles()->get();
                 $userData = $user->getAttributes();
-                $userData['roles'] = $roles->map(fn($role) => [
+                $userData['roles'] = $roles->map(fn ($role) => [
                     'id' => $role->id,
                     'name' => $role->name,
-                    'description' => $role->description
+                    'description' => $role->description,
                 ])->toArray();
                 return $userData;
             }
@@ -37,4 +37,3 @@ class GetUserByIdHandler implements QueryHandlerInterface
         return $user ? $user->getAttributes() : null;
     }
 }
-

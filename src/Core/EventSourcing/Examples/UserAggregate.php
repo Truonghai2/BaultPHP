@@ -9,7 +9,7 @@ use Core\EventSourcing\Examples\Events\UserStatusChanged;
 
 /**
  * User Aggregate - Example Implementation
- * 
+ *
  * This demonstrates how to use Event Sourcing in practice.
  */
 class UserAggregate extends AggregateRoot
@@ -27,7 +27,7 @@ class UserAggregate extends AggregateRoot
         $this->recordThat(new UserRegistered(
             userId: $id,
             email: $email,
-            name: $name
+            name: $name,
         ));
     }
 
@@ -43,7 +43,7 @@ class UserAggregate extends AggregateRoot
         $this->recordThat(new UserEmailChanged(
             userId: $this->id,
             oldEmail: $this->email,
-            newEmail: $newEmail
+            newEmail: $newEmail,
         ));
     }
 
@@ -59,7 +59,7 @@ class UserAggregate extends AggregateRoot
         $this->recordThat(new UserStatusChanged(
             userId: $this->id,
             oldStatus: $this->status,
-            newStatus: 'active'
+            newStatus: 'active',
         ));
     }
 
@@ -72,7 +72,7 @@ class UserAggregate extends AggregateRoot
             userId: $this->id,
             oldStatus: $this->status,
             newStatus: 'suspended',
-            metadata: ['reason' => $reason]
+            metadata: ['reason' => $reason],
         ));
     }
 
@@ -95,7 +95,7 @@ class UserAggregate extends AggregateRoot
     protected function applyUserStatusChanged(UserStatusChanged $event): void
     {
         $this->status = $event->newStatus;
-        
+
         if ($event->newStatus === 'active' && $this->status === 'pending') {
             $this->emailVerifiedAt = $event->occurredAt;
         }
@@ -128,4 +128,3 @@ class UserAggregate extends AggregateRoot
         return $this->emailVerifiedAt !== null;
     }
 }
-

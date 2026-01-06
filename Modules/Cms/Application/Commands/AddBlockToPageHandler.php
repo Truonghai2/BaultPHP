@@ -14,7 +14,7 @@ use Modules\Cms\Domain\Services\PageBlockService;
 class AddBlockToPageHandler implements CommandHandler
 {
     public function __construct(
-        private readonly PageBlockService $pageBlockService
+        private readonly PageBlockService $pageBlockService,
     ) {
     }
 
@@ -35,7 +35,7 @@ class AddBlockToPageHandler implements CommandHandler
 
         return $this->pageBlockService->addBlockToPage(
             $command->page->id,
-            $command->componentClass
+            $command->componentClass,
         );
     }
 }

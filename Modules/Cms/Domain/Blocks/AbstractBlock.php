@@ -7,7 +7,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * Abstract Block Base Class
- * 
+ *
  * Tất cả blocks phải extend class này
  * Giống như block_base trong Moodle
  */
@@ -70,15 +70,15 @@ abstract class AbstractBlock
 
     /**
      * Preload data for a collection of blocks of the same type
-     * 
+     *
      * This is a PERFORMANCE OPTIMIZATION hook that allows blocks to batch-load
      * data for multiple instances in a single query instead of N queries.
-     * 
+     *
      * WHEN TO USE:
      * - Block needs to fetch data from database/API
      * - Multiple instances of same block type on a page
      * - Want to avoid N+1 query problem
-     * 
+     *
      * EXAMPLE:
      * ```php
      * public function preloadData(\Core\Support\Collection $blocks): array
@@ -93,7 +93,7 @@ abstract class AbstractBlock
      *     return $data;
      * }
      * ```
-     * 
+     *
      * The preloaded data will be available in render() via:
      * `$context['preloaded']`
      *
@@ -107,7 +107,7 @@ abstract class AbstractBlock
 
     /**
      * Render block content
-     * 
+     *
      * @param array $config Block configuration
      * @param array|null $context Additional context data (user, page, etc.)
      * @return string HTML content
@@ -132,7 +132,7 @@ abstract class AbstractBlock
 
     /**
      * Render với view file
-     * 
+     *
      * @param string $view View path (e.g., 'cms::blocks.homepage-stats')
      * @param array $data Data to pass to view
      * @return string Rendered HTML
@@ -142,21 +142,21 @@ abstract class AbstractBlock
         if (function_exists('view')) {
             try {
                 $viewFactory = view();
-                
+
                 if (str_starts_with($view, 'cms::')) {
                     $this->ensureCmsNamespaceRegistered($viewFactory);
                 }
-                
+
                 return $viewFactory->make($view, $data)->render();
             } catch (\Throwable $e) {
                 if (function_exists('logger')) {
-                    logger()->error("Block view render failed", [
+                    logger()->error('Block view render failed', [
                         'block' => get_class($this),
                         'view' => $view,
                         'error' => $e->getMessage(),
                     ]);
                 }
-                
+
                 if (config('app.debug')) {
                     return "<!-- Block view error: {$e->getMessage()} -->";
                 }
@@ -172,7 +172,7 @@ abstract class AbstractBlock
     private function ensureCmsNamespaceRegistered($viewFactory): void
     {
         static $registered = false;
-        
+
         if (!$registered) {
             try {
                 if (!$viewFactory->exists('cms::blocks.homepage-stats')) {
@@ -189,10 +189,10 @@ abstract class AbstractBlock
 
     /**
      * Render block with automatic view resolution
-     * 
+     *
      * Automatically looks for view at: cms::blocks.{block-name}
      * Falls back to render() method if view not found
-     * 
+     *
      * @param array $config Block configuration
      * @param array|null $context Additional context
      * @return string Rendered HTML
@@ -200,20 +200,20 @@ abstract class AbstractBlock
     protected function renderWithAutoView(array $config = [], ?array $context = null): string
     {
         $viewName = 'cms::blocks.' . $this->getName();
-        
+
         if ($this->viewExists($viewName)) {
             return $this->renderView($viewName, array_merge($config, [
                 'context' => $context,
                 'block' => $this,
             ]));
         }
-        
+
         return $this->render($config, $context);
     }
 
     /**
      * Check if view exists
-     * 
+     *
      * @param string $view View path
      * @return bool
      */
@@ -226,13 +226,13 @@ abstract class AbstractBlock
                 return false;
             }
         }
-        
+
         return false;
     }
 
     /**
      * Get view path for this block
-     * 
+     *
      * @return string
      */
     protected function getViewPath(): string
@@ -242,7 +242,7 @@ abstract class AbstractBlock
 
     /**
      * Render component (reusable UI piece)
-     * 
+     *
      * @param string $component Component name (e.g., 'stat-card')
      * @param array $data Component data
      * @return string Rendered HTML
@@ -378,7 +378,7 @@ abstract class AbstractBlock
             'block:%s:%d:%s',
             $this->getName(),
             $instance->id,
-            md5(serialize($instance->config))
+            md5(serialize($instance->config)),
         );
     }
 }

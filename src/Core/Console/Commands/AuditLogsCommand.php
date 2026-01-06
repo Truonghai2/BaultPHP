@@ -87,7 +87,7 @@ class AuditLogsCommand extends BaseCommand
 
         $this->io->table(
             ['ID', 'Time', 'Severity', 'Category', 'Event', 'User', 'IP', 'Description'],
-            $rows
+            $rows,
         );
 
         $this->io->writeln("\nTotal logs: " . count($rows));
@@ -167,4 +167,3 @@ class AuditLogsCommand extends BaseCommand
         return substr($text, 0, $length - 3) . '...';
     }
 }
-

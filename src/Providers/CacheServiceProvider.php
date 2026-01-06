@@ -23,9 +23,9 @@ class CacheServiceProvider extends ServiceProvider
 
             if ((bool) config('debug.enabled', false) && $app->bound('debugbar') && $app->bound(DebugBroadcaster::class)) {
                 return new RealtimeTraceableCacheManager(
-                    $manager, 
+                    $manager,
                     $app->make('debugbar'),
-                    $app->make(DebugBroadcaster::class)
+                    $app->make(DebugBroadcaster::class),
                 );
             }
 

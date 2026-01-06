@@ -2,13 +2,11 @@
 
 namespace Modules\Cms\Domain\Blocks;
 
-use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\Page;
-use Modules\User\Infrastructure\Models\User;
 
 /**
  * Recent Pages Block
- * 
+ *
  * Block hiển thị các pages mới nhất
  */
 class RecentPagesBlock extends AbstractBlock
@@ -104,7 +102,7 @@ class RecentPagesBlock extends AbstractBlock
             $pages = Page::orderBy($orderBy, 'desc')
                 ->limit($limit)
                 ->get();
-            
+
             $data[$block->id] = ['pages' => $pages];
         }
         return $data;

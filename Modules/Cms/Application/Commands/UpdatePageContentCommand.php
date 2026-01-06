@@ -8,7 +8,7 @@ use Core\CQRS\Command;
 
 /**
  * Update Page Content Command
- * 
+ *
  * Command để cập nhật nội dung page
  */
 final class UpdatePageContentCommand implements Command
@@ -17,7 +17,7 @@ final class UpdatePageContentCommand implements Command
         public readonly int $pageId,
         public readonly array $blocks,
         public readonly ?string $featuredImagePath = null,
-        public readonly ?int $userId = null
+        public readonly ?int $userId = null,
     ) {
     }
 }

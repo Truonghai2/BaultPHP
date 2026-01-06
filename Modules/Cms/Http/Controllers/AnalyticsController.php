@@ -6,16 +6,16 @@ namespace Modules\Cms\Http\Controllers;
 
 use Carbon\Carbon;
 use Core\Http\Controller;
+use Core\ORM\DB;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
-use Core\ORM\DB;
 use Modules\Cms\Infrastructure\Models\Page;
 use Psr\Http\Message\ResponseInterface as Response;
 use Psr\Http\Message\ServerRequestInterface as Request;
 
 /**
  * Analytics Controller
- * 
+ *
  * View site analytics and page views statistics
  */
 #[Route(prefix: '/admin/analytics', middleware: ['auth'], group: 'web')]
@@ -157,7 +157,6 @@ class AnalyticsController extends Controller
             ]);
 
             return response()->json(['success' => true]);
-
         } catch (\Exception $e) {
             return response()->json(['success' => false], 200);
         }
@@ -220,4 +219,3 @@ class AnalyticsController extends Controller
         }
     }
 }
-

@@ -103,18 +103,18 @@ class Store implements SessionInterface
     public function regenerate(bool $destroy = false): bool
     {
         $oldId = $this->getId();
-        
+
         if ($destroy) {
             $this->handler->destroy($oldId);
         }
-        
+
         // Generate new session ID
         $this->setId($this->generateSessionId());
         $this->dirty = true;
-        
+
         // Ensure session remains started after regeneration
         $this->started = true;
-        
+
         return true;
     }
 

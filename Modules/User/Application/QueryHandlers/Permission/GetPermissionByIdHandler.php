@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\Permission;
 
 /**
  * GetPermissionByIdHandler
- * 
+ *
  * Handles GetPermissionByIdQuery.
  */
 class GetPermissionByIdHandler implements QueryHandlerInterface
@@ -27,8 +27,7 @@ class GetPermissionByIdHandler implements QueryHandlerInterface
             'description' => $permission->description,
             'captype' => $permission->captype,
             'created_at' => $permission->created_at,
-            'updated_at' => $permission->updated_at
+            'updated_at' => $permission->updated_at,
         ];
     }
 }
-

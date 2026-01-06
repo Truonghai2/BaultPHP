@@ -8,7 +8,7 @@ use Modules\Cms\Domain\Blocks\AbstractBlock;
 
 /**
  * User Profile Block
- * 
+ *
  * Displays user profile information
  * Can be used in user dashboards, profile pages, etc.
  */
@@ -53,10 +53,10 @@ class UserProfileBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Get user from context or current auth user
         $user = $context['user'] ?? auth()->user();
-        
+
         if (!$user) {
             return '<div class="empty-state text-center py-8 text-gray-400">
                 <p>Please login to view profile</p>
@@ -90,4 +90,3 @@ class UserProfileBlock extends AbstractBlock
         return false; // User-specific content
     }
 }
-

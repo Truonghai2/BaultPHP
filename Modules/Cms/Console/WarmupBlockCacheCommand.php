@@ -11,14 +11,14 @@ use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * Warm Up Block Cache Command
- * 
+ *
  * Pre-generate cache for pages to improve performance
  */
 class WarmupBlockCacheCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly BlockCacheManager $cacheManager
+        private readonly BlockCacheManager $cacheManager,
     ) {
         parent::__construct($app);
     }
@@ -49,7 +49,7 @@ class WarmupBlockCacheCommand extends BaseCommand
 
         try {
             $pages = [];
-            
+
             if ($pageId) {
                 // Single page
                 $page = Page::find((int)$pageId);
@@ -58,12 +58,12 @@ class WarmupBlockCacheCommand extends BaseCommand
                     return self::FAILURE;
                 }
                 $pages = [$page];
-                
+
             } elseif ($all) {
                 // All pages
                 $pages = Page::all()->toArray();
                 $this->info('Warming up ALL pages...');
-                
+
             } elseif ($popular) {
                 // Popular pages (home + published)
                 $pages = Page::where('slug', 'home')
@@ -72,7 +72,7 @@ class WarmupBlockCacheCommand extends BaseCommand
                     ->get()
                     ->toArray();
                 $this->info('Warming up popular pages...');
-                
+
             } else {
                 $this->error('Please specify --page, --all, or --popular');
                 return self::FAILURE;
@@ -95,10 +95,9 @@ class WarmupBlockCacheCommand extends BaseCommand
             }
 
             $this->io->progressFinish();
-            $this->success("Warmed up cache for " . count($pages) . " page(s)");
+            $this->success('Warmed up cache for ' . count($pages) . ' page(s)');
 
             return self::SUCCESS;
-            
         } catch (\Throwable $e) {
             $this->error("Failed to warm up cache: {$e->getMessage()}");
             if ($this->io->isVerbose()) {
@@ -108,4 +107,3 @@ class WarmupBlockCacheCommand extends BaseCommand
         }
     }
 }
-

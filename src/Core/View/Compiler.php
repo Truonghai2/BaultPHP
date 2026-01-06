@@ -214,8 +214,8 @@ class Compiler
     protected function compileComponents(string $value): string
     {
         $value = preg_replace_callback('/<x-([a-zA-Z0-9\.-]+::)?([a-zA-Z0-9\.-]+)([^>]*)>/', function ($matches) {
-            $module = $matches[1]; 
-            $component = $matches[2]; 
+            $module = $matches[1];
+            $component = $matches[2];
             $attributes = $matches[3];
             $viewName = $module ? str_replace('::', '::components.', $module) . $component : 'components.' . $component;
             return "<?php \$__env->startComponent('{$viewName}', {$this->compileAttributes($attributes)}); ?>";

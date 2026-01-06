@@ -6,6 +6,7 @@ namespace Modules\Cms\Domain\Aggregates;
 
 use Core\EventSourcing\AggregateRoot;
 use Modules\Cms\Domain\Aggregates\Events\BlockAddedToPage;
+use Modules\Cms\Domain\Aggregates\Events\FeaturedImageChanged;
 use Modules\Cms\Domain\Aggregates\Events\PageContentUpdated;
 use Modules\Cms\Domain\Aggregates\Events\PageCreated;
 use Modules\Cms\Domain\Aggregates\Events\PageDeleted;
@@ -13,15 +14,13 @@ use Modules\Cms\Domain\Aggregates\Events\PagePublished;
 use Modules\Cms\Domain\Aggregates\Events\PageRenamed;
 use Modules\Cms\Domain\Aggregates\Events\PageRestored;
 use Modules\Cms\Domain\Aggregates\Events\PageUnpublished;
-use Modules\Cms\Domain\Aggregates\Events\FeaturedImageChanged;
-use Modules\Cms\Domain\ValueObjects\PageContent;
 
 /**
  * Page Aggregate
- * 
+ *
  * Event-sourced aggregate for CMS pages.
  * Maintains page state through domain events.
- * 
+ *
  * Features:
  * - Complete audit trail of all changes
  * - Time travel to any version
@@ -48,13 +47,13 @@ class PageAggregate extends AggregateRoot
         string $id,
         string $name,
         string $slug,
-        ?int $userId = null
+        ?int $userId = null,
     ): void {
         $this->recordThat(new PageCreated(
             pageId: $id,
             name: $name,
             slug: $slug,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -73,7 +72,7 @@ class PageAggregate extends AggregateRoot
             pageId: $this->id,
             oldContent: $oldContent,
             newContent: $content,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -96,7 +95,7 @@ class PageAggregate extends AggregateRoot
             newName: $newName,
             oldSlug: $this->slug,
             newSlug: $newSlug,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -115,7 +114,7 @@ class PageAggregate extends AggregateRoot
 
         $this->recordThat(new PagePublished(
             pageId: $this->id,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -130,7 +129,7 @@ class PageAggregate extends AggregateRoot
 
         $this->recordThat(new PageUnpublished(
             pageId: $this->id,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -146,7 +145,7 @@ class PageAggregate extends AggregateRoot
         $this->recordThat(new PageDeleted(
             pageId: $this->id,
             userId: $userId,
-            reason: $reason
+            reason: $reason,
         ));
     }
 
@@ -161,7 +160,7 @@ class PageAggregate extends AggregateRoot
 
         $this->recordThat(new PageRestored(
             pageId: $this->id,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -182,7 +181,7 @@ class PageAggregate extends AggregateRoot
             pageId: $this->id,
             oldPath: $this->featuredImagePath,
             newPath: $imagePath,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -204,7 +203,7 @@ class PageAggregate extends AggregateRoot
             blockId: $blockId,
             componentClass: $componentClass,
             sortOrder: $sortOrder,
-            userId: $userId
+            userId: $userId,
         ));
     }
 
@@ -335,4 +334,3 @@ class PageAggregate extends AggregateRoot
         return $this->userId === $userId;
     }
 }
-

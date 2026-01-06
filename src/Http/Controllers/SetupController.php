@@ -8,10 +8,10 @@ use Core\Events\EventDispatcherInterface;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Hash;
+use Core\Validation\ErrorBag;
 use Modules\User\Domain\Events\UserWasCreated;
 use Modules\User\Infrastructure\Models\Role;
 use Modules\User\Infrastructure\Models\RoleAssignment;
-use Core\Validation\ErrorBag;
 use Modules\User\Infrastructure\Models\User;
 use Psr\Http\Message\ResponseInterface;
 

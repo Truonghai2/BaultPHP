@@ -4,19 +4,19 @@ declare(strict_types=1);
 
 namespace Modules\Admin\Infrastructure\Observers;
 
+use Illuminate\Support\Facades\Log;
 use Modules\Admin\Application\Services\ModuleAggregateService;
 use Modules\Admin\Infrastructure\Models\Module;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Module Event Sourcing Observer
- * 
+ *
  * Automatically tracks module lifecycle events
  */
 class ModuleEventSourcingObserver
 {
     public function __construct(
-        private ModuleAggregateService $moduleService
+        private ModuleAggregateService $moduleService,
     ) {
     }
 
@@ -34,17 +34,17 @@ class ModuleEventSourcingObserver
                 dependencies: $module->dependencies ?? [],
                 metadata: [
                     'description' => $module->description ?? '',
-                    'auto_installed' => true
-                ]
+                    'auto_installed' => true,
+                ],
             );
 
             Log::channel('event_sourcing')->info('Module installed via Event Sourcing', [
-                'module_id' => $module->name
+                'module_id' => $module->name,
             ]);
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on module install', [
                 'error' => $e->getMessage(),
-                'module' => $module->name
+                'module' => $module->name,
             ]);
         }
     }
@@ -63,7 +63,7 @@ class ModuleEventSourcingObserver
                 } else {
                     $this->moduleService->disableModule(
                         $module->name,
-                        'Disabled via admin panel'
+                        'Disabled via admin panel',
                     );
                 }
             }
@@ -73,13 +73,13 @@ class ModuleEventSourcingObserver
                     moduleId: $module->name,
                     newVersion: $module->version,
                     newDependencies: $module->dependencies ?? [],
-                    changeLog: ['Updated via admin panel']
+                    changeLog: ['Updated via admin panel'],
                 );
             }
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on module update', [
                 'error' => $e->getMessage(),
-                'module' => $module->name
+                'module' => $module->name,
             ]);
         }
     }
@@ -93,16 +93,16 @@ class ModuleEventSourcingObserver
         try {
             $this->moduleService->uninstallModule(
                 moduleId: $module->name,
-                reason: 'Uninstalled via admin panel'
+                reason: 'Uninstalled via admin panel',
             );
 
             Log::channel('event_sourcing')->info('Module uninstalled via Event Sourcing', [
-                'module_id' => $module->name
+                'module_id' => $module->name,
             ]);
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on module uninstall', [
                 'error' => $e->getMessage(),
-                'module' => $module->name
+                'module' => $module->name,
             ]);
         }
     }
@@ -114,4 +114,3 @@ class ModuleEventSourcingObserver
             && config('event-sourcing.modules.admin.modules.track_installations', true);
     }
 }
-

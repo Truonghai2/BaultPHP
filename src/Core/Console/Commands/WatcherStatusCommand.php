@@ -29,7 +29,7 @@ class WatcherStatusCommand extends BaseCommand
     public function handle(): int
     {
         $logPath = storage_path('logs/watcher.log');
-        
+
         if (!file_exists($logPath)) {
             $this->error('File watcher log not found. Is the watcher running?');
             $this->info('Start the watcher with: php cli serve:watch');
@@ -39,7 +39,7 @@ class WatcherStatusCommand extends BaseCommand
         $lines = $this->readLastLines($logPath, 100);
         $metrics = $this->extractMetrics($lines);
         $lastChanges = $this->extractLastChanges($lines, 10);
-        
+
         if ($this->option('json')) {
             $this->line(json_encode([
                 'metrics' => $metrics,
@@ -73,18 +73,18 @@ class WatcherStatusCommand extends BaseCommand
             ['Last Reload', $metrics['last_reload'] ?? 'Never'],
         ]);
         $table->render();
-        
+
         $this->line('');
-        
+
         $this->displayHealthStatus($metrics);
-        
+
         $this->line('');
 
         if (!empty($lastChanges)) {
             $this->comment('Recent Changes (Last 10):');
             $changesTable = new Table($this->output);
             $changesTable->setHeaders(['Time', 'Type', 'File']);
-            
+
             foreach ($lastChanges as $change) {
                 $changesTable->addRow([
                     $change['time'],
@@ -92,13 +92,13 @@ class WatcherStatusCommand extends BaseCommand
                     $this->truncatePath($change['file']),
                 ]);
             }
-            
+
             $changesTable->render();
         }
 
         $this->line('');
         $this->info('For detailed logs: tail -f ' . $logPath);
-        
+
         return self::SUCCESS;
     }
 
@@ -108,18 +108,18 @@ class WatcherStatusCommand extends BaseCommand
     private function displayHealthStatus(array $metrics): void
     {
         $this->comment('Health Status:');
-        
+
         $health = [];
         $avgScanTime = $metrics['avg_scan_time_ms'] ?? 0;
         $totalScans = $metrics['total_scans'] ?? 0;
         $totalReloads = $metrics['total_reloads'] ?? 0;
-        
+
         if ($avgScanTime > 100) {
             $health[] = ['⚠️ WARNING', 'Average scan time is high (>' . $avgScanTime . 'ms)'];
         } else {
             $health[] = ['✅ GOOD', 'Scan performance is optimal'];
         }
-        
+
         if ($totalScans > 0) {
             $reloadRate = ($totalReloads / $totalScans) * 100;
             if ($reloadRate > 10) {
@@ -128,7 +128,7 @@ class WatcherStatusCommand extends BaseCommand
                 $health[] = ['✅ GOOD', 'Reload rate is normal'];
             }
         }
-        
+
         $table = new Table($this->output);
         $table->setRows($health);
         $table->render();
@@ -140,7 +140,7 @@ class WatcherStatusCommand extends BaseCommand
     private function extractMetrics(array $lines): array
     {
         $metrics = [];
-        
+
         foreach (array_reverse($lines) as $line) {
             if (strpos($line, 'performance metrics') !== false) {
                 if (preg_match('/\{.*\}/', $line, $matches)) {
@@ -152,7 +152,7 @@ class WatcherStatusCommand extends BaseCommand
                 }
             }
         }
-        
+
         return $metrics;
     }
 
@@ -162,14 +162,14 @@ class WatcherStatusCommand extends BaseCommand
     private function extractLastChanges(array $lines, int $limit = 10): array
     {
         $changes = [];
-        
+
         foreach (array_reverse($lines) as $line) {
-            if (strpos($line, 'changes detected') !== false || 
+            if (strpos($line, 'changes detected') !== false ||
                 strpos($line, 'Reloading server') !== false) {
-                
+
                 if (preg_match('/\[([\d\-\s:]+)\]/', $line, $timeMatch)) {
                     $time = $timeMatch[1];
-                    
+
                     if (preg_match('/"changes":\s*(\[.*?\])/', $line, $changeMatch)) {
                         $changesData = json_decode($changeMatch[1], true);
                         if ($changesData) {
@@ -179,7 +179,7 @@ class WatcherStatusCommand extends BaseCommand
                                     'type' => $change['type'] ?? 'unknown',
                                     'file' => $change['file'] ?? 'unknown',
                                 ];
-                                
+
                                 if (count($changes) >= $limit) {
                                     break 2;
                                 }
@@ -189,7 +189,7 @@ class WatcherStatusCommand extends BaseCommand
                 }
             }
         }
-        
+
         return $changes;
     }
 
@@ -198,7 +198,7 @@ class WatcherStatusCommand extends BaseCommand
      */
     private function readLastLines(string $filePath, int $lines = 100): array
     {
-        $handle = fopen($filePath, "r");
+        $handle = fopen($filePath, 'r');
         if (!$handle) {
             return [];
         }
@@ -239,17 +239,16 @@ class WatcherStatusCommand extends BaseCommand
         if (strlen($path) <= $maxLength) {
             return $path;
         }
-        
+
         $basePath = base_path();
         if (strpos($path, $basePath) === 0) {
             $path = '...' . substr($path, strlen($basePath));
         }
-        
+
         if (strlen($path) > $maxLength) {
             return '...' . substr($path, -($maxLength - 3));
         }
-        
+
         return $path;
     }
 }
-

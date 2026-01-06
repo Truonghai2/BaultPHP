@@ -26,7 +26,7 @@ return [
     */
     'auto_record' => [
         'enabled' => env('EVENT_SOURCING_USER_AUTO_RECORD', false), // Manual by default
-        
+
         'models' => [
             // 'Modules\User\Infrastructure\Models\User',
         ],
@@ -41,7 +41,7 @@ return [
         'user' => [
             'enabled' => env('EVENT_SOURCING_USER_AGGREGATE_ENABLED', true),
             'class' => 'Core\EventSourcing\Examples\UserAggregate',
-            
+
             'snapshots' => [
                 'enabled' => env('EVENT_SOURCING_USER_SNAPSHOTS', true),
                 'frequency' => 50,
@@ -67,7 +67,7 @@ return [
     'publish_events' => [
         'enabled' => env('EVENT_SOURCING_USER_PUBLISH_ENABLED', false),
         'queue' => 'user_events',
-        
+
         'event_types' => [
             'Core\EventSourcing\Examples\Events\UserRegistered',
             'Core\EventSourcing\Examples\Events\UserStatusChanged',
@@ -94,4 +94,3 @@ return [
         'Modules\User\Console\EventSourcingDemoCommand',
     ],
 ];
-

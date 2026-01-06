@@ -2,17 +2,17 @@
 
 namespace Modules\User\Application\CommandHandlers\Auth;
 
-use Core\CQRS\Contracts\CommandInterface;
-use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\Contracts\Auth\StatefulGuard;
-use Core\Support\Facades\Auth;
+use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Core\Support\Facades\Auth;
 use Modules\User\Application\Commands\Auth\LoginCommand;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * LoginHandler
- * 
+ *
  * Handles user authentication.
  */
 class LoginHandler implements CommandHandlerInterface
@@ -42,14 +42,18 @@ class LoginHandler implements CommandHandlerInterface
                 'authentication',
                 "User logged in: {$user->email}",
                 $user,
-                null, null, null, null, null,
+                null,
+                null,
+                null,
+                null,
+                null,
                 [
                     'remember' => $command->remember,
                     'ip_address' => request()->ip() ?? 'unknown',
                     'user_agent' => request()->header('User-Agent') ?? 'unknown',
-                    'action' => 'login_success'
+                    'action' => 'login_success',
                 ],
-                'info'
+                'info',
             );
 
             return $user;
@@ -64,9 +68,9 @@ class LoginHandler implements CommandHandlerInterface
                 'email' => $command->email,
                 'ip_address' => request()->ip() ?? 'unknown',
                 'user_agent' => request()->header('User-Agent') ?? 'unknown',
-                'action' => 'login_failed'
+                'action' => 'login_failed',
             ],
-            'warning'
+            'warning',
         );
 
         return null;

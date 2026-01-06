@@ -84,12 +84,12 @@ class SwoolePdoSessionHandler implements SessionHandlerInterface
 
             $ipAddress = null;
             $userAgent = null;
-            
+
             if (function_exists('app') && app()->has(ServerRequestInterface::class)) {
                 $request = app(ServerRequestInterface::class);
                 $serverParams = $request->getServerParams();
                 $ipAddress = $serverParams['remote_addr'] ?? $serverParams['REMOTE_ADDR'] ?? null;
-                
+
                 // Lấy user agent từ request header
                 $userAgent = $request->getHeaderLine('User-Agent') ?: null;
             }

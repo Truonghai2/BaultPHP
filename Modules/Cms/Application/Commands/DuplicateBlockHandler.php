@@ -15,7 +15,7 @@ use Modules\Cms\Domain\ValueObjects\PageBlockId;
 class DuplicateBlockHandler implements CommandHandler
 {
     public function __construct(
-        private readonly PageBlockService $pageBlockService
+        private readonly PageBlockService $pageBlockService,
     ) {
     }
 

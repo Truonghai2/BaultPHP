@@ -8,10 +8,10 @@ use Core\ORM\Relations\BelongsTo;
 
 /**
  * RoleAssignment Model
- * 
+ *
  * Represents the assignment of a role to a user in a specific context.
  * Critical for security - all role assignments are logged.
- * 
+ *
  * @property int $id
  * @property int $role_id
  * @property int $user_id

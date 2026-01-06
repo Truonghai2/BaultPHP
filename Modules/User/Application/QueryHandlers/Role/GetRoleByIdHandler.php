@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * GetRoleByIdHandler
- * 
+ *
  * Handles GetRoleByIdQuery.
  */
 class GetRoleByIdHandler implements QueryHandlerInterface
@@ -26,28 +26,28 @@ class GetRoleByIdHandler implements QueryHandlerInterface
             'name' => $role->name,
             'description' => $role->description,
             'created_at' => $role->created_at,
-            'updated_at' => $role->updated_at
+            'updated_at' => $role->updated_at,
         ];
 
         if ($query->withPermissions) {
             $permissions = $role->permissions()->get();
-            $roleData['permissions'] = $permissions->map(function($permission) {
+            $roleData['permissions'] = $permissions->map(function ($permission) {
                 return [
                     'id' => $permission->id,
                     'name' => $permission->name,
                     'description' => $permission->description,
-                    'captype' => $permission->captype
+                    'captype' => $permission->captype,
                 ];
             })->toArray();
         }
 
         if ($query->withUsers) {
             $users = $role->users()->get();
-            $roleData['users'] = $users->map(function($user) {
+            $roleData['users'] = $users->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,
-                    'email' => $user->email
+                    'email' => $user->email,
                 ];
             })->toArray();
         }
@@ -55,4 +55,3 @@ class GetRoleByIdHandler implements QueryHandlerInterface
         return $roleData;
     }
 }
-

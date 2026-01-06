@@ -9,7 +9,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Block Registry Service
- * 
+ *
  * Quản lý việc đăng ký và discovery các block types trong hệ thống
  * Giống như plugin registry trong Moodle
  */
@@ -32,31 +32,31 @@ class BlockRegistry
         // Basic Content Blocks
         \Modules\Cms\Domain\Blocks\TextBlock::class,
         \Modules\Cms\Domain\Blocks\HtmlBlock::class,
-        
+
         // Navigation Blocks
         \Modules\Cms\Domain\Blocks\MenuBlock::class,
         \Modules\Cms\Domain\Blocks\NavigationBlock::class,
         \Modules\Cms\Domain\Blocks\UserMenuBlock::class,
         \Modules\Cms\Domain\Blocks\SearchBlock::class,
-        
+
         // Content Blocks
         \Modules\Cms\Domain\Blocks\RecentPagesBlock::class,
         \Modules\Cms\Domain\Blocks\WelcomeBannerBlock::class,
         \Modules\Cms\Domain\Blocks\StatsBlock::class,
         \Modules\Cms\Domain\Blocks\TeamBlock::class,
-        
+
         // Homepage Blocks (Match 100% original design)
         \Modules\Cms\Domain\Blocks\HomepageHeroBlock::class,
         \Modules\Cms\Domain\Blocks\HomepageFeaturesBlock::class,
         \Modules\Cms\Domain\Blocks\HomepageStatsBlock::class,
-        
+
         // Layout Blocks
         \Modules\Cms\Domain\Blocks\FooterBlock::class,
     ];
 
     public function __construct(
         private readonly CacheManager $cache,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -100,7 +100,7 @@ class BlockRegistry
 
     /**
      * Get all block instances
-     * 
+     *
      * @return array<string, AbstractBlock>
      */
     public function getBlocks(): array
@@ -159,7 +159,7 @@ class BlockRegistry
 
     /**
      * Sync blocks to database
-     * 
+     *
      * Đồng bộ registered blocks vào block_types table
      */
     public function syncToDatabase(): array
@@ -231,7 +231,7 @@ class BlockRegistry
     public function getCategories(): array
     {
         $categories = [];
-        
+
         foreach ($this->getBlocks() as $block) {
             $category = $block->getCategory();
             if (!isset($categories[$category])) {
@@ -258,7 +258,7 @@ class BlockRegistry
 
         foreach ($files as $file) {
             $className = $this->getClassNameFromFile($file);
-            
+
             if ($className && class_exists($className) && is_subclass_of($className, AbstractBlock::class)) {
                 $discovered[] = $className;
             }
@@ -273,7 +273,7 @@ class BlockRegistry
     private function getClassNameFromFile(string $file): ?string
     {
         $content = file_get_contents($file);
-        
+
         // Extract namespace
         if (preg_match('/namespace\s+([^;]+);/', $content, $matches)) {
             $namespace = $matches[1];
@@ -290,4 +290,3 @@ class BlockRegistry
         return null;
     }
 }
-

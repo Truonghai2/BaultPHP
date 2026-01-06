@@ -42,10 +42,10 @@ class MakeDomainEventCommand extends BaseCommand
         $this->createDomainEvent($modulePath, $module, $name);
 
         $this->io->success("Domain event [{$name}] created successfully!");
-        $this->io->comment("Next steps:");
+        $this->io->comment('Next steps:');
         $this->io->listing([
-            "1. Define event properties in the constructor",
-            "2. Implement toArray() and fromArray() methods",
+            '1. Define event properties in the constructor',
+            '2. Implement toArray() and fromArray() methods',
             "3. Add apply method in your aggregate: protected function apply{$name}(...)",
             "4. Record the event in aggregate: \$this->recordThat(new {$name}(...))",
         ]);
@@ -57,7 +57,7 @@ class MakeDomainEventCommand extends BaseCommand
     {
         $path = "{$modulePath}/Domain/Aggregates/Events/{$name}.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -69,7 +69,7 @@ class MakeDomainEventCommand extends BaseCommand
 
         $stub = $this->getEventStub($module, $name);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Domain/Aggregates/Events/{$name}.php");
     }
 
@@ -128,4 +128,3 @@ class {$name} extends DomainEvent
 PHP;
     }
 }
-

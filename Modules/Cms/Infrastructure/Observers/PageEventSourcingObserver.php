@@ -4,20 +4,20 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Observers;
 
+use Illuminate\Support\Facades\Log;
 use Modules\Cms\Application\Services\PageAggregateService;
 use Modules\Cms\Infrastructure\Models\Page;
-use Illuminate\Support\Facades\Log;
 
 /**
  * Page Event Sourcing Observer
- * 
+ *
  * Automatically records events when Page model changes
  * Works alongside traditional database operations
  */
 class PageEventSourcingObserver
 {
     public function __construct(
-        private PageAggregateService $pageService
+        private PageAggregateService $pageService,
     ) {
     }
 
@@ -35,18 +35,18 @@ class PageEventSourcingObserver
             $this->pageService->createPage(
                 name: $page->name,
                 slug: $page->slug,
-                userId: $page->user_id
+                userId: $page->user_id,
             );
 
             Log::channel('event_sourcing')->info('Page created via Event Sourcing', [
                 'page_id' => $page->id,
-                'name' => $page->name
+                'name' => $page->name,
             ]);
         } catch (\Exception $e) {
             // Don't fail the main operation if event sourcing fails
             Log::error('Event Sourcing error on page create', [
                 'error' => $e->getMessage(),
-                'page_id' => $page->id
+                'page_id' => $page->id,
             ]);
         }
     }
@@ -70,7 +70,7 @@ class PageEventSourcingObserver
                     pageId: (string) $page->id,
                     newName: $page->name,
                     newSlug: $page->slug,
-                    userId: $userId
+                    userId: $userId,
                 );
             }
 
@@ -78,7 +78,7 @@ class PageEventSourcingObserver
                 $this->pageService->updatePageContent(
                     pageId: (string) $page->id,
                     content: $page->content ?? [],
-                    userId: $userId
+                    userId: $userId,
                 );
             }
 
@@ -86,7 +86,7 @@ class PageEventSourcingObserver
                 $this->pageService->changeFeaturedImage(
                     pageId: (string) $page->id,
                     imagePath: $page->featured_image_path,
-                    userId: $userId
+                    userId: $userId,
                 );
             }
 
@@ -98,7 +98,7 @@ class PageEventSourcingObserver
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on page update', [
                 'error' => $e->getMessage(),
-                'page_id' => $page->id
+                'page_id' => $page->id,
             ]);
         }
     }
@@ -116,16 +116,16 @@ class PageEventSourcingObserver
             $this->pageService->deletePage(
                 pageId: (string) $page->id,
                 userId: $this->getCurrentUserId(),
-                reason: 'Deleted from admin panel'
+                reason: 'Deleted from admin panel',
             );
 
             Log::channel('event_sourcing')->info('Page deleted via Event Sourcing', [
-                'page_id' => $page->id
+                'page_id' => $page->id,
             ]);
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on page delete', [
                 'error' => $e->getMessage(),
-                'page_id' => $page->id
+                'page_id' => $page->id,
             ]);
         }
     }
@@ -178,4 +178,3 @@ class PageEventSourcingObserver
         return 'system';
     }
 }
-

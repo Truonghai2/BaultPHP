@@ -63,6 +63,7 @@ RUN buildDeps=" \
         supervisor \
         default-mysql-client \
         postgresql-client \
+        curl \
     && pecl install redis apcu \
     && docker-php-ext-enable redis apcu \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \

@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsTo;
 use Modules\User\Infrastructure\Models\User;
-use Core\Audit\Traits\Auditable;
 
 /**
  * Page Revision Model
- * 
+ *
  * Stores historical versions of pages for rollback and audit
- * 
+ *
  * @property int $id
  * @property int $page_id
  * @property int $user_id
@@ -30,7 +30,7 @@ use Core\Audit\Traits\Auditable;
 class PageRevision extends Model
 {
     use Auditable;
-    
+
     protected static string $table = 'page_revisions';
 
     protected array $fillable = [
@@ -82,4 +82,3 @@ class PageRevision extends Model
         return $this->created_at->diffForHumans();
     }
 }
-

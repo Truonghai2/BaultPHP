@@ -9,7 +9,7 @@ use DateTimeImmutable;
 
 /**
  * Block Duplicated Event
- * 
+ *
  * Emitted when a block is duplicated
  */
 class BlockDuplicated extends DomainEvent
@@ -25,7 +25,7 @@ class BlockDuplicated extends DomainEvent
         ?string $eventId = null,
         ?DateTimeImmutable $occurredAt = null,
         int $eventVersion = 1,
-        array $metadata = []
+        array $metadata = [],
     ) {
         parent::__construct($eventId, $occurredAt, $eventVersion, $metadata);
     }
@@ -43,7 +43,7 @@ class BlockDuplicated extends DomainEvent
             eventId: $data['eventId'],
             occurredAt: new DateTimeImmutable($data['occurredAt']),
             eventVersion: $data['eventVersion'] ?? 1,
-            metadata: $data['metadata'] ?? []
+            metadata: $data['metadata'] ?? [],
         );
     }
 
@@ -64,4 +64,3 @@ class BlockDuplicated extends DomainEvent
         ];
     }
 }
-

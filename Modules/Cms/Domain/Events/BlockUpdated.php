@@ -9,15 +9,14 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * Block Updated Event
- * 
+ *
  * Fired when a block is created, updated, or deleted
  */
 class BlockUpdated
 {
     public function __construct(
         public readonly BlockInstance|PageBlock $block,
-        public readonly string $action // 'created', 'updated', 'deleted'
+        public readonly string $action, // 'created', 'updated', 'deleted'
     ) {
     }
 }
-

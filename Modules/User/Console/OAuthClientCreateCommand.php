@@ -72,7 +72,7 @@ class OAuthClientCreateCommand extends BaseCommand
 
         $this->io->success('OAuth client created successfully!');
         $this->io->newLine();
-        
+
         $this->io->table(
             ['Key', 'Value'],
             [
@@ -82,7 +82,7 @@ class OAuthClientCreateCommand extends BaseCommand
                 ['Type', $isPublic ? 'Public' : 'Confidential'],
                 ['Password Grant', $isPassword ? 'Yes' : 'No'],
                 ['Personal Access', $isPersonal ? 'Yes' : 'No'],
-            ]
+            ],
         );
 
         if ($plainSecret) {
@@ -94,4 +94,3 @@ class OAuthClientCreateCommand extends BaseCommand
         return self::SUCCESS;
     }
 }
-

@@ -123,7 +123,7 @@ class MySqlGrammar implements Grammar
         if (isset($column->after)) {
             $alterSql .= " AFTER {$this->quote($column->after)}";
         } elseif (isset($column->first) && $column->first) {
-            $alterSql .= " FIRST";
+            $alterSql .= ' FIRST';
         }
 
         return $alterSql;

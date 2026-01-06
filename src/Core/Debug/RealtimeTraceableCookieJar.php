@@ -29,7 +29,7 @@ class RealtimeTraceableCookieJar extends CookieJar
         ?bool $secure = null,
         bool $httpOnly = true,
         bool $raw = false,
-        ?string $sameSite = null
+        ?string $sameSite = null,
     ): void {
         parent::queue($name, $value, $minutes, $path, $domain, $secure, $httpOnly, $raw, $sameSite);
 
@@ -74,4 +74,3 @@ class RealtimeTraceableCookieJar extends CookieJar
         return $response;
     }
 }
-

@@ -15,7 +15,7 @@ class OAuthClientSeeder extends Seeder
      * @return void
      */
     public function run(): void
-    {   
+    {
         /** @var \PDO $pdo */
         $pdo = $this->container->make(Connection::class)->connection();
         $schema = new DbSchema($pdo);
@@ -51,14 +51,14 @@ class OAuthClientSeeder extends Seeder
 
         $this->command->info('OAuth clients created successfully.');
         $this->command->line('  <fg=yellow>Web App (Auth Code) Client ID:</> 9c882444-76cf-4423-9216-a0a1f485b132');
-        
+
         if ($webClient && isset($webClient->wasRecentlyCreated) && $webClient->wasRecentlyCreated && !env('OAUTH_WEB_CLIENT_SECRET')) {
             $this->command->line('  <fg=red>Web App Client Secret:</> ' . $webAppSecret);
             $this->command->warn('Save this secret! Add to .env: OAUTH_WEB_CLIENT_SECRET=' . $webAppSecret);
         }
-        
+
         $this->command->line('  <fg=yellow>Mobile App (Password) Client ID:</> 9c8824a7-85b4-431c-991b-3a5a101f7a2c');
-        
+
         if ($mobileClient && isset($mobileClient->wasRecentlyCreated) && $mobileClient->wasRecentlyCreated && !env('OAUTH_MOBILE_CLIENT_SECRET')) {
             $this->command->line('  <fg=red>Mobile App Client Secret:</> ' . $mobileAppSecret);
             $this->command->warn('Save this secret! Add to .env: OAUTH_MOBILE_CLIENT_SECRET=' . $mobileAppSecret);

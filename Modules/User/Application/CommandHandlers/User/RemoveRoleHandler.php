@@ -2,8 +2,8 @@
 
 namespace Modules\User\Application\CommandHandlers\User;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Modules\User\Application\Commands\User\RemoveRoleCommand;
 use Modules\User\Infrastructure\Models\Role;
@@ -12,7 +12,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * RemoveRoleHandler
- * 
+ *
  * Handles the RemoveRoleCommand.
  */
 class RemoveRoleHandler implements CommandHandlerInterface
@@ -48,8 +48,8 @@ class RemoveRoleHandler implements CommandHandlerInterface
                 'role_id' => $command->roleId,
                 'role_name' => $role->name,
                 'context_id' => $command->contextId,
-                'action' => 'role_removed'
-            ]
+                'action' => 'role_removed',
+            ],
         );
 
         return true;

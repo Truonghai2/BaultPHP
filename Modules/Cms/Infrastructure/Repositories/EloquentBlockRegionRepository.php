@@ -51,14 +51,14 @@ class EloquentBlockRegionRepository implements BlockRegionRepositoryInterface
     {
         return BlockRegionModel::where('is_active', true)
             ->get()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
     public function findAll(): array
     {
         return BlockRegionModel::all()
-            ->map(fn($model) => $this->toDomain($model))
+            ->map(fn ($model) => $this->toDomain($model))
             ->toArray();
     }
 
@@ -106,4 +106,3 @@ class EloquentBlockRegionRepository implements BlockRegionRepositoryInterface
         ]);
     }
 }
-

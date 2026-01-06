@@ -3,7 +3,6 @@
 namespace Modules\Cms\Domain\Services;
 
 use Core\Support\Facades\Log;
-use Modules\Cms\Domain\Services\BlockRegistry;
 use Modules\Cms\Infrastructure\Models\BlockType;
 
 /**

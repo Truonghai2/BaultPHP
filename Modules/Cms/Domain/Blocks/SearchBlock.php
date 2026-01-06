@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Search Block
- * 
+ *
  * Display search form
  */
 class SearchBlock extends AbstractBlock
@@ -49,7 +49,7 @@ class SearchBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.search', $config);
     }
 
@@ -63,4 +63,3 @@ class SearchBlock extends AbstractBlock
         return 3600;
     }
 }
-

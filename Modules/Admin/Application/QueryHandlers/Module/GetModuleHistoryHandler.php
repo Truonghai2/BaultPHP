@@ -8,7 +8,7 @@ use Modules\Admin\Application\Queries\Module\GetModuleHistoryQuery;
 
 /**
  * GetModuleHistoryHandler
- * 
+ *
  * Handles GetModuleHistoryQuery.
  */
 class GetModuleHistoryHandler implements QueryHandlerInterface
@@ -35,4 +35,3 @@ class GetModuleHistoryHandler implements QueryHandlerInterface
         })->toArray();
     }
 }
-

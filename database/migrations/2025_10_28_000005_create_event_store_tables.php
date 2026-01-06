@@ -7,18 +7,18 @@ return new class () extends Migration {
     public function up(): void
     {
         $this->schema->create('events', function (Blueprint $table) {
-            $table->id(); 
-            $table->string('event_id', 36)->unique(); 
+            $table->id();
+            $table->string('event_id', 36)->unique();
             $table->string('aggregate_type', 255)->index();
             $table->string('aggregate_id', 255)->index();
             $table->string('event_type', 255)->index();
-            $table->text('event_data'); 
+            $table->text('event_data');
             $table->integer('event_version')->default(1);
             $table->integer('aggregate_version');
-            $table->text('metadata')->nullable(); 
+            $table->text('metadata')->nullable();
             $table->dateTime('occurred_at')->index();
             $table->timestamps();
-            
+
             $table->index(['aggregate_type', 'aggregate_id', 'aggregate_version']);
         });
 
@@ -28,7 +28,7 @@ return new class () extends Migration {
             $table->string('aggregate_id', 255);
             $table->integer('version')->default(0);
             $table->timestamps();
-            
+
             $table->unique(['aggregate_type', 'aggregate_id']);
         });
 
@@ -37,7 +37,7 @@ return new class () extends Migration {
             $table->string('projection_name', 255)->unique();
             $table->string('last_event_id', 36)->nullable();
             $table->integer('last_position')->default(0);
-            $table->string('status', 50)->default('idle'); 
+            $table->string('status', 50)->default('idle');
             $table->timestamps();
         });
 
@@ -46,9 +46,9 @@ return new class () extends Migration {
             $table->string('aggregate_type', 255);
             $table->string('aggregate_id', 255);
             $table->integer('version');
-            $table->text('state'); 
+            $table->text('state');
             $table->timestamps();
-            
+
             $table->unique(['aggregate_type', 'aggregate_id', 'version']);
             $table->index(['aggregate_type', 'aggregate_id']);
         });
@@ -64,4 +64,3 @@ return new class () extends Migration {
         $this->schema->dropIfExists('events');
     }
 };
-

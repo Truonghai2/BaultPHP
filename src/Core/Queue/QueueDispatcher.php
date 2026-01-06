@@ -21,7 +21,7 @@ class QueueDispatcher implements Dispatcher
     {
         // Get queue connection from app and push job
         $queue = app('queue');
-        
+
         if (method_exists($queue, 'push')) {
             $queue->push($job);
         } else {
@@ -33,4 +33,3 @@ class QueueDispatcher implements Dispatcher
         }
     }
 }
-

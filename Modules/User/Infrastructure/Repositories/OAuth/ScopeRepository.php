@@ -14,7 +14,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * Optimized ScopeRepository with multi-level caching.
- * 
+ *
  * PERFORMANCE OPTIMIZATIONS:
  * - L1: Request-level cache
  * - L2: APCu cache (1 hour TTL - scopes rarely change)
@@ -27,26 +27,26 @@ class ScopeRepository implements ScopeRepositoryInterface
      * Request-level cache for scope entities
      */
     private static array $requestCache = [];
-    
+
     /**
      * Cache manager for persistent caching
      */
     private ?CacheManager $cacheManager = null;
-    
+
     /**
      * Application instance
      */
     private ?Application $app = null;
-    
+
     /**
      * Cache TTLs (scopes rarely change, so longer TTL)
      */
     private const L2_TTL = 3600; // 1 hour (APCu)
     private const L3_TTL = 3600; // 1 hour (Redis)
-    
+
     /**
      * Check if APCu is available and enabled
-     * 
+     *
      * @return bool
      */
     private static function isApcuAvailable(): bool
@@ -57,7 +57,7 @@ class ScopeRepository implements ScopeRepositoryInterface
     public function __construct(?Application $app = null)
     {
         $this->app = $app;
-        
+
         // Get cache manager if available
         if ($app && $app->has(CacheManager::class)) {
             $this->cacheManager = $app->make(CacheManager::class);
@@ -66,7 +66,7 @@ class ScopeRepository implements ScopeRepositoryInterface
 
     /**
      * {@inheritdoc}
-     * 
+     *
      * PERFORMANCE: Multi-level caching
      */
     public function getScopeEntityByIdentifier($identifier)
@@ -109,14 +109,14 @@ class ScopeRepository implements ScopeRepositoryInterface
 
         $scopeEntity = new ScopeEntity();
         $scopeEntity->setIdentifier($scope->id);
-        
+
         if (isset($scope->description)) {
             $scopeEntity->setDescription($scope->description);
         }
 
         // Cache at all levels
         self::$requestCache[$l1Key] = $scopeEntity;
-        
+
         // Cache using helper function (handles both APCu and persistent cache)
         oauth_cache_scope($identifier, $scopeEntity, self::L2_TTL, self::L3_TTL);
 
@@ -168,7 +168,7 @@ class ScopeRepository implements ScopeRepositoryInterface
 
         return array_values($allowedScopes);
     }
-    
+
     /**
      * Clear cache for a specific scope.
      * Should be called when scope data is updated.
@@ -177,11 +177,11 @@ class ScopeRepository implements ScopeRepositoryInterface
     {
         $l1Key = "oauth:scope:{$identifier}";
         unset(self::$requestCache[$l1Key]);
-        
+
         // Clear cache using helper function
         oauth_clear_scope_cache($identifier);
     }
-    
+
     /**
      * Clear all caches (useful for testing or maintenance).
      */

@@ -4,14 +4,12 @@ namespace Modules\User\Console;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
-use Modules\User\Domain\Events\RoleAssignedToUser;
-use Modules\User\Domain\Events\RolePermissionsChanged;
 use Modules\User\Domain\Services\ACLOptimizer;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * ACLCacheWatcherCommand
- * 
+ *
  * Watches for role/permission changes and auto-invalidates cache.
  * Runs continuously like a file watcher.
  */
@@ -70,14 +68,14 @@ class ACLCacheWatcherCommand extends BaseCommand
             $iteration++;
             $startTime = microtime(true);
 
-            $this->io->writeln("<fg=cyan>[" . date('Y-m-d H:i:s') . "]</> Checking for changes... (iteration #{$iteration})");
+            $this->io->writeln('<fg=cyan>[' . date('Y-m-d H:i:s') . "]</> Checking for changes... (iteration #{$iteration})");
 
             $changes = $this->checkForChanges($optimizer);
 
             if ($changes['invalidated'] > 0 || $changes['warmed'] > 0) {
                 $this->io->writeln("<fg=green>✓</> Invalidated: {$changes['invalidated']}, Warmed: {$changes['warmed']}");
             } else {
-                $this->io->writeln("<fg=gray>○</> No changes detected");
+                $this->io->writeln('<fg=gray>○</> No changes detected');
             }
 
             // Show metrics every 10 iterations
@@ -100,7 +98,7 @@ class ACLCacheWatcherCommand extends BaseCommand
 
         $this->io->newLine();
         $this->io->writeln('<info>ACL Cache Watcher stopped gracefully</info>');
-        
+
         return self::SUCCESS;
     }
 
@@ -131,13 +129,13 @@ class ACLCacheWatcherCommand extends BaseCommand
             $affectedUsers = $this->getRecentlyChangedUsers('role_assignments', $this->lastChecks['role_assignments']);
             $invalidated += count($affectedUsers);
             $optimizer->invalidateBatch($affectedUsers);
-            
+
             // Optional: warm immediately
             if (count($affectedUsers) <= 10) {
                 $optimizer->warmCache($affectedUsers);
                 $warmed += count($affectedUsers);
             }
-            
+
             $this->lastChecks['role_assignments'] = $currentRoleAssignments;
             $this->io->writeln("  <fg=yellow>→</> Role assignments changed ({$invalidated} users affected)");
         }
@@ -150,7 +148,7 @@ class ACLCacheWatcherCommand extends BaseCommand
             $affectedUsers = $this->getUsersByRoles($affectedRoles);
             $invalidated += count($affectedUsers);
             $optimizer->invalidateBatch($affectedUsers);
-            
+
             $this->lastChecks['permission_role'] = $currentPermissionRole;
             $this->io->writeln("  <fg=yellow>→</> Role permissions changed ({$invalidated} users affected)");
         }
@@ -168,7 +166,7 @@ class ACLCacheWatcherCommand extends BaseCommand
     {
         try {
             $result = $this->app->make('db')->select(
-                "SELECT MAX(UNIX_TIMESTAMP(updated_at)) as max_time FROM {$table}"
+                "SELECT MAX(UNIX_TIMESTAMP(updated_at)) as max_time FROM {$table}",
             );
             return (int) ($result[0]->max_time ?? time());
         } catch (\Exception $e) {
@@ -184,7 +182,7 @@ class ACLCacheWatcherCommand extends BaseCommand
         try {
             $result = $this->app->make('db')->select(
                 "SELECT DISTINCT user_id FROM {$table} WHERE UNIX_TIMESTAMP(updated_at) > ?",
-                [$since]
+                [$since],
             );
             return array_column($result, 'user_id');
         } catch (\Exception $e) {
@@ -199,8 +197,8 @@ class ACLCacheWatcherCommand extends BaseCommand
     {
         try {
             $result = $this->app->make('db')->select(
-                "SELECT DISTINCT role_id FROM permission_role WHERE UNIX_TIMESTAMP(created_at) > ?",
-                [$since]
+                'SELECT DISTINCT role_id FROM permission_role WHERE UNIX_TIMESTAMP(created_at) > ?',
+                [$since],
             );
             return array_column($result, 'role_id');
         } catch (\Exception $e) {
@@ -221,7 +219,7 @@ class ACLCacheWatcherCommand extends BaseCommand
             $placeholders = implode(',', array_fill(0, count($roleIds), '?'));
             $result = $this->app->make('db')->select(
                 "SELECT DISTINCT user_id FROM role_assignments WHERE role_id IN ({$placeholders})",
-                $roleIds
+                $roleIds,
             );
             return array_column($result, 'user_id');
         } catch (\Exception $e) {
@@ -241,7 +239,7 @@ class ACLCacheWatcherCommand extends BaseCommand
             ->get();
 
         $userIds = $activeUsers->pluck('id')->toArray();
-        
+
         if (!empty($userIds)) {
             $stats = $optimizer->warmCache($userIds);
             $this->io->writeln("  <fg=green>✓</> Warmed cache for {$stats['warmed']} active users");
@@ -255,7 +253,7 @@ class ACLCacheWatcherCommand extends BaseCommand
     {
         $hitRate = $optimizer->getCacheHitRate();
         $color = $hitRate >= 95 ? 'green' : ($hitRate >= 85 ? 'yellow' : 'red');
-        
+
         $this->io->newLine();
         $this->io->writeln("  <fg={$color}>Cache Hit Rate: {$hitRate}%</>");
         $this->io->newLine();
@@ -263,7 +261,7 @@ class ACLCacheWatcherCommand extends BaseCommand
 
     /**
      * Handle termination signals.
-     * 
+     *
      * @param int $signal
      * @param int|false $previousExitCode
      * @return int|false
@@ -273,8 +271,7 @@ class ACLCacheWatcherCommand extends BaseCommand
         $this->shouldStop = true;
         $this->io->newLine();
         $this->io->writeln('<comment>Received stop signal, shutting down gracefully...</comment>');
-        
+
         return false; // Continue with default signal handling
     }
 }
-

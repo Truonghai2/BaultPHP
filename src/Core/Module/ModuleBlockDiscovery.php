@@ -6,9 +6,9 @@ use Core\Application;
 
 /**
  * Module Block Discovery Service
- * 
+ *
  * Automatically discovers and registers blocks from all enabled modules.
- * 
+ *
  * Convention:
  * - Blocks must be in: Modules/{ModuleName}/Domain/Blocks/
  * - Block views in: Modules/{ModuleName}/Resources/views/blocks/
@@ -27,7 +27,7 @@ class ModuleBlockDiscovery
 
     /**
      * Discover all blocks from enabled modules
-     * 
+     *
      * @return array [
      *   'blocks' => ['BlockClass' => 'ModuleName', ...],
      *   'views' => ['module-alias' => 'path/to/views', ...]
@@ -99,7 +99,7 @@ class ModuleBlockDiscovery
 
         foreach ($blockFiles as $file) {
             $className = $this->getClassNameFromFile($file, $moduleName);
-            
+
             if ($className && $this->isValidBlockClass($className)) {
                 $this->discoveredBlocks[$className] = $moduleName;
             }
@@ -128,7 +128,7 @@ class ModuleBlockDiscovery
 
         try {
             $reflection = new \ReflectionClass($className);
-            
+
             // Must be concrete (not abstract/interface)
             if ($reflection->isAbstract() || $reflection->isInterface()) {
                 return false;
@@ -164,7 +164,7 @@ class ModuleBlockDiscovery
     {
         return array_filter(
             $this->discoveredBlocks,
-            fn($module) => $module === $moduleName
+            fn ($module) => $module === $moduleName,
         );
     }
 
@@ -174,9 +174,9 @@ class ModuleBlockDiscovery
     public function cacheDiscovery(string $cachePath): bool
     {
         $discovery = $this->discover();
-        
+
         $cacheContent = "<?php\n\nreturn " . var_export($discovery, true) . ";\n";
-        
+
         return file_put_contents($cachePath, $cacheContent) !== false;
     }
 
@@ -190,11 +190,10 @@ class ModuleBlockDiscovery
         }
 
         $discovery = require $cachePath;
-        
+
         $this->discoveredBlocks = $discovery['blocks'] ?? [];
         $this->moduleViewNamespaces = $discovery['views'] ?? [];
 
         return $discovery;
     }
 }
-

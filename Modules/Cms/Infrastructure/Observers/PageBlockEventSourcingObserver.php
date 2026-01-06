@@ -10,13 +10,13 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * Page Block Event Sourcing Observer
- * 
+ *
  * Automatically records events when PageBlock model changes
  */
 class PageBlockEventSourcingObserver
 {
     public function __construct(
-        private PageBlockAggregateService $blockService
+        private PageBlockAggregateService $blockService,
     ) {
     }
 
@@ -31,17 +31,17 @@ class PageBlockEventSourcingObserver
                 pageId: (string) $block->page_id,
                 componentClass: $block->component_class,
                 sortOrder: $block->sort_order,
-                userId: $this->getCurrentUserId()
+                userId: $this->getCurrentUserId(),
             );
 
             Log::channel('event_sourcing')->info('Block created via Event Sourcing', [
                 'block_id' => $block->id,
-                'page_id' => $block->page_id
+                'page_id' => $block->page_id,
             ]);
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on block create', [
                 'error' => $e->getMessage(),
-                'block_id' => $block->id
+                'block_id' => $block->id,
             ]);
         }
     }
@@ -59,7 +59,7 @@ class PageBlockEventSourcingObserver
                 $this->blockService->updateBlockContent(
                     blockId: (string) $block->id,
                     content: $block->content ?? [],
-                    userId: $userId
+                    userId: $userId,
                 );
             }
 
@@ -67,13 +67,13 @@ class PageBlockEventSourcingObserver
                 $this->blockService->changeBlockOrder(
                     blockId: (string) $block->id,
                     newOrder: $block->sort_order,
-                    userId: $userId
+                    userId: $userId,
                 );
             }
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on block update', [
                 'error' => $e->getMessage(),
-                'block_id' => $block->id
+                'block_id' => $block->id,
             ]);
         }
     }
@@ -87,16 +87,16 @@ class PageBlockEventSourcingObserver
         try {
             $this->blockService->deleteBlock(
                 blockId: (string) $block->id,
-                userId: $this->getCurrentUserId()
+                userId: $this->getCurrentUserId(),
             );
 
             Log::channel('event_sourcing')->info('Block deleted via Event Sourcing', [
-                'block_id' => $block->id
+                'block_id' => $block->id,
             ]);
         } catch (\Exception $e) {
             Log::error('Event Sourcing error on block delete', [
                 'error' => $e->getMessage(),
-                'block_id' => $block->id
+                'block_id' => $block->id,
             ]);
         }
     }
@@ -120,4 +120,3 @@ class PageBlockEventSourcingObserver
         return 'system';
     }
 }
-

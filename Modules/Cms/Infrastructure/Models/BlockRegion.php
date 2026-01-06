@@ -2,16 +2,16 @@
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\HasMany;
-use Core\Audit\Traits\Auditable;
 
 /**
  * Block Region Model
- * 
+ *
  * Đại diện cho một vùng (region) có thể chứa blocks
  * Ví dụ: sidebar-left, sidebar-right, footer...
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string $title
@@ -104,4 +104,3 @@ class BlockRegion extends Model
         return $query->where('is_active', true);
     }
 }
-

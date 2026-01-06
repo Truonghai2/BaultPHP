@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * GetUserByEmailHandler
- * 
+ *
  * Handles GetUserByEmailQuery.
  */
 class GetUserByEmailHandler implements QueryHandlerInterface
@@ -22,10 +22,10 @@ class GetUserByEmailHandler implements QueryHandlerInterface
             if ($user) {
                 $roles = $user->roles()->get();
                 $userData = $user->getAttributes();
-                $userData['roles'] = $roles->map(fn($role) => [
+                $userData['roles'] = $roles->map(fn ($role) => [
                     'id' => $role->id,
                     'name' => $role->name,
-                    'description' => $role->description
+                    'description' => $role->description,
                 ])->toArray();
                 return $userData;
             }
@@ -36,4 +36,3 @@ class GetUserByEmailHandler implements QueryHandlerInterface
         return $user ? $user->getAttributes() : null;
     }
 }
-

@@ -35,7 +35,7 @@ class BlockRegionSeeder extends Seeder
         foreach ($defaultRegions as $regionData) {
             $region = BlockRegion::firstOrCreate(
                 ['name' => $regionData['name']],
-                $regionData
+                $regionData,
             );
 
             if ($region->wasRecentlyCreated) {

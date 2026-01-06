@@ -10,19 +10,20 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * DisableModuleHandler
- * 
+ *
  * Handles the DisableModuleCommand.
  */
 class DisableModuleHandler implements CommandHandlerInterface
 {
     public function __construct(
-        private ModuleManager $moduleManager
-    ) {}
+        private ModuleManager $moduleManager,
+    ) {
+    }
 
     public function handle(CommandInterface $command): bool
     {
         $module = Module::where('name', '=', $command->moduleName)->first();
-        
+
         if (!$module) {
             throw new \Exception("Module '{$command->moduleName}' not found");
         }
@@ -40,9 +41,9 @@ class DisableModuleHandler implements CommandHandlerInterface
             "Module '{$command->moduleName}' has been disabled",
             [
                 'module' => $command->moduleName,
-                'action' => 'disable'
+                'action' => 'disable',
             ],
-            'warning'
+            'warning',
         );
 
         return true;
@@ -50,12 +51,11 @@ class DisableModuleHandler implements CommandHandlerInterface
 
     /**
      * Check if other enabled modules depend on this module.
-     * 
+     *
      * @throws \Exception
      */
     private function checkDependents(string $moduleName): void
     {
-        
+
     }
 }
-

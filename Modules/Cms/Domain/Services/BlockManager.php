@@ -15,7 +15,7 @@ use Psr\Log\LoggerInterface;
 
 /**
  * Block Manager Domain Service
- * 
+ *
  * Business logic for block management
  */
 class BlockManager
@@ -25,7 +25,7 @@ class BlockManager
         private readonly BlockRegionRepositoryInterface $blockRegionRepository,
         private readonly BlockRegistry $registry,
         private readonly BlockRenderer $renderer,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -35,7 +35,7 @@ class BlockManager
     public function createBlock(
         string $blockTypeName,
         string $regionName,
-        array $attributes = []
+        array $attributes = [],
     ): BlockInstance {
         $blockType = BlockType::where('name', $blockTypeName)->firstOrFail();
         $region = $this->blockRegionRepository->findByName(new RegionName($regionName));
@@ -63,7 +63,7 @@ class BlockManager
             $attributes['visibility_rules'] ?? null,
             $attributes['allowed_roles'] ?? null,
             $attributes['denied_roles'] ?? null,
-            $attributes['created_by'] ?? null
+            $attributes['created_by'] ?? null,
         );
 
         $block = $this->registry->getBlock($blockTypeName);
@@ -209,7 +209,7 @@ class BlockManager
             $instance->getConfig(),
             $instance->getContent(),
             $instance->getWeight() + 1,
-            $instance->isVisible()
+            $instance->isVisible(),
         );
 
         $this->blockInstanceRepository->save($newInstance);
@@ -228,13 +228,13 @@ class BlockManager
     public function getBlocksForRegion(
         string $regionName,
         ?string $contextType = 'global',
-        ?int $contextId = null
+        ?int $contextId = null,
     ): array {
         $region = $this->blockRegionRepository->findByName(new RegionName($regionName));
         return $this->blockInstanceRepository->findByRegion(
             $region->getId(),
             $contextType,
-            $contextId
+            $contextId,
         );
     }
 
@@ -244,8 +244,8 @@ class BlockManager
     public function reorderBlocks(array $blockIds): void
     {
         $blockIdObjects = array_map(
-            fn($id) => $id instanceof BlockId ? $id : new BlockId((int) $id),
-            $blockIds
+            fn ($id) => $id instanceof BlockId ? $id : new BlockId((int) $id),
+            $blockIds,
         );
 
         $this->blockInstanceRepository->reorderByIds($blockIdObjects);
@@ -260,23 +260,22 @@ class BlockManager
         string $regionName,
         ?string $contextType = 'global',
         ?int $contextId = null,
-        ?array $userRoles = null
+        ?array $userRoles = null,
     ): array {
         $region = $this->blockRegionRepository->findByName(new RegionName($regionName));
         $blocks = $this->blockInstanceRepository->findVisibleInRegion(
             $region->getId(),
             $contextType,
-            $contextId
+            $contextId,
         );
 
         if ($userRoles !== null) {
             return array_filter(
                 $blocks,
-                fn(BlockInstance $block) => $block->isVisibleTo($userRoles)
+                fn (BlockInstance $block) => $block->isVisibleTo($userRoles),
             );
         }
 
         return $blocks;
     }
 }
-

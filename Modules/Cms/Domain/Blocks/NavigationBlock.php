@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Navigation Block
- * 
+ *
  * Display site navigation menu
  */
 class NavigationBlock extends AbstractBlock
@@ -95,7 +95,7 @@ class NavigationBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.navigation', $config);
     }
 

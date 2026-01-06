@@ -4,16 +4,16 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsTo;
-use Core\Audit\Traits\Auditable;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * Media File Model
- * 
+ *
  * Represents uploaded media files (images, documents, etc.)
- * 
+ *
  * @property int $id
  * @property int $user_id
  * @property string $filename
@@ -89,7 +89,7 @@ class MediaFile extends Model
     public function getFormattedSize(): string
     {
         $bytes = $this->size;
-        
+
         if ($bytes >= 1073741824) {
             return number_format($bytes / 1073741824, 2) . ' GB';
         } elseif ($bytes >= 1048576) {
@@ -109,9 +109,8 @@ class MediaFile extends Model
         if (!$this->isImage()) {
             return '/assets/images/file-icon.png';
         }
-        
+
         // TODO: Implement actual thumbnail generation
         return $this->url;
     }
 }
-

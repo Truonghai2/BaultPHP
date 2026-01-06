@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Cors\CorsOriginsManager;
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
-use Psr\Http\Message\ResponseInterface;
 
 /**
  * Controller để quản lý CORS origins qua API.
@@ -15,7 +14,7 @@ use Psr\Http\Message\ResponseInterface;
 class CorsOriginsController extends Controller
 {
     public function __construct(
-        private CorsOriginsManager $originsManager
+        private CorsOriginsManager $originsManager,
     ) {
     }
 
@@ -104,4 +103,3 @@ class CorsOriginsController extends Controller
         ];
     }
 }
-

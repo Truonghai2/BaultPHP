@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\Permission;
 
 /**
  * DeletePermissionHandler
- * 
+ *
  * Handles the DeletePermissionCommand.
  */
 class DeletePermissionHandler implements CommandHandlerInterface
@@ -37,12 +37,11 @@ class DeletePermissionHandler implements CommandHandlerInterface
             [
                 'permission_id' => $command->permissionId,
                 'permission_name' => $permissionName,
-                'action' => 'permission_deleted'
+                'action' => 'permission_deleted',
             ],
-            'warning'
+            'warning',
         );
 
         return true;
     }
 }
-

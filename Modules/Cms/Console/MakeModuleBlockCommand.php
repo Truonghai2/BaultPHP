@@ -7,11 +7,11 @@ use Core\Console\Contracts\BaseCommand;
 
 /**
  * Make Module Block Command
- * 
+ *
  * Creates a new block for a module with all necessary files:
  * - Block class (Domain/Blocks/BlockName.php)
  * - View template (Resources/views/blocks/block-name.blade.php)
- * 
+ *
  * Usage:
  *   php cli make:module-block User UserProfile
  *   php cli make:module-block Shop ProductList --category=E-commerce --icon=🛍️
@@ -52,7 +52,7 @@ class MakeModuleBlockCommand extends BaseCommand
         $force = $this->option('force');
 
         $this->io->title('Module Block Generator');
-        
+
         // Validate module exists
         $modulePath = base_path("Modules/{$moduleName}");
         if (!is_dir($modulePath)) {
@@ -68,7 +68,7 @@ class MakeModuleBlockCommand extends BaseCommand
                 $this->io->warning("Module '{$moduleName}' is disabled. Enable it in module.json");
             }
         } else {
-            $this->io->warning("module.json not found. This module may not be auto-discovered.");
+            $this->io->warning('module.json not found. This module may not be auto-discovered.');
         }
 
         // Generate files
@@ -77,25 +77,25 @@ class MakeModuleBlockCommand extends BaseCommand
         try {
             // 1. Create block class
             $blockClassPath = $this->createBlockClass(
-                $modulePath, 
-                $moduleName, 
-                $blockName, 
-                $category, 
-                $icon, 
+                $modulePath,
+                $moduleName,
+                $blockName,
+                $category,
+                $icon,
                 $cacheable,
-                $force
+                $force,
             );
 
             // 2. Create view template
             $viewPath = $this->createViewTemplate(
-                $modulePath, 
+                $modulePath,
                 $blockName,
-                $force
+                $force,
             );
 
             // Success summary
             $this->io->success('Block created successfully!');
-            
+
             $this->io->section('Generated Files');
             $this->io->listing([
                 "Block Class: {$blockClassPath}",
@@ -105,14 +105,14 @@ class MakeModuleBlockCommand extends BaseCommand
             $this->io->section('Next Steps');
             $this->io->listing([
                 "1. Customize the block's render() method",
-                "2. Design the blade view template",
-                "3. Restart server: docker restart bault_app",
-                "4. Block will be auto-discovered!",
+                '2. Design the blade view template',
+                '3. Restart server: docker restart bault_app',
+                '4. Block will be auto-discovered!',
             ]);
 
             $this->io->note([
                 "Block Class: Modules\\{$moduleName}\\Domain\\Blocks\\{$blockName}Block",
-                "View Name: " . strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $blockName)),
+                'View Name: ' . strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $blockName)),
                 "View Call: \$this->renderView('{$this->getModuleAlias($moduleName)}::blocks." . $this->getViewName($blockName) . "', \$data)",
             ]);
 
@@ -133,14 +133,14 @@ class MakeModuleBlockCommand extends BaseCommand
         string $category,
         string $icon,
         bool $cacheable,
-        bool $force
+        bool $force,
     ): string {
         $blocksDir = $modulePath . '/Domain/Blocks';
-        
+
         // Create directory if not exists
         if (!is_dir($blocksDir)) {
             mkdir($blocksDir, 0755, true);
-            $this->io->writeln("  <fg=green>✓</> Created directory: Domain/Blocks/");
+            $this->io->writeln('  <fg=green>✓</> Created directory: Domain/Blocks/');
         }
 
         $blockFileName = "{$blockName}Block.php";
@@ -157,7 +157,7 @@ class MakeModuleBlockCommand extends BaseCommand
             $blockName,
             $category,
             $icon,
-            $cacheable
+            $cacheable,
         );
 
         file_put_contents($blockFilePath, $blockContent);
@@ -172,14 +172,14 @@ class MakeModuleBlockCommand extends BaseCommand
     protected function createViewTemplate(
         string $modulePath,
         string $blockName,
-        bool $force
+        bool $force,
     ): string {
         $viewsDir = $modulePath . '/Resources/views/blocks';
-        
+
         // Create directory if not exists
         if (!is_dir($viewsDir)) {
             mkdir($viewsDir, 0755, true);
-            $this->io->writeln("  <fg=green>✓</> Created directory: Resources/views/blocks/");
+            $this->io->writeln('  <fg=green>✓</> Created directory: Resources/views/blocks/');
         }
 
         $viewFileName = $this->getViewName($blockName) . '.blade.php';
@@ -207,12 +207,12 @@ class MakeModuleBlockCommand extends BaseCommand
         string $blockName,
         string $category,
         string $icon,
-        bool $cacheable
+        bool $cacheable,
     ): string {
         $viewName = $this->getViewName($blockName);
         $moduleAlias = $this->getModuleAlias($moduleName);
         $kebabName = strtolower(preg_replace('/(?<!^)[A-Z]/', '-$0', $blockName));
-        
+
         $cacheableReturn = $cacheable ? 'true' : 'false';
         $cacheLifetime = $cacheable ? '3600' : '0';
 
@@ -301,7 +301,7 @@ PHP;
     protected function getViewTemplate(string $blockName): string
     {
         $title = $this->splitCamelCase($blockName);
-        
+
         return <<<'BLADE'
 {{-- 
     TODO: Design your block template

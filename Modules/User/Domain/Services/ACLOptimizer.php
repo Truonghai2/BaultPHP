@@ -8,7 +8,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * ACLOptimizer
- * 
+ *
  * Advanced optimization utilities for ACL system.
  * Provides multi-level caching, batch operations, and performance monitoring.
  */
@@ -20,12 +20,13 @@ class ACLOptimizer
 
     public function __construct(
         private CacheManager $cache,
-        private AccessControlService $acl
-    ) {}
+        private AccessControlService $acl,
+    ) {
+    }
 
     /**
      * Get permission with multi-level caching (L1: APCu, L2: Redis).
-     * 
+     *
      * @param User $user
      * @return array
      */
@@ -37,7 +38,7 @@ class ACLOptimizer
         if (function_exists('apcu_fetch')) {
             $l1Key = "acl:l1:{$userId}";
             $l1Data = apcu_fetch($l1Key, $success);
-            
+
             if ($success) {
                 $this->recordMetric('l1_hit');
                 return $l1Data;
@@ -50,19 +51,19 @@ class ACLOptimizer
 
         if ($l2Data) {
             $permissions = json_decode($l2Data, true);
-            
+
             // Store in L1 for next time
             if (function_exists('apcu_store')) {
                 apcu_store($l1Key, $permissions, self::L1_TTL);
             }
-            
+
             $this->recordMetric('l2_hit');
             return $permissions;
         }
 
         // L3: Load from database (slowest)
         $this->recordMetric('cache_miss');
-        
+
         // This will load and cache in Redis
         // (handled by AccessControlService)
         return [];
@@ -70,7 +71,7 @@ class ACLOptimizer
 
     /**
      * Warm cache for multiple users (deployment, popular users).
-     * 
+     *
      * @param array $userIds
      * @return array Stats
      */
@@ -86,10 +87,10 @@ class ACLOptimizer
                 if ($user) {
                     // Force reload permissions
                     $this->acl->flushCacheForUser($userId);
-                    
+
                     // Trigger load (will cache)
                     $user->can('dummy:permission'); // This triggers loadAndCacheUserPermissions
-                    
+
                     $warmed++;
                 }
             } catch (\Exception $e) {
@@ -104,7 +105,7 @@ class ACLOptimizer
             'warmed' => $warmed,
             'failed' => $failed,
             'duration' => round($duration, 2) . 's',
-            'avg_time' => round($duration / max(count($userIds), 1) * 1000, 2) . 'ms'
+            'avg_time' => round($duration / max(count($userIds), 1) * 1000, 2) . 'ms',
         ];
 
         // Audit log
@@ -112,7 +113,7 @@ class ACLOptimizer
             'system',
             "ACL cache warmed for {$warmed} users",
             $stats,
-            'info'
+            'info',
         );
 
         return $stats;
@@ -120,7 +121,7 @@ class ACLOptimizer
 
     /**
      * Batch permission check (optimized).
-     * 
+     *
      * @param User $user
      * @param array $permissions ['permission1', 'permission2', ...]
      * @param mixed $context
@@ -137,11 +138,11 @@ class ACLOptimizer
         }
 
         $duration = microtime(true) - $startTime;
-        
+
         // Record metrics
         $this->recordMetric('batch_check', [
             'count' => count($permissions),
-            'duration_ms' => round($duration * 1000, 2)
+            'duration_ms' => round($duration * 1000, 2),
         ]);
 
         return $results;
@@ -149,7 +150,7 @@ class ACLOptimizer
 
     /**
      * Invalidate cache at all levels for a user.
-     * 
+     *
      * @param int $userId
      */
     public function invalidateAllLevels(int $userId): void
@@ -168,7 +169,7 @@ class ACLOptimizer
 
     /**
      * Batch invalidate for multiple users.
-     * 
+     *
      * @param array $userIds
      */
     public function invalidateBatch(array $userIds): void
@@ -182,7 +183,7 @@ class ACLOptimizer
 
     /**
      * Get ACL performance metrics.
-     * 
+     *
      * @return array
      */
     public function getMetrics(): array
@@ -194,7 +195,7 @@ class ACLOptimizer
             'cache_misses' => 0,
             'batch_checks' => 0,
             'cache_invalidations' => 0,
-            'total_checks' => 0
+            'total_checks' => 0,
         ];
     }
 
@@ -208,7 +209,7 @@ class ACLOptimizer
 
     /**
      * Record a metric.
-     * 
+     *
      * @param string $type
      * @param array $data
      */
@@ -244,7 +245,7 @@ class ACLOptimizer
 
     /**
      * Get cache hit rate percentage.
-     * 
+     *
      * @return float
      */
     public function getCacheHitRate(): float
@@ -258,7 +259,7 @@ class ACLOptimizer
 
     /**
      * Get performance report.
-     * 
+     *
      * @return array
      */
     public function getPerformanceReport(): array
@@ -271,23 +272,23 @@ class ACLOptimizer
                 'l1_hits' => $metrics['l1_hits'],
                 'l2_hits' => $metrics['l2_hits'],
                 'cache_misses' => $metrics['cache_misses'],
-                'hit_rate' => $hitRate . '%'
+                'hit_rate' => $hitRate . '%',
             ],
             'operations' => [
                 'total_checks' => $metrics['total_checks'],
                 'batch_checks' => $metrics['batch_checks'],
-                'cache_invalidations' => $metrics['cache_invalidations']
+                'cache_invalidations' => $metrics['cache_invalidations'],
             ],
             'health' => [
                 'status' => $hitRate >= 95 ? 'excellent' : ($hitRate >= 85 ? 'good' : 'needs_improvement'),
-                'recommendation' => $this->getRecommendation($hitRate, $metrics)
-            ]
+                'recommendation' => $this->getRecommendation($hitRate, $metrics),
+            ],
         ];
     }
 
     /**
      * Get optimization recommendations based on metrics.
-     * 
+     *
      * @param float $hitRate
      * @param array $metrics
      * @return string
@@ -309,4 +310,3 @@ class ACLOptimizer
         return 'ACL performance is optimal';
     }
 }
-

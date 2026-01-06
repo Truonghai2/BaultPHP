@@ -32,4 +32,3 @@ final class BlockId
         return (string) $this->value;
     }
 }
-

@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Stats Block
- * 
+ *
  * Display statistics with icons and numbers
  */
 class StatsBlock extends AbstractBlock
@@ -53,7 +53,7 @@ class StatsBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.stats', $config);
     }
 
@@ -67,4 +67,3 @@ class StatsBlock extends AbstractBlock
         return 300; // 5 minutes
     }
 }
-

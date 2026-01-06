@@ -48,7 +48,7 @@ class ViewServiceProvider extends ServiceProvider
 
             return new ViewFactory($compiler, $files, $paths);
         });
- 
+
         $this->app->alias(ViewFactory::class, ViewFactoryContract::class);
         $this->app->alias(ViewFactory::class, 'view');
     }

@@ -2,8 +2,8 @@
 
 namespace Modules\User\Application\CommandHandlers\User;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Core\Support\Facades\Hash;
 use Modules\User\Application\Commands\User\CreateUserCommand;
@@ -11,7 +11,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * CreateUserHandler
- * 
+ *
  * Handles the CreateUserCommand.
  */
 class CreateUserHandler implements CommandHandlerInterface
@@ -31,7 +31,7 @@ class CreateUserHandler implements CommandHandlerInterface
         $user = User::create([
             'name' => $command->name,
             'email' => $command->email,
-            'password' => Hash::make($command->password)
+            'password' => Hash::make($command->password),
         ]);
 
         // Additional audit log (model creation is auto-logged)
@@ -41,9 +41,9 @@ class CreateUserHandler implements CommandHandlerInterface
             [
                 'user_id' => $user->id,
                 'email' => $command->email,
-                'action' => 'user_created'
+                'action' => 'user_created',
             ],
-            'info'
+            'info',
         );
 
         return $user->id;

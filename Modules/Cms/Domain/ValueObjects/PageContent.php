@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\ValueObjects;
 
 /**
  * Page Content Value Object
- * 
+ *
  * Encapsulates page content structure
  */
 final class PageContent
@@ -77,4 +77,3 @@ final class PageContent
         return $this->blocks === $other->blocks;
     }
 }
-

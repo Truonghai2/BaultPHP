@@ -27,7 +27,7 @@ class CreatePageHandler implements CommandHandlerInterface
     public function __construct(
         private readonly PageRepositoryInterface $pageRepository,
         private readonly PageDomainService $domainService,
-        private readonly EventDispatcherInterface $eventDispatcher
+        private readonly EventDispatcherInterface $eventDispatcher,
     ) {
     }
 

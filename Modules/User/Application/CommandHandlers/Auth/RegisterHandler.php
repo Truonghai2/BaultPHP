@@ -2,8 +2,8 @@
 
 namespace Modules\User\Application\CommandHandlers\Auth;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Core\Support\Facades\Hash;
 use Modules\User\Application\Commands\Auth\RegisterCommand;
@@ -12,7 +12,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * RegisterHandler
- * 
+ *
  * Handles new user registration.
  */
 class RegisterHandler implements CommandHandlerInterface
@@ -33,7 +33,7 @@ class RegisterHandler implements CommandHandlerInterface
             'name' => $command->name,
             'email' => $command->email,
             'password' => Hash::make($command->password),
-            'status' => 'active'
+            'status' => 'active',
         ]);
 
         // Dispatch domain event
@@ -46,9 +46,9 @@ class RegisterHandler implements CommandHandlerInterface
             $user,
             [
                 'ip_address' => request()->ip() ?? 'unknown',
-                'action' => 'user_registered'
+                'action' => 'user_registered',
             ],
-            'info'
+            'info',
         );
 
         return $user;

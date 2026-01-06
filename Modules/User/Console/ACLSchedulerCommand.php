@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * ACLSchedulerCommand
- * 
+ *
  * Scheduled tasks for ACL cache management.
  * Run this via cron for automatic cache maintenance.
  */
@@ -36,7 +36,7 @@ class ACLSchedulerCommand extends BaseCommand
     {
         /** @var ACLOptimizer $optimizer */
         $optimizer = $this->app->make(ACLOptimizer::class);
-        
+
         $task = $this->argument('task');
         $dryRun = $this->option('dry-run');
 
@@ -48,19 +48,15 @@ class ACLSchedulerCommand extends BaseCommand
         switch ($task) {
             case 'warm-active':
                 return $this->warmActiveUsers($optimizer, $dryRun);
-                
             case 'warm-all':
                 return $this->warmAllUsers($optimizer, $dryRun);
-                
             case 'cleanup':
                 return $this->cleanupStaleCache($optimizer, $dryRun);
-                
             case 'metrics':
                 return $this->logMetrics($optimizer);
-                
             default:
                 $this->io->error("Unknown task: {$task}");
-                $this->io->writeln("Available tasks: warm-active, warm-all, cleanup, metrics");
+                $this->io->writeln('Available tasks: warm-active, warm-all, cleanup, metrics');
                 return self::FAILURE;
         }
     }
@@ -84,7 +80,7 @@ class ACLSchedulerCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        $this->io->writeln("Found " . count($userIds) . " active users");
+        $this->io->writeln('Found ' . count($userIds) . ' active users');
 
         if ($dryRun) {
             $this->io->writeln('<comment>Would warm cache for these users</comment>');
@@ -101,8 +97,8 @@ class ACLSchedulerCommand extends BaseCommand
                 ['Warmed', $stats['warmed']],
                 ['Failed', $stats['failed']],
                 ['Duration', $stats['duration']],
-                ['Avg Time', $stats['avg_time']]
-            ]
+                ['Avg Time', $stats['avg_time']],
+            ],
         );
 
         return self::SUCCESS;
@@ -126,7 +122,7 @@ class ACLSchedulerCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        $this->io->writeln("Found " . count($userIds) . " users");
+        $this->io->writeln('Found ' . count($userIds) . ' users');
 
         if ($dryRun) {
             $this->io->writeln('<comment>Would warm cache for all users</comment>');
@@ -136,8 +132,8 @@ class ACLSchedulerCommand extends BaseCommand
         // Confirm for large number of users
         if (count($userIds) > 1000) {
             $confirm = $this->io->ask(
-                "This will warm cache for " . count($userIds) . " users. Continue? (yes/no)",
-                'no'
+                'This will warm cache for ' . count($userIds) . ' users. Continue? (yes/no)',
+                'no',
             );
 
             if ($confirm !== 'yes') {
@@ -156,8 +152,8 @@ class ACLSchedulerCommand extends BaseCommand
                 ['Warmed', $stats['warmed']],
                 ['Failed', $stats['failed']],
                 ['Duration', $stats['duration']],
-                ['Avg Time', $stats['avg_time']]
-            ]
+                ['Avg Time', $stats['avg_time']],
+            ],
         );
 
         return self::SUCCESS;
@@ -182,7 +178,7 @@ class ACLSchedulerCommand extends BaseCommand
             return self::SUCCESS;
         }
 
-        $this->io->writeln("Found " . count($userIds) . " inactive users");
+        $this->io->writeln('Found ' . count($userIds) . ' inactive users');
 
         if ($dryRun) {
             $this->io->writeln('<comment>Would invalidate cache for these users</comment>');
@@ -217,14 +213,13 @@ class ACLSchedulerCommand extends BaseCommand
         file_put_contents(
             $logFile,
             json_encode($logData, JSON_PRETTY_PRINT) . "\n",
-            FILE_APPEND
+            FILE_APPEND,
         );
 
         $this->io->success("Metrics logged to: {$logFile}");
-        $this->io->writeln("Cache Hit Rate: " . $report['cache_performance']['hit_rate']);
-        $this->io->writeln("Status: " . strtoupper($report['health']['status']));
+        $this->io->writeln('Cache Hit Rate: ' . $report['cache_performance']['hit_rate']);
+        $this->io->writeln('Status: ' . strtoupper($report['health']['status']));
 
         return self::SUCCESS;
     }
 }
-

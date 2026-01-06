@@ -25,7 +25,7 @@ class BlockRegion
         int $maxBlocks = 10,
         bool $isActive = true,
         ?\DateTimeImmutable $createdAt = null,
-        ?\DateTimeImmutable $updatedAt = null
+        ?\DateTimeImmutable $updatedAt = null,
     ) {
         $this->id = $id;
         $this->name = $name;
@@ -104,7 +104,7 @@ class BlockRegion
             $data['max_blocks'] ?? 10,
             (bool)($data['is_active'] ?? true),
             isset($data['created_at']) ? new \DateTimeImmutable($data['created_at']) : null,
-            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null
+            isset($data['updated_at']) ? new \DateTimeImmutable($data['updated_at']) : null,
         );
     }
 
@@ -122,4 +122,3 @@ class BlockRegion
         ];
     }
 }
-

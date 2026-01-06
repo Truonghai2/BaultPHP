@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * User List Block
- * 
+ *
  * Displays a list of users (latest, popular, etc.)
  */
 class UserListBlock extends AbstractBlock
@@ -54,7 +54,7 @@ class UserListBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Get users from database
         $users = $this->getUsers($config);
 
@@ -98,4 +98,3 @@ class UserListBlock extends AbstractBlock
         return 300; // 5 minutes
     }
 }
-

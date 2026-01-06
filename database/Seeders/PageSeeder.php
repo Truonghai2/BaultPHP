@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Database\Seeders;
 
 use Core\Database\Seeder;
+use Modules\Cms\Infrastructure\Models\BlockType;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
-use Modules\Cms\Infrastructure\Models\BlockType;
 
 /**
  * Page Seeder
- * 
+ *
  * Seeds sample pages for the CMS
  */
 class PageSeeder extends Seeder
@@ -81,7 +81,7 @@ class PageSeeder extends Seeder
     private function createPageBlocks(Page $page): void
     {
         if (!$page->id) {
-            $this->command->error("    ✗ Cannot create blocks: Page ID is null");
+            $this->command->error('    ✗ Cannot create blocks: Page ID is null');
             return;
         }
 
@@ -149,35 +149,35 @@ class PageSeeder extends Seeder
         foreach ($blocks as $blockData) {
             try {
                 $blockType = $this->getBlockType($blockData['component_class']);
-                
+
                 if (!$blockType) {
                     $this->command->warn("    ⚠ Block type not found for {$blockData['component_class']}, skipping...");
                     continue;
                 }
-                
+
                 $exists = PageBlock::where('page_id', $page->id)
                     ->where('block_type_id', $blockType->id)
                     ->where('region', 'content')
                     ->exists();
-                
+
                 if ($exists) {
                     $this->command->info("    - Block '{$blockType->name}' already exists");
                     continue;
                 }
-                
+
                 if (!$page->id || !$blockType->id) {
                     $this->command->error("    ✗ Invalid IDs: page_id={$page->id}, block_type_id={$blockType->id}");
                     continue;
                 }
-                
+
                 $block = PageBlock::create([
                     'page_id' => $page->id,
                     'block_type_id' => $blockType->id,
-                    'region' => 'content', 
+                    'region' => 'content',
                     'sort_order' => $blockData['order'],
                     'visible' => true,
                 ]);
-                
+
                 if ($block && $block->id) {
                     $this->command->info("    ✓ Created block: {$blockType->name} (ID: {$block->id})");
                 } else {

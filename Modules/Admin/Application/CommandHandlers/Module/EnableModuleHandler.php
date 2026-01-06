@@ -10,19 +10,20 @@ use Modules\Admin\Infrastructure\Models\Module;
 
 /**
  * EnableModuleHandler
- * 
+ *
  * Handles the EnableModuleCommand.
  */
 class EnableModuleHandler implements CommandHandlerInterface
 {
     public function __construct(
-        private ModuleManager $moduleManager
-    ) {}
+        private ModuleManager $moduleManager,
+    ) {
+    }
 
     public function handle(CommandInterface $command): bool
     {
         $module = Module::where('name', '=', $command->moduleName)->first();
-        
+
         if (!$module) {
             throw new \Exception("Module '{$command->moduleName}' not found");
         }
@@ -40,9 +41,9 @@ class EnableModuleHandler implements CommandHandlerInterface
             "Module '{$command->moduleName}' has been enabled",
             [
                 'module' => $command->moduleName,
-                'action' => 'enable'
+                'action' => 'enable',
             ],
-            'info'
+            'info',
         );
 
         return true;
@@ -50,12 +51,11 @@ class EnableModuleHandler implements CommandHandlerInterface
 
     /**
      * Validate module dependencies.
-     * 
+     *
      * @throws \Exception
      */
     private function validateDependencies(string $moduleName): void
     {
-        
+
     }
 }
-

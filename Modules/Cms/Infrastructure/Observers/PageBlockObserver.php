@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Observers;
 
-use Modules\Cms\Infrastructure\Models\PageBlock;
 use Modules\Cms\Domain\Events\BlockUpdated;
+use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * PageBlock Model Observer
- * 
+ *
  * Fires events when PageBlock models are modified
  */
 class PageBlockObserver
@@ -45,4 +45,3 @@ class PageBlockObserver
         }
     }
 }
-

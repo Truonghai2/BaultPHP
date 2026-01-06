@@ -10,7 +10,7 @@ use Modules\Cms\Application\Services\PageBlockAggregateService;
 
 /**
  * Block Event Sourcing Command
- * 
+ *
  * Demonstrates Event Sourcing for block operations
  */
 class BlockEventSourcingCommand extends BaseCommand
@@ -50,25 +50,18 @@ class BlockEventSourcingCommand extends BaseCommand
             switch ($action) {
                 case 'create':
                     return $this->createBlock($service, $userId);
-
                 case 'update':
                     return $this->updateBlock($service, $userId);
-
                 case 'reorder':
                     return $this->reorderBlock($service, $userId);
-
                 case 'duplicate':
                     return $this->duplicateBlock($service, $userId);
-
                 case 'delete':
                     return $this->deleteBlock($service, $userId);
-
                 case 'restore':
                     return $this->restoreBlock($service, $userId);
-
                 case 'show':
                     return $this->showBlock($service);
-
                 default:
                     $this->io->error("Unknown action: {$action}");
                     return self::FAILURE;
@@ -105,7 +98,7 @@ class BlockEventSourcingCommand extends BaseCommand
 
         $content = [
             'title' => $title,
-            'body' => $body
+            'body' => $body,
         ];
 
         $this->io->writeln('<info>Updating block content...</info>');
@@ -187,8 +180,8 @@ class BlockEventSourcingCommand extends BaseCommand
                 ['Component', $state['component_class']],
                 ['Order', $state['sort_order']],
                 ['Is Deleted', $state['is_deleted'] ? 'Yes' : 'No'],
-                ['Version', $state['version']]
-            ]
+                ['Version', $state['version']],
+            ],
         );
 
         if (!empty($state['content'])) {
@@ -202,7 +195,7 @@ class BlockEventSourcingCommand extends BaseCommand
     private function getRequiredOption(string $name): string
     {
         $value = $this->option($name);
-        
+
         if (!$value) {
             throw new \RuntimeException("--{$name} is required");
         }
@@ -210,4 +203,3 @@ class BlockEventSourcingCommand extends BaseCommand
         return (string) $value;
     }
 }
-

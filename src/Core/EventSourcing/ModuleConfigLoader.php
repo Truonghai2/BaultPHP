@@ -6,7 +6,7 @@ namespace Core\EventSourcing;
 
 /**
  * Module Config Loader
- * 
+ *
  * Loads and merges event sourcing configurations from modules
  */
 class ModuleConfigLoader
@@ -29,12 +29,12 @@ class ModuleConfigLoader
         }
 
         $moduleConfig = $this->readModuleConfig($moduleName);
-        
+
         // Merge with global defaults
         $merged = $this->mergeWithGlobal($moduleConfig);
-        
+
         $this->loadedConfigs[$moduleName] = $merged;
-        
+
         return $merged;
     }
 
@@ -44,7 +44,7 @@ class ModuleConfigLoader
     public function get(string $moduleName, string $key, $default = null)
     {
         $config = $this->loadModuleConfig($moduleName);
-        
+
         return data_get($config, $key, $default);
     }
 
@@ -71,8 +71,10 @@ class ModuleConfigLoader
             return false;
         }
 
-        return $this->get($moduleName, 'auto_record.enabled', 
-            $this->globalConfig['auto_record'] ?? true
+        return $this->get(
+            $moduleName,
+            'auto_record.enabled',
+            $this->globalConfig['auto_record'] ?? true,
         );
     }
 
@@ -90,7 +92,7 @@ class ModuleConfigLoader
     public function getEnabledAggregates(string $moduleName): array
     {
         $aggregates = $this->get($moduleName, 'aggregates', []);
-        
+
         return array_filter($aggregates, function ($config) {
             return $config['enabled'] ?? true;
         });
@@ -115,11 +117,11 @@ class ModuleConfigLoader
             }
 
             $directories = glob($path . '/*', GLOB_ONLYDIR);
-            
+
             foreach ($directories as $dir) {
                 $moduleName = basename($dir);
                 $configPath = $dir . '/config/' . $configFilename;
-                
+
                 if (file_exists($configPath)) {
                     $modules[] = $moduleName;
                 }
@@ -135,16 +137,16 @@ class ModuleConfigLoader
     private function readModuleConfig(string $moduleName): array
     {
         $configFilename = $this->globalConfig['module_discovery']['config_filename'] ?? 'event-sourcing.php';
-        
+
         // Try standard module path
         $configPath = base_path("Modules/{$moduleName}/config/{$configFilename}");
-        
+
         if (!file_exists($configPath)) {
             return [];
         }
 
         $config = require $configPath;
-        
+
         return is_array($config) ? $config : [];
     }
 
@@ -163,7 +165,7 @@ class ModuleConfigLoader
                 'projections' => $this->globalConfig['projections'] ?? [],
                 'audit' => $this->globalConfig['audit'] ?? [],
             ],
-            $moduleConfig
+            $moduleConfig,
         );
     }
 
@@ -183,4 +185,3 @@ class ModuleConfigLoader
         $this->loadedConfigs = [];
     }
 }
-

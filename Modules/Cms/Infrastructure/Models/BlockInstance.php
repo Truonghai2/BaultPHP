@@ -2,16 +2,16 @@
 
 namespace Modules\Cms\Infrastructure\Models;
 
+use Core\Audit\Traits\Auditable;
 use Core\ORM\Model;
 use Core\ORM\Relations\BelongsTo;
-use Core\Audit\Traits\Auditable;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * Block Instance Model
- * 
+ *
  * Đại diện cho một instance cụ thể của block được đặt trên trang
- * 
+ *
  * @property int $id
  * @property int $block_type_id
  * @property int $region_id
@@ -35,7 +35,7 @@ use Modules\User\Infrastructure\Models\User;
 class BlockInstance extends Model
 {
     use Auditable;
-    
+
     protected static string $table = 'block_instances';
 
     protected array $fillable = [
@@ -100,7 +100,7 @@ class BlockInstance extends Model
         if ($this->context_type === 'page') {
             return Page::find($this->context_id);
         }
-        
+
         if ($this->context_type === 'user') {
             return User::find($this->context_id);
         }
@@ -127,7 +127,7 @@ class BlockInstance extends Model
         }
 
         $block = $this->instantiate();
-        
+
         if (method_exists($block, 'render')) {
             return $block->render($this);
         }
@@ -225,7 +225,7 @@ class BlockInstance extends Model
     public function scopeForContext($query, string $contextType, ?int $contextId = null)
     {
         $query->where('context_type', $contextType);
-        
+
         if ($contextId !== null) {
             $query->where('context_id', $contextId);
         }
@@ -255,4 +255,3 @@ class BlockInstance extends Model
         return $query->orderBy('weight', 'asc');
     }
 }
-

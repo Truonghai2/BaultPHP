@@ -11,7 +11,7 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * AssignPermissionsHandler
- * 
+ *
  * Handles the AssignPermissionsCommand.
  */
 class AssignPermissionsHandler implements CommandHandlerInterface
@@ -42,12 +42,11 @@ class AssignPermissionsHandler implements CommandHandlerInterface
                 'role_name' => $role->name,
                 'permission_ids' => $command->permissionIds,
                 'permission_count' => count($command->permissionIds),
-                'action' => 'permissions_assigned'
+                'action' => 'permissions_assigned',
             ],
-            'info'
+            'info',
         );
 
         return true;
     }
 }
-

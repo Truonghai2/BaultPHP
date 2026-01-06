@@ -71,7 +71,7 @@ abstract class FormRequest
     {
         return [];
     }
-    
+
     /**
      * Lấy các thông báo lỗi tùy chỉnh cho các quy tắc validation.
      *

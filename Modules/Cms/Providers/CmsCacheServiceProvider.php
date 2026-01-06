@@ -5,27 +5,27 @@ declare(strict_types=1);
 namespace Modules\Cms\Providers;
 
 use Core\Support\ServiceProvider;
+use Modules\Cms\Domain\Events\BlockTypeUpdated;
 use Modules\Cms\Domain\Events\BlockUpdated;
 use Modules\Cms\Domain\Events\PageUpdated;
-use Modules\Cms\Domain\Events\BlockTypeUpdated;
 use Modules\Cms\Domain\Listeners\InvalidateBlockCache;
+use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
-use Modules\Cms\Infrastructure\Models\BlockInstance;
-use Modules\Cms\Infrastructure\Observers\PageObserver;
-use Modules\Cms\Infrastructure\Observers\PageBlockObserver;
 use Modules\Cms\Infrastructure\Observers\BlockInstanceObserver;
+use Modules\Cms\Infrastructure\Observers\PageBlockObserver;
+use Modules\Cms\Infrastructure\Observers\PageObserver;
 
 /**
  * CMS Cache Service Provider
- * 
+ *
  * Registers cache invalidation events and observers
  */
 class CmsCacheServiceProvider extends ServiceProvider
 {
     /**
      * Event listeners mapping
-     * 
+     *
      * @var array<string, array<string>>
      */
     protected array $listen = [
@@ -67,4 +67,3 @@ class CmsCacheServiceProvider extends ServiceProvider
         }
     }
 }
-

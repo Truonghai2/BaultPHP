@@ -46,7 +46,7 @@ class MakeDomainServiceCommand extends BaseCommand
         $this->createDomainService($modulePath, $module, $name);
 
         $this->io->success("Domain service [{$name}DomainService] created successfully!");
-        $this->io->comment("Domain services contain pure business logic without infrastructure dependencies.");
+        $this->io->comment('Domain services contain pure business logic without infrastructure dependencies.');
 
         return self::SUCCESS;
     }
@@ -55,7 +55,7 @@ class MakeDomainServiceCommand extends BaseCommand
     {
         $path = "{$modulePath}/Domain/Services/{$name}DomainService.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -67,7 +67,7 @@ class MakeDomainServiceCommand extends BaseCommand
 
         $stub = $this->getDomainServiceStub($module, $name);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Domain/Services/{$name}DomainService.php");
     }
 
@@ -133,4 +133,3 @@ class {$name}DomainService
 PHP;
     }
 }
-

@@ -8,7 +8,7 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * GetPageBlocksHandler
- * 
+ *
  * Handles GetPageBlocksQuery.
  */
 class GetPageBlocksHandler implements QueryHandlerInterface
@@ -29,7 +29,7 @@ class GetPageBlocksHandler implements QueryHandlerInterface
 
         $blocks = $blockQuery->orderBy('sort_order', 'asc')->get();
 
-        return $blocks->map(function($block) {
+        return $blocks->map(function ($block) {
             return [
                 'id' => $block->id,
                 'page_id' => $block->page_id,
@@ -39,9 +39,8 @@ class GetPageBlocksHandler implements QueryHandlerInterface
                 'sort_order' => $block->sort_order,
                 'visible' => $block->visible,
                 'created_at' => $block->created_at,
-                'updated_at' => $block->updated_at
+                'updated_at' => $block->updated_at,
             ];
         })->toArray();
     }
 }
-

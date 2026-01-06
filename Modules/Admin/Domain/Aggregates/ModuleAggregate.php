@@ -14,12 +14,12 @@ use Modules\Admin\Domain\Aggregates\Events\ModuleUpdated;
 
 /**
  * Module Aggregate
- * 
+ *
  * Event-sourced aggregate for module lifecycle management.
- * 
+ *
  * This is a SELECTIVE implementation - only for critical Admin operations
  * that benefit from audit trail and versioning.
- * 
+ *
  * Use cases:
  * - Track module installations/uninstalls
  * - Debug dependency issues
@@ -46,14 +46,14 @@ class ModuleAggregate extends AggregateRoot
         string $name,
         string $version,
         array $dependencies = [],
-        array $metadata = []
+        array $metadata = [],
     ): void {
         $this->recordThat(new ModuleInstalled(
             moduleId: $id,
             name: $name,
             version: $version,
             dependencies: $dependencies,
-            metadata: $metadata
+            metadata: $metadata,
         ));
     }
 
@@ -68,7 +68,7 @@ class ModuleAggregate extends AggregateRoot
 
         $this->recordThat(new ModuleDependenciesResolved(
             moduleId: $this->id,
-            dependencies: $resolvedDependencies
+            dependencies: $resolvedDependencies,
         ));
     }
 
@@ -90,7 +90,7 @@ class ModuleAggregate extends AggregateRoot
         }
 
         $this->recordThat(new ModuleEnabled(
-            moduleId: $this->id
+            moduleId: $this->id,
         ));
     }
 
@@ -105,7 +105,7 @@ class ModuleAggregate extends AggregateRoot
 
         $this->recordThat(new ModuleDisabled(
             moduleId: $this->id,
-            reason: $reason
+            reason: $reason,
         ));
     }
 
@@ -115,7 +115,7 @@ class ModuleAggregate extends AggregateRoot
     public function update(
         string $newVersion,
         array $newDependencies = [],
-        array $changeLog = []
+        array $changeLog = [],
     ): void {
         if ($this->status === 'uninstalled') {
             throw new \DomainException('Cannot update uninstalled module');
@@ -130,7 +130,7 @@ class ModuleAggregate extends AggregateRoot
             oldVersion: $this->version,
             newVersion: $newVersion,
             dependencies: $newDependencies,
-            changeLog: $changeLog
+            changeLog: $changeLog,
         ));
     }
 
@@ -149,7 +149,7 @@ class ModuleAggregate extends AggregateRoot
 
         $this->recordThat(new ModuleUninstalled(
             moduleId: $this->id,
-            reason: $reason
+            reason: $reason,
         ));
     }
 
@@ -253,4 +253,3 @@ class ModuleAggregate extends AggregateRoot
         return $this->uninstalledAt;
     }
 }
-

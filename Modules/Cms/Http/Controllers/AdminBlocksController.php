@@ -42,4 +42,3 @@ class AdminBlocksController extends Controller
         return response(view('cms.admin.pages.edit', ['pageId' => $id])->render());
     }
 }
-

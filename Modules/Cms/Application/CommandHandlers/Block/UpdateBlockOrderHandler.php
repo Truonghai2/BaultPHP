@@ -9,8 +9,8 @@ use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
- * UpdateBlockOrderHandler  
- * 
+ * UpdateBlockOrderHandler
+ *
  * Handles the UpdateBlockOrderCommand.
  */
 class UpdateBlockOrderHandler implements CommandHandlerInterface
@@ -28,7 +28,7 @@ class UpdateBlockOrderHandler implements CommandHandlerInterface
             $block = PageBlock::where('id', '=', $blockId)
                 ->where('page_id', '=', $command->pageId)
                 ->first();
-                
+
             if ($block) {
                 $block->sort_order = $order;
                 $block->save();
@@ -42,12 +42,11 @@ class UpdateBlockOrderHandler implements CommandHandlerInterface
             [
                 'page_id' => $command->pageId,
                 'block_orders' => $command->blockOrders,
-                'action' => 'block_order_updated'
+                'action' => 'block_order_updated',
             ],
-            'info'
+            'info',
         );
 
         return true;
     }
 }
-

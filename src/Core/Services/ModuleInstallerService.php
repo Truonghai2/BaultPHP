@@ -10,9 +10,7 @@ use Core\Exceptions\Module\ModuleAlreadyExistsException;
 use Core\Exceptions\Module\ModuleInstallationException;
 use Core\FileSystem\Filesystem;
 use Core\ORM\MigrationManager;
-use Core\Services\ModuleService;
 use Core\Support\Facades\Log;
-use Illuminate\Support\Str;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
 use ZipArchive;
@@ -41,7 +39,7 @@ class ModuleInstallerService
 
     /**
      * Install a module from a ZIP file.
-     * 
+     *
      * This method performs the following steps:
      * 1. Validate ZIP file
      * 2. Extract ZIP to temporary directory
@@ -54,7 +52,7 @@ class ModuleInstallerService
      * 9. Run migrations (if any)
      * 10. Dispatch dependency installation job (if needed)
      * 11. Fire installation event
-     * 
+     *
      * @param string $zipPath Path to the ZIP file
      * @param bool $runMigrations Whether to run migrations immediately (default: true)
      * @param bool $installDependencies Whether to install dependencies via job (default: true)
@@ -68,11 +66,11 @@ class ModuleInstallerService
         $targetDir = null;
 
         try {
-            Log::info("Starting module installation from ZIP", ['zip_path' => $zipPath]);
-            
+            Log::info('Starting module installation from ZIP', ['zip_path' => $zipPath]);
+
             // Step 1: Validate ZIP file
             $this->ensureZipIsValid($zipPath);
-            
+
             // Step 2: Extract ZIP
             $this->extractZip($zipPath, $tmpDir);
 
@@ -80,15 +78,15 @@ class ModuleInstallerService
             $jsonPath = $tmpDir . '/module.json';
             $moduleMeta = $this->verifyModuleJson($jsonPath);
             $moduleName = $moduleMeta['name'];
-            
-            Log::info("Module metadata verified", ['module' => $moduleName, 'version' => $moduleMeta['version'] ?? 'unknown']);
+
+            Log::info('Module metadata verified', ['module' => $moduleName, 'version' => $moduleMeta['version'] ?? 'unknown']);
 
             // Step 4: Verify signature (if present)
             $this->verifySignature($moduleMeta, $tmpDir);
-            
+
             // Step 5: Scan for dangerous code
             $this->scanForDangerousCode($tmpDir);
-            
+
             // Step 6: Validate structure
             $this->validateStructure($tmpDir, $moduleMeta);
 
@@ -100,32 +98,32 @@ class ModuleInstallerService
 
             // Step 8: Move to Modules directory
             $this->moveDirectory($tmpDir, $targetDir);
-            Log::info("Module files moved to target directory", ['module' => $moduleName, 'target' => $targetDir]);
+            Log::info('Module files moved to target directory', ['module' => $moduleName, 'target' => $targetDir]);
 
             try {
                 // Step 9: Register module in database
                 $module = $this->registerModule($moduleMeta, $targetDir);
-                
+
                 // Step 10: Run migrations if requested
                 if ($runMigrations) {
                     $this->runModuleMigrations($moduleName);
                 }
-                
+
                 // Step 11: Dispatch dependency installation job if needed
                 if ($installDependencies && !empty($moduleMeta['require'])) {
                     $this->dispatchDependencyInstallation($moduleName);
                 }
-                
+
                 // Step 12: Fire installation event
                 event(new \Core\Events\ModuleInstalled($moduleName, auth()->id() ?? null));
-                
+
                 Log::info("Module '{$moduleName}' has been installed successfully.", [
                     'installer' => 'zip',
                     'version' => $moduleMeta['version'] ?? 'unknown',
                     'migrations_run' => $runMigrations,
                     'dependencies_queued' => $installDependencies && !empty($moduleMeta['require']),
                 ]);
-                
+
                 return [
                     'success' => true,
                     'module' => $moduleName,
@@ -133,7 +131,7 @@ class ModuleInstallerService
                     'module_id' => $module->id ?? null,
                     'status' => $module->status ?? 'installed',
                 ];
-                
+
             } catch (\Throwable $e) {
                 // Rollback: Delete module directory if registration failed
                 if ($targetDir && $this->fs->exists($targetDir)) {
@@ -143,13 +141,13 @@ class ModuleInstallerService
                         'trace' => $e->getTraceAsString(),
                     ]);
                 }
-                throw new ModuleInstallationException("Failed to complete module installation: " . $e->getMessage(), 0, $e);
+                throw new ModuleInstallationException('Failed to complete module installation: ' . $e->getMessage(), 0, $e);
             }
         } catch (ModuleAlreadyExistsException | InvalidModuleFileException | InvalidModuleStructureException | InvalidModuleSignatureException | DangerousCodeDetectedException $e) {
             // Re-throw known exceptions as-is
             throw $e;
         } catch (\Throwable $e) {
-            throw new ModuleInstallationException("Module installation failed: " . $e->getMessage(), 0, $e);
+            throw new ModuleInstallationException('Module installation failed: ' . $e->getMessage(), 0, $e);
         } finally {
             // Cleanup temporary directory
             if ($this->fs->exists($tmpDir)) {
@@ -157,14 +155,14 @@ class ModuleInstallerService
             }
         }
     }
-    
+
     /**
      * Register module in database.
      */
     protected function registerModule(array $moduleMeta, string $modulePath): Module
     {
         $moduleName = $moduleMeta['name'];
-        
+
         // Check if module already exists in database
         $existing = Module::where('name', $moduleName)->first();
         if ($existing) {
@@ -174,30 +172,30 @@ class ModuleInstallerService
             $module = new Module();
             $module->name = $moduleName;
         }
-        
+
         // Update module properties
         $module->version = $moduleMeta['version'] ?? '1.0.0';
         $module->description = $moduleMeta['description'] ?? '';
         $module->enabled = $moduleMeta['enabled'] ?? false;
         $module->status = 'installed';
-        
+
         // Check for composer.json
         $composerPath = $modulePath . '/composer.json';
         if ($this->fs->exists($composerPath)) {
             $module->status = 'installing_dependencies';
         }
-        
+
         $module->save();
-        
-        Log::info("Module registered in database", [
+
+        Log::info('Module registered in database', [
             'module' => $moduleName,
             'module_id' => $module->id,
             'status' => $module->status,
         ]);
-        
+
         return $module;
     }
-    
+
     /**
      * Run migrations for the installed module.
      */
@@ -207,44 +205,44 @@ class ModuleInstallerService
             Log::debug("MigrationManager not available, skipping migrations for module '{$moduleName}'");
             return;
         }
-        
+
         $migrationsPath = base_path("Modules/{$moduleName}/Infrastructure/Migrations");
-        
+
         // Also check for legacy migrations path
         if (!is_dir($migrationsPath)) {
             $migrationsPath = base_path("Modules/{$moduleName}/migrations");
         }
-        
+
         if (!is_dir($migrationsPath)) {
             Log::debug("No migrations directory found for module '{$moduleName}'");
             return;
         }
-        
+
         $migrationFiles = glob($migrationsPath . '/*.php');
         if (empty($migrationFiles)) {
             Log::debug("No migration files found for module '{$moduleName}'");
             return;
         }
-        
+
         Log::info("Running migrations for module '{$moduleName}'", [
             'migrations_count' => count($migrationFiles),
             'path' => $migrationsPath,
         ]);
-        
+
         try {
             // Get migration paths from config
             $config = app('config');
             $paths = $config->get('database.migrations.paths', []);
-            
+
             // Add module migration path
             if (!in_array($migrationsPath, $paths)) {
                 $paths[] = $migrationsPath;
                 $config->set('database.migrations.paths', $paths);
             }
-            
+
             // Run migrations
             $this->migrationManager->run($paths);
-            
+
             Log::info("Migrations completed for module '{$moduleName}'");
         } catch (\Throwable $e) {
             Log::warning("Failed to run migrations for module '{$moduleName}': " . $e->getMessage(), [
@@ -254,7 +252,7 @@ class ModuleInstallerService
             // Don't throw - migrations can be run manually later
         }
     }
-    
+
     /**
      * Dispatch dependency installation job.
      */
@@ -393,7 +391,7 @@ class ModuleInstallerService
             ->filter(function ($file) use ($dir) {
                 $filename = $file->getFilename();
                 $relativePath = str_replace($dir . DIRECTORY_SEPARATOR, '', $file->getPathname());
-                return !in_array($filename, ['HASH', '.gitignore', '.DS_Store']) 
+                return !in_array($filename, ['HASH', '.gitignore', '.DS_Store'])
                     && !str_contains($relativePath, '.git' . DIRECTORY_SEPARATOR);
             })
             ->sortBy(fn ($f) => str_replace($dir . DIRECTORY_SEPARATOR, '', $f->getPathname()))
@@ -466,10 +464,10 @@ class ModuleInstallerService
         });
 
         if ($invalid->count() > 0) {
-            $invalidFiles = $invalid->map(fn($f) => str_replace($dir . '/', '', $f->getPathname()))->take(5)->implode(', ');
+            $invalidFiles = $invalid->map(fn ($f) => str_replace($dir . '/', '', $f->getPathname()))->take(5)->implode(', ');
             throw new InvalidModuleStructureException(
-                "Module contains forbidden paths that could overwrite system files: {$invalidFiles}" . 
-                ($invalid->count() > 5 ? " (and " . ($invalid->count() - 5) . " more)" : "")
+                "Module contains forbidden paths that could overwrite system files: {$invalidFiles}" .
+                ($invalid->count() > 5 ? ' (and ' . ($invalid->count() - 5) . ' more)' : ''),
             );
         }
 
@@ -490,21 +488,21 @@ class ModuleInstallerService
         if (!$providerFound) {
             throw new InvalidModuleStructureException(
                 'Module must have Providers/ModuleServiceProvider.php. ' .
-                'This file is required for module registration and service provider loading.'
+                'This file is required for module registration and service provider loading.',
             );
         }
 
         // Validate module.json name matches directory structure expectations
         $moduleName = $meta['name'];
         $expectedProviderNamespace = "Modules\\{$moduleName}\\Providers\\ModuleServiceProvider";
-        
+
         // Try to read provider file to validate namespace (optional check)
         foreach ($providerPaths as $providerPath) {
             if ($this->fs->exists($providerPath)) {
                 $providerContent = file_get_contents($providerPath);
-                if (!str_contains($providerContent, $expectedProviderNamespace) && 
+                if (!str_contains($providerContent, $expectedProviderNamespace) &&
                     !str_contains($providerContent, "namespace Modules\\{$moduleName}")) {
-                    Log::warning("ModuleServiceProvider namespace may not match module name", [
+                    Log::warning('ModuleServiceProvider namespace may not match module name', [
                         'module' => $moduleName,
                         'provider_path' => $providerPath,
                     ]);
@@ -513,12 +511,12 @@ class ModuleInstallerService
             }
         }
 
-        Log::debug("Module structure validated successfully", ['module' => $moduleName]);
+        Log::debug('Module structure validated successfully', ['module' => $moduleName]);
     }
-    
+
     /**
      * Move a directory from source to destination.
-     * 
+     *
      * @param string $source Source directory path
      * @param string $destination Destination directory path
      * @return void
@@ -529,7 +527,7 @@ class ModuleInstallerService
         // Ensure destination parent directory exists
         $destinationParent = dirname($destination);
         $this->fs->ensureDirectoryExists($destinationParent);
-        
+
         // Use rename for atomic move (faster and safer)
         if (!@rename($source, $destination)) {
             // Fallback: copy and delete if rename fails (e.g., cross-filesystem)
@@ -537,10 +535,10 @@ class ModuleInstallerService
             $this->fs->deleteDirectory($source);
         }
     }
-    
+
     /**
      * Copy a directory recursively.
-     * 
+     *
      * @param string $source Source directory path
      * @param string $destination Destination directory path
      * @return void
@@ -549,18 +547,18 @@ class ModuleInstallerService
     protected function copyDirectory(string $source, string $destination): void
     {
         $this->fs->ensureDirectoryExists($destination);
-        
+
         $iterator = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
-            \RecursiveIteratorIterator::SELF_FIRST
+            \RecursiveIteratorIterator::SELF_FIRST,
         );
-        
+
         $sourceLength = strlen($source) + 1; // +1 for directory separator
-        
+
         foreach ($iterator as $item) {
             $relativePath = substr($item->getPathname(), $sourceLength);
             $destPath = $destination . DIRECTORY_SEPARATOR . $relativePath;
-            
+
             if ($item->isDir()) {
                 $this->fs->ensureDirectoryExists($destPath);
             } else {

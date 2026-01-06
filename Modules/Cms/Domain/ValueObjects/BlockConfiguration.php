@@ -51,4 +51,3 @@ final class BlockConfiguration
         return $this->config === $other->config;
     }
 }
-

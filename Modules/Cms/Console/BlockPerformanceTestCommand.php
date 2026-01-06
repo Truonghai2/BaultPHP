@@ -6,19 +6,19 @@ namespace Modules\Cms\Console;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
-use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Domain\Services\PageBlockRenderer;
+use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * Block Performance Test Command
- * 
+ *
  * Test and profile block rendering performance
  */
 class BlockPerformanceTestCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly PageBlockRenderer $renderer
+        private readonly PageBlockRenderer $renderer,
     ) {
         parent::__construct($app);
     }
@@ -39,7 +39,7 @@ class BlockPerformanceTestCommand extends BaseCommand
 
         // Get page
         $pageIdentifier = $this->option('page') ?: 1;
-        $page = is_numeric($pageIdentifier) 
+        $page = is_numeric($pageIdentifier)
             ? Page::find($pageIdentifier)
             : Page::where('slug', $pageIdentifier)->first();
 
@@ -59,7 +59,7 @@ class BlockPerformanceTestCommand extends BaseCommand
         // Get blocks info
         $blocks = $page->blocksInRegion($region);
         $this->io->comment("Blocks in region: {$blocks->count()}");
-        
+
         if ($blocks->isEmpty()) {
             $this->io->warning('No blocks found in this region!');
             return self::SUCCESS;
@@ -105,7 +105,7 @@ class BlockPerformanceTestCommand extends BaseCommand
             $time = (microtime(true) - $start) * 1000;
 
             $times['with_cache'][] = $time;
-            
+
             if (function_exists('db')) {
                 $queryCountsWithCache[] = count(db()->getQueryLog());
             }
@@ -125,7 +125,7 @@ class BlockPerformanceTestCommand extends BaseCommand
             $time = (microtime(true) - $start) * 1000;
 
             $times['without_cache'][] = $time;
-            
+
             if (function_exists('db')) {
                 $queryCountsWithoutCache[] = count(db()->getQueryLog());
             }
@@ -191,7 +191,7 @@ class BlockPerformanceTestCommand extends BaseCommand
                     round($results['without_cache']['avg_queries'], 1),
                     $this->calculateImprovement($results['without_cache']['avg_queries'], $results['with_cache']['avg_queries']),
                 ],
-            ]
+            ],
         );
 
         // Cache stats
@@ -202,7 +202,7 @@ class BlockPerformanceTestCommand extends BaseCommand
             "Cache Hits: {$cacheStats['hits']}",
             "Cache Misses: {$cacheStats['misses']}",
             "Errors: {$cacheStats['errors']}",
-            "Hit Ratio: " . round($this->renderer->getCacheHitRatio() * 100, 2) . "%",
+            'Hit Ratio: ' . round($this->renderer->getCacheHitRatio() * 100, 2) . '%',
         ]);
 
         // Recommendations
@@ -221,7 +221,7 @@ class BlockPerformanceTestCommand extends BaseCommand
 
         $improvement = (($old - $new) / $old) * 100;
         $sign = $improvement > 0 ? '+' : '';
-        
+
         return $sign . round($improvement, 1) . '%';
     }
 
@@ -253,7 +253,7 @@ class BlockPerformanceTestCommand extends BaseCommand
         // Check cache effectiveness
         $cacheImprovement = $this->calculateImprovementNumeric(
             $results['without_cache']['avg_time'],
-            $results['with_cache']['avg_time']
+            $results['with_cache']['avg_time'],
         );
 
         if ($cacheImprovement < 20) {
@@ -284,4 +284,3 @@ class BlockPerformanceTestCommand extends BaseCommand
         return (($old - $new) / $old) * 100;
     }
 }
-

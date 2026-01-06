@@ -12,7 +12,7 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 /**
  * Language Middleware
- * 
+ *
  * Set application locale based on URL parameter, session, or browser preference
  */
 class LanguageMiddleware implements MiddlewareInterface
@@ -20,18 +20,18 @@ class LanguageMiddleware implements MiddlewareInterface
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         $locale = $this->determineLocale($request);
-        
+
         // Set application locale
         app()->setLocale($locale);
-        
+
         // Store in session for persistence
         if (session()->isStarted()) {
             session()->put('locale', $locale);
         }
-        
+
         // Add locale to request attributes for easy access
         $request = $request->withAttribute('locale', $locale);
-        
+
         return $handler->handle($request);
     }
 
@@ -74,11 +74,11 @@ class LanguageMiddleware implements MiddlewareInterface
     private function isValidLocale(string $locale): bool
     {
         static $validLocales = null;
-        
+
         if ($validLocales === null) {
             $validLocales = Language::active()->pluck('code')->toArray();
         }
-        
+
         return in_array($locale, $validLocales);
     }
 
@@ -89,23 +89,22 @@ class LanguageMiddleware implements MiddlewareInterface
     {
         // Parse: "en-US,en;q=0.9,vi;q=0.8"
         $languages = explode(',', $acceptLanguage);
-        
+
         foreach ($languages as $language) {
             // Extract language code (ignore quality factor)
             $parts = explode(';', $language);
             $code = trim($parts[0]);
-            
+
             // Extract primary language code (en-US → en)
             if (str_contains($code, '-')) {
                 $code = explode('-', $code)[0];
             }
-            
+
             if ($this->isValidLocale($code)) {
                 return $code;
             }
         }
-        
+
         return null;
     }
 }
-

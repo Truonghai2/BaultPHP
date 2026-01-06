@@ -10,13 +10,13 @@ use Modules\Admin\Domain\Aggregates\ModuleAggregate;
 
 /**
  * Module Aggregate Service
- * 
+ *
  * Application service for module lifecycle management via Event Sourcing
  */
 class ModuleAggregateService
 {
     public function __construct(
-        private AggregateRepository $aggregateRepository
+        private AggregateRepository $aggregateRepository,
     ) {
     }
 
@@ -28,7 +28,7 @@ class ModuleAggregateService
         string $name,
         string $version,
         array $dependencies = [],
-        array $metadata = []
+        array $metadata = [],
     ): void {
         $module = new ModuleAggregate();
         $module->install($moduleId, $name, $version, $dependencies, $metadata);
@@ -43,9 +43,9 @@ class ModuleAggregateService
                 'name' => $name,
                 'version' => $version,
                 'dependencies' => $dependencies,
-                'method' => 'event_sourcing'
+                'method' => 'event_sourcing',
             ],
-            'info'
+            'info',
         );
     }
 
@@ -66,9 +66,9 @@ class ModuleAggregateService
             [
                 'module_id' => $moduleId,
                 'name' => $module->getName(),
-                'version' => $module->getVersion()
+                'version' => $module->getVersion(),
             ],
-            'info'
+            'info',
         );
     }
 
@@ -89,9 +89,9 @@ class ModuleAggregateService
             [
                 'module_id' => $moduleId,
                 'name' => $module->getName(),
-                'reason' => $reason
+                'reason' => $reason,
             ],
-            'warning'
+            'warning',
         );
     }
 
@@ -102,7 +102,7 @@ class ModuleAggregateService
         string $moduleId,
         string $newVersion,
         array $newDependencies = [],
-        array $changeLog = []
+        array $changeLog = [],
     ): void {
         $module = $this->loadModule($moduleId);
 
@@ -118,9 +118,9 @@ class ModuleAggregateService
                 'name' => $module->getName(),
                 'old_version' => $module->getVersion(),
                 'new_version' => $newVersion,
-                'change_log' => $changeLog
+                'change_log' => $changeLog,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -141,9 +141,9 @@ class ModuleAggregateService
             [
                 'module_id' => $moduleId,
                 'name' => $module->getName(),
-                'reason' => $reason
+                'reason' => $reason,
             ],
-            'warning'
+            'warning',
         );
     }
 
@@ -163,9 +163,9 @@ class ModuleAggregateService
             "Module dependencies resolved: {$module->getName()}",
             [
                 'module_id' => $moduleId,
-                'dependencies' => $resolvedDependencies
+                'dependencies' => $resolvedDependencies,
             ],
-            'info'
+            'info',
         );
     }
 
@@ -193,7 +193,7 @@ class ModuleAggregateService
             'enabled_at' => $module->getEnabledAt()?->format('Y-m-d H:i:s'),
             'disabled_at' => $module->getDisabledAt()?->format('Y-m-d H:i:s'),
             'uninstalled_at' => $module->getUninstalledAt()?->format('Y-m-d H:i:s'),
-            'version' => $module->getVersion()
+            'version' => $module->getVersion(),
         ];
     }
 
@@ -219,4 +219,3 @@ class ModuleAggregateService
         return $module;
     }
 }
-

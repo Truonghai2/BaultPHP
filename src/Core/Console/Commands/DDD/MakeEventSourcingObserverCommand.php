@@ -42,12 +42,12 @@ class MakeEventSourcingObserverCommand extends BaseCommand
         $this->createObserver($modulePath, $module, $model, $aggregate);
 
         $this->io->success("Observer [{$model}EventSourcingObserver] created successfully!");
-        $this->io->comment("Next steps:");
+        $this->io->comment('Next steps:');
         $this->io->listing([
-            "1. Register observer in EventSourcingServiceProvider",
-            "2. Or add to config/event-sourcing.php aggregates configuration",
-            "3. Ensure your model has the required events enabled",
-            "4. Test with: Model::create([...]) to see events recorded",
+            '1. Register observer in EventSourcingServiceProvider',
+            '2. Or add to config/event-sourcing.php aggregates configuration',
+            '3. Ensure your model has the required events enabled',
+            '4. Test with: Model::create([...]) to see events recorded',
         ]);
 
         return self::SUCCESS;
@@ -57,7 +57,7 @@ class MakeEventSourcingObserverCommand extends BaseCommand
     {
         $path = "{$modulePath}/Infrastructure/Observers/{$model}EventSourcingObserver.php";
         $directory = dirname($path);
-        
+
         if (!is_dir($directory)) {
             mkdir($directory, 0755, true);
         }
@@ -69,7 +69,7 @@ class MakeEventSourcingObserverCommand extends BaseCommand
 
         $stub = $this->getObserverStub($module, $model, $aggregate);
         file_put_contents($path, $stub);
-        
+
         $this->io->text("  <fg=green>✓</> Created: Infrastructure/Observers/{$model}EventSourcingObserver.php");
     }
 
@@ -226,4 +226,3 @@ class {$model}EventSourcingObserver
 PHP;
     }
 }
-

@@ -9,7 +9,7 @@ use Modules\User\Infrastructure\Models\Role;
 
 /**
  * DeleteRoleHandler
- * 
+ *
  * Handles the DeleteRoleCommand.
  */
 class DeleteRoleHandler implements CommandHandlerInterface
@@ -37,12 +37,11 @@ class DeleteRoleHandler implements CommandHandlerInterface
             [
                 'role_id' => $command->roleId,
                 'role_name' => $roleName,
-                'action' => 'role_deleted'
+                'action' => 'role_deleted',
             ],
-            'warning'
+            'warning',
         );
 
         return true;
     }
 }
-

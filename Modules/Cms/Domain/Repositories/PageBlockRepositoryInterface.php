@@ -14,7 +14,7 @@ interface PageBlockRepositoryInterface
 {
     /**
      * Find page block by ID
-     * 
+     *
      * @throws \Modules\Cms\Domain\Exceptions\PageBlockNotFoundException
      */
     public function findById(PageBlockId $id): PageBlock;
@@ -26,7 +26,7 @@ interface PageBlockRepositoryInterface
 
     /**
      * Find all blocks for a page
-     * 
+     *
      * @return PageBlock[]
      */
     public function findByPageId(int $pageId): array;
@@ -63,9 +63,8 @@ interface PageBlockRepositoryInterface
 
     /**
      * Update order for multiple blocks at once
-     * 
+     *
      * @param array<int, int> $orderMap [block_id => order]
      */
     public function updateOrders(array $orderMap): void;
 }
-

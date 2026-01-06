@@ -6,7 +6,6 @@ namespace Modules\Admin\Providers;
 
 use Core\ServiceProvider;
 use Modules\Admin\Infrastructure\Models\Module;
-use Modules\Admin\Infrastructure\Observers\ModuleEventSourcingObserver;
 
 /**
  * Event Sourcing Service Provider for Admin Module
@@ -16,7 +15,7 @@ class EventSourcingServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(
-            \Modules\Admin\Application\Services\ModuleAggregateService::class
+            \Modules\Admin\Application\Services\ModuleAggregateService::class,
         );
     }
 
@@ -24,7 +23,7 @@ class EventSourcingServiceProvider extends ServiceProvider
     {
         /** @var \Core\EventSourcing\ModuleConfigLoader $configLoader */
         $configLoader = $this->app->make(\Core\EventSourcing\ModuleConfigLoader::class);
-        
+
         if (!$configLoader->isEnabled('Admin')) {
             return;
         }
@@ -58,10 +57,9 @@ class EventSourcingServiceProvider extends ServiceProvider
     private function registerCommands($configLoader): void
     {
         $commands = $configLoader->get('Admin', 'commands', []);
-        
+
         if (!empty($commands)) {
             $this->commands($commands);
         }
     }
 }
-

@@ -9,7 +9,7 @@ use Modules\Cms\Domain\Services\BlockSynchronizer;
 
 /**
  * Main Database Seeder
- * 
+ *
  * Seeds all essential data in correct order:
  * 1. Context & Auth (Users, Roles, Permissions)
  * 2. Block Types (from real Domain\Blocks classes)
@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
             // 2. Block System
             BlockRegionSeeder::class,          // Default block regions (header, footer, etc.)
             DefaultBlocksSeeder::class,        // Global block instances for default regions
-            
+
             // 3. CMS Pages & Templates
             PageTemplateSeeder::class,         // Page templates (7 defaults)
             PageSeeder::class,                 // Pages (home, about, etc.)

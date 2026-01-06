@@ -23,7 +23,7 @@ class TokenIssuerService
     }
 
     /**
-     * Issue a token for a user with specific scopes and lifetime.  
+     * Issue a token for a user with specific scopes and lifetime.
      */
     public function issue(Authenticatable $user, array $scopes = [], int $lifetime = 3600): string
     {

@@ -41,7 +41,7 @@ class OAuthClientRevokeCommand extends BaseCommand
 
         $confirmed = $this->io->confirm(
             "Are you sure you want to revoke client '{$client->name}'?",
-            false
+            false,
         );
 
         if (!$confirmed) {
@@ -57,4 +57,3 @@ class OAuthClientRevokeCommand extends BaseCommand
         return self::SUCCESS;
     }
 }
-

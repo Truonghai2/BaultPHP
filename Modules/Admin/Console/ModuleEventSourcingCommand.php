@@ -10,17 +10,17 @@ use Modules\Admin\Application\Services\ModuleAggregateService;
 
 /**
  * Module Event Sourcing Command
- * 
+ *
  * Demonstrates Event Sourcing for module lifecycle management
- * 
+ *
  * Usage:
  * ```
  * # Install module
  * php cli admin:module-event-sourcing install --id=cms --name=CMS --version=1.0.0
- * 
+ *
  * # Enable module
  * php cli admin:module-event-sourcing enable --id=cms
- * 
+ *
  * # Show module state
  * php cli admin:module-event-sourcing show --id=cms
  * ```
@@ -59,22 +59,16 @@ class ModuleEventSourcingCommand extends BaseCommand
             switch ($action) {
                 case 'install':
                     return $this->installModule($service);
-
                 case 'enable':
                     return $this->enableModule($service);
-
                 case 'disable':
                     return $this->disableModule($service);
-
                 case 'update':
                     return $this->updateModule($service);
-
                 case 'uninstall':
                     return $this->uninstallModule($service);
-
                 case 'show':
                     return $this->showModule($service);
-
                 default:
                     $this->io->error("Unknown action: {$action}");
                     return self::FAILURE;
@@ -101,7 +95,7 @@ class ModuleEventSourcingCommand extends BaseCommand
             $name,
             $version,
             [], // dependencies
-            ['description' => 'Installed via Event Sourcing']
+            ['description' => 'Installed via Event Sourcing'],
         );
 
         $this->io->success('Module installed!');
@@ -151,7 +145,7 @@ class ModuleEventSourcingCommand extends BaseCommand
             $id,
             $newVersion,
             [],
-            ['Updated via CLI']
+            ['Updated via CLI'],
         );
 
         $this->io->success('Module updated!');
@@ -187,7 +181,7 @@ class ModuleEventSourcingCommand extends BaseCommand
         }
 
         $this->io->writeln('<info>Module State (reconstituted from events):</info>');
-        
+
         $tableData = [
             ['Module ID', $state['id']],
             ['Name', $state['name']],
@@ -226,7 +220,7 @@ class ModuleEventSourcingCommand extends BaseCommand
     private function getRequiredOption(string $name): string
     {
         $value = $this->option($name);
-        
+
         if (!$value) {
             throw new \RuntimeException("--{$name} is required");
         }
@@ -234,4 +228,3 @@ class ModuleEventSourcingCommand extends BaseCommand
         return (string) $value;
     }
 }
-

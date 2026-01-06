@@ -5,7 +5,7 @@ namespace Core\Console\Commands\Queue;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Core\Contracts\Queue\FailedJobProviderInterface;
-use Core\Queue\FailedJob; 
+use Core\Queue\FailedJob;
 
 class QueueFailedCommand extends BaseCommand
 {

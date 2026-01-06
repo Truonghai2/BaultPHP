@@ -8,7 +8,7 @@ use Modules\Cms\Domain\Blocks\AbstractBlock;
 
 /**
  * Recent Activity Block
- * 
+ *
  * Displays recent activity log for admins
  */
 class RecentActivityBlock extends AbstractBlock
@@ -51,7 +51,7 @@ class RecentActivityBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         // Check admin permission
         if (!auth()->check() || !auth()->user()->can('admin.activity.view')) {
             return '';
@@ -95,4 +95,3 @@ class RecentActivityBlock extends AbstractBlock
         return false; // Real-time activity
     }
 }
-

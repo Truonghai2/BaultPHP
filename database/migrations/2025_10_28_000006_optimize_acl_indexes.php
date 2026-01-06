@@ -1,11 +1,9 @@
 <?php
 
-use Core\Schema\Migration;
 use Core\Schema\Blueprint;
-use Core\Schema\Schema;
+use Core\Schema\Migration;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migrations.
      */

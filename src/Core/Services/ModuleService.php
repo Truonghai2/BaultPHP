@@ -3,10 +3,8 @@
 namespace Core\Services;
 
 use Core\Cache\CacheManager;
-use Core\Exceptions\Module\ModuleDependencyException;
 use Core\Exceptions\Module\ModuleNotFoundException;
 use Core\FileSystem\Filesystem;
-use Core\Services\ComposerDependencyManager;
 use Core\Support\Facades\Log;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
@@ -208,7 +206,7 @@ class ModuleService
         }
 
         $existingModule = Module::where('name', $moduleName)->first();
-        
+
         if ($existingModule) {
 
             $filesystemVersion = $meta['version'] ?? '1.0.0';
@@ -216,7 +214,7 @@ class ModuleService
 
             if (version_compare($filesystemVersion, $databaseVersion, '>')) {
                 Log::info("Updating module '{$moduleName}' from version {$databaseVersion} to {$filesystemVersion}");
-                
+
                 $existingModule->update([
                     'version' => $filesystemVersion,
                     'description' => $meta['description'] ?? $existingModule->description,
@@ -226,7 +224,7 @@ class ModuleService
             } else {
                 InstallModuleDependenciesJob::dispatch($moduleName);
             }
-            
+
             $this->cache->forget(self::CACHE_KEY);
             return;
         }
@@ -247,7 +245,7 @@ class ModuleService
     /**
      * @deprecated Use ComposerDependencyManager instead
      * @see ComposerDependencyManager::installDependencies()
-     * 
+     *
      */
     public function handleDependencies(string $moduleName, array $dependencies): void
     {

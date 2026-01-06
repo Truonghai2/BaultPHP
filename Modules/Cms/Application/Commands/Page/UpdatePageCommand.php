@@ -6,7 +6,7 @@ use Core\CQRS\Contracts\CommandInterface;
 
 /**
  * UpdatePageCommand
- * 
+ *
  * Command to update a page.
  */
 class UpdatePageCommand implements CommandInterface
@@ -17,12 +17,12 @@ class UpdatePageCommand implements CommandInterface
         public readonly ?string $slug = null,
         public readonly ?string $status = null,
         public readonly ?string $metaTitle = null,
-        public readonly ?string $metaDescription = null
-    ) {}
+        public readonly ?string $metaDescription = null,
+    ) {
+    }
 
     public function getCommandName(): string
     {
         return 'cms.page.update';
     }
 }
-

@@ -2,17 +2,17 @@
 
 namespace Modules\User\Application\CommandHandlers\Auth;
 
-use Core\CQRS\Contracts\CommandInterface;
-use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\Contracts\Auth\StatefulGuard;
-use Core\Support\Facades\Auth;
+use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
+use Core\Support\Facades\Auth;
 use Modules\User\Application\Commands\Auth\LogoutCommand;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * LogoutHandler
- * 
+ *
  * Handles user logout.
  */
 class LogoutHandler implements CommandHandlerInterface
@@ -38,12 +38,16 @@ class LogoutHandler implements CommandHandlerInterface
             'authentication',
             "User logged out: {$user->email}",
             $user,
-            null, null, null, null, null, 
+            null,
+            null,
+            null,
+            null,
+            null,
             [
                 'ip_address' => request()->ip() ?? 'unknown',
-                'action' => 'logout'
+                'action' => 'logout',
             ],
-            'info'
+            'info',
         );
 
         return true;

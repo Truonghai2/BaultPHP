@@ -11,7 +11,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | Automatically sync blocks to database without running commands.
-    | 
+    |
     | - In development (local): Syncs every 30 seconds
     | - In production: Disabled by default (use command instead)
     |
@@ -24,7 +24,7 @@ return [
     |--------------------------------------------------------------------------
     |
     | How long to cache block sync status (in seconds)
-    | 
+    |
     | - Development: 30 seconds (for real-time experience)
     | - Production: 3600 seconds (1 hour)
     |
@@ -81,4 +81,3 @@ return [
         'default_og_image' => env('CMS_DEFAULT_OG_IMAGE', ''),
     ],
 ];
-

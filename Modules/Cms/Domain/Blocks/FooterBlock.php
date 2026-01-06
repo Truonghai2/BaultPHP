@@ -6,7 +6,7 @@ namespace Modules\Cms\Domain\Blocks;
 
 /**
  * Footer Block
- * 
+ *
  * Display footer with links and copyright
  */
 class FooterBlock extends AbstractBlock
@@ -46,7 +46,7 @@ class FooterBlock extends AbstractBlock
                         ['label' => 'About Us', 'url' => '/about'],
                         ['label' => 'Careers', 'url' => '/careers'],
                         ['label' => 'Contact', 'url' => '/contact'],
-                    ]
+                    ],
                 ],
                 [
                     'title' => 'Resources',
@@ -54,7 +54,7 @@ class FooterBlock extends AbstractBlock
                         ['label' => 'Documentation', 'url' => '/docs'],
                         ['label' => 'API', 'url' => '/api'],
                         ['label' => 'Support', 'url' => '/support'],
-                    ]
+                    ],
                 ],
                 [
                     'title' => 'Legal',
@@ -62,7 +62,7 @@ class FooterBlock extends AbstractBlock
                         ['label' => 'Privacy Policy', 'url' => '/privacy'],
                         ['label' => 'Terms of Service', 'url' => '/terms'],
                         ['label' => 'Cookie Policy', 'url' => '/cookies'],
-                    ]
+                    ],
                 ],
             ],
             'copyright' => '© 2025 BaultPHP Framework. All rights reserved.',
@@ -77,7 +77,7 @@ class FooterBlock extends AbstractBlock
     public function render(array $config = [], ?array $context = null): string
     {
         $config = array_merge($this->getDefaultConfig(), $config);
-        
+
         return $this->renderView('cms::blocks.footer', $config);
     }
 
@@ -91,4 +91,3 @@ class FooterBlock extends AbstractBlock
         return 3600;
     }
 }
-

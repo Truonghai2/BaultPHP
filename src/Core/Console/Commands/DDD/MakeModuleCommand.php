@@ -59,7 +59,7 @@ class MakeModuleCommand extends BaseCommand
             'Application/Policies',
             'Application/Listeners',
             'Application/Jobs',
-            
+
             // Domain Layer (DDD)
             'Domain/Entities',
             'Domain/ValueObjects',
@@ -67,22 +67,22 @@ class MakeModuleCommand extends BaseCommand
             'Domain/Repositories',
             'Domain/Services',
             'Domain/Exceptions',
-            
+
             // Event Sourcing (Optional but ready)
             'Domain/Aggregates',
             'Domain/Aggregates/Events',
-            
+
             // Infrastructure Layer
             'Infrastructure/Models',
             'Infrastructure/Repositories',
             'Infrastructure/Migrations',
             'Infrastructure/Observers',
-            
+
             // HTTP Layer
             'Http/Controllers',
             'Http/Requests',
             'Http/Middleware',
-            
+
             // Presentation
             'Providers',
             'Console',

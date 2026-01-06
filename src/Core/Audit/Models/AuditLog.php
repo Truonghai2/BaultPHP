@@ -7,7 +7,7 @@ use Modules\User\Infrastructure\Models\User;
 
 /**
  * Audit Log Model
- * 
+ *
  * Stores all system audit trails including:
  * - OAuth events (token issued, revoked, failed)
  * - Authentication events (login, logout, failed attempts)
@@ -125,4 +125,3 @@ class AuditLog extends Model
         return $query->whereBetween('created_at', [$from, $to]);
     }
 }
-

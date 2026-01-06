@@ -3,22 +3,21 @@
 use Core\Schema\Blueprint;
 use Core\Schema\Migration;
 
-return new class extends Migration
-{
+return new class () extends Migration {
     /**
      * Run the migrations.
      */
     public function up(): void
     {
         $columns = [
-            'meta_title' => fn($t) => $t->string('meta_title', 255)->nullable()->after('name'),
-            'meta_description' => fn($t) => $t->text('meta_description')->nullable()->after('meta_title'),
-            'meta_keywords' => fn($t) => $t->string('meta_keywords', 500)->nullable()->after('meta_description'),
-            'og_image' => fn($t) => $t->string('og_image', 500)->nullable()->after('meta_keywords'),
-            'og_type' => fn($t) => $t->string('og_type', 50)->default('website')->after('og_image'),
-            'canonical_url' => fn($t) => $t->string('canonical_url', 500)->nullable()->after('og_type'),
-            'robots' => fn($t) => $t->string('robots', 100)->default('index,follow')->after('canonical_url'),
-            'schema_data' => fn($t) => $t->json('schema_data')->nullable()->after('robots'),
+            'meta_title' => fn ($t) => $t->string('meta_title', 255)->nullable()->after('name'),
+            'meta_description' => fn ($t) => $t->text('meta_description')->nullable()->after('meta_title'),
+            'meta_keywords' => fn ($t) => $t->string('meta_keywords', 500)->nullable()->after('meta_description'),
+            'og_image' => fn ($t) => $t->string('og_image', 500)->nullable()->after('meta_keywords'),
+            'og_type' => fn ($t) => $t->string('og_type', 50)->default('website')->after('og_image'),
+            'canonical_url' => fn ($t) => $t->string('canonical_url', 500)->nullable()->after('og_type'),
+            'robots' => fn ($t) => $t->string('robots', 100)->default('index,follow')->after('canonical_url'),
+            'schema_data' => fn ($t) => $t->json('schema_data')->nullable()->after('robots'),
         ];
 
         foreach ($columns as $column => $definition) {
@@ -28,7 +27,7 @@ return new class extends Migration
                 });
             }
         }
-        
+
         // Set default values for existing rows (MySQL strict mode requirement)
         try {
             if ($this->schema->hasColumn('pages', 'og_type')) {
@@ -47,11 +46,11 @@ return new class extends Migration
      */
     public function down(): void
     {
-        $columns = ['meta_title', 'meta_description', 'meta_keywords', 'og_image', 
+        $columns = ['meta_title', 'meta_description', 'meta_keywords', 'og_image',
                     'og_type', 'canonical_url', 'robots', 'schema_data'];
-        
-        $existingColumns = array_filter($columns, fn($col) => $this->schema->hasColumn('pages', $col));
-        
+
+        $existingColumns = array_filter($columns, fn ($col) => $this->schema->hasColumn('pages', $col));
+
         if (!empty($existingColumns)) {
             $this->schema->table('pages', function (Blueprint $table) use ($existingColumns) {
                 $table->dropColumn($existingColumns);

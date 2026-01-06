@@ -2,15 +2,15 @@
 
 namespace Modules\Cms\Application\CommandHandlers\Page;
 
-use Core\CQRS\Contracts\CommandInterface;
 use Core\CQRS\Contracts\CommandHandlerInterface;
+use Core\CQRS\Contracts\CommandInterface;
 use Core\Support\Facades\Audit;
 use Modules\Cms\Application\Commands\Page\CreatePageCommand;
 use Modules\Cms\Infrastructure\Models\Page;
 
 /**
  * CreatePageHandler
- * 
+ *
  * Handles the CreatePageCommand.
  */
 class CreatePageHandler implements CommandHandlerInterface
@@ -44,9 +44,9 @@ class CreatePageHandler implements CommandHandlerInterface
                 'page_id' => $page->id,
                 'slug' => $command->slug,
                 'status' => $command->status,
-                'action' => 'page_created'
+                'action' => 'page_created',
             ],
-            'info'
+            'info',
         );
 
         return $page->id;

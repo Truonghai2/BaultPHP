@@ -19,11 +19,11 @@ class RealtimeTraceableCacheStore implements CacheInterface
     {
         $value = $this->store->get($key, $default);
         $hit = ($value !== $default);
-        
+
         $this->broadcaster->broadcastCache(
             $hit ? 'HIT' : 'MISS',
             $key,
-            $hit ? $value : null
+            $hit ? $value : null,
         );
 
         return $value;
@@ -32,7 +32,7 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function set($key, $value, $ttl = null): bool
     {
         $result = $this->store->set($key, $value, $ttl);
-        
+
         $this->broadcaster->broadcastCache('WRITE', $key, $value);
 
         return $result;
@@ -41,7 +41,7 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function delete($key): bool
     {
         $result = $this->store->delete($key);
-        
+
         $this->broadcaster->broadcastCache('DELETE', $key);
 
         return $result;
@@ -50,7 +50,7 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function clear(): bool
     {
         $result = $this->store->clear();
-        
+
         $this->broadcaster->broadcastCache('CLEAR', '*');
 
         return $result;
@@ -59,16 +59,16 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function getMultiple($keys, $default = null): iterable
     {
         $values = $this->store->getMultiple($keys, $default);
-        
+
         foreach ($keys as $key) {
-            $hit = is_array($values) 
-                ? array_key_exists($key, $values) 
+            $hit = is_array($values)
+                ? array_key_exists($key, $values)
                 : (isset($values[$key]) || array_key_exists($key, iterator_to_array($values)));
-            
+
             $this->broadcaster->broadcastCache(
                 $hit ? 'HIT' : 'MISS',
                 $key,
-                $hit ? ($values[$key] ?? null) : null
+                $hit ? ($values[$key] ?? null) : null,
             );
         }
 
@@ -78,7 +78,7 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function setMultiple($values, $ttl = null): bool
     {
         $result = $this->store->setMultiple($values, $ttl);
-        
+
         foreach ($values as $key => $value) {
             $this->broadcaster->broadcastCache('WRITE', $key, $value);
         }
@@ -89,7 +89,7 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function deleteMultiple($keys): bool
     {
         $result = $this->store->deleteMultiple($keys);
-        
+
         foreach ($keys as $key) {
             $this->broadcaster->broadcastCache('DELETE', $key);
         }
@@ -100,13 +100,12 @@ class RealtimeTraceableCacheStore implements CacheInterface
     public function has($key): bool
     {
         $result = $this->store->has($key);
-        
+
         $this->broadcaster->broadcastCache(
             $result ? 'HIT' : 'MISS',
-            $key
+            $key,
         );
 
         return $result;
     }
 }
-

@@ -33,7 +33,7 @@ class CollectDebugDataMiddleware implements MiddlewareInterface
         $requestId = $this->app->get('request_id');
         $startTime = microtime(true);
         $startMemory = memory_get_usage(true);
-        
+
         $this->debugManager->enable();
         $this->broadcaster->enable($requestId);
 
@@ -43,19 +43,19 @@ class CollectDebugDataMiddleware implements MiddlewareInterface
                 $request->getMethod(),
                 (string) $request->getUri()->getPath(),
                 is_array($route->handler) ? ($route->handler[0] . '::' . $route->handler[1]) : (string) $route->handler,
-                $route->middleware ?? []
+                $route->middleware ?? [],
             );
         }
 
         $this->startMetricsBroadcasting($startTime, $startMemory);
 
         $response = $handler->handle($request);
-        
+
         $this->broadcaster->broadcastMetrics(
             microtime(true) - $startTime,
-            memory_get_usage(true)
+            memory_get_usage(true),
         );
-        
+
         $this->broadcaster->disable();
 
         if (!$this->debugManager->isEnabled()) {
@@ -94,7 +94,7 @@ class CollectDebugDataMiddleware implements MiddlewareInterface
         if ($this->app->bound('debugbar')) {
             /** @var \DebugBar\DebugBar $debugbar */
             $debugbar = $this->app->make('debugbar');
-            
+
             if ($debugbar->hasCollector('cache')) {
                 $cacheCollector = $debugbar->getCollector('cache');
                 $cacheData = $cacheCollector->collect();

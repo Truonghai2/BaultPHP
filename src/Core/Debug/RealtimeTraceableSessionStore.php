@@ -143,4 +143,3 @@ class RealtimeTraceableSessionStore implements SessionInterface
         $this->broadcaster->broadcastSession('REGENERATE_TOKEN', '_token', $this->token());
     }
 }
-

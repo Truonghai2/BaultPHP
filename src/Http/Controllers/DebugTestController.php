@@ -2,13 +2,13 @@
 
 namespace App\Http\Controllers;
 
-use Core\Routing\Attributes\Route;
 use Core\Events\ModuleChanged;
+use Core\Routing\Attributes\Route;
 use Modules\User\Infrastructure\Models\User;
 
 /**
  * Controller để test Debug Bar realtime updates
- * 
+ *
  * Tất cả endpoints này trigger different operations để test debug bar
  */
 class DebugTestController
@@ -55,7 +55,7 @@ class DebugTestController
         $userCount = User::count();
         $users = User::limit(5)->get();
         $firstUser = User::find(1);
-        
+
         return response()->json([
             'message' => '✅ Query test completed!',
             'queries_executed' => 3,
@@ -77,7 +77,7 @@ class DebugTestController
         // Dispatch test events
         event(new ModuleChanged('DebugTestModule1'));
         event(new ModuleChanged('DebugTestModule2'));
-        
+
         return response()->json([
             'message' => '✅ Events dispatched!',
             'events_dispatched' => 2,
@@ -95,22 +95,22 @@ class DebugTestController
     public function testCache()
     {
         $key = 'debug_test_' . time();
-        
+
         // Write to cache
         cache()->put($key, [
             'value' => 'test_value_' . rand(1000, 9999),
             'timestamp' => time(),
         ], 60);
-        
+
         // Read from cache (hit)
         $value = cache()->get($key);
-        
+
         // Try to get non-existent key (miss)
         $missing = cache()->get('non_existent_key_' . time());
-        
+
         // Another hit
         cache()->get($key);
-        
+
         return response()->json([
             'message' => '✅ Cache test completed!',
             'operations' => [
@@ -143,12 +143,12 @@ class DebugTestController
                 'level2' => 'value2',
             ],
         ]);
-        
+
         // Read operations
         $value = session()->get('debug_test_key');
         $array = session()->get('debug_test_array');
         $all = session()->all();
-        
+
         return response()->json([
             'message' => '✅ Session test completed!',
             'operations' => [
@@ -173,22 +173,22 @@ class DebugTestController
         // 1. Query operations
         $userCount = User::count();
         $users = User::limit(3)->get();
-        
+
         // 2. Event operations
         event(new ModuleChanged('AllTestModule'));
-        
+
         // 3. Cache operations
         cache()->put('test_all_key', 'combined_value', 60);
         cache()->get('test_all_key');
         cache()->get('non_existent');
-        
+
         // 4. Session operations
         session()->set('test_all', [
             'executed' => true,
             'timestamp' => time(),
         ]);
         session()->get('test_all');
-        
+
         return response()->json([
             'message' => '✅ All operations completed!',
             'summary' => [
@@ -214,17 +214,17 @@ class DebugTestController
     public function testSlowQuery()
     {
         $start = microtime(true);
-        
+
         // Simulate slow query với SLEEP
         try {
             $result = \Core\Database\Swoole\SwoolePdoPool::withConnection('mysql', function ($pdo) {
-                $stmt = $pdo->prepare("SELECT SLEEP(0.5) as slow, NOW() as current_time");
+                $stmt = $pdo->prepare('SELECT SLEEP(0.5) as slow, NOW() as current_time');
                 $stmt->execute();
                 return $stmt->fetch(\PDO::FETCH_ASSOC);
             });
-            
+
             $duration = microtime(true) - $start;
-            
+
             return response()->json([
                 'message' => '✅ Slow query completed!',
                 'query_result' => $result,
@@ -250,26 +250,26 @@ class DebugTestController
     public function testStress()
     {
         $operations = [];
-        
+
         // 10 queries
         for ($i = 1; $i <= 10; $i++) {
             User::where('id', $i)->first();
             $operations['queries'][] = "Query {$i}";
         }
-        
+
         // 5 events
         for ($i = 1; $i <= 5; $i++) {
             event(new ModuleChanged("StressTest{$i}"));
             $operations['events'][] = "Event {$i}";
         }
-        
+
         // 10 cache operations
         for ($i = 1; $i <= 10; $i++) {
             cache()->put("stress_test_{$i}", "value_{$i}", 60);
             cache()->get("stress_test_{$i}");
             $operations['cache'][] = "Cache {$i}";
         }
-        
+
         return response()->json([
             'message' => '✅ Stress test completed!',
             'operations_executed' => [
@@ -282,4 +282,3 @@ class DebugTestController
         ]);
     }
 }
-

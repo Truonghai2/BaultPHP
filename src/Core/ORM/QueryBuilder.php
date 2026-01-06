@@ -67,7 +67,7 @@ class QueryBuilder
 
     /**
      * Force the query to only return distinct results.
-     * 
+     *
      * @return $this
      */
     public function distinct(): self

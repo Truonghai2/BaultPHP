@@ -10,14 +10,14 @@ use Modules\Cms\Domain\Services\BlockCacheManager;
 
 /**
  * Block Cache Statistics Command
- * 
+ *
  * Show cache statistics for the block system
  */
 class BlockCacheStatsCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly BlockCacheManager $cacheManager
+        private readonly BlockCacheManager $cacheManager,
     ) {
         parent::__construct($app);
     }
@@ -53,7 +53,7 @@ class BlockCacheStatsCommand extends BaseCommand
                     ['Validated Classes', $stats['registry']['validated_classes']],
                     ['Valid Classes', $stats['registry']['valid_classes']],
                     ['Invalid Classes', $stats['registry']['invalid_classes']],
-                ]
+                ],
             );
 
             // Cache driver info
@@ -62,11 +62,11 @@ class BlockCacheStatsCommand extends BaseCommand
 
             // Recommendations
             $this->io->section('Recommendations');
-            
+
             if ($stats['registry']['invalid_classes'] > 0) {
                 $this->warn("Found {$stats['registry']['invalid_classes']} invalid block classes. Check your block types!");
             }
-            
+
             if ($stats['registry']['cached_instances'] === 0) {
                 $this->io->note('No cached block instances. This is normal if no blocks have been rendered yet.');
             } else {
@@ -74,7 +74,6 @@ class BlockCacheStatsCommand extends BaseCommand
             }
 
             return self::SUCCESS;
-            
         } catch (\Throwable $e) {
             $this->error("Failed to get cache stats: {$e->getMessage()}");
             if ($this->io->isVerbose()) {
@@ -84,4 +83,3 @@ class BlockCacheStatsCommand extends BaseCommand
         }
     }
 }
-

@@ -7,7 +7,6 @@ use Core\Routing\Attributes\Route;
 use Core\Support\Facades\Auth;
 use League\OAuth2\Server\AuthorizationServer;
 use League\OAuth2\Server\Exception\OAuthServerException;
-use Modules\User\Infrastructure\Models\OAuth\RefreshToken as RefreshTokenModel;
 use Modules\User\Infrastructure\Repositories\OAuth\AccessTokenRepository;
 use Modules\User\Infrastructure\Repositories\OAuth\RefreshTokenRepository;
 use Psr\Http\Message\ResponseInterface;
@@ -100,9 +99,9 @@ class OAuthController extends Controller
         }
 
         $this->accessTokenRepository->revokeAccessToken($tokenId);
-        
+
         $revokedCount = $this->refreshTokenRepository->revokeRefreshTokensByAccessToken($tokenId);
-        
+
         $userId = $guard->id();
         if ($userId) {
             cache()->forget("oauth:user:{$userId}");
@@ -116,7 +115,7 @@ class OAuthController extends Controller
 
     /**
      * List all active tokens for the authenticated user.
-     * 
+     *
      * @return ResponseInterface
      */
     #[Route('/oauth/tokens', method: 'GET', group: 'api')]
@@ -153,7 +152,7 @@ class OAuthController extends Controller
     /**
      * Revoke a specific token by ID.
      * User can only revoke their own tokens.
-     * 
+     *
      * @param string $tokenId
      * @return ResponseInterface
      */
@@ -194,7 +193,7 @@ class OAuthController extends Controller
     /**
      * Token introspection endpoint (RFC 7662).
      * Returns information about a token without requiring authentication.
-     * 
+     *
      * @return ResponseInterface
      */
     #[Route('/oauth/introspect', method: 'POST', middleware: ['throttle:60,1'])]
@@ -215,7 +214,7 @@ class OAuthController extends Controller
         try {
             // Try to validate as access token
             $accessToken = \Modules\User\Infrastructure\Models\OAuth\AccessToken::where('id', '=', $token)->first();
-            
+
             if ($accessToken && !$accessToken->revoked && strtotime($accessToken->expires_at) > time()) {
                 return response()->json([
                     'active' => true,
@@ -233,10 +232,10 @@ class OAuthController extends Controller
             // Try refresh token if access token not found
             if ($tokenTypeHint === 'refresh_token' || !$accessToken) {
                 $refreshToken = \Modules\User\Infrastructure\Models\OAuth\RefreshToken::where('id', '=', $token)->first();
-                
+
                 if ($refreshToken && !$refreshToken->revoked && strtotime($refreshToken->expires_at) > time()) {
                     $relatedAccessToken = \Modules\User\Infrastructure\Models\OAuth\AccessToken::find($refreshToken->access_token_id);
-                    
+
                     return response()->json([
                         'active' => true,
                         'client_id' => $relatedAccessToken?->client_id,

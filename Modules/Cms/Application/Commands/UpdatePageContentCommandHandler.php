@@ -16,7 +16,7 @@ use Modules\User\Domain\Services\AuthorizationService;
 
 /**
  * Update Page Content Command Handler
- * 
+ *
  * CQRS Command Handler following DDD standards:
  * - Does not access Infrastructure directly
  * - Uses Repository pattern
@@ -27,7 +27,7 @@ class UpdatePageContentCommandHandler implements CommandHandler
     public function __construct(
         private readonly PageRepositoryInterface $pageRepository,
         private readonly PageService $pageService,
-        private readonly AuthorizationService $authorizationService
+        private readonly AuthorizationService $authorizationService,
     ) {
     }
 
@@ -39,7 +39,7 @@ class UpdatePageContentCommandHandler implements CommandHandler
     public function handle(Command $command): void
     {
         /** @var UpdatePageContentCommand $command */
-        
+
         // 1. Load page from repository
         $pageId = new PageId($command->pageId);
         $page = $this->pageRepository->findById($pageId);
@@ -54,7 +54,7 @@ class UpdatePageContentCommandHandler implements CommandHandler
         $updatedPage = $this->pageService->updateContent(
             $page,
             $content,
-            $command->featuredImagePath
+            $command->featuredImagePath,
         );
 
         // 4. Persist changes

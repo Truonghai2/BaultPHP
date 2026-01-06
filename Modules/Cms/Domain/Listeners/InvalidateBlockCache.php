@@ -4,22 +4,22 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Domain\Listeners;
 
+use Modules\Cms\Domain\Events\BlockTypeUpdated;
 use Modules\Cms\Domain\Events\BlockUpdated;
 use Modules\Cms\Domain\Events\PageUpdated;
-use Modules\Cms\Domain\Events\BlockTypeUpdated;
 use Modules\Cms\Domain\Services\BlockCacheManager;
 use Psr\Log\LoggerInterface;
 
 /**
  * Invalidate Block Cache Listener
- * 
+ *
  * Automatically invalidates relevant caches when blocks, pages, or block types change
  */
 class InvalidateBlockCache
 {
     public function __construct(
         private readonly BlockCacheManager $cacheManager,
-        private readonly LoggerInterface $logger
+        private readonly LoggerInterface $logger,
     ) {
     }
 
@@ -62,4 +62,3 @@ class InvalidateBlockCache
         $this->cacheManager->invalidateBlockType($event->blockType);
     }
 }
-

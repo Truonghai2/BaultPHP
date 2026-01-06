@@ -7,20 +7,20 @@ namespace Modules\Cms\Console;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
 use Modules\Cms\Domain\Services\BlockSyncService;
+use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\BlockRegion;
 use Modules\Cms\Infrastructure\Models\BlockType;
-use Modules\Cms\Infrastructure\Models\BlockInstance;
 
 /**
  * Setup Default Blocks Command
- * 
+ *
  * Quickly setup default blocks for header, footer and other regions
  */
 class SetupDefaultBlocksCommand extends BaseCommand
 {
     public function __construct(
         Application $app,
-        private readonly BlockSyncService $syncService
+        private readonly BlockSyncService $syncService,
     ) {
         parent::__construct($app);
     }
@@ -43,10 +43,10 @@ class SetupDefaultBlocksCommand extends BaseCommand
 
         // Step 1: Sync block types and regions
         $this->io->section('Step 1: Syncing block types and regions...');
-        
+
         try {
             $stats = $this->syncService->forceSyncBlocks();
-            
+
             $this->io->table(
                 ['Item', 'Count'],
                 [
@@ -54,9 +54,9 @@ class SetupDefaultBlocksCommand extends BaseCommand
                     ['Block Types Updated', $stats['types_updated']],
                     ['Regions Created', $stats['regions_created']],
                     ['Regions Updated', $stats['regions_updated']],
-                ]
+                ],
             );
-            
+
             $this->io->success('Sync completed!');
         } catch (\Exception $e) {
             $this->io->error('Sync failed: ' . $e->getMessage());
@@ -65,7 +65,7 @@ class SetupDefaultBlocksCommand extends BaseCommand
 
         // Step 2: Check existing instances
         $this->io->section('Step 2: Checking existing block instances...');
-        
+
         $existingCount = BlockInstance::count();
         $this->io->info("Found {$existingCount} existing block instances");
 
@@ -81,15 +81,15 @@ class SetupDefaultBlocksCommand extends BaseCommand
 
         // Step 3: Create default block instances
         $this->io->section('Step 3: Creating default block instances...');
-        
+
         $created = $this->createDefaultBlocks();
-        
+
         $this->io->success("Created {$created} block instances!");
-        
+
         // Step 4: Summary
         $this->io->section('Summary');
         $this->displayBlockSummary();
-        
+
         return self::SUCCESS;
     }
 
@@ -273,7 +273,7 @@ class SetupDefaultBlocksCommand extends BaseCommand
 
         $this->io->table(
             ['Region', 'Blocks', 'Status'],
-            $data
+            $data,
         );
 
         $this->io->newLine();
@@ -281,4 +281,3 @@ class SetupDefaultBlocksCommand extends BaseCommand
         $this->io->comment('Visit your website to verify: ' . config('app.url'));
     }
 }
-

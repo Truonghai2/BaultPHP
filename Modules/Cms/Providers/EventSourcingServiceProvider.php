@@ -5,12 +5,12 @@ declare(strict_types=1);
 namespace Modules\Cms\Providers;
 
 use Core\BaseServiceProvider;
-use Modules\Cms\Infrastructure\Observers\PageEventSourcingObserver;
 use Modules\Cms\Infrastructure\Observers\PageBlockEventSourcingObserver;
+use Modules\Cms\Infrastructure\Observers\PageEventSourcingObserver;
 
 /**
  * Event Sourcing Service Provider for CMS Module
- * 
+ *
  * Registers observers to automatically record events when models change
  */
 class EventSourcingServiceProvider extends BaseServiceProvider
@@ -19,15 +19,15 @@ class EventSourcingServiceProvider extends BaseServiceProvider
     {
         // Register services
         $this->app->singleton(
-            \Modules\Cms\Application\Services\PageAggregateService::class
+            \Modules\Cms\Application\Services\PageAggregateService::class,
         );
-        
+
         $this->app->singleton(
-            \Modules\Cms\Application\Services\PageBlockAggregateService::class
+            \Modules\Cms\Application\Services\PageBlockAggregateService::class,
         );
-        
+
         $this->app->singleton(
-            \Modules\Cms\Domain\Services\PageDomainService::class
+            \Modules\Cms\Domain\Services\PageDomainService::class,
         );
     }
 
@@ -35,7 +35,7 @@ class EventSourcingServiceProvider extends BaseServiceProvider
     {
         /** @var \Core\EventSourcing\ModuleConfigLoader $configLoader */
         $configLoader = $this->app->make(\Core\EventSourcing\ModuleConfigLoader::class);
-        
+
         // Check if event sourcing is enabled for CMS module
         if (!$configLoader->isEnabled('Cms')) {
             return;
@@ -71,7 +71,7 @@ class EventSourcingServiceProvider extends BaseServiceProvider
     private function registerCommands($configLoader): void
     {
         $commands = $configLoader->get('Cms', 'commands', []);
-        
+
         if (!empty($commands)) {
             $this->commands($commands);
         }

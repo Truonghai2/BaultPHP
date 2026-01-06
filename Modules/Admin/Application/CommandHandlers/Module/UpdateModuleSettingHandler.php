@@ -9,7 +9,7 @@ use Core\Support\Facades\Audit;
 
 /**
  * UpdateModuleSettingHandler
- * 
+ *
  * Handles the UpdateModuleSettingCommand.
  */
 class UpdateModuleSettingHandler implements CommandHandlerInterface
@@ -24,14 +24,14 @@ class UpdateModuleSettingHandler implements CommandHandlerInterface
             $oldValue = $setting->value;
             $setting->type = $command->type;
             $setting->value = $command->value;
-            
+
             if ($command->description) {
                 $setting->description = $command->description;
             }
             if ($command->group) {
                 $setting->group = $command->group;
             }
-            
+
             $setting->save();
 
             Audit::log(
@@ -42,9 +42,9 @@ class UpdateModuleSettingHandler implements CommandHandlerInterface
                     'setting_key' => $command->key,
                     'old_value' => $oldValue,
                     'new_value' => $command->value,
-                    'type' => $command->type
+                    'type' => $command->type,
                 ],
-                'info'
+                'info',
             );
         } else {
             $setting = new ModuleSettings([
@@ -52,9 +52,9 @@ class UpdateModuleSettingHandler implements CommandHandlerInterface
                 'key' => $command->key,
                 'type' => $command->type,
                 'description' => $command->description,
-                'group' => $command->group
+                'group' => $command->group,
             ]);
-            
+
             $setting->value = $command->value;
             $setting->save();
 
@@ -65,13 +65,12 @@ class UpdateModuleSettingHandler implements CommandHandlerInterface
                     'module' => $command->moduleName,
                     'setting_key' => $command->key,
                     'value' => $command->value,
-                    'type' => $command->type
+                    'type' => $command->type,
                 ],
-                'info'
+                'info',
             );
         }
 
         return true;
     }
 }
-

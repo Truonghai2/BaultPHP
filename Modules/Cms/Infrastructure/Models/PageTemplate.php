@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Models;
 
-use Core\ORM\Model;
 use Core\Audit\Traits\Auditable;
+use Core\ORM\Model;
 
 /**
  * Page Template Model
- * 
+ *
  * Represents pre-configured page templates with blocks
- * 
+ *
  * @property int $id
  * @property string $name
  * @property string|null $description
@@ -28,7 +28,7 @@ use Core\Audit\Traits\Auditable;
 class PageTemplate extends Model
 {
     use Auditable;
-    
+
     protected static string $table = 'page_templates';
 
     protected array $fillable = [
@@ -74,4 +74,3 @@ class PageTemplate extends Model
             ->get();
     }
 }
-

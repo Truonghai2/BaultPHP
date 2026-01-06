@@ -11,7 +11,7 @@ use Psr\Http\Message\ServerRequestInterface;
 class ModuleSettingsController extends Controller
 {
     public function __construct(
-        private ModuleSettingsManager $settingsManager
+        private ModuleSettingsManager $settingsManager,
     ) {
     }
 
@@ -247,4 +247,3 @@ class ModuleSettingsController extends Controller
         }
     }
 }
-

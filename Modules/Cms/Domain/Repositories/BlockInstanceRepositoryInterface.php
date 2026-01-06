@@ -38,4 +38,3 @@ interface BlockInstanceRepositoryInterface
      */
     public function reorderByIds(array $ids): void;
 }
-

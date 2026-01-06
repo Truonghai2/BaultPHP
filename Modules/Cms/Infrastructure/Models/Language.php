@@ -4,14 +4,14 @@ declare(strict_types=1);
 
 namespace Modules\Cms\Infrastructure\Models;
 
-use Core\ORM\Model;
 use Core\Audit\Traits\Auditable;
+use Core\ORM\Model;
 
 /**
  * Language Model
- * 
+ *
  * Represents available languages for multi-language support
- * 
+ *
  * @property int $id
  * @property string $code
  * @property string $name
@@ -25,7 +25,7 @@ use Core\Audit\Traits\Auditable;
 class Language extends Model
 {
     use Auditable;
-    
+
     protected static string $table = 'languages';
 
     protected array $fillable = [
@@ -69,4 +69,3 @@ class Language extends Model
         return static::where('code', $code)->first();
     }
 }
-

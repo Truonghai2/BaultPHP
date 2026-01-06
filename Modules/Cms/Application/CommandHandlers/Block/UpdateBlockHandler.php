@@ -9,7 +9,7 @@ use Modules\Cms\Infrastructure\Models\PageBlock;
 
 /**
  * UpdateBlockHandler
- * 
+ *
  * Handles the UpdateBlockCommand.
  */
 class UpdateBlockHandler implements CommandHandlerInterface
@@ -17,7 +17,7 @@ class UpdateBlockHandler implements CommandHandlerInterface
     public function handle(CommandInterface $command): bool
     {
         $block = PageBlock::find($command->blockId);
-        
+
         if (!$block) {
             throw new \Exception("Block with ID {$command->blockId} not found");
         }
@@ -40,16 +40,15 @@ class UpdateBlockHandler implements CommandHandlerInterface
         // Audit log (update is auto-logged)
         Audit::log(
             'data_change',
-            "Block updated",
+            'Block updated',
             [
                 'block_id' => $block->id,
                 'page_id' => $block->page_id,
-                'action' => 'block_updated'
+                'action' => 'block_updated',
             ],
-            'info'
+            'info',
         );
 
         return true;
     }
 }
-

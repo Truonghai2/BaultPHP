@@ -33,4 +33,3 @@ interface BlockRegionRepositoryInterface
 
     public function nameExists(RegionName $name, ?int $excludeId = null): bool;
 }
-
