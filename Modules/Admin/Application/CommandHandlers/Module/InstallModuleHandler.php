@@ -4,6 +4,7 @@ namespace Modules\Admin\Application\CommandHandlers\Module;
 
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
+use Core\Module\ModuleSyncService;
 use Core\Support\Facades\Audit;
 use Modules\Admin\Application\Commands\Module\InstallModuleCommand;
 use Modules\Admin\Infrastructure\Models\Module;
@@ -15,6 +16,11 @@ use Modules\Admin\Infrastructure\Models\Module;
  */
 class InstallModuleHandler implements CommandHandlerInterface
 {
+    public function __construct(
+        private readonly ModuleSyncService $syncService,
+    ) {
+    }
+
     public function handle(CommandInterface $command): int
     {
         if (!$command instanceof InstallModuleCommand) {
@@ -44,6 +50,23 @@ class InstallModuleHandler implements CommandHandlerInterface
             'enabled' => false,
             'status' => 'installed',
         ]);
+
+        // Automatically sync module data (permissions, roles) after installation
+        try {
+            $this->syncService->syncAll($command->moduleName);
+        } catch (\Throwable $e) {
+            // Log error but don't fail installation
+            Audit::log(
+                'system',
+                "Module '{$command->moduleName}' installed but sync failed: {$e->getMessage()}",
+                [
+                    'module' => $command->moduleName,
+                    'error' => $e->getMessage(),
+                    'action' => 'install_sync_error',
+                ],
+                'warning',
+            );
+        }
 
         Audit::log(
             'system',

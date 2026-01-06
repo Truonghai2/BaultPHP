@@ -5,6 +5,7 @@ namespace Modules\Admin\Application\CommandHandlers\Module;
 use Core\CQRS\Contracts\CommandHandlerInterface;
 use Core\CQRS\Contracts\CommandInterface;
 use Core\Module\ModuleManager;
+use Core\Module\ModuleSyncService;
 use Core\Support\Facades\Audit;
 use Modules\Admin\Application\Commands\Module\EnableModuleCommand;
 use Modules\Admin\Infrastructure\Models\Module;
@@ -17,7 +18,8 @@ use Modules\Admin\Infrastructure\Models\Module;
 class EnableModuleHandler implements CommandHandlerInterface
 {
     public function __construct(
-        private ModuleManager $moduleManager,
+        private readonly ModuleManager $moduleManager,
+        private readonly ModuleSyncService $syncService,
     ) {
     }
 
@@ -40,6 +42,23 @@ class EnableModuleHandler implements CommandHandlerInterface
         $this->validateDependencies($command->moduleName);
 
         $this->moduleManager->enable($command->moduleName);
+
+        // Automatically sync module data when enabling
+        try {
+            $this->syncService->syncAll($command->moduleName);
+        } catch (\Throwable $e) {
+            // Log error but don't fail enable
+            Audit::log(
+                'system',
+                "Module '{$command->moduleName}' enabled but sync failed: {$e->getMessage()}",
+                [
+                    'module' => $command->moduleName,
+                    'error' => $e->getMessage(),
+                    'action' => 'enable_sync_error',
+                ],
+                'warning',
+            );
+        }
 
         Audit::log(
             'system',
