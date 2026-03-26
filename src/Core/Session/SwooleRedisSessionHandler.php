@@ -22,7 +22,8 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
      */
     private string $prefix = 'session:';
 
-    private LoggerInterface $logger;
+    /** Lazy-initialized to avoid circular dependency: session -> Log -> config -> ... -> session */
+    private ?LoggerInterface $logger = null;
 
     /**
      * @param string $connectionName The name of the Redis pool connection.
@@ -32,7 +33,14 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
         private string $connectionName,
         private int $lifetime,
     ) {
-        $this->logger = Log::channel('session');
+    }
+
+    private function getLogger(): LoggerInterface
+    {
+        if ($this->logger === null) {
+            $this->logger = Log::channel('session');
+        }
+        return $this->logger;
     }
 
     /**
@@ -44,7 +52,7 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
     private function withConnection(callable $callback): mixed
     {
         if (!SwooleRedisPool::isInitialized($this->connectionName)) {
-            $this->logger->error("Redis pool '{$this->connectionName}' is not initialized. Session operations will fail.");
+            $this->getLogger()->error("Redis pool '{$this->connectionName}' is not initialized. Session operations will fail.");
             throw new \RuntimeException("Redis pool '{$this->connectionName}' is not initialized. Ensure Redis pool is configured and enabled in config/server.php");
         }
 
@@ -53,7 +61,7 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
             $redis = SwooleRedisPool::get($this->connectionName);
             return $callback($redis);
         } catch (\Throwable $e) {
-            $this->logger->error('Session Redis Error: ' . $e->getMessage(), ['exception' => $e]);
+            $this->getLogger()->error('Session Redis Error: ' . $e->getMessage(), ['exception' => $e]);
             throw new \RuntimeException('Failed to execute Redis session command.', 0, $e);
         } finally {
             if ($redis) {
@@ -64,13 +72,13 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
 
     public function open(string $path, string $name): bool
     {
-        $this->logger->info('Opening session.', ['path' => $path, 'name' => $name]);
+        $this->getLogger()->info('Opening session.', ['path' => $path, 'name' => $name]);
         return true;
     }
 
     public function close(): bool
     {
-        $this->logger->info('Closing session.');
+        $this->getLogger()->info('Closing session.');
         return true;
     }
 
@@ -78,7 +86,7 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
     {
         return $this->withConnection(function (Redis $redis) use ($sessionId) {
             $data = $redis->hGet($this->prefix . $sessionId, 'payload');
-            $this->logger->info('Reading session.', ['session_id' => $sessionId, 'has_data' => !empty($data)]);
+            $this->getLogger()->debug('Reading session.', ['session_id' => $sessionId, 'has_data' => !empty($data)]);
             return $data === false ? '' : $data;
         });
     }
@@ -118,7 +126,7 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
             $results = $redis->exec();
 
             // Chỉ log ở mức debug để tránh làm đầy log trong môi trường production
-            $this->logger->debug('Writing session.', ['session_id' => $sessionId, 'user_id' => $userId, 'ip_address' => $ipAddress]);
+            $this->getLogger()->debug('Writing session.', ['session_id' => $sessionId, 'user_id' => $userId, 'ip_address' => $ipAddress]);
 
             return is_array($results);
         });
@@ -127,14 +135,14 @@ class SwooleRedisSessionHandler implements SessionHandlerInterface
     public function destroy(string $sessionId): bool
     {
         return (bool) $this->withConnection(function (Redis $redis) use ($sessionId) {
-            $this->logger->info('Destroying session.', ['session_id' => $sessionId]);
+            $this->getLogger()->info('Destroying session.', ['session_id' => $sessionId]);
             return $redis->del($this->prefix . $sessionId);
         });
     }
 
     public function gc(int $max_lifetime): int|false
     {
-        $this->logger->info('Garbage collection.', ['max_lifetime' => $max_lifetime]);
+        $this->getLogger()->info('Garbage collection.', ['max_lifetime' => $max_lifetime]);
         return 0;
     }
 }

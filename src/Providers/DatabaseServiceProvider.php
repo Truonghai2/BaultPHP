@@ -2,8 +2,9 @@
 
 namespace App\Providers;
 
-use Core\Debug\DebugBroadcaster;
-use Core\Debug\RealtimeTraceablePdo;
+use Core\Database\GraphDatabase;
+use Core\Database\TimeSeriesDatabase;
+use Core\Database\VectorDatabase;
 use Core\ORM\Connection;
 use Core\ORM\MigrationManager;
 use Core\Support\ServiceProvider;
@@ -32,27 +33,6 @@ class DatabaseServiceProvider extends ServiceProvider
             $connection = $app->make(Connection::class);
             $pdo = $connection->connection(null, 'write');
 
-            // Nếu debug được bật, wrap PDO với real-time tracing
-            if ((bool) config('debug.enabled', false)) {
-                // Wrap với RealtimeTraceablePdo cho real-time broadcasting
-                $traceablePdo = new RealtimeTraceablePdo($pdo);
-
-                // Inject broadcaster nếu có
-                if ($app->bound(DebugBroadcaster::class)) {
-                    $traceablePdo->setBroadcaster($app->make(DebugBroadcaster::class));
-                }
-
-                // Add vào DebugBar collector nếu có
-                if ($app->bound('debugbar')) {
-                    /** @var \DebugBar\DebugBar $debugbar */
-                    $debugbar = $app->make('debugbar');
-                    /** @var \DebugBar\DataCollector\PDO\PDOCollector $pdoCollector */
-                    $pdoCollector = $debugbar->getCollector('pdo');
-                    $pdoCollector->addConnection($traceablePdo, $connection->getDefaultConnection());
-                }
-
-                return $traceablePdo;
-            }
             return $pdo;
         });
 
@@ -71,5 +51,37 @@ class DatabaseServiceProvider extends ServiceProvider
             $table = $config->get('database.migrations.table', 'migrations');
             return new MigrationManager($pdo, $schema, $table);
         });
+
+        $this->registerAdvancedDatabases();
+    }
+
+    /**
+     * Register advanced database technologies
+     */
+    protected function registerAdvancedDatabases(): void
+    {
+        $config = $this->app->make('config');
+        $advancedConfig = $config->get('database-advanced', []);
+
+        // Register Vector Database
+        if ($advancedConfig['vector']['enabled'] ?? false) {
+            $this->app->singleton(VectorDatabase::class, function ($app) use ($advancedConfig) {
+                return new VectorDatabase($advancedConfig['vector'] ?? []);
+            });
+        }
+
+        // Register Time-Series Database
+        if ($advancedConfig['timeseries']['enabled'] ?? false) {
+            $this->app->singleton(TimeSeriesDatabase::class, function ($app) use ($advancedConfig) {
+                return new TimeSeriesDatabase($advancedConfig['timeseries'] ?? []);
+            });
+        }
+
+        // Register Graph Database
+        if ($advancedConfig['graph']['enabled'] ?? false) {
+            $this->app->singleton(GraphDatabase::class, function ($app) use ($advancedConfig) {
+                return new GraphDatabase($advancedConfig['graph'] ?? []);
+            });
+        }
     }
 }

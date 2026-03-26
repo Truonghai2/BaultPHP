@@ -2,6 +2,7 @@
 
 namespace Core\Session;
 
+use Core\Config;
 use Core\Contracts\Session\SessionHandlerInterface as Handler;
 use Core\Contracts\Session\SessionInterface;
 use Core\Contracts\StatefulService;
@@ -13,6 +14,19 @@ use InvalidArgumentException;
  */
 class SessionManager extends Manager implements StatefulService
 {
+    private ?Config $config = null;
+
+    public function __construct(\Core\Application $app, ?Config $config = null)
+    {
+        parent::__construct($app);
+        $this->config = $config;
+    }
+
+    private function getConfig(): Config
+    {
+        return $this->config ?? $this->app->make('config');
+    }
+
     /**
      * Tạo một instance của session driver.
      *
@@ -35,7 +49,7 @@ class SessionManager extends Manager implements StatefulService
         $handler = $this->createHandler($driver);
 
         return new Store(
-            $this->app->make('config')->get('session.cookie'),
+            $this->getConfig()->get('session.cookie'),
             $handler,
         );
     }
@@ -58,18 +72,17 @@ class SessionManager extends Manager implements StatefulService
 
     protected function createFileHandler(): Handler
     {
-        $path = $this->app->make('config')->get('session.files');
+        $path = $this->getConfig()->get('session.files');
         return new FileSessionHandler($path);
     }
 
     protected function createDatabaseHandler(): Handler
     {
-        $config = $this->app->make('config');
+        $config = $this->getConfig();
         $connectionName = $config->get('session.database_connection') ?? $config->get('database.default');
         $table = $config->get('session.table', 'sessions');
         $lifetime = (int) $config->get('session.lifetime', 120) * 60;
 
-        // Use optimized handler nếu enable
         $useOptimized = $config->get('session.use_optimized_handler', true);
 
         if ($useOptimized) {
@@ -81,7 +94,7 @@ class SessionManager extends Manager implements StatefulService
 
     protected function createRedisHandler(): Handler
     {
-        $config = $this->app->make('config');
+        $config = $this->getConfig();
         if (!$config->get('server.swoole.pools.redis.enabled', false)) {
             throw new \RuntimeException('Redis session driver requires the Redis connection pool to be enabled in config/server.php.');
         }
@@ -94,7 +107,7 @@ class SessionManager extends Manager implements StatefulService
 
     public function getDefaultDriver(): string
     {
-        return $this->app->make('config')->get('session.driver', 'file');
+        return $this->getConfig()->get('session.driver', 'file');
     }
 
     /**

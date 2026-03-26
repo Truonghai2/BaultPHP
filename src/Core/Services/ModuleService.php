@@ -5,6 +5,8 @@ namespace Core\Services;
 use Core\Cache\CacheManager;
 use Core\Exceptions\Module\ModuleNotFoundException;
 use Core\FileSystem\Filesystem;
+use Core\Module\ModuleLifecycleDispatcher;
+use Core\Module\ModuleManifest;
 use Core\Support\Facades\Log;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
 use Modules\Admin\Infrastructure\Models\Module;
@@ -21,6 +23,7 @@ class ModuleService
     public function __construct(
         protected Filesystem $fs,
         protected CacheManager $cache,
+        protected ?ModuleLifecycleDispatcher $lifecycle = null,
     ) {
         $this->modulesPath = base_path('Modules');
     }
@@ -138,7 +141,7 @@ class ModuleService
     }
 
     /**
-     * Set module status (enabled/disabled).
+     * Set module status (enabled/disabled) with lifecycle hooks.
      *
      * @param Module $module
      * @param bool $status
@@ -146,11 +149,24 @@ class ModuleService
      */
     private function setModuleStatus(Module $module, bool $status): bool
     {
+        $manifest = $this->loadManifest($module->name);
+
+        // "before" hooks — may throw to abort the operation
+        if ($manifest && $this->lifecycle) {
+            if ($status) {
+                $this->lifecycle->enabling($manifest);
+            } else {
+                $this->lifecycle->disabling($manifest);
+            }
+        }
+
         $module->enabled = $status;
         $module->save();
 
         $jsonPath = $this->modulesPath . '/' . $module->name . '/module.json';
-        if ($this->fs->exists($jsonPath)) {
+        if ($this->fs->exists($jsonPath) && $manifest) {
+            $manifest->withEnabled($status)->save($jsonPath);
+        } elseif ($this->fs->exists($jsonPath)) {
             $meta = json_decode($this->fs->get($jsonPath), true);
             if ($meta) {
                 $meta['enabled'] = $status;
@@ -159,6 +175,15 @@ class ModuleService
         }
 
         $this->cache->forget(self::CACHE_KEY);
+
+        // "after" hooks
+        if ($manifest && $this->lifecycle) {
+            if ($status) {
+                $this->lifecycle->enabled($manifest);
+            } else {
+                $this->lifecycle->disabled($manifest);
+            }
+        }
 
         return $status;
     }
@@ -178,11 +203,21 @@ class ModuleService
             throw new ModuleNotFoundException("Module '{$moduleName}' không tồn tại trên hệ thống file.");
         }
 
+        $manifest = $this->loadManifest($moduleName);
+
+        // "before" hook — may throw to abort uninstallation
+        if ($manifest && $this->lifecycle) {
+            $this->lifecycle->uninstalling($manifest);
+        }
+
         Module::where('name', $moduleName)->delete();
-
         $this->fs->deleteDirectory($dir);
-
         $this->cache->forget(self::CACHE_KEY);
+
+        // "after" hook (module no longer on disk)
+        if ($manifest && $this->lifecycle) {
+            $this->lifecycle->uninstalled($manifest);
+        }
     }
 
     /**
@@ -240,6 +275,24 @@ class ModuleService
         InstallModuleDependenciesJob::dispatch($moduleName);
 
         $this->cache->forget(self::CACHE_KEY);
+    }
+
+    /**
+     * Safely load a ModuleManifest for the given module.
+     * Returns null if module.json is missing or unparseable.
+     */
+    private function loadManifest(string $moduleName): ?ModuleManifest
+    {
+        $jsonPath = $this->modulesPath . '/' . $moduleName . '/module.json';
+        if (!$this->fs->exists($jsonPath)) {
+            return null;
+        }
+        try {
+            return ModuleManifest::fromPath($jsonPath);
+        } catch (\Throwable $e) {
+            Log::warning("Could not parse manifest for module '{$moduleName}': " . $e->getMessage());
+            return null;
+        }
     }
 
     /**

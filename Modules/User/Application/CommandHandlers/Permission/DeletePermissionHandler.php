@@ -36,13 +36,12 @@ class DeletePermissionHandler implements CommandHandlerInterface
 
         $permission->delete();
 
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'permission_deleted',
             "Permission deleted: {$permissionName}",
             [
                 'permission_id' => $command->permissionId,
                 'permission_name' => $permissionName,
-                'action' => 'permission_deleted',
             ],
             'warning',
         );

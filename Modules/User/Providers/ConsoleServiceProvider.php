@@ -3,12 +3,14 @@
 namespace Modules\User\Providers;
 
 use Core\Support\ServiceProvider;
+use Modules\User\Console\ACLOptimizeCommand;
 use Modules\User\Console\AclSyncPermissionsCommand;
 use Modules\User\Console\OAuthTokenPruneCommand;
 
 class ConsoleServiceProvider extends ServiceProvider
 {
     protected array $commands = [
+        ACLOptimizeCommand::class,
         AclSyncPermissionsCommand::class,
         OAuthTokenPruneCommand::class,
     ];

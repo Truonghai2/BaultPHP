@@ -57,17 +57,43 @@ class ConnectionPoolManager
     /**
      * Closes all connection pools.
      * This should be called when a worker stops.
+     * Can be called from both coroutine and non-coroutine contexts.
      */
     public function closePools(): void
     {
-        foreach (array_unique($this->initializedPoolClasses) as $poolClass) {
+        // Check if we're in a coroutine context
+        $inCoroutine = \Swoole\Coroutine::getCid() >= 0;
+        
+        if (!$inCoroutine) {
+            // If not in coroutine, try to create one to safely close pools
+            // This is needed because Channel operations require coroutine context
             try {
-                $poolClass::close();
-                $this->logger->debug("Pool class {$poolClass} closed.");
+                \Swoole\Coroutine::create(function () {
+                    foreach (array_unique($this->initializedPoolClasses) as $poolClass) {
+                        try {
+                            $poolClass::close();
+                            // $this->logger->debug("Pool class {$poolClass} closed.");
+                        } catch (\Throwable $e) {
+                            $this->logger->error("Failed to close pool class {$poolClass}: " . $e->getMessage());
+                        }
+                    }
+                });
             } catch (\Throwable $e) {
-                $this->logger->error("Failed to close pool class {$poolClass}: " . $e->getMessage());
+                // If we can't create coroutine (e.g., during shutdown), 
+                // just log and let garbage collector handle cleanup
+                $this->logger->warning("Could not create coroutine to close pools: " . $e->getMessage());
+            }
+        } else {
+            foreach (array_unique($this->initializedPoolClasses) as $poolClass) {
+                try {
+                    $poolClass::close();
+                    // $this->logger->debug("Pool class {$poolClass} closed.");
+                } catch (\Throwable $e) {
+                    $this->logger->error("Failed to close pool class {$poolClass}: " . $e->getMessage());
+                }
             }
         }
+        
         $this->initializedPoolClasses = [];
     }
 
@@ -83,7 +109,7 @@ class ConnectionPoolManager
 
         foreach ($typeConfig['connections'] ?? [] as $name => $connectionConfig) {
             if (!empty($connectionConfig['alias'])) {
-                $this->logger->debug("Skipping alias '{$name}' in initial pool creation.");
+                // $this->logger->debug("Skipping alias '{$name}' in initial pool creation.");
                 continue;
             }
 
@@ -115,7 +141,7 @@ class ConnectionPoolManager
 
                     $this->initializedPoolClasses[] = $poolClass;
 
-                    $this->logger->debug("Pool '{$name}' of type '{$poolType}' initialized for {$workerType}", ['size' => $poolSize]);
+                    // $this->logger->debug("Pool '{$name}' of type '{$poolType}' initialized for {$workerType}", ['size' => $poolSize]);
                     break;
                 } catch (\Throwable $e) {
                     $this->logger->warning("Attempt {$attempt}/{$maxRetries}: Failed to initialize pool '{$name}' of type '{$poolType}'. Retrying in {$currentDelayMs}ms...", ['error' => $e->getMessage()]);
@@ -133,7 +159,7 @@ class ConnectionPoolManager
         foreach ($connections as $name => $connectionConfig) {
             if (!empty($connectionConfig['alias'])) {
                 $aliasTarget = $connectionConfig['alias'];
-                $this->logger->debug("Registering '{$name}' as an alias for pool '{$aliasTarget}'.");
+                // $this->logger->debug("Registering '{$name}' as an alias for pool '{$aliasTarget}'.");
                 $poolClass::registerAlias($name, $aliasTarget);
             }
         }

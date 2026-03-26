@@ -4,9 +4,6 @@ namespace Core\Database\Swoole;
 
 use Ackintosh\Ganesha;
 use Core\Application;
-use Core\Debug\DebugManager;
-use Core\Debug\Proxy\DebugPdoProxy;
-use Core\Debug\Proxy\DebugRedisProxy;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Server\CircuitBreakerFactory;
 use Swoole\Coroutine\Channel;
@@ -68,14 +65,27 @@ abstract class BaseSwoolePool
         $resolvedName = static::$aliases[$name] ?? $name;
 
         $breaker = static::$breakers[$resolvedName] ?? null;
-
-        if ($breaker && !$breaker->isAvailable($resolvedName)) {
-            throw new ServiceUnavailableException("Service '{$name}' (via '{$resolvedName}') is unavailable (Circuit Breaker is open).");
-        }
+        $circuitOpen = $breaker && !$breaker->isAvailable($resolvedName);
 
         $pool = static::$pools[$resolvedName] ?? null;
         if (!$pool) {
             throw new \RuntimeException("Connection pool '{$name}' (via '{$resolvedName}') has not been initialized.");
+        }
+
+        // When circuit is open: allow one probe (half-open) – try to get a connection; if valid, record success and return
+        if ($circuitOpen) {
+            $probeConnection = $pool->pop(0.5);
+            if ($probeConnection && static::ping($probeConnection, $resolvedName)) {
+                $breaker?->success($resolvedName);
+                return static::wrapConnectionForDebug($probeConnection);
+            }
+            if ($probeConnection) {
+                if (isset(static::$connectionCounts[$resolvedName])) {
+                    static::$connectionCounts[$resolvedName] = max(0, static::$connectionCounts[$resolvedName] - 1);
+                }
+                unset($probeConnection);
+            }
+            throw new ServiceUnavailableException("Service '{$name}' (via '{$resolvedName}') is unavailable (Circuit Breaker is open).");
         }
 
         try {
@@ -180,18 +190,48 @@ abstract class BaseSwoolePool
 
     /**
      * Close all connections and clear pools.
+     * This method can be called from both coroutine and non-coroutine contexts.
      */
     public static function close(): void
     {
         foreach (static::$pools as $name => $pool) {
-            while (!$pool->isEmpty()) {
-                $connection = $pool->pop(0.001);
-                if ($connection) {
-                    unset($connection);
+            // Check if we're in a coroutine context
+            // Channel->pop() and Channel->close() can only be called in coroutine context
+            $inCoroutine = \Swoole\Coroutine::getCid() >= 0;
+            
+            if ($inCoroutine) {
+                // In coroutine: safely pop and close connections
+                try {
+                    while (!$pool->isEmpty()) {
+                        try {
+                            $connection = $pool->pop(0.001);
+                            if ($connection) {
+                                unset($connection);
+                            }
+                        } catch (\Swoole\Error $e) {
+                            // If we get an error (e.g., channel closed), break the loop
+                            break;
+                        }
+                    }
+                    
+                    // Close the channel
+                    try {
+                        $pool->close();
+                    } catch (\Swoole\Error $e) {
+                        // Channel might already be closed, ignore
+                    }
+                } catch (\Throwable $e) {
+                    // If any error occurs, just continue to next pool
+                    // Connections will be garbage collected
                 }
+            } else {
+                // Not in coroutine: cannot safely interact with channel
+                // Connections will be garbage collected when pools array is cleared
+                // We cannot call Channel->close() outside coroutine context
             }
-            $pool->close();
         }
+        
+        // Clear all static arrays
         static::$pools = [];
         static::$configs = [];
         static::$breakers = [];
@@ -286,22 +326,10 @@ abstract class BaseSwoolePool
 
     /**
      * Wraps a raw connection in a debug proxy if debugging is enabled.
+     * Debug functionality has been removed.
      */
     protected static function wrapConnectionForDebug(mixed $connection): mixed
     {
-        if (
-            static::$app->bound(DebugManager::class) &&
-            ($debugManager = static::$app->make(DebugManager::class)) &&
-            $debugManager->isEnabled()
-        ) {
-            if ($connection instanceof \PDO) {
-                return new DebugPdoProxy($connection, $debugManager);
-            }
-            if ($connection instanceof \Redis) {
-                return new DebugRedisProxy($connection, $debugManager);
-            }
-        }
-
         return $connection;
     }
 

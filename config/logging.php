@@ -105,7 +105,7 @@ return [
 
         'debugbar' => [
             'driver' => 'monolog',
-            'handler' => class_exists(\DebugBar\Bridge\MonologCollector::class) ? \DebugBar\Bridge\MonologCollector::class : NullHandler::class,
+            'handler' => NullHandler::class,
             'level' => 'debug',
         ],
 

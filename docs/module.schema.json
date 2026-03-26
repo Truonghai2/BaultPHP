@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://baultframe.dev/schemas/module.schema.json",
+  "title": "BaultFrame Module Manifest",
+  "description": "Schema for module.json — the manifest file for a BaultFrame module.",
+  "type": "object",
+  "required": ["name", "enabled", "providers"],
+  "additionalProperties": false,
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "PascalCase module name, e.g. 'User', 'Cms'. Must match the Modules/<Name> directory.",
+      "pattern": "^[A-Za-z][A-Za-z0-9_]+$",
+      "examples": ["User", "Cms", "Admin"]
+    },
+    "alias": {
+      "type": "string",
+      "description": "Short kebab-case or lowercase alias, e.g. 'user', 'cms'.",
+      "examples": ["user", "cms", "admin"]
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the module.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+      "examples": ["1.0.0", "2.1.3-beta"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Human-readable description of what the module does.",
+      "maxLength": 512
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": "Whether the module is loaded by the framework at boot time."
+    },
+    "api_version": {
+      "type": "integer",
+      "description": "Manifest schema version. Use 2 for current format; 1 is legacy.",
+      "minimum": 1,
+      "default": 1,
+      "examples": [1, 2]
+    },
+    "min_core_version": {
+      "type": "string",
+      "description": "Minimum BaultFrame core version required by this module.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+(-[a-zA-Z0-9.]+)?$",
+      "default": "1.0.0",
+      "examples": ["1.0.0", "2.0.0"]
+    },
+    "capabilities": {
+      "type": "array",
+      "description": "Capabilities (features) provided by this module. Other modules can depend on these strings instead of concrete class names.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9._-]*$"
+      },
+      "uniqueItems": true,
+      "examples": [
+        ["auth", "acl"],
+        ["cms", "cms.pages", "cms.blocks"]
+      ]
+    },
+    "permissions": {
+      "type": "array",
+      "description": "System resources this module needs. Format: '<resource>:<action>', e.g. 'cache:read', 'storage:write'. Used for future sandboxing and permission checks.",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9._-]*:[a-z][a-z0-9._-]*$"
+      },
+      "uniqueItems": true,
+      "examples": [
+        ["cache:read", "cache:write"],
+        ["database:read", "database:write", "events:subscribe"]
+      ]
+    },
+    "hooks": {
+      "type": "string",
+      "description": "Fully qualified class name (FQCN) of a class implementing Core\\Module\\ModuleLifecycle. Called during install / enable / disable / uninstall lifecycle transitions.",
+      "examples": ["Modules\\User\\UserModuleLifecycle"]
+    },
+    "providers": {
+      "type": "array",
+      "description": "List of service provider FQCNs to register when the module is enabled.",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z\\\\][A-Za-z0-9\\\\]+$"
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "examples": [
+        ["Modules\\User\\Providers\\UserServiceProvider"]
+      ]
+    },
+    "require": {
+      "type": "object",
+      "description": "Composer package dependencies, in the same format as composer.json 'require'. These are installed automatically when the module is installed.",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "examples": [
+        { "league/oauth2-server": "^8.0" }
+      ]
+    },
+    "signature": {
+      "type": "string",
+      "description": "Optional SHA-256 content hash used to verify module integrity (stored in the HASH file).",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "activate": {
+      "type": "string",
+      "description": "When to load this module: on_boot (default), on_request (lazy when path matches route_prefix(es)), on_first_use (reserved).",
+      "enum": ["on_boot", "on_request", "on_first_use"],
+      "default": "on_boot"
+    },
+    "route_prefix": {
+      "type": "string",
+      "description": "Single path prefix that triggers loading when activate=on_request. If set, route_prefixes is ignored.",
+      "examples": ["/admin", "/api/user"]
+    },
+    "route_prefixes": {
+      "type": "array",
+      "description": "Path prefixes that trigger loading when activate=on_request. Longest match wins.",
+      "items": { "type": "string" },
+      "examples": [["/admin/users", "/api/user"]]
+    },
+    "file": {
+      "type": "array",
+      "description": "Legacy field. Reserved for future use.",
+      "items": { "type": "string" }
+    }
+  }
+}

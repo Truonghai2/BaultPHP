@@ -2,67 +2,66 @@
 
 namespace App\Providers;
 
-use Core\Contracts\Mail\Mailer as MailerContract;
-use Core\Contracts\Support\DeferrableProvider;
-use Core\Mail\MailerService;
-use Core\Support\ServiceProvider;
+use Core\Application;
+use Core\Mail\Mailer;
+use Core\Mail\Transport\TransportFactory;
 use Psr\Log\LoggerInterface;
-use Symfony\Component\Mailer\Mailer;
-use Symfony\Component\Mailer\Transport;
-use Symfony\Component\Mailer\Transport\TransportInterface;
 
-class MailServiceProvider extends ServiceProvider implements DeferrableProvider
+/**
+ * Mail Service Provider.
+ * 
+ * Registers mail services.
+ */
+class MailServiceProvider
 {
+    public function __construct(
+        protected Application $app
+    ) {
+    }
+
     public function register(): void
     {
-        $this->app->singleton(MailerContract::class, function ($app) {
-            $config = $app->make('config')->get('mail');
-
-            return new MailerService(
-                new Mailer($this->createTransport($config)),
-                $config['from'],
+        // Register Transport Factory
+        $this->app->singleton(TransportFactory::class, function ($app) {
+            return new TransportFactory(
+                $app->make(LoggerInterface::class)
             );
         });
+
+        // Register Mailer
+        $this->app->singleton(Mailer::class, function ($app) {
+            $factory = $app->make(TransportFactory::class);
+            
+            // Get default mailer config
+            $defaultMailer = config('mail.default', 'smtp');
+            $mailerConfig = config("mail.mailers.{$defaultMailer}");
+
+            // Create transport
+            $transport = $factory->create($mailerConfig);
+
+            // Get queue if available
+            $queue = null;
+            if (config('mail.queue.enabled', true)) {
+                try {
+                    $queue = $app->make(\Core\Contracts\Queue\Queue::class);
+                } catch (\Throwable $e) {
+                    // Queue not available
+                }
+            }
+
+            return new Mailer(
+                $transport,
+                $app->make(LoggerInterface::class),
+                $queue
+            );
+        });
+
+        // Alias
+        $this->app->alias(Mailer::class, 'mailer');
     }
 
-    protected function createTransport(array $config): TransportInterface
+    public function boot(): void
     {
-        $mailerName = $config['default'] ?? 'smtp';
-        $mailerConfig = $config['mailers'][$mailerName];
-        $dsn = $this->getDsn($mailerConfig);
-
-        if ($mailerConfig['transport'] === 'log') {
-            $logger = $this->app->make(LoggerInterface::class);
-            return Transport::fromDsn($dsn, null, null, $logger);
-        }
-
-        return Transport::fromDsn($dsn);
-    }
-
-    protected function getDsn(array $config): string
-    {
-        return match ($config['transport']) {
-            'smtp' => sprintf(
-                'smtp://%s:%s@%s:%d',
-                urlencode($config['username'] ?? ''),
-                urlencode($config['password'] ?? ''),
-                $config['host'],
-                $config['port'],
-            ),
-            'log' => 'log://null',
-            default => throw new \InvalidArgumentException("Unsupported mail transport [{$config['transport']}]"),
-        };
-    }
-
-    /**
-     * Get the services provided by the provider.
-     *
-     * This provider will only be loaded when one of these services is requested from the container.
-     *
-     * @return array<int, string>
-     */
-    public function provides(): array
-    {
-        return [MailerContract::class, MailerService::class];
+        // Boot logic if needed
     }
 }

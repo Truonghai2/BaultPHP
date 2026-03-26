@@ -1,6 +1,25 @@
 {
   "name": "Admin",
+  "alias": "admin",
   "version": "1.0.0",
+  "description": "Admin panel — module management, system overview, and metrics.",
   "enabled": true,
-  "providers": ["Modules\\Admin\\Providers\\ModuleServiceProvider"]
+  "api_version": 2,
+  "min_core_version": "1.0.0",
+  "capabilities": [
+    "admin",
+    "admin.modules",
+    "admin.metrics"
+  ],
+  "permissions": [
+    "cache:read",
+    "cache:write",
+    "storage:read",
+    "events:subscribe",
+    "database:read",
+    "database:write"
+  ],
+  "providers": [
+    "Modules\\Admin\\Providers\\ModuleServiceProvider"
+  ]
 }

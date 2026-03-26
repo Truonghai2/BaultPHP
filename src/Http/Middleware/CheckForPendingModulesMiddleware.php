@@ -2,9 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use Core\Application;
 use Core\Cache\CacheManager;
 use Core\FileSystem\Filesystem;
 use Core\Http\Redirector;
+use Core\Http\RedirectResponse;
 use Core\Module\Module;
 use Core\Security\CsrfManager;
 use Psr\Http\Message\ResponseInterface;
@@ -34,25 +36,38 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
      */
     private const SKIP_DURATION = 1800;
 
+    private ?CsrfManager $csrfManager = null;
+    private ?Redirector $redirector = null;
+
     public function __construct(
         private Filesystem $fs,
-        private Redirector $redirector,
         private CacheManager $cache,
         private LoggerInterface $logger,
-        private CsrfManager $csrfManager,
+        private \Core\Application $app,
     ) {
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        $currentPath = $request->getUri()->getPath();
+        if (!str_starts_with($currentPath, '/admin')) {
+            return $handler->handle($request);
+        }
+
+        if ($this->csrfManager === null && $this->app->bound(CsrfManager::class)) {
+            try {
+                $this->csrfManager = $this->app->make(CsrfManager::class);
+            } catch (\Throwable $e) {
+                $this->logger->debug('CsrfManager not available, skipping CSRF operations');
+            }
+        }
+
         $user = auth()->user();
 
-        // Chỉ kiểm tra với Super Admin
         if (!$user || !$user->isSuperAdmin()) {
             return $handler->handle($request);
         }
 
-        // Danh sách path được bỏ qua (không kiểm tra)
         $excludedPaths = [
             '/admin/modules/install/confirm',
             '/admin/modules/install',
@@ -60,8 +75,6 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             '/api/',
             '/logout',
         ];
-
-        $currentPath = $request->getUri()->getPath();
 
         foreach ($excludedPaths as $path) {
             if ($currentPath === $path || ($path !== '/' && str_starts_with($currentPath, rtrim($path, '/') . '/'))) {
@@ -95,7 +108,45 @@ class CheckForPendingModulesMiddleware implements MiddlewareInterface
             if ($isGet && !$isAjax && !$hasNotified && !$isOnModulePage) {
                 session()->set('pending_modules_notified', true);
                 session()->save();
-                return $this->redirector->to('/admin/modules/install/confirm');
+                
+                // Lazy load redirector to avoid circular dependency
+                // Redirector -> SessionInterface -> CheckForPendingModulesMiddleware
+                if ($this->redirector === null && $this->app->bound(Redirector::class)) {
+                    try {
+                        $this->redirector = $this->app->make(Redirector::class);
+                    } catch (\Throwable $e) {
+                        // If redirector can't be resolved, use RedirectResponse directly
+                        $this->logger->debug('Redirector not available, using RedirectResponse directly');
+                        $redirect = new RedirectResponse('/admin/modules/install/confirm');
+                        // Try to set session if available
+                        if ($this->app->bound(\Core\Contracts\Session\SessionInterface::class)) {
+                            try {
+                                $session = $this->app->make(\Core\Contracts\Session\SessionInterface::class);
+                                $redirect->setSession($session);
+                            } catch (\Throwable $sessionError) {
+                                // Ignore session errors in fallback
+                            }
+                        }
+                        return $redirect;
+                    }
+                }
+                
+                if ($this->redirector !== null) {
+                    return $this->redirector->to('/admin/modules/install/confirm');
+                }
+                
+                // Fallback: use RedirectResponse directly
+                $redirect = new RedirectResponse('/admin/modules/install/confirm');
+                // Try to set session if available
+                if ($this->app->bound(\Core\Contracts\Session\SessionInterface::class)) {
+                    try {
+                        $session = $this->app->make(\Core\Contracts\Session\SessionInterface::class);
+                        $redirect->setSession($session);
+                    } catch (\Throwable $sessionError) {
+                        // Ignore session errors in fallback
+                    }
+                }
+                return $redirect;
             }
         } else {
             session()->remove('pending_modules');

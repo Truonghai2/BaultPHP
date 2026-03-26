@@ -5,9 +5,10 @@ namespace Modules\User\Http\Controllers;
 use Core\Auth\AuthManager;
 use Core\Contracts\View\Factory as ViewFactory;
 use Core\Routing\Attributes\Route;
+use Core\Security\FileValidator;
 use Core\Support\Facades\Auth;
 use Core\Support\Facades\Storage;
-use Intervention\Image\ImageManagerStatic as Image;
+use Core\WebAssembly\WasmImageProcessor;
 use Modules\User\Http\Requests\UpdateAvatarRequest;
 use Psr\Http\Message\ResponseInterface;
 
@@ -21,7 +22,11 @@ class ProfileController
     protected ViewFactory $view;
 
     // Framework sẽ tự động "tiêm" (inject) ViewFactory vào đây khi khởi tạo controller.
-    public function __construct(ViewFactory $view, private AuthManager $auth)
+    public function __construct(
+        ViewFactory $view,
+        private AuthManager $auth,
+        private WasmImageProcessor $wasmImageProcessor,
+    )
     {
         $this->view = $view;
     }
@@ -63,13 +68,65 @@ class ProfileController
         $filename = uniqid('avatar_') . '.' . $uploadedFile->getClientOriginalExtension();
         $path = 'avatars/' . $filename;
 
-        $image = Image::make($uploadedFile->getStream()->getContents())
-            ->fit(200, 200, function ($constraint) { // Thay đổi kích thước thành hình vuông 200x200
-                $constraint->upsize(); // Ngăn không phóng to ảnh nhỏ hơn
-            })
-            ->encode('jpg', 80); // Chuyển đổi sang JPG với chất lượng 80%
+        $outputPath = base_path('storage/app/public/' . $path);
+        $outputDir = dirname($outputPath);
+        if (!is_dir($outputDir)) {
+            mkdir($outputDir, 0755, true);
+        }
 
-        Storage::disk('public')->put($path, (string) $image);
+        $tempPath = tempnam(sys_get_temp_dir(), 'avatar_');
+        if ($tempPath === false) {
+            throw new \RuntimeException('Failed to create temp file for avatar processing');
+        }
+
+        file_put_contents($tempPath, $uploadedFile->getStream()->getContents());
+
+        try {
+            // SECURITY: Validate file before processing
+            $validation = FileValidator::validate($tempPath, 'image/jpeg', [
+                'max_size' => 5242880, // 5MB
+            ]);
+
+            if (!$validation['valid']) {
+                @unlink($tempPath);
+                return redirect()->back()
+                    ->with('error', 'Invalid image: ' . implode(', ', $validation['errors']));
+            }
+
+            // SECURITY: Sanitize image (strips malicious content)
+            $sanitizedPath = sys_get_temp_dir() . '/sanitized_' . $filename;
+            $sanitized = FileValidator::sanitizeImage($tempPath, $sanitizedPath, [
+                'quality' => 80,
+                'format' => 'jpeg',
+            ]);
+
+            if (!$sanitized) {
+                @unlink($tempPath);
+                return redirect()->back()->with('error', 'Failed to sanitize image');
+            }
+
+            // Use WASM processor on sanitized image
+            $this->wasmImageProcessor->resize($sanitizedPath, 200, 200, [
+                'output_path' => $outputPath,
+                'quality' => 80,
+                'format' => 'jpeg',
+                'preserve_aspect' => true,
+            ]);
+
+            @unlink($tempPath);
+            @unlink($sanitizedPath);
+        } catch (\Exception $e) {
+            @unlink($tempPath);
+            if (isset($sanitizedPath) && file_exists($sanitizedPath)) {
+                @unlink($sanitizedPath);
+            }
+            throw $e;
+        }
+
+        // Ensure file is accessible via storage disk
+        if (!Storage::disk('public')->exists($path)) {
+            Storage::disk('public')->put($path, file_get_contents($outputPath));
+        }
 
         $user = $this->auth->user();
         $user->avatar_path = $path;

@@ -33,7 +33,8 @@ class TerminateSession implements MiddlewareInterface
     }
 
     /**
-     * Queue session cookie để gửi về client
+     * Queue session cookie để gửi về client.
+     * Dùng scheme/host từ request hiện tại để tránh cookie Secure trên HTTP hoặc domain sai.
      */
     protected function addSessionCookie(SessionInterface $session): void
     {
@@ -43,7 +44,22 @@ class TerminateSession implements MiddlewareInterface
         }
 
         $config = config('session');
-        $lifetime = $config['lifetime'] ?? 120; // minutes
+        $lifetime = (int) ($config['lifetime'] ?? 120); // minutes
+
+        // Secure và domain theo request hiện tại (tránh cookie bị trình duyệt từ chối)
+        $secure = (bool) ($config['secure'] ?? false);
+        $domain = $config['domain'] ?? null;
+        try {
+            $request = $this->app->make(\Psr\Http\Message\ServerRequestInterface::class);
+            $uri = $request->getUri();
+            $secure = strtolower($uri->getScheme()) === 'https';
+            $host = $uri->getHost();
+            if (in_array($host, ['localhost', '127.0.0.1'], true)) {
+                $domain = null;
+            }
+        } catch (\Throwable) {
+            // giữ giá trị từ config
+        }
 
         /** @var CookieManager $cookieManager */
         $cookieManager = app(CookieManager::class);
@@ -53,9 +69,9 @@ class TerminateSession implements MiddlewareInterface
             value: $session->getId(),
             minutes: $lifetime,
             path: $config['path'] ?? '/',
-            domain: $config['domain'] ?? null,
-            secure: $config['secure'] ?? false,
-            httpOnly: $config['http_only'] ?? true,
+            domain: $domain,
+            secure: $secure,
+            httpOnly: (bool) ($config['http_only'] ?? true),
             raw: true, // Session ID không cần encrypt
             sameSite: $config['same_site'] ?? 'lax',
         );

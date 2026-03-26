@@ -11,7 +11,7 @@ return [
     |
     */
 
-    'default' => 'file',
+    'default' => env('CACHE_STORE', env('CACHE_DRIVER', 'file')),
 
     /*
     |--------------------------------------------------------------------------

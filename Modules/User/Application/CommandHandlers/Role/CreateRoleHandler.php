@@ -34,14 +34,13 @@ class CreateRoleHandler implements CommandHandlerInterface
             $role->permissions()->sync($command->permissionIds);
         }
 
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'role_created',
             "Role created: {$command->name}",
             [
                 'role_id' => $role->id,
                 'name' => $command->name,
                 'permission_count' => count($command->permissionIds),
-                'action' => 'role_created',
             ],
             'info',
         );

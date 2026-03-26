@@ -8,10 +8,13 @@ services:
     image: bault-php-app:latest
     container_name: bault_app
     restart: unless-stopped
+    env_file:
+      - .env
     ports:
       - "9501:9501"
     volumes:
-      - .:/app 
+      - .:/app
+      - wasm-modules:/app/wasm
     networks:
       - bault-network
     depends_on:
@@ -22,7 +25,7 @@ services:
       meilisearch:
         condition: service_healthy
       rabbitmq:
-        condition: service_healthy 
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9501/ping"]
       interval: 10s
@@ -35,15 +38,16 @@ services:
       - DB_PORT=${DB_PORT:-3306}
       - DB_READ_HOST=${DB_READ_HOST:-db_read}
       - DB_DATABASE=${DB_DATABASE:-bault}
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
       - DB_USERNAME=${DB_USERNAME:-root}
-
+      - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
       - APP_ENV=${APP_ENV:-local}
       - APP_DEBUG=${APP_DEBUG:-true}
+      - RUN_SEEDERS=${RUN_SEEDERS:-false}
       - SWOOLE_ENABLE_COROUTINE=true
       - SWOOLE_WATCH_USE_POLLING=true
       - CHOKIDAR_USEPOLLING=true
-      - NGINX_HOST_PORT=888
+      - NGINX_HOST_PORT=${NGINX_HOST_PORT:-888}
+      - VITE_HOST_PORT=${VITE_HOST_PORT:-5173}
       - PMA_HOST_PORT=8080
       
       - MEILISEARCH_HOST_PORT=7700
@@ -63,6 +67,22 @@ services:
       - RABBITMQ_PASSWORD=${RABBITMQ_PASSWORD:-secret}
       - DB_SSLMODE=disable
       
+      - WASM_RUNTIME=${WASM_RUNTIME:-wasmtime}
+      - WASM_RUNTIME_PATH=${WASM_RUNTIME_PATH:-/usr/local/bin/wasmtime}
+      - WASM_DIRECTORY=${WASM_DIRECTORY:-wasm}
+      - WASM_CACHE_ENABLED=${WASM_CACHE_ENABLED:-true}
+      - WASM_CACHE_TTL=${WASM_CACHE_TTL:-3600}
+      - WASM_FALLBACK_TO_PHP=${WASM_FALLBACK_TO_PHP:-true}
+      
+      - GRPC_SERVER_HOST=${GRPC_SERVER_HOST:-0.0.0.0}
+      - GRPC_SERVER_PORT=${GRPC_SERVER_PORT:-50051}
+      - GRPC_SERVER_SECURE=${GRPC_SERVER_SECURE:-false}
+      - GRPC_CLIENT_TIMEOUT=${GRPC_CLIENT_TIMEOUT:-30}
+      - GRPC_CLIENT_RETRY=${GRPC_CLIENT_RETRY:-false}
+      - PROTOC_PATH=${PROTOC_PATH:-/usr/bin/protoc}
+      - PROTO_DIRECTORY=${PROTO_DIRECTORY:-proto}
+      - GRPC_GENERATED_DIRECTORY=${GRPC_GENERATED_DIRECTORY:-src/Grpc/Generated}
+      
   websocket:
     build:
       context: .
@@ -72,18 +92,19 @@ services:
     image: bault-php-app:latest
     container_name: bault_websocket
     restart: unless-stopped
+    env_file:
+      - .env
     command: php cli ws:serve
     ports:
       - "9502:9502"
     volumes:
-      - .:/app 
+      - .:/app
     networks:
       - bault-network
     depends_on:
       - app
     environment:
       - APP_ENV=${APP_ENV:-local}
-      
       - APP_DEBUG=${APP_DEBUG:-true}
       - REDIS_HOST=redis
       - REDIS_PORT=6379
@@ -92,8 +113,8 @@ services:
       - DB_PORT=${DB_PORT:-3306}
       - DB_READ_HOST=${DB_READ_HOST:-db_read}
       - DB_DATABASE=${DB_DATABASE:-bault}
-      - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
       - DB_USERNAME=${DB_USERNAME:-root}
+      - DB_PASSWORD=${DB_ROOT_PASSWORD:-secret}
 
   nginx:
     image: nginx:1.25-alpine
@@ -173,31 +194,28 @@ services:
     depends_on:
       - pgsql
 
-  db_read:
-    image: mysql:8.0
-    container_name: bault_db_read
-    restart: unless-stopped
-    # profiles:
-    #   - tools
-    depends_on:
-      db:
-        condition: service_healthy
-    environment:
-      MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-replica_user}
-      MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:-replica_secret}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
-    volumes:
-      - bault-db-read-data:/var/lib/mysql
-      - ./docker/mysql/replica.cnf:/etc/mysql/conf.d/replica.cnf
-      - ./docker/mysql/replica-entrypoint.sh:/usr/local/bin/replica-entrypoint.sh
-    networks:
-      - bault-network
-    command: ["mysqld", "--default-authentication-plugin=mysql_native_password", "--server-id=2", "--gtid_mode=ON", "--enforce-gtid-consistency=ON", "--read_only=1"]
-    entrypoint: ["/usr/local/bin/replica-entrypoint.sh"]
-    healthcheck:
-      test: ["CMD", "mysql", "-h", "127.0.0.1", "-u", "root", "-p${DB_ROOT_PASSWORD:-secret}", "-e", "select 1"]
-      timeout: 20s
-      retries: 10
+  # MySQL Read Replica (Optional - uncomment if needed)
+  # db_read:
+  #   image: mysql:8.0
+  #   container_name: bault_db_read
+  #   restart: unless-stopped
+  #   profiles:
+  #     - replica
+  #   depends_on:
+  #     db:
+  #       condition: service_healthy
+  #   environment:
+  #     MYSQL_REPLICATION_USER: ${MYSQL_REPLICATION_USER:-replica_user}
+  #     MYSQL_REPLICATION_PASSWORD: ${MYSQL_REPLICATION_PASSWORD:-replica_secret}
+  #     MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-secret}
+  #   volumes:
+  #     - bault-db-read-data:/var/lib/mysql
+  #     - ./docker/mysql/replica.cnf:/etc/mysql/conf.d/replica.cnf
+  #     - ./docker/mysql/replica-entrypoint.sh:/usr/local/bin/replica-entrypoint.sh
+  #   networks:
+  #     - bault-network
+  #   command: ["mysqld", "--default-authentication-plugin=mysql_native_password", "--server-id=2", "--gtid_mode=ON", "--enforce-gtid-consistency=ON", "--read_only=1"]
+  #   entrypoint: ["/usr/local/bin/replica-entrypoint.sh"]
 
   redis:
     image: redis:7-alpine
@@ -215,8 +233,8 @@ services:
     image: phpmyadmin/phpmyadmin
     container_name: bault_phpmyadmin
     restart: unless-stopped
-    # profiles:
-    #   - tools
+    profiles:
+      - tools
     ports:
       - "${PMA_HOST_PORT:-8080}:80"
     networks:
@@ -235,7 +253,8 @@ services:
     restart: unless-stopped
     environment:
       - MEILI_MASTER_KEY=${MEILI_MASTER_KEY:-aMasterKey}
-      - MEILI_ENV=development
+      # Meilisearch chỉ chấp nhận development|production (không dùng APP_ENV=local)
+      - MEILI_ENV=${MEILI_ENV:-development}
     ports:
       - "${MEILISEARCH_HOST_PORT:-7700}:7700"
     volumes:
@@ -244,9 +263,10 @@ services:
       - bault-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:7700/health"]
-      interval: 1m
-      timeout: 1s
-      retries: 10
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
@@ -323,4 +343,6 @@ volumes:
   pgadmin-data:
     driver: local
   bault-storage:
+    driver: local
+  wasm-modules:
     driver: local

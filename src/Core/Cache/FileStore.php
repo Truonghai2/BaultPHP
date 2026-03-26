@@ -191,4 +191,14 @@ class FileStore implements Store
             ? 315360000 // A very large value (10 years), effectively "forever".
             : (int) $ttl;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function forgetPattern(string $pattern): bool
+    {
+        // FileStore cannot efficiently support pattern deletion due to key hashing.
+        // We return false to indicate no keys were deleted.
+        return false;
+    }
 }

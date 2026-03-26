@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Core\Contracts\View\Factory as ViewFactoryContract;
+use Core\Extension\CoreExtensionPoints;
+use Core\Extension\ExtensionRegistry;
 use Core\FileSystem\Filesystem;
 use Core\Support\ServiceProvider;
 use Core\View\Compiler;
@@ -22,6 +24,36 @@ class ViewServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerBladeDirectives();
+        $this->shareGlobalViewData();
+    }
+
+    /**
+     * Call the view.global_data extension point and share all collected data
+     * with every view through ViewFactory::share().
+     *
+     * This runs once at boot time so the data is available for all requests
+     * handled by the same Swoole worker process.
+     */
+    protected function shareGlobalViewData(): void
+    {
+        if (!$this->app->bound(ExtensionRegistry::class)) {
+            return;
+        }
+
+        /** @var ExtensionRegistry $registry */
+        $registry = $this->app->make(ExtensionRegistry::class);
+
+        if (!$registry->isDeclared(CoreExtensionPoints::VIEW_GLOBAL_DATA)) {
+            return;
+        }
+
+        $globalData = $registry->collect(CoreExtensionPoints::VIEW_GLOBAL_DATA);
+
+        if (!empty($globalData)) {
+            /** @var ViewFactory $view */
+            $view = $this->app->make(ViewFactory::class);
+            $view->share($globalData);
+        }
     }
 
     /**

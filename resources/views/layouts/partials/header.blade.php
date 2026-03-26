@@ -17,31 +17,33 @@
             <a href="{{ route('home') }}" class="flex items-center group">
                 <div class="relative">
                     <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 rounded-full blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
-                    <img class="relative h-9 w-auto lg:h-11 xl:h-12 transform group-hover:scale-110 transition-transform duration-300" src="{{ asset('images/logo/BaultPHP.png') }}" alt="BaultPHP">
+                    <img class="relative h-9 w-auto lg:h-11 xl:h-12 transform group-hover:scale-110 transition-transform duration-300" src="{{ asset('Images/logo/BaultPHP-icon.png') }}" alt="BaultPHP">
                 </div>
             </a>
         </div>
 
-        {{-- Navigation - Block-Based --}}
+        {{-- Navigation: blocks or default fallback (empty wrapper = no content) --}}
+        @php
+            $pageNav = isset($page) ? trim((string) render_page_blocks($page, 'header-nav')) : '';
+            $globalNav = trim((string) render_block_region('header-nav'));
+            $pageNavReal = $pageNav !== '' && !str_starts_with($pageNav, '');
+            $globalNavReal = trim(strip_tags($globalNav)) !== '';
+        @endphp
         <div class="hidden lg:flex lg:gap-x-2 items-center flex-1 justify-center">
-            @if(isset($page))
-                {{-- Page-specific navigation blocks --}}
-                {!! render_page_blocks($page, 'header-nav') !!}
+            @if($pageNavReal)
+                {!! $pageNav !!}
             @endif
-            
-            {{-- Global navigation blocks (fallback or additional) --}}
-            @php
-                $globalNav = render_block_region('header-nav');
-            @endphp
-            
-            @if(!empty($globalNav))
+            @if($globalNavReal)
                 {!! $globalNav !!}
-            @else
-                {{-- Default Fallback Navigation --}}
+            @endif
+            @if(!$pageNavReal && !$globalNavReal)
                 <a href="{{ route('home') }}" class="nav-link text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
                     Home
                 </a>
-                <a href="/about" class="nav-link text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+                <a href="/docs" class="nav-link text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
+                    Docs
+                </a>
+                <a href="/about-us" class="nav-link text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
                     About
                 </a>
                 <a href="/contact" class="nav-link text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-3 py-2 rounded-lg hover:bg-white/5">
@@ -50,21 +52,21 @@
             @endif
         </div>
 
-        {{-- User Menu - Block-Based --}}
+        {{-- User Menu: blocks or default fallback --}}
+        @php
+            $pageUserMenu = isset($page) ? trim((string) render_page_blocks($page, 'header-user')) : '';
+            $globalUserMenu = trim((string) render_block_region('header-user'));
+            $pageUserReal = $pageUserMenu !== '' && !str_starts_with($pageUserMenu, '<!--');
+            $globalUserReal = trim(strip_tags($globalUserMenu)) !== '';
+        @endphp
         <div class="hidden lg:flex lg:flex-1 lg:justify-end">
-            @if(isset($page))
-                {{-- Page-specific user menu blocks --}}
-                {!! render_page_blocks($page, 'header-user') !!}
+            @if($pageUserReal)
+                {!! $pageUserMenu !!}
             @endif
-            
-            {{-- Global user menu blocks (fallback or additional) --}}
-            @php
-                $globalUserMenu = render_block_region('header-user');
-            @endphp
-            
-            @if(!empty($globalUserMenu))
+            @if($globalUserReal)
                 {!! $globalUserMenu !!}
-            @else
+            @endif
+            @if(!$pageUserReal && !$globalUserReal)
                 {{-- Default Fallback User Menu --}}
                 @auth
                     <div class="relative" x-data="{ open: false }">
@@ -78,11 +80,11 @@
                         <div x-show="open" @click.away="open = false" x-cloak class="absolute right-0 z-10 mt-2 w-48 origin-top-right rounded-lg bg-gray-800 py-1 shadow-lg ring-1 ring-white/10">
                             <a href="/profile" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Profile</a>
                             <a href="/settings" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Settings</a>
-                            <a href="{{ route('logout') }}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Logout</a>
+                            <a href="{{ route('auth.logout') }}" class="block px-4 py-2 text-sm text-gray-300 hover:bg-gray-700 hover:text-white">Logout</a>
                         </div>
                     </div>
                 @else
-                    <a href="{{ route('login') }}" class="text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5">
+                    <a href="{{ route('auth.login.view') }}" class="text-sm font-semibold leading-6 text-gray-300 hover:text-white transition-colors px-4 py-2 rounded-lg hover:bg-white/5">
                         Log in <span aria-hidden="true">&rarr;</span>
                     </a>
                 @endauth
@@ -100,40 +102,40 @@
         </div>
     </nav>
 
-    {{-- Mobile Menu (Block-Based) --}}
+    {{-- Mobile Menu (same logic as desktop) --}}
     <div id="mobile-menu" class="hidden lg:hidden border-t border-white/5 bg-gray-900/95 backdrop-blur-xl">
         <div class="px-4 py-6 space-y-4">
-            @if(isset($page))
-                {!! render_page_blocks($page, 'header-nav') !!}
+            @if($pageNavReal)
+                {!! $pageNav !!}
             @endif
-            
-            @if(!empty($globalNav))
+            @if($globalNavReal)
                 {!! $globalNav !!}
-            @else
-                {{-- Mobile Fallback Navigation --}}
+            @endif
+            @if(!$pageNavReal && !$globalNavReal)
                 <a href="{{ route('home') }}" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Home</a>
-                <a href="/about" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">About</a>
+                <a href="/docs" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Docs</a>
+                <a href="/about-us" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">About</a>
                 <a href="/contact" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Contact</a>
             @endif
             
             <div class="pt-4 border-t border-white/5">
-                @if(isset($page))
-                    {!! render_page_blocks($page, 'header-user') !!}
+                @if($pageUserReal)
+                    {!! $pageUserMenu !!}
                 @endif
-                
-                @if(!empty($globalUserMenu))
+                @if($globalUserReal)
                     {!! $globalUserMenu !!}
-                @else
+                @endif
+                @if(!$pageUserReal && !$globalUserReal)
                     {{-- Mobile User Menu Fallback --}}
                     @auth
                         <div class="space-y-2">
                             <div class="px-3 py-2 text-sm font-medium text-gray-400">{{ auth()->user()->name }}</div>
                             <a href="/profile" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Profile</a>
                             <a href="/settings" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Settings</a>
-                            <a href="{{ route('logout') }}" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Logout</a>
+                            <a href="{{ route('auth.logout') }}" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">Logout</a>
                         </div>
                     @else
-                        <a href="{{ route('login') }}" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">
+                        <a href="{{ route('auth.login.view') }}" class="block text-base font-semibold leading-7 text-gray-300 hover:text-white hover:bg-white/5 px-3 py-2 rounded-lg transition-colors">
                             Log in <span aria-hidden="true">&rarr;</span>
                         </a>
                     @endauth

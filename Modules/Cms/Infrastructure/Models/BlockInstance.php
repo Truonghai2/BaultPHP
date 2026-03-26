@@ -56,7 +56,7 @@ class BlockInstance extends Model
         'last_modified_at',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'config' => 'array',
         'visibility_rules' => 'array',
         'allowed_roles' => 'array',

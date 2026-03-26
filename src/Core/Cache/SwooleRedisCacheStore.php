@@ -233,4 +233,32 @@ class SwooleRedisCacheStore implements CacheInterface
 
         return (int) $ttl;
     }
+
+    public function forgetPattern(string $pattern): bool
+    {
+        $redis = null;
+        try {
+            $redis = $this->redisManager->get();
+            $fullPattern = $this->prefix . $pattern;
+            
+            $iterator = $redis->scan($fullPattern);
+            $keysToDelete = [];
+            foreach ($iterator as $key) {
+                $keysToDelete[] = $key;
+            }
+
+            if (!empty($keysToDelete)) {
+                Future\await($redis->delete(...$keysToDelete));
+                return true;
+            }
+            
+            return false;
+        } catch (Throwable) {
+            return false;
+        } finally {
+            if ($redis) {
+                $this->redisManager->put($redis);
+            }
+        }
+    }
 }

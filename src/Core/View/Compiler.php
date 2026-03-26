@@ -3,6 +3,7 @@
 namespace Core\View;
 
 use Core\FileSystem\Filesystem;
+use Core\Support\Str;
 
 class Compiler
 {
@@ -346,11 +347,8 @@ class Compiler
     {
         return preg_replace_callback('/@props\s*\((.*?)\)/s', function ($matches) {
             $expression = $matches[1];
-            $arrayExpression = '[' . trim($expression, '[]') . ']';
-
-            try {
-                $props = eval("return {$arrayExpression};");
-            } catch (\Throwable) {
+            $props = $this->parsePropsExpression($expression);
+            if ($props === null) {
                 return $matches[0];
             }
 
@@ -368,6 +366,180 @@ class Compiler
 
             return $output;
         }, $value);
+    }
+
+    /**
+     * Parse @props expression safely without eval.
+     *
+     * Supports: ['title', 'count' => 1, 'flag' => true, 'name' => 'John'].
+     * Returns null when expression is not safely parseable.
+     */
+    protected function parsePropsExpression(string $expression): ?array
+    {
+        $expression = trim($expression);
+        if ($expression === '') {
+            return [];
+        }
+
+        if (str_contains($expression, '[') || str_contains($expression, 'array(')) {
+            return null;
+        }
+
+        $parts = $this->splitTopLevel($expression);
+        if ($parts === null) {
+            return null;
+        }
+
+        $props = [];
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+
+            $kv = $this->splitKeyValue($part);
+            if ($kv === null) {
+                $key = $this->parseKey($part);
+                if ($key === null) {
+                    return null;
+                }
+                $props[] = $key;
+                continue;
+            }
+
+            [$rawKey, $rawValue] = $kv;
+            $key = $this->parseKey($rawKey);
+            if ($key === null) {
+                return null;
+            }
+
+            $value = $this->parseScalar($rawValue);
+            if ($value === null && strtolower(trim($rawValue)) !== 'null') {
+                return null;
+            }
+
+            $props[$key] = $value;
+        }
+
+        return $props;
+    }
+
+    protected function splitTopLevel(string $expression): ?array
+    {
+        $result = [];
+        $current = '';
+        $inSingle = false;
+        $inDouble = false;
+        $escape = false;
+
+        $length = strlen($expression);
+        for ($i = 0; $i < $length; $i++) {
+            $ch = $expression[$i];
+
+            if ($escape) {
+                $current .= $ch;
+                $escape = false;
+                continue;
+            }
+
+            if ($ch === '\\') {
+                $escape = true;
+                $current .= $ch;
+                continue;
+            }
+
+            if ($ch === "'" && !$inDouble) {
+                $inSingle = !$inSingle;
+                $current .= $ch;
+                continue;
+            }
+
+            if ($ch === '"' && !$inSingle) {
+                $inDouble = !$inDouble;
+                $current .= $ch;
+                continue;
+            }
+
+            if (!$inSingle && !$inDouble && $ch === ',') {
+                $result[] = $current;
+                $current = '';
+                continue;
+            }
+
+            $current .= $ch;
+        }
+
+        if ($inSingle || $inDouble) {
+            return null;
+        }
+
+        if ($current !== '') {
+            $result[] = $current;
+        }
+
+        return $result;
+    }
+
+    protected function splitKeyValue(string $part): ?array
+    {
+        $pos = strpos($part, '=>');
+        if ($pos === false) {
+            return null;
+        }
+
+        $key = substr($part, 0, $pos);
+        $value = substr($part, $pos + 2);
+
+        return [$key, $value];
+    }
+
+    protected function parseKey(string $rawKey): ?string
+    {
+        $rawKey = trim($rawKey);
+        if ($rawKey === '') {
+            return null;
+        }
+
+        if (($rawKey[0] === "'" && str_ends_with($rawKey, "'")) ||
+            ($rawKey[0] === '"' && str_ends_with($rawKey, '"'))) {
+            return stripcslashes(substr($rawKey, 1, -1));
+        }
+
+        if (preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $rawKey)) {
+            return $rawKey;
+        }
+
+        return null;
+    }
+
+    protected function parseScalar(string $rawValue): mixed
+    {
+        $rawValue = trim($rawValue);
+        if ($rawValue === '') {
+            return null;
+        }
+
+        if (($rawValue[0] === "'" && str_ends_with($rawValue, "'")) ||
+            ($rawValue[0] === '"' && str_ends_with($rawValue, '"'))) {
+            return stripcslashes(substr($rawValue, 1, -1));
+        }
+
+        $lower = strtolower($rawValue);
+        if ($lower === 'true') {
+            return true;
+        }
+        if ($lower === 'false') {
+            return false;
+        }
+        if ($lower === 'null') {
+            return null;
+        }
+
+        if (is_numeric($rawValue)) {
+            return str_contains($rawValue, '.') ? (float) $rawValue : (int) $rawValue;
+        }
+
+        return null;
     }
 
     /**
@@ -416,7 +588,7 @@ class Compiler
      * Compile Blade extra directives.
      *
      * @param string $value
-     * @return stringd
+     * @return string
      */
     protected function compileExtraDirectives(string $value): string
     {
@@ -473,7 +645,7 @@ class Compiler
         }
 
         // Convert kebab-case to camelCase for prop names
-        $propName = \Illuminate\Support\Str::camel($name);
+        $propName = Str::camel($name);
 
         return "'{$propName}' => {$value}";
     }

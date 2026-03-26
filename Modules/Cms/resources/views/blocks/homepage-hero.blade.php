@@ -1,5 +1,5 @@
 {{-- Homepage Hero Block --}}
-<div class="hero-section mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40 relative">
+<div class="hero-section mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40 relative" style="padding-top: 50px !important;">
     
     {{-- Animated background gradient --}}
     <div class="hero-gradient-bg"></div>

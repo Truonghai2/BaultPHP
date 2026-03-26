@@ -2,10 +2,28 @@
   "name": "User",
   "alias": "user",
   "version": "1.0.0",
+  "description": "User management, authentication, ACL, and OAuth2 support.",
   "enabled": true,
+  "api_version": 2,
+  "min_core_version": "1.0.0",
+  "capabilities": [
+    "auth",
+    "acl",
+    "oauth2",
+    "user-management"
+  ],
+  "permissions": [
+    "cache:read",
+    "cache:write",
+    "storage:read",
+    "storage:write",
+    "events:subscribe",
+    "events:publish",
+    "database:read",
+    "database:write"
+  ],
   "providers": [
     "Modules\\User\\Providers\\UserServiceProvider",
     "Modules\\User\\Providers\\ConsoleServiceProvider"
-  ],
-  "file": []
+  ]
 }

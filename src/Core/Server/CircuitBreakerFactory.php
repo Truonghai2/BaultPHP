@@ -29,13 +29,17 @@ class CircuitBreakerFactory
             return self::$instances[$instanceKey];
         }
 
-        $storageType = $config['storage'] ?? 'redis';
+        $storageType = $config['storage'] ?? 'apcu'; // Default to APCu for Swoole compatibility
         $strategyType = strtolower($config['strategy'] ?? 'count');
+
+        if ($storageType === 'redis' && extension_loaded('swoole')) {
+            $storageType = 'apcu';
+        }
 
         $adapter = match ($storageType) {
             'redis' => self::createRedisAdapter($app, $config),
             'apcu' => self::createApcuAdapter(),
-            default => throw new InvalidArgumentException("Unsupported circuit breaker storage: {$storageType}. Only 'redis' is supported."),
+            default => throw new InvalidArgumentException("Unsupported circuit breaker storage: {$storageType}. Supported: 'redis', 'apcu'."),
         };
 
         $builder = match ($strategyType) {
@@ -75,6 +79,12 @@ class CircuitBreakerFactory
 
     /**
      * Creates a Redis adapter for Ganesha.
+     * 
+     * IMPORTANT: In Swoole, Redis connections cannot be shared between coroutines.
+     * This method creates a dedicated Redis connection for the circuit breaker that is
+     * NOT shared with the connection pool. This ensures thread-safety.
+     * 
+     * For better performance and Swoole compatibility, consider using APCu adapter instead.
      *
      * @param Application $app The application container.
      * @param array $config The circuit breaker configuration, used to find the redis_pool name.
@@ -96,10 +106,19 @@ class CircuitBreakerFactory
                 $redisConfig['port'],
                 $redisConfig['timeout'] ?? 1.0,
             );
+            
+            if (!empty($redisConfig['password'])) {
+                $redis->auth($redisConfig['password']);
+            }
+            
+            if (isset($redisConfig['database'])) {
+                $redis->select($redisConfig['database']);
+            }
+            
             return new RedisAdapter($redis);
         } catch (\Throwable $e) {
             throw new RuntimeException(
-                'Failed to create Redis adapter for Ganesha. Ensure the Redis service is bound correctly in the container.',
+                'Failed to create Redis adapter for Ganesha. Consider using APCu adapter instead for better Swoole compatibility. Error: ' . $e->getMessage(),
                 0,
                 $e,
             );
@@ -114,5 +133,26 @@ class CircuitBreakerFactory
     private static function createApcuAdapter(): Apcu
     {
         return new Apcu();
+    }
+    /**
+     * Returns the status of all registered circuit breakers.
+     *
+     * @return array<string, string> Map of Service Name => Status (Closed, Open, Half-Open)
+     */
+    public static function getAllStatuses(): array
+    {
+        $statuses = [];
+        foreach (self::$instances as $key => $ganesha) {
+            $serviceName = str_replace('breaker_', '', $key);
+            if ($ganesha->isAvailable($serviceName)) {
+                $status = 'Closed'; // Healthy
+            } else {
+                // Ganesha doesn't easily distinguish between Open and Half-Open in isAvailable API without more checks,
+                // but !isAvailable generally means Open.
+                $status = 'Open'; // Unhealthy
+            }
+            $statuses[$serviceName] = $status;
+        }
+        return $statuses;
     }
 }

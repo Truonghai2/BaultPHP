@@ -2,6 +2,7 @@
 
 namespace Core;
 
+use Core\Module\ModuleLifecycle;
 use Core\Support\ServiceProvider;
 
 /**
@@ -11,10 +12,17 @@ use Core\Support\ServiceProvider;
  * methods for common module bootstrapping tasks like loading
  * configurations and migrations.
  *
+ * It also extends AbstractModuleLifecycle so that any ModuleServiceProvider
+ * can be used directly as the module's lifecycle hook class (by setting
+ * "hooks": "Modules\\YourModule\\Providers\\ModuleServiceProvider" in module.json).
+ * Override only the lifecycle methods you need.
+ *
  * @package Core
  */
-class BaseServiceProvider extends ServiceProvider
+class BaseServiceProvider extends ServiceProvider implements ModuleLifecycle
 {
+    use ModuleLifecycleStubs;
+
     /**
      * The base path of the module.
      *

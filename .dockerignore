@@ -1,23 +1,52 @@
-# Git
+# Git & IDE
 .git
 .gitignore
-
-# Node
-node_modules
-
-# Docker & Readme
-Dockerfile
-docker-compose.yml
-*.md
-
-# Local environment & IDE
-.env
-.env.example
+.gitattributes
+.cursor
 .idea
 .vscode
+*.swp
+*.swo
+.DS_Store
 
-# Framework specific cache/storage (managed by volumes or inside container)
-/storage
-/bootstrap/cache
-/public/build
-/vendor
+# Dependencies (sẽ cài trong container)
+node_modules
+vendor
+
+# Env (không đưa vào image; dùng env_file hoặc mount)
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Logs & cache (tránh copy vào image)
+storage/logs/*
+!storage/logs/.gitkeep
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+bootstrap/cache/*
+!.gitkeep
+
+# Test & dev
+tests
+phpunit.xml
+.phpunit.result.cache
+phpstan.neon
+phpstan-baseline.neon
+.php-cs-fixer.cache
+.husky
+.lintstagedrc.json
+
+# Docs (tùy chọn: bỏ nếu cần trong image)
+docs
+*.md
+!readme.md
+
+# Docker (tránh recursive)
+Dockerfile
+docker-compose*.yml
+.dockerignore
+
+# Optional: WASM binaries nếu build riêng
+# wasm/*.wasm

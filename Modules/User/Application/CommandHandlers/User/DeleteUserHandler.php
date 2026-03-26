@@ -31,12 +31,11 @@ class DeleteUserHandler implements CommandHandlerInterface
 
         $user->delete();
 
-        Audit::log(
-            'user_action',
+        Audit::security(
+            'user_deleted',
             "User deleted: {$email}",
             [
                 'user_id' => $command->userId,
-                'action' => 'user_deleted',
             ],
             'warning',
         );

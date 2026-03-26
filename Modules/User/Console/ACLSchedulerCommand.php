@@ -69,7 +69,6 @@ class ACLSchedulerCommand extends BaseCommand
         $this->io->writeln('<info>Warming cache for active users (last 7 days)...</info>');
 
         $activeUsers = User::where('updated_at', '>=', date('Y-m-d H:i:s', strtotime('-7 days')))
-            ->where('status', '=', 'active')
             ->select('id')
             ->get();
 
@@ -111,9 +110,7 @@ class ACLSchedulerCommand extends BaseCommand
     {
         $this->io->writeln('<info>Warming cache for ALL users...</info>');
 
-        $allUsers = User::where('status', '=', 'active')
-            ->select('id')
-            ->get();
+        $allUsers = User::select('id')->get();
 
         $userIds = $allUsers->pluck('id')->toArray();
 

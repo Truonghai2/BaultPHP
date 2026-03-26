@@ -48,17 +48,25 @@ class Kernel implements KernelContract, StatefulService
      */
     protected array $reflectionCache = [];
 
+    /** L1 home page cache (per-worker), dùng trong fast path GET / */
+    private static ?string $homeL1Html = null;
+    private static ?int $homeL1Expiry = null;
+    private static ?string $homeSessionCookieName = null;
+
     /**
      * The application's global HTTP middleware stack.
      *
      * @var array
      */
     protected array $middleware = [
-        \App\Http\Middleware\CollectDebugDataMiddleware::class,
+        \App\Http\Middleware\CorrelationIdMiddleware::class,
+        \App\Http\Middleware\ResolveTenantMiddleware::class,
+        \App\Http\Middleware\ClockworkMiddleware::class,
         \App\Http\Middleware\PerformanceMonitoringMiddleware::class,
         \App\Http\Middleware\ParseBodyMiddleware::class,
         \App\Http\Middleware\EnsureAdminUserExists::class,
         \App\Http\Middleware\HttpMetricsMiddleware::class,
+        \App\Http\Middleware\RequestDeduplicationMiddleware::class,
         \App\Http\Middleware\TrimStrings::class,
         \App\Http\Middleware\ConvertEmptyStringsToNull::class,
         \App\Http\Middleware\SetLocaleMiddleware::class,
@@ -88,6 +96,7 @@ class Kernel implements KernelContract, StatefulService
         'auth' => \App\Http\Middleware\Authenticate::class,
         'can' => \App\Http\Middleware\CheckPermissionMiddleware::class,
         'throttle' => \App\Http\Middleware\ThrottleRequests::class,
+        'circuit' => \App\Http\Middleware\CircuitBreakerMiddleware::class,
     ];
 
     /**
@@ -111,6 +120,11 @@ class Kernel implements KernelContract, StatefulService
             \App\Http\Middleware\SubstituteBindings::class,
             \App\Http\Middleware\CorsMiddleware::class,
             'throttle:api',
+            \App\Http\Middleware\CircuitBreakerMiddleware::class,
+        ],
+        /** Nhóm nhẹ: không session/CSRF/EnsureAdmin, dùng cho ping, health, metrics – ổn định toàn hệ thống */
+        'light' => [
+            \App\Http\Middleware\SubstituteBindings::class,
         ],
     ];
 
@@ -140,12 +154,61 @@ class Kernel implements KernelContract, StatefulService
         return $this->routeMiddleware;
     }
 
+    /**
+     * Global middleware cho route group 'light' (ping, health, metrics).
+     * Không session, CSRF, EnsureAdmin – ổn định và nhanh trên toàn hệ thống.
+     *
+     * @return array<int, class-string>
+     */
+    protected function getLightGlobalMiddleware(): array
+    {
+        return [
+            \App\Http\Middleware\CorrelationIdMiddleware::class,
+            \App\Http\Middleware\ParseBodyMiddleware::class,
+        ];
+    }
+
     public function handle(ServerRequestInterface $request): ResponseInterface
     {
         $this->app->instance(ServerRequestInterface::class, $request);
         $this->app->alias(ServerRequestInterface::class, 'request');
 
+        // Fast path: GET / guest (không có ?nocache) → L1 rồi Redis
+        if ($request->getMethod() === 'GET') {
+            $path = $request->getUri()->getPath();
+            if (trim($path, '/') === '') {
+                $query = $request->getUri()->getQuery();
+                $skipCache = $query !== '' && str_contains($query, 'nocache=');
+                if (self::isGuestForHome($request) && !$skipCache) {
+                    $now = time();
+                    if (self::$homeL1Expiry !== null && $now < self::$homeL1Expiry && self::$homeL1Html !== null && self::$homeL1Html !== '') {
+                        return response(self::$homeL1Html, 200, [
+                            'Content-Type' => 'text/html; charset=UTF-8',
+                            'X-Cache' => 'HIT-L1',
+                        ]);
+                    }
+                    try {
+                        $cached = cache(null)->get('page.home.guest');
+                        if ($cached !== null && $cached !== '') {
+                            self::$homeL1Html = $cached;
+                            self::$homeL1Expiry = $now + 60;
+                            return response($cached, 200, [
+                                'Content-Type' => 'text/html; charset=UTF-8',
+                                'X-Cache' => 'HIT',
+                            ]);
+                        }
+                    } catch (\Throwable) {
+                        // Fall through to normal dispatch
+                    }
+                }
+            }
+        }
+
         try {
+            // Load any modules that are activated on_request and match this path
+            if ($this->app->bound(\Core\Module\LazyModuleLoader::class)) {
+                $this->app->make(\Core\Module\LazyModuleLoader::class)->ensureModulesLoadedForRequest($request);
+            }
             $route = $this->router->dispatch($request);
             $request = $request->withAttribute('route', $route);
 
@@ -157,6 +220,18 @@ class Kernel implements KernelContract, StatefulService
         } catch (Throwable $e) {
             return $this->renderException($request, $e);
         }
+    }
+
+    /**
+     * Guest cho GET /: không có session cookie (dùng cho fast path, không gọi config mỗi request sau lần đầu).
+     */
+    private static function isGuestForHome(ServerRequestInterface $request): bool
+    {
+        if (self::$homeSessionCookieName === null) {
+            self::$homeSessionCookieName = config('session.cookie', 'bault_session');
+        }
+        $cookie = $request->getHeaderLine('Cookie');
+        return $cookie === '' || !str_contains($cookie, self::$homeSessionCookieName . '=');
     }
 
     /**
@@ -173,7 +248,8 @@ class Kernel implements KernelContract, StatefulService
         $routeKey = $this->getRouteCacheKey($route);
 
         if (!isset($this->routeMiddlewareCache[$routeKey])) {
-            $middlewareStack = array_merge($this->middleware, $this->router->gatherRouteMiddleware($route));
+            $globalMiddleware = $route->group === 'light' ? $this->getLightGlobalMiddleware() : $this->middleware;
+            $middlewareStack = array_merge($globalMiddleware, $this->router->gatherRouteMiddleware($route));
 
             // Pre-resolve and cache middleware instances
             $resolved = [];
@@ -253,17 +329,59 @@ class Kernel implements KernelContract, StatefulService
 
         $className = $this->routeMiddleware[$name] ?? $name;
 
-        if (!class_exists($className)) {
+        // Force autoload to ensure class is loaded
+        if (!class_exists($className, true)) {
             throw new \RuntimeException("Middleware class [{$className}] does not exist.");
         }
 
-        $instance = $this->app->make($className);
+        // Try to resolve middleware from container, but handle circular dependency
+        try {
+            $instance = $this->app->make($className);
+        } catch (\Core\Exceptions\ContainerException $e) {
+            // If circular dependency detected for this middleware, create instance directly
+            // This breaks the circular dependency chain
+            if (strpos($e->getMessage(), 'Circular dependency') !== false && 
+                strpos($e->getMessage(), $className) !== false) {
+                // Circular dependency detected, create instance with minimal dependencies
+                // Most middleware only need Application, so try that
+                $reflection = new \ReflectionClass($className);
+                $constructor = $reflection->getConstructor();
+                
+                if ($constructor === null) {
+                    $instance = new $className();
+                } else {
+                    $params = $constructor->getParameters();
+                    $args = [];
+                    foreach ($params as $param) {
+                        $type = $param->getType();
+                        if ($type && !$type->isBuiltin() && $type->getName() === Application::class) {
+                            $args[] = $this->app;
+                        } elseif ($param->isDefaultValueAvailable()) {
+                            $args[] = $param->getDefaultValue();
+                        } else {
+                            try {
+                                $typeName = $type && !$type->isBuiltin() ? $type->getName() : null;
+                                if ($typeName) {
+                                    $args[] = $this->app->make($typeName);
+                                } else {
+                                    throw new \RuntimeException("Cannot resolve middleware [{$className}] parameter [{$param->getName()}] due to circular dependency.");
+                                }
+                            } catch (\Throwable $innerE) {
+                                throw new \RuntimeException("Cannot resolve middleware [{$className}] due to circular dependency and unresolvable parameter [{$param->getName()}].", 0, $e);
+                            }
+                        }
+                    }
+                    $instance = $reflection->newInstanceArgs($args);
+                }
+            } else {
+                throw $e;
+            }
+        }
 
         if (!empty($parameters) && method_exists($instance, 'setParameters')) {
             $instance->setParameters($parameters);
         }
 
-        // Only cache middleware that don't have parameters, as they are globally reusable.
         if (empty($parameters)) {
             $this->middlewareInstances[$cacheKey] = $instance;
         }
@@ -322,9 +440,6 @@ class Kernel implements KernelContract, StatefulService
         $reflectionMethod = $cached['method'];
         $parameters = $cached['parameters'];
 
-        // Route parameters are extracted from the URL pattern (e.g., {id}, {name})
-        // and stored directly in $route->parameters by the Router's findRoute() method.
-        // We use them as-is without filtering.
         $routeParameters = $route->parameters;
         $dependencies = [];
 
@@ -355,6 +470,9 @@ class Kernel implements KernelContract, StatefulService
         if ($typeName && is_subclass_of($typeName, FormRequest::class)) {
             /** @var FormRequest $formRequest */
             $formRequest = $app->make($typeName);
+            // Set the request instance to avoid circular dependency
+            // The request is already set in the container by Kernel::handle()
+            $formRequest->setRequest($request);
             $formRequest->validateResolved();
             return $formRequest;
         }
@@ -400,6 +518,7 @@ class Kernel implements KernelContract, StatefulService
     public function resetState(): void
     {
         $this->resolvedMiddleware = [];
+        $this->middlewareInstances = [];
     }
 
     /**

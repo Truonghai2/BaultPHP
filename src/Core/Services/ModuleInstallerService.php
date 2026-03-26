@@ -9,6 +9,8 @@ use Core\Exceptions\Module\InvalidModuleStructureException;
 use Core\Exceptions\Module\ModuleAlreadyExistsException;
 use Core\Exceptions\Module\ModuleInstallationException;
 use Core\FileSystem\Filesystem;
+use Core\Module\ModuleLifecycleDispatcher;
+use Core\Module\ModuleManifest;
 use Core\ORM\MigrationManager;
 use Core\Support\Facades\Log;
 use Modules\Admin\Application\Jobs\InstallModuleDependenciesJob;
@@ -32,9 +34,35 @@ class ModuleInstallerService
         protected Filesystem $fs,
         protected ModuleService $moduleService,
         protected ?MigrationManager $migrationManager = null,
-        protected int $maxZipSize = 50 * 1024 * 1024, // 50MB
-        protected int $maxUncompressedSize = 250 * 1024 * 1024, // 250MB
+        protected int $maxZipSize = 50 * 1024 * 1024,
+        protected int $maxUncompressedSize = 250 * 1024 * 1024,
+        protected ?ModuleLifecycleDispatcher $lifecycle = null,
+        protected ?ModuleMarketplaceService $marketplace = null,
     ) {
+    }
+
+    /**
+     * Install a module from a ZIP URL (e.g. from marketplace). Downloads to temp file then runs install().
+     *
+     * @param string $url URL to the module ZIP file
+     * @param bool $runMigrations Whether to run migrations immediately (default: true)
+     * @param bool $installDependencies Whether to install dependencies via job (default: true)
+     * @return array Installation result with module info
+     * @throws ModuleInstallationException
+     */
+    public function installFromUrl(string $url, bool $runMigrations = true, bool $installDependencies = true): array
+    {
+        if (!$this->marketplace) {
+            throw new ModuleInstallationException('Marketplace service is not available. Cannot install from URL.');
+        }
+        $zipPath = $this->marketplace->downloadToTemp($url);
+        try {
+            return $this->install($zipPath, $runMigrations, $installDependencies);
+        } finally {
+            if (is_file($zipPath)) {
+                @unlink($zipPath);
+            }
+        }
     }
 
     /**
@@ -74,12 +102,13 @@ class ModuleInstallerService
             // Step 2: Extract ZIP
             $this->extractZip($zipPath, $tmpDir);
 
-            // Step 3: Verify module.json
+            // Step 3: Parse & validate module.json using ModuleManifest
             $jsonPath = $tmpDir . '/module.json';
-            $moduleMeta = $this->verifyModuleJson($jsonPath);
-            $moduleName = $moduleMeta['name'];
+            $manifest = ModuleManifest::fromPath($jsonPath);
+            $moduleMeta = json_decode(file_get_contents($jsonPath), true); // keep raw array for legacy methods
+            $moduleName = $manifest->name;
 
-            Log::info('Module metadata verified', ['module' => $moduleName, 'version' => $moduleMeta['version'] ?? 'unknown']);
+            Log::info('Module metadata verified', ['module' => $moduleName, 'version' => $manifest->version]);
 
             // Step 4: Verify signature (if present)
             $this->verifySignature($moduleMeta, $tmpDir);
@@ -96,40 +125,46 @@ class ModuleInstallerService
                 throw new ModuleAlreadyExistsException("Module '{$moduleName}' already exists.");
             }
 
-            // Step 8: Move to Modules directory
+            // Step 8: onInstalling lifecycle hook (may abort)
+            $this->lifecycle?->installing($manifest, auth()->id() ?? null);
+
+            // Step 9: Move to Modules directory
             $this->moveDirectory($tmpDir, $targetDir);
             Log::info('Module files moved to target directory', ['module' => $moduleName, 'target' => $targetDir]);
 
             try {
-                // Step 9: Register module in database
+                // Step 10: Register module in database
                 $module = $this->registerModule($moduleMeta, $targetDir);
 
-                // Step 10: Run migrations if requested
+                // Step 11: Run migrations if requested
                 if ($runMigrations) {
                     $this->runModuleMigrations($moduleName);
                 }
 
-                // Step 11: Dispatch dependency installation job if needed
-                if ($installDependencies && !empty($moduleMeta['require'])) {
+                // Step 12: Dispatch dependency installation job if needed
+                if ($installDependencies && !empty($manifest->require)) {
                     $this->dispatchDependencyInstallation($moduleName);
                 }
 
-                // Step 12: Fire installation event
-                event(new \Core\Events\ModuleInstalled($moduleName, auth()->id() ?? null));
+                // Step 13: onInstalled lifecycle hook + fire ModuleInstalled event
+                $this->lifecycle?->installed($manifest, auth()->id() ?? null);
 
                 Log::info("Module '{$moduleName}' has been installed successfully.", [
                     'installer' => 'zip',
-                    'version' => $moduleMeta['version'] ?? 'unknown',
+                    'version' => $manifest->version,
+                    'api_version' => $manifest->apiVersion,
                     'migrations_run' => $runMigrations,
-                    'dependencies_queued' => $installDependencies && !empty($moduleMeta['require']),
+                    'dependencies_queued' => $installDependencies && !empty($manifest->require),
                 ]);
 
                 return [
-                    'success' => true,
-                    'module' => $moduleName,
-                    'version' => $moduleMeta['version'] ?? 'unknown',
-                    'module_id' => $module->id ?? null,
-                    'status' => $module->status ?? 'installed',
+                    'success'      => true,
+                    'module'       => $moduleName,
+                    'version'      => $manifest->version,
+                    'api_version'  => $manifest->apiVersion,
+                    'capabilities' => $manifest->capabilities,
+                    'module_id'    => $module->id ?? null,
+                    'status'       => $module->status ?? 'installed',
                 ];
 
             } catch (\Throwable $e) {

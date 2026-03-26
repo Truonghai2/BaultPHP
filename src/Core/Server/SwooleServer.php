@@ -25,10 +25,10 @@ class SwooleServer
     protected ?int $delayedJobTimerId = null;
     protected SwoolePsr7Bridge $psr7Bridge;
     protected HttpFoundationFactory $httpFoundationFactory;
-    protected \Core\Contracts\Http\Kernel $kernel;
+    protected ?\Core\Contracts\Http\Kernel $kernel = null;
     protected ?ConnectionPoolManager $poolManager = null;
-    protected StateResetter $stateResetter;
-    protected ExceptionHandler $exceptionHandler;
+    protected ?StateResetter $stateResetter = null;
+    protected ?ExceptionHandler $exceptionHandler = null;
     protected ?RequestLogger $requestLogger = null;
     protected ?FileWatcher $fileWatcher = null;
     protected ?\Core\Server\Development\DockerFileWatcher $dockerFileWatcher = null;
@@ -45,6 +45,13 @@ class SwooleServer
     public function __construct(Application $app)
     {
         $this->app = $app;
+
+        // Enable coroutine runtime hooks FIRST before any other Swoole operations
+        // This converts blocking I/O functions to non-blocking coroutine-friendly versions
+        $this->enableCoroutineRuntimeHooks();
+
+        // Set coroutine options for optimal performance
+        $this->configureCoroutineRuntime();
 
         $this->config = config('server.swoole', []);
 
@@ -107,24 +114,24 @@ class SwooleServer
             'task_enable_coroutine' => true,
 
             'pid_file' => storage_path('logs/swoole.pid'),
-            'log_file' => storage_path('logs/swoole.log'),
+            'log_file' => (function_exists('isDockerEnvironment') && isDockerEnvironment()) ? '/dev/stderr' : storage_path('logs/swoole.log'),
             'log_level' => $isProduction ? SWOOLE_LOG_WARNING : SWOOLE_LOG_INFO,
 
             'max_request' => 10000,
-            'max_wait_time' => 30,
+            'max_wait_time' => 10,
             'task_max_request' => 10000,
-            'max_connection' => 100000, // Tăng max connections
+            'max_connection' => 50000,
 
             'open_tcp_nodelay' => true,
-            'tcp_fastopen' => true, // TCP Fast Open
-            'tcp_defer_accept' => 5, // Defer accept
-            'open_cpu_affinity' => true, // CPU affinity
-            'enable_reuse_port' => true, // Port reuse
+            'tcp_fastopen' => true,
+            'tcp_defer_accept' => 5,
+            'open_cpu_affinity' => true,
+            'enable_reuse_port' => true,
 
-            'open_http2_protocol' => true,
+            'open_http2_protocol' => $this->config['open_http2_protocol'] ?? false,
 
-            'buffer_output_size' => 32 * 1024 * 1024,
-            'package_max_length' => 8 * 1024 * 1024, // 8MB max package size
+            'buffer_output_size' => 8 * 1024 * 1024, // 8MB per connection (2000 req/s)
+            'package_max_length' => 4 * 1024 * 1024, // 4MB max request size
 
             'http_parse_post' => true,
             'upload_tmp_dir' => storage_path('app/uploads'),
@@ -292,6 +299,19 @@ class SwooleServer
             $this->performPeriodicCleanup();
         }
 
+        // Lazy initialize dependencies if not already initialized
+        // This can happen if handleRequest is called before onWorkerStart completes
+        // (e.g., during worker restart or race conditions)
+        if ($this->kernel === null) {
+            $this->kernel = $this->app->make(\Core\Contracts\Http\Kernel::class);
+        }
+        if ($this->exceptionHandler === null) {
+            $this->exceptionHandler = $this->app->make(ExceptionHandler::class);
+        }
+        if ($this->stateResetter === null) {
+            $this->stateResetter = $this->app->make(StateResetter::class);
+        }
+
         (new RequestLifecycle(
             $this->app,
             $this->kernel,
@@ -410,6 +430,11 @@ class SwooleServer
      */
     public function onWorkerStart(SwooleHttpServer $server, int $workerId): void
     {
+        // Ensure application is bootstrapped before resolving any services
+        if (!$this->app->hasBeenBootstrapped()) {
+            $this->app->bootstrap();
+        }
+
         $this->app->instance('swoole.server', $server);
         $workerType = $server->taskworker ? 'TaskWorker' : 'Worker';
 
@@ -541,6 +566,70 @@ class SwooleServer
             $this->isDebug = $this->app->make('config')->get('app.debug', false);
         }
         return !$this->isDebug;
+    }
+
+    /**
+     * Enable coroutine runtime hooks for non-blocking I/O.
+     * This must be called BEFORE creating the Swoole server.
+     */
+    private function enableCoroutineRuntimeHooks(): void
+    {
+        if (!extension_loaded('swoole')) {
+            return;
+        }
+
+        // Enable all hooks except CURL (we use SwooleGuzzlePool for HTTP)
+        // SWOOLE_HOOK_ALL includes: file, stream, sleep, mysqli, pdo, redis, sockets
+        $flags = SWOOLE_HOOK_ALL;
+
+        // Exclude CURL because we have custom SwooleGuzzlePool
+        if (defined('SWOOLE_HOOK_CURL')) {
+            $flags &= ~SWOOLE_HOOK_CURL;
+        }
+
+        // Enable the hooks
+        \Swoole\Runtime::enableCoroutine($flags);
+
+        $this->getLogger()->debug('Coroutine runtime hooks enabled', [
+            'flags' => $flags,
+            'hooks' => [
+                'file' => true,
+                'stream' => true,
+                'sleep' => true,
+                'pdo' => true,
+                'mysqli' => true,
+                'redis' => true,
+                'sockets' => true,
+                'curl' => false, // Using custom pool
+            ],
+        ]);
+    }
+
+    /**
+     * Configure coroutine runtime settings for optimal performance.
+     */
+    private function configureCoroutineRuntime(): void
+    {
+        if (!extension_loaded('swoole')) {
+            return;
+        }
+
+        $maxCoroutine = $this->config['max_coroutine'] ?? 100000;
+        $stackSize = $this->config['coroutine_stack_size'] ?? (2 * 1024 * 1024); // 2MB
+        $enablePreemptive = $this->config['enable_preemptive_scheduler'] ?? true;
+
+        \Swoole\Coroutine::set([
+            'max_coroutine' => $maxCoroutine,
+            'stack_size' => $stackSize,
+            'c_stack_size' => $stackSize,
+            'enable_preemptive_scheduler' => $enablePreemptive,
+        ]);
+
+        $this->getLogger()->debug('Coroutine runtime configured', [
+            'max_coroutine' => $maxCoroutine,
+            'stack_size_mb' => round($stackSize / 1024 / 1024, 2),
+            'preemptive_scheduler' => $enablePreemptive,
+        ]);
     }
 
     /**

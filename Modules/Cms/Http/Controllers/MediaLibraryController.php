@@ -6,6 +6,7 @@ namespace Modules\Cms\Http\Controllers;
 
 use Core\Http\Controller;
 use Core\Routing\Attributes\Route;
+use Core\Security\FileValidator;
 use Core\Support\Facades\Auth;
 use Modules\Cms\Infrastructure\Models\MediaFile;
 use Psr\Http\Message\ResponseInterface as Response;
@@ -127,27 +128,106 @@ class MediaLibraryController extends Controller
                 return response()->json(['error' => 'Invalid file type'], 400);
             }
 
-            // Generate filename
-            $extension = pathinfo($file->getClientFilename(), PATHINFO_EXTENSION);
-            $filename = uniqid() . '_' . time() . '.' . $extension;
+            // Validate and sanitize folder path to prevent path traversal
             $folder = $data['folder'] ?? '/';
-            $path = 'uploads/media' . $folder . date('Y/m/');
-
-            // Ensure directory exists
-            $fullPath = base_path('public/' . $path);
-            if (!is_dir($fullPath)) {
+            
+            // Remove path traversal attempts
+            $folder = str_replace(['..', '\\'], '', $folder);
+            $folder = trim($folder, '/');
+            // Allow only safe characters: alphanumeric, dash, underscore, slash
+            $folder = preg_replace('/[^a-zA-Z0-9\/_-]/', '', $folder);
+            
+            // Validate file extension
+            $allowedExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'pdf', 'doc', 'docx'];
+            $extension = strtolower(pathinfo($file->getClientFilename(), PATHINFO_EXTENSION));
+            
+            if (!in_array($extension, $allowedExtensions)) {
+                return response()->json([
+                    'error' => 'File extension not allowed',
+                    'allowed' => implode(', ', $allowedExtensions)
+                ], 400);
+            }
+            
+            // Verify MIME type matches extension
+            $allowedMimeMap = [
+                'jpg' => 'image/jpeg',
+                'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                'svg' => 'image/svg+xml',
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            
+            $clientMimeType = $file->getClientMediaType();
+            if (isset($allowedMimeMap[$extension]) && $clientMimeType !== $allowedMimeMap[$extension]) {
+                return response()->json([
+                    'error' => 'File MIME type mismatch',
+                    'expected' => $allowedMimeMap[$extension],
+                    'actual' => $clientMimeType
+                ], 400);
+            }
+            
+            // Generate secure filename (use random bytes instead of predictable uniqid)
+            $filename = bin2hex(random_bytes(16)) . '.' . $extension;
+            
+            // Build safe path
+            $basePath = base_path('public/uploads/media/');
+            $relativePath = ($folder ? $folder . '/' : '') . date('Y/m/');
+            $fullPath = $basePath . $relativePath;
+            $path = '/uploads/media/' . $relativePath;
+            
+            // Validate path is within base directory (prevent path traversal)
+            $realBase = realpath($basePath);
+            if (!file_exists($fullPath)) {
                 mkdir($fullPath, 0755, true);
             }
+            $realPath = realpath($fullPath);
+            
+            if (!$realPath || !str_starts_with($realPath, $realBase)) {
+                return response()->json(['error' => 'Invalid upload path'], 400);
+            }
 
-            // Move file
-            $file->moveTo($fullPath . $filename);
+            // Move file to temporary location first
+            $uploadedPath = $fullPath . $filename;
+            $file->moveTo($uploadedPath);
 
-            // Get image dimensions if image
+            // SECURITY: Validate file after upload (polyglot/MIME check)
+            $expectedMime = $allowedMimeMap[$extension] ?? $clientMimeType;
+            $validation = FileValidator::validate($uploadedPath, $expectedMime, [
+                'max_size' => 10485760, // 10MB
+            ]);
+
+            if (!$validation['valid']) {
+                @unlink($uploadedPath);
+                return response()->json([
+                    'error' => 'File validation failed',
+                    'details' => $validation['errors'],
+                ], 400);
+            }
+
+            // SECURITY: For images, sanitize to strip malicious content
             $width = null;
             $height = null;
-            if (str_starts_with($file->getClientMediaType(), 'image/')) {
+            if (str_starts_with($validation['detected_mime'], 'image/')) {
+                // Re-encode image to strip EXIF/metadata and potential payloads
+                $sanitizedPath = $fullPath . 'sanitized_' . $filename;
+                $sanitized = FileValidator::sanitizeImage($uploadedPath, $sanitizedPath, [
+                    'quality' => 90,
+                    'format' => $extension === 'png' ? 'png' : 'jpeg',
+                ]);
+
+                if ($sanitized) {
+                    // Replace original with sanitized version
+                    @unlink($uploadedPath);
+                    rename($sanitizedPath, $uploadedPath);
+                }
+
+                // Get dimensions from sanitized image
                 try {
-                    $imageSize = getimagesize($fullPath . $filename);
+                    $imageSize = getimagesize($uploadedPath);
                     $width = $imageSize[0] ?? null;
                     $height = $imageSize[1] ?? null;
                 } catch (\Exception $e) {
@@ -160,7 +240,7 @@ class MediaLibraryController extends Controller
                 'user_id' => $user->id,
                 'filename' => $filename,
                 'original_filename' => $file->getClientFilename(),
-                'mime_type' => $file->getClientMediaType(),
+                'mime_type' => $validation['detected_mime'], // Use server-detected MIME
                 'size' => $file->getSize(),
                 'path' => $path . $filename,
                 'url' => asset($path . $filename),

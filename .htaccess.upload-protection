@@ -1,0 +1,26 @@
+# BaultFrame Upload Protection
+# Place this file as .htaccess in public/uploads/ directory
+
+# Prevent PHP execution in uploads directory
+<FilesMatch "\.php$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# Prevent .htaccess override
+<Files ".htaccess">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Only allow specific file types
+<FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|pdf|doc|docx)$">
+    Order allow,deny
+    Allow from all
+</FilesMatch>
+
+# Add security headers for images
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set Content-Security-Policy "default-src 'none'; img-src 'self'; style-src 'none'; script-src 'none';"
+</IfModule>

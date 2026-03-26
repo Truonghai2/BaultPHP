@@ -6,31 +6,47 @@ return [
     | Default Mailer
     |--------------------------------------------------------------------------
     |
-    | This option controls the default mailer that is used to send any email
-    | messages sent by your application. Alternative mailers may be setup
-    | and used as needed; however, this mailer will be used by default.
+    | This option controls the default mailer that is used to send emails.
     |
     */
+
     'default' => env('MAIL_MAILER', 'smtp'),
 
     /*
     |--------------------------------------------------------------------------
     | Mailer Configurations
     |--------------------------------------------------------------------------
+    |
+    | Configure mail transports. Available drivers: smtp, sendmail, log, array, null
+    |
     */
+
     'mailers' => [
         'smtp' => [
-            'transport' => 'smtp',
-            'host' => env('MAIL_HOST', '127.0.0.1'),
-            'port' => env('MAIL_PORT', 1025),
-            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'driver' => 'smtp',
+            'host' => env('MAIL_HOST', 'smtp.mailtrap.io'),
+            'port' => env('MAIL_PORT', 2525),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'), // tls, ssl, null
             'username' => env('MAIL_USERNAME'),
             'password' => env('MAIL_PASSWORD'),
-            'timeout' => null,
+            'timeout' => 30,
         ],
+
+        'sendmail' => [
+            'driver' => 'sendmail',
+            'path' => env('MAIL_SENDMAIL_PATH', '/usr/sbin/sendmail -bs'),
+        ],
+
         'log' => [
-            'transport' => 'log',
-            'channel' => env('MAIL_LOG_CHANNEL'),
+            'driver' => 'log',
+        ],
+
+        'array' => [
+            'driver' => 'array',
+        ],
+
+        'null' => [
+            'driver' => 'null',
         ],
     ],
 
@@ -39,12 +55,37 @@ return [
     | Global "From" Address
     |--------------------------------------------------------------------------
     |
-    | Here you may specify a global "From" address for all outgoing emails.
-    | This will be used if no other "From" address is set on the email.
+    | Default "from" address for all emails.
     |
     */
+
     'from' => [
-        'address' => env('MAIL_FROM_ADDRESS', 'hello@bault.dev'),
-        'name' => env('MAIL_FROM_NAME', 'BaultPHP'),
+        'address' => env('MAIL_FROM_ADDRESS', 'noreply@baultframe.dev'),
+        'name' => env('MAIL_FROM_NAME', 'BaultFrame'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Queue Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'queue' => [
+        'enabled' => env('MAIL_QUEUE_ENABLED', true),
+        'connection' => env('MAIL_QUEUE_CONNECTION', 'default'),
+        'queue' => env('MAIL_QUEUE_NAME', 'emails'),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Markdown Configuration
+    |--------------------------------------------------------------------------
+    */
+
+    'markdown' => [
+        'theme' => 'default',
+        'paths' => [
+            base_path('resources/views/emails'),
+        ],
     ],
 ];

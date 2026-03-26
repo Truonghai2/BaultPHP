@@ -26,7 +26,7 @@ import {
 
 const BaultSPA = {
   // --- CONFIGURATION ---
-  contentSelectors: ["#app-content", ".admin-main", "#page-content"],
+  contentSelectors: ["#page-content", "#app-content", ".admin-main"],
   ignoreSelector:
     '[data-no-spa], [target="_blank"], a[href^="#"], a[href$=".pdf"], a[href$=".zip"], form[method="POST"]',
 

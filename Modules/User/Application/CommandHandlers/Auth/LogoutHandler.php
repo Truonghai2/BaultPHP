@@ -34,18 +34,11 @@ class LogoutHandler implements CommandHandlerInterface
         $guard->logout();
 
         // Audit log
-        Audit::log(
-            'authentication',
-            "User logged out: {$user->email}",
+        Audit::auth(
+            'logout',
             $user,
-            null,
-            null,
-            null,
-            null,
-            null,
             [
                 'ip_address' => request()->ip() ?? 'unknown',
-                'action' => 'logout',
             ],
             'info',
         );

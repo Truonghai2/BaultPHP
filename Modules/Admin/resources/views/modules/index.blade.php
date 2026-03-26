@@ -277,6 +277,46 @@
     .toast.error .toast-icon {
         color: var(--danger);
     }
+
+    .tabs {
+        display: flex;
+        gap: 0;
+        border-bottom: 2px solid var(--border-color);
+        margin-bottom: 1.5rem;
+    }
+    .tabs .tab {
+        padding: 0.75rem 1.25rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        margin-bottom: -2px;
+        cursor: pointer;
+    }
+    .tabs .tab:hover { color: var(--text-primary); }
+    .tabs .tab.active {
+        color: var(--primary-color);
+        border-bottom-color: var(--primary-color);
+    }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+
+    .marketplace-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+    }
+    .marketplace-card {
+        background: var(--sidebar-bg);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 1.25rem;
+    }
+    .marketplace-card h3 { margin: 0 0 0.5rem 0; font-size: 1.1rem; }
+    .marketplace-card .version { font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem; }
+    .marketplace-card p { font-size: 0.9rem; color: var(--text-secondary); margin: 0 0 1rem 0; line-height: 1.4; }
+    .marketplace-card .btn-install { width: 100%; }
 </style>
 @endsection
 
@@ -301,6 +341,12 @@
     </div>
 </div>
 
+<div class="tabs">
+    <button type="button" class="tab active" data-tab="installed">Installed</button>
+    <button type="button" class="tab" data-tab="marketplace">Marketplace</button>
+</div>
+
+<div id="panel-installed" class="tab-panel active">
 <div class="card">
     <div class="table-container">
         <table id="modules-table">
@@ -323,6 +369,24 @@
                 </tr>
             </tbody>
         </table>
+    </div>
+</div>
+</div>
+
+<div id="panel-marketplace" class="tab-panel">
+    <div class="card">
+        <div id="marketplace-content">
+            <div class="loading" id="marketplace-loading">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="24" height="24" style="display: inline; animation: spin 1s linear infinite;">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Loading marketplace...
+            </div>
+            <div id="marketplace-grid" class="marketplace-grid" style="display: none;"></div>
+            <div id="marketplace-empty" class="empty-state" style="display: none;">
+                <p>No registry configured or marketplace disabled. Set <code>MODULE_MARKETPLACE_REGISTRY_URL</code> in .env to enable.</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -380,7 +444,7 @@ async function fetchModules() {
     try {
         const response = await fetch('/api/admin/modules');
         const data = await response.json();
-        modules = data.modules || [];
+        modules = Array.isArray(data) ? data : (data.modules || []);
         renderTable();
     } catch (error) {
         showToast('Error loading modules: ' + error.message, 'error');
@@ -576,6 +640,90 @@ function showToast(message, type = 'success') {
     setTimeout(() => {
         toast.classList.remove('show');
     }, 5000);
+}
+
+// --- Tabs ---
+document.querySelectorAll('.tabs .tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        const id = 'panel-' + btn.getAttribute('data-tab');
+        const panel = document.getElementById(id);
+        if (panel) panel.classList.add('active');
+        if (btn.getAttribute('data-tab') === 'marketplace') loadMarketplace();
+    });
+});
+
+// --- Marketplace ---
+let catalog = [];
+
+async function loadMarketplace() {
+    const loading = document.getElementById('marketplace-loading');
+    const grid = document.getElementById('marketplace-grid');
+    const empty = document.getElementById('marketplace-empty');
+    loading.style.display = 'block';
+    grid.style.display = 'none';
+    empty.style.display = 'none';
+    try {
+        const response = await fetch('/api/admin/marketplace/catalog');
+        const data = await response.json();
+        catalog = data.modules || [];
+        loading.style.display = 'none';
+        if (catalog.length === 0) {
+            empty.style.display = 'block';
+        } else {
+            grid.style.display = 'grid';
+            grid.innerHTML = catalog.map(m => `
+                <div class="marketplace-card">
+                    <h3>${escapeHtml(m.name)}</h3>
+                    <div class="version">v${escapeHtml(m.version)}</div>
+                    <p>${escapeHtml(m.description || 'No description')}</p>
+                    <button type="button" class="btn btn-primary btn-install" ${!m.download_url ? 'disabled title="No download URL"' : ''} data-id="${escapeHtml(m.id)}" data-url="${escapeHtml(m.download_url || '')}">
+                        Cài đặt
+                    </button>
+                </div>
+            `).join('');
+            grid.querySelectorAll('.btn-install').forEach(btn => {
+                if (btn.disabled) return;
+                btn.addEventListener('click', () => installFromMarketplace(btn.dataset.id, btn.dataset.url || null));
+            });
+        }
+    } catch (err) {
+        loading.style.display = 'none';
+        empty.style.display = 'block';
+        empty.querySelector('p').textContent = 'Error loading marketplace: ' + err.message;
+    }
+}
+
+function escapeHtml(s) {
+    const div = document.createElement('div');
+    div.textContent = s;
+    return div.innerHTML;
+}
+
+async function installFromMarketplace(id, url) {
+    const body = url ? { url } : { id };
+    try {
+        const response = await fetch('/api/admin/marketplace/install', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            body: JSON.stringify(body)
+        });
+        const data = await response.json();
+        if (response.ok) {
+            showToast(data.message || 'Module installed', 'success');
+            fetchModules();
+            loadMarketplace();
+        } else {
+            showToast(data.error || 'Install failed', 'error');
+        }
+    } catch (err) {
+        showToast('Error: ' + err.message, 'error');
+    }
 }
 
 // Close modal when clicking outside

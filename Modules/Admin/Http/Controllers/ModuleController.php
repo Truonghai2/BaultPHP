@@ -13,6 +13,7 @@ use Core\Http\Controller;
 use Core\Module\ModuleSynchronizer;
 use Core\Routing\Attributes\Route;
 use Core\Services\ModuleInstallerService;
+use Core\Services\ModuleMarketplaceService;
 use Core\Services\ModuleService;
 use Core\Support\Facades\Cache;
 use Core\Support\Facades\Log;
@@ -30,6 +31,7 @@ class ModuleController extends Controller
         private ModuleInstallerService $installerService,
         private ModuleSynchronizer $moduleSynchronizer,
         private BlockSynchronizer $blockSynchronizer,
+        private ModuleMarketplaceService $marketplaceService
     ) {
     }
 
@@ -303,6 +305,74 @@ class ModuleController extends Controller
             ]);
 
             return redirect('/admin/modules')->with('error', 'Lỗi nghiêm trọng: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * API: Lấy catalog từ marketplace registry.
+     */
+    #[Route('/api/admin/marketplace/catalog', method: 'GET')]
+    public function marketplaceCatalog(): ResponseInterface
+    {
+        if (!config('marketplace.enabled', true)) {
+            return response()->json(['modules' => [], 'message' => 'Marketplace is disabled.'], 200);
+        }
+        $catalog = $this->marketplaceService->getCatalog();
+        return response()->json(['modules' => $catalog]);
+    }
+
+    /**
+     * API: Cài đặt module từ marketplace (URL hoặc id trong catalog).
+     * Body: { "url": "https://..." } hoặc { "id": "catalog_id" }.
+     */
+    #[Route('/api/admin/marketplace/install', method: 'POST')]
+    public function marketplaceInstall(RequestInterface $request): ResponseInterface
+    {
+        $body = $request->getParsedBody() ?? [];
+        $url = $body['url'] ?? null;
+        $id = $body['id'] ?? null;
+
+        if ($url) {
+            $installUrl = $url;
+        } elseif ($id) {
+            $catalog = $this->marketplaceService->getCatalog();
+            $entry = null;
+            foreach ($catalog as $m) {
+                if (($m['id'] ?? '') === $id) {
+                    $entry = $m;
+                    break;
+                }
+            }
+            if (!$entry || empty($entry['download_url'])) {
+                return response()->json(['error' => 'Module không tìm thấy trong catalog hoặc không có link tải.'], 404);
+            }
+            $installUrl = $entry['download_url'];
+        } else {
+            return response()->json(['error' => 'Cần truyền "url" hoặc "id" (marketplace catalog).'], 400);
+        }
+
+        try {
+            $result = $this->installerService->installFromUrl($installUrl, true, true);
+            Cache::forget(self::MODULE_LIST_CACHE_KEY);
+            return response()->json([
+                'message' => 'Cài đặt module từ marketplace thành công!',
+                'module' => $result['module'] ?? null,
+                'version' => $result['version'] ?? null,
+                'status' => $result['status'] ?? 'installed',
+            ], 201);
+        } catch (ModuleAlreadyExistsException $e) {
+            return response()->json(['error' => $e->getMessage()], 409);
+        } catch (InvalidModuleFileException | InvalidModuleStructureException | InvalidModuleSignatureException $e) {
+            return response()->json(['error' => $e->getMessage()], 422);
+        } catch (DangerousCodeDetectedException $e) {
+            Log::warning('Phát hiện mã độc khi cài module từ marketplace', ['details' => $e->getMessage()]);
+            return response()->json(['error' => 'Module chứa mã không an toàn và đã bị từ chối.'], 400);
+        } catch (ModuleInstallationException $e) {
+            Log::error('Lỗi cài đặt module từ marketplace: ' . $e->getMessage());
+            return response()->json(['error' => $e->getMessage()], 500);
+        } catch (\Throwable $e) {
+            Log::critical('Lỗi hệ thống khi cài module từ marketplace: ' . $e->getMessage());
+            return response()->json(['error' => 'Đã có lỗi hệ thống xảy ra.'], 500);
         }
     }
 

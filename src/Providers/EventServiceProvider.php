@@ -6,6 +6,7 @@ use Core\Debug\EventCollector;
 use Core\Events\Dispatcher;
 use Core\Events\EventDispatcherInterface;
 use Core\Events\ModuleChanged;
+use Core\Events\StreamingEventBus;
 use Core\Listeners\ClearRelatedCacheOnModuleChange;
 use Core\Support\ServiceProvider;
 
@@ -24,17 +25,24 @@ class EventServiceProvider extends ServiceProvider
 
     public function register(): void
     {
+        // Register base dispatcher
         $this->app->singleton(EventDispatcherInterface::class, function ($app) {
-            return new Dispatcher($app);
+            $baseDispatcher = new Dispatcher($app);
+            
+            // Wrap with StreamingEventBus if enabled
+            $streamingConfig = config('event-streaming', []);
+            if ($streamingConfig['enabled'] ?? false) {
+                return new StreamingEventBus(
+                    $baseDispatcher,
+                    $app->make(\Psr\Log\LoggerInterface::class),
+                    $streamingConfig
+                );
+            }
+            
+            return $baseDispatcher;
         });
 
         $this->app->extend(EventDispatcherInterface::class, function (EventDispatcherInterface $dispatcher, $app) {
-            if ((bool) config('app.debug', false) && $app->bound('debugbar')) {
-                /** @var EventCollector $collector */
-                $collector = $app->make(EventCollector::class);
-                $wsManager = $app->make(\Core\WebSocket\WebSocketManager::class);
-                return new \Core\Debug\TraceableEventDispatcher($dispatcher, $collector, $wsManager);
-            }
             return $dispatcher;
         });
 
@@ -91,8 +99,12 @@ class EventServiceProvider extends ServiceProvider
         $moduleListeners = [];
         $enabledModules = $this->getEnabledModules();
 
+        $pathResolver = $this->app->bound(\Core\Module\ModulePathResolver::class)
+            ? $this->app->make(\Core\Module\ModulePathResolver::class)
+            : null;
         foreach ($enabledModules as $moduleName) {
-            $eventsFile = base_path("Modules/{$moduleName}/events.php");
+            $basePath = $pathResolver ? $pathResolver->pathFor($moduleName) : base_path("Modules/{$moduleName}");
+            $eventsFile = $basePath . '/events.php';
 
             if (file_exists($eventsFile)) {
                 $listeners = require $eventsFile;
@@ -117,16 +129,20 @@ class EventServiceProvider extends ServiceProvider
         }
 
         $enabledModuleNames = [];
-        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
-
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json')) ?: [];
         foreach ($moduleJsonPaths as $path) {
-            $data = json_decode(file_get_contents($path), true);
+            $data = json_decode((string) file_get_contents($path), true);
             if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
                 $enabledModuleNames[] = $data['name'];
             }
         }
-
-        return $enabledModuleNames;
+        if ($this->app->bound(\Core\Module\Composer\ComposerModuleDiscovery::class)) {
+            $composer = $this->app->make(\Core\Module\Composer\ComposerModuleDiscovery::class);
+            foreach ($composer->getManifests() as $manifest) {
+                $enabledModuleNames[] = $manifest->name;
+            }
+        }
+        return array_values(array_unique($enabledModuleNames));
     }
 
     /**

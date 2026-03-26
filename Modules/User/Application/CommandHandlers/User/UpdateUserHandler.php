@@ -55,12 +55,11 @@ class UpdateUserHandler implements CommandHandlerInterface
 
         $user->save();
 
-        Audit::log(
-            'user_action',
+        Audit::system(
+            'user_updated',
             "User updated: {$user->email}",
             [
                 'user_id' => $user->id,
-                'action' => 'user_updated',
             ],
             'info',
         );

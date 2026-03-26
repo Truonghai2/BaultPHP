@@ -6,6 +6,7 @@ use App\Exceptions\Handler;
 use Core\Contracts\Exceptions\Handler as ExceptionHandlerContract;
 use Core\Contracts\StatefulService;
 use Core\Exceptions\RouteNotFoundException;
+use Core\Module\Declarative\DeclarativeConfigLoader;
 use Core\Routing\RouteRegistrar;
 use Core\Support\ServiceProvider;
 use Psr\Http\Message\RequestInterface;
@@ -25,6 +26,8 @@ class RouteServiceProvider extends ServiceProvider
             return new \Core\Routing\Router($app);
         });
         $this->app->tag(\Core\Routing\Router::class, StatefulService::class);
+
+        $this->app->singleton(DeclarativeConfigLoader::class);
     }
 
     public function boot(): void
@@ -56,6 +59,7 @@ class RouteServiceProvider extends ServiceProvider
     protected function mapRoutes(\Core\Routing\Router $router): void
     {
         $this->mapAttributeRoutes($router);
+        $this->mapDeclarativeRoutes($router);
 
         $router->get('/{any}', function (RequestInterface $request) {
             $path = $request->getUri()->getPath();
@@ -70,6 +74,42 @@ class RouteServiceProvider extends ServiceProvider
 
             return view('layouts.app');
         })->group('web');
+    }
+
+    /**
+     * Register routes from module declarative manifests (manifest.yaml / manifest.json).
+     */
+    protected function mapDeclarativeRoutes(\Core\Routing\Router $router): void
+    {
+        if (!$this->app->bound(DeclarativeConfigLoader::class)) {
+            return;
+        }
+        $loader = $this->app->make(DeclarativeConfigLoader::class);
+        foreach ($loader->loadAll() as $config) {
+            if (!$config->hasRoutes()) {
+                continue;
+            }
+            foreach ($config->routes as $r) {
+                try {
+                    $handler = $config->resolveAction($r['action']);
+                    if (!class_exists($handler[0]) || !method_exists($handler[0], $handler[1])) {
+                        continue;
+                    }
+                    $route = $router->addRoute($r['method'], $r['uri'], $handler);
+                    if (!empty($r['name'])) {
+                        $route->name($r['name']);
+                    }
+                    if (!empty($r['middleware'])) {
+                        $route->middleware($r['middleware']);
+                    }
+                    if (!empty($r['group'])) {
+                        $route->group($r['group']);
+                    }
+                } catch (\Throwable) {
+                    continue;
+                }
+            }
+        }
     }
 
     /**

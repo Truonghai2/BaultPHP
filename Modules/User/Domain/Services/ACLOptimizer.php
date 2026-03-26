@@ -109,8 +109,8 @@ class ACLOptimizer
         ];
 
         // Audit log
-        Audit::log(
-            'system',
+        Audit::system(
+            'acl_cache_warmed',
             "ACL cache warmed for {$warmed} users",
             $stats,
             'info',

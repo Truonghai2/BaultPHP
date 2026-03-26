@@ -45,12 +45,11 @@ class UpdateRoleHandler implements CommandHandlerInterface
 
         $role->save();
 
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'role_updated',
             "Role updated: {$role->name}",
             [
                 'role_id' => $role->id,
-                'action' => 'role_updated',
             ],
             'info',
         );

@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Core\Application;
 use Core\Security\CsrfManager;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -19,14 +20,35 @@ class VerifyCsrfToken implements MiddlewareInterface
         'oauth/token',
     ];
 
-    public function __construct(protected CsrfManager $csrfManager)
-    {
+    protected ?CsrfManager $csrfManager = null;
+
+    public function __construct(
+        protected Application $app,
+    ) {
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
         if ($this->isReading($request) || $this->inExceptArray($request)) {
             return $handler->handle($request);
+        }
+
+        // Lazy load CsrfManager to avoid circular dependency
+        // CsrfManager -> TokenStorageInterface -> session -> VerifyCsrfToken
+        if ($this->csrfManager === null && $this->app->bound(CsrfManager::class)) {
+            try {
+                $this->csrfManager = $this->app->make(CsrfManager::class);
+            } catch (\Throwable $e) {
+                // If CsrfManager can't be resolved, we must not silently skip CSRF verification
+                // as it's a security risk. In debug mode, we log it, otherwise we fail.
+                \Core\Support\Facades\Log::error('CSRF: CsrfManager resolution failed', [
+                    'error' => $e->getMessage(),
+                ]);
+                
+                if (!config('app.debug', false)) {
+                    throw new \App\Exceptions\TokenMismatchException('CSRF service unavailable.');
+                }
+            }
         }
 
         $tokenValue = $this->getTokenFromRequest($request);

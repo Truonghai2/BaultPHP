@@ -2,9 +2,9 @@
 
 namespace Core\Console\Commands\Cache;
 
-use App\Providers\ConsoleServiceProvider;
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
+use Core\Contracts\Console\Kernel as KernelContract;
 
 class CommandCacheCommand extends BaseCommand
 {
@@ -38,10 +38,9 @@ class CommandCacheCommand extends BaseCommand
             mkdir($cacheDir, 0777, true);
         }
 
-        // Use the ConsoleServiceProvider's logic to discover commands
-        /** @var ConsoleServiceProvider $provider */
-        $provider = $this->app->make(ConsoleServiceProvider::class);
-        $commands = $provider->discoverCommands();
+        // Use same discovery as ConsoleKernel (Core + all Modules/*/Console) so cache matches runtime
+        $kernel = $this->app->make(KernelContract::class);
+        $commands = $kernel->discoverCommandClasses();
 
         $content = '<?php' . PHP_EOL . PHP_EOL . 'return ' . var_export($commands, true) . ';' . PHP_EOL;
         file_put_contents($cachePath, $content);

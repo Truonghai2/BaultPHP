@@ -17,14 +17,27 @@ class SwoolePdoPool extends BaseSwoolePool
     protected static function createConnection(string $name): mixed
     {
         self::$lastUsedTimes ??= new \WeakMap();
+        
+        if (!isset(static::$configs[$name])) {
+            static::$app?->make(\Psr\Log\LoggerInterface::class)
+                ->error("Pool config for '{$name}' not found. Available pools: " . implode(', ', array_keys(static::$configs)));
+            return false;
+        }
+        
         $config = static::$configs[$name];
 
         $connectionDetails = $config['write'] ?? $config;
 
-        $driver = $connectionDetails['driver'] ?? $config['driver'];
-        $host = $connectionDetails['host'] ?? $config['host'];
-        $port = $connectionDetails['port'] ?? $config['port'];
-        $database = $connectionDetails['database'] ?? $config['database'];
+        $driver = $connectionDetails['driver'] ?? $config['driver'] ?? null;
+        $host = $connectionDetails['host'] ?? $config['host'] ?? null;
+        $port = $connectionDetails['port'] ?? $config['port'] ?? null;
+        $database = $connectionDetails['database'] ?? $config['database'] ?? null;
+        
+        if (!$driver || !$host || !$port || !$database) {
+            static::$app?->make(\Psr\Log\LoggerInterface::class)
+                ->error("Invalid pool config for '{$name}'. Missing required fields: driver, host, port, or database.");
+            return false;
+        }
 
         $dsn = "{$driver}:host={$host};port={$port};dbname={$database}";
 

@@ -43,7 +43,7 @@ class PageRevision extends Model
         'user_agent',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'content' => 'array',
         'revision_number' => 'integer',
         'created_at' => 'datetime',

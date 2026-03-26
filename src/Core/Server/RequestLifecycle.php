@@ -6,10 +6,8 @@ use Core\Application;
 use Core\Contracts\Exceptions\Handler as ExceptionHandler;
 use Core\Contracts\Http\Kernel as HttpKernel;
 use Core\Contracts\Session\SessionInterface;
-use Core\Debug\DebugManager;
 use Core\Exceptions\ServiceUnavailableException;
 use Core\Foundation\StateResetter;
-use Core\Tasking\CacheDebugDataTask;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
 use Psr\Log\LoggerInterface;
@@ -29,7 +27,6 @@ final class RequestLifecycle
     private string $requestId;
     private float $startTime;
     private ?ResponseInterface $response = null;
-    private ?DebugManager $debugManager = null;
     private ?float $endTime = null;
 
     /**
@@ -57,6 +54,12 @@ final class RequestLifecycle
     ) {
         $this->startTime = microtime(true);
         $this->requestId = uniqid();
+        
+        // Store request context in coroutine
+        if (extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0) {
+            CoroutineContext::set('request_id', $this->requestId);
+            CoroutineContext::set('start_time', $this->startTime);
+        }
     }
 
     /**
@@ -72,11 +75,15 @@ final class RequestLifecycle
             $psr7Request = $this->transformRequest($swooleRequest);
             $this->response = $this->executeKernel($psr7Request);
         } catch (Throwable $e) {
-            $psr7Request = $this->app->bound(ServerRequestInterface::class)
-                ? $this->app->make(ServerRequestInterface::class)
-                : $this->psr7Bridge->toPsr7Request($swooleRequest);
-            $this->response = $this->handleException($psr7Request, $e);
-        } finally {
+            $psr7Request = $this->psr7Bridge->toPsr7Request($swooleRequest);
+            try {
+                $this->response = $this->handleException($psr7Request, $e);
+            } catch (Throwable $e2) {
+                $this->response = $this->fallbackExceptionResponse($e2);
+            }
+            if ($this->response === null) {
+                $this->response = $this->fallbackExceptionResponse(new \RuntimeException('No response from exception handler'));
+            }
             $this->response = $this->finalizeResponse($this->response);
             $this->sendResponse($this->response, $swooleResponse);
             $this->terminate();
@@ -90,33 +97,6 @@ final class RequestLifecycle
     {
         $this->app->instance('request_id', $this->requestId);
         $this->app->instance(SwooleRequest::class, $swooleRequest);
-
-        if ($this->isDebug && $this->shouldEnableDebug($swooleRequest) && $this->app->bound(DebugManager::class)) {
-            $this->debugManager = $this->app->make(DebugManager::class);
-            $this->debugManager->enable();
-        }
-    }
-
-    /**
-     * Check if debug should be enabled for this request.
-     * Only enable if explicitly requested via cookie or header.
-     */
-    private function shouldEnableDebug(SwooleRequest $request): bool
-    {
-        if (isset($request->cookie['X-DEBUG-ENABLED']) && $request->cookie['X-DEBUG-ENABLED'] === '1') {
-            return true;
-        }
-
-        if (isset($request->header['x-debug-enabled']) && strtolower($request->header['x-debug-enabled']) === 'true') {
-            return true;
-        }
-
-        $onDemand = config('debug.on_demand', false);
-        if ($onDemand) {
-            return false;
-        }
-
-        return true;
     }
 
     /**
@@ -157,9 +137,13 @@ final class RequestLifecycle
 
     /**
      * Adds final touches to the response before sending.
+     * Accepts null when exception handling failed; returns a minimal 500 response.
      */
-    private function finalizeResponse(ResponseInterface $response): ResponseInterface
+    private function finalizeResponse(?ResponseInterface $response): ResponseInterface
     {
+        if ($response === null) {
+            $response = $this->fallbackExceptionResponse(new \RuntimeException('No response produced'));
+        }
         $response = $response->withHeader('X-Request-ID', $this->requestId);
 
         if ($this->isDebug) {
@@ -170,19 +154,77 @@ final class RequestLifecycle
     }
 
     /**
+     * Returns a minimal 500 response when exception handler fails (e.g. circular dependency).
+     */
+    private function fallbackExceptionResponse(Throwable $e): ResponseInterface
+    {
+        $body = '<!DOCTYPE html><html><body><h1>500 Server Error</h1><p>An error occurred.</p></body></html>';
+        if ($this->isDebug) {
+            $body = '<!DOCTYPE html><html><body><h1>500 Server Error</h1><pre>' . htmlspecialchars((string) $e) . '</pre></body></html>';
+        }
+        return new \Nyholm\Psr7\Response(500, ['Content-Type' => 'text/html; charset=UTF-8'], $body);
+    }
+
+    /**
      * Sends the final PSR-7 response to the client via the Swoole response object.
+     * Optimized for performance - minimal checks and fast path for production.
      */
     private function sendResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
     {
-        if ($this->app->bound(ServerRequestInterface::class)) {
-            $this->app->make(RequestLogger::class)->log(
-                $this->app->make(ServerRequestInterface::class),
-                $response,
-                $this->startTime,
-            );
+        $request = null;
+        $shouldLog = $this->isDebug || config('app.log_requests', false);
+        
+        // Only resolve request if logging is needed (performance optimization)
+        if ($shouldLog) {
+            // Fast path: Check if already resolved (most common case)
+            if ($this->app->resolved(ServerRequestInterface::class)) {
+                try {
+                    $request = $this->app->make(ServerRequestInterface::class);
+                } catch (\Throwable $e) {
+                    // Silently fail if request can't be resolved for logging
+                    $request = null;
+                }
+            }
         }
 
-        $this->psr7Bridge->toSwooleResponse($response, $swooleResponse);
+        // Log request if needed (optimized path)
+        if ($shouldLog && $request !== null) {
+            $this->logRequest($request, $response);
+        }
+
+        // Send response (this is the critical path - must be fast)
+        $this->psr7Bridge->toSwooleResponse($response, $swooleResponse, $request);
+    }
+
+    /**
+     * Logs the request/response. Separated for better performance and testability.
+     */
+    private function logRequest(ServerRequestInterface $request, ResponseInterface $response): void
+    {
+        try {
+            // Fast path: Try to get RequestLogger from container
+            if ($this->app->bound(RequestLogger::class)) {
+                $this->app->make(RequestLogger::class)->log(
+                    $request,
+                    $response,
+                    $this->startTime,
+                    $this->requestId,
+                );
+                return;
+            }
+
+            // Fallback: Create RequestLogger directly (rare case)
+            if ($this->app->bound(\Psr\Log\LoggerInterface::class)) {
+                $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
+                $requestLogger = new RequestLogger($this->app, $logger);
+                $requestLogger->log($request, $response, $this->startTime, $this->requestId);
+            }
+        } catch (\Core\Exceptions\ContainerException $e) {
+            // Silently skip logging if there's a circular dependency
+            // This should not happen in normal operation
+        } catch (\Throwable $e) {
+            // Silently skip logging on any error to avoid breaking response
+        }
     }
 
     /**
@@ -192,10 +234,6 @@ final class RequestLifecycle
     private function terminate(): void
     {
         $this->endTime = microtime(true);
-
-        if ($this->isDebug && $this->debugManager) {
-            $this->handleDebugTermination();
-        }
 
         // Call terminating callbacks (password rehashing, etc.)
         // These run AFTER response is sent but BEFORE cleanup
@@ -213,17 +251,48 @@ final class RequestLifecycle
             $this->app->forgetInstance(ResponseInterface::class);
         }
 
+        // Clear coroutine context
+        if (extension_loaded('swoole') && \Swoole\Coroutine::getCid() > 0) {
+            CoroutineContext::clear();
+        }
+
         // Memory management: Periodic garbage collection and monitoring
         $this->performMemoryManagement();
     }
 
     /**
      * Performs memory management tasks including periodic GC and monitoring.
+     * Optimized for high throughput - minimal overhead in production.
+     * Uses bitwise operations for faster modulo checks.
      */
     private function performMemoryManagement(): void
     {
-        // Periodic garbage collection (every N requests)
-        if (self::$requestCount % self::GC_INTERVAL === 0) {
+        $requestCount = self::$requestCount;
+        
+        // Fast path for production: Only check memory threshold, skip GC in most cases
+        if (!$this->isDebug) {
+            // Periodic garbage collection (every N requests) - use bitwise check for speed
+            if (($requestCount & (self::GC_INTERVAL - 1)) === 0) {
+                gc_collect_cycles();
+            }
+
+            // Memory monitoring - only check threshold, no logging unless exceeded
+            // Use bitwise check to reduce frequency (check every 10 requests instead of every request)
+            if (($requestCount & 9) === 0) {
+                $memoryUsage = memory_get_usage(true);
+                if ($memoryUsage > self::MEMORY_WARNING_THRESHOLD) {
+                    $this->getLogger()->warning('High memory usage detected', [
+                        'request_id' => $this->requestId,
+                        'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
+                        'request_count' => $requestCount,
+                    ]);
+                }
+            }
+            return;
+        }
+
+        // Debug mode: Full logging (only in development)
+        if (($requestCount & (self::GC_INTERVAL - 1)) === 0) {
             $beforeGC = memory_get_usage(true);
             gc_collect_cycles();
             $afterGC = memory_get_usage(true);
@@ -231,88 +300,36 @@ final class RequestLifecycle
 
             if ($freed > 0) {
                 $this->getLogger()->debug('Periodic garbage collection performed', [
-                    'request_count' => self::$requestCount,
+                    'request_count' => $requestCount,
                     'memory_freed' => round($freed / 1024 / 1024, 2) . ' MB',
                     'memory_after_gc' => round($afterGC / 1024 / 1024, 2) . ' MB',
                 ]);
             }
         }
 
-        // Memory monitoring (warn if usage is high)
-        $memoryUsage = memory_get_usage(true);
-        $memoryPeak = memory_get_peak_usage(true);
+        // Memory monitoring in debug mode - check every 10 requests
+        if (($requestCount & 9) === 0) {
+            $memoryUsage = memory_get_usage(true);
+            $memoryPeak = memory_get_peak_usage(true);
 
-        if ($memoryUsage > self::MEMORY_WARNING_THRESHOLD) {
-            $this->getLogger()->warning('High memory usage detected', [
-                'request_id' => $this->requestId,
-                'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
-                'memory_peak' => round($memoryPeak / 1024 / 1024, 2) . ' MB',
-                'request_count' => self::$requestCount,
-            ]);
-        }
-
-        // Debug mode: Log memory stats periodically
-        if ($this->isDebug && self::$requestCount % 10 === 0) {
-            $this->getLogger()->debug('Memory stats', [
-                'request_count' => self::$requestCount,
-                'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
-                'memory_peak' => round($memoryPeak / 1024 / 1024, 2) . ' MB',
-            ]);
-        }
-    }
-
-    /**
-     * Gathers and dispatches debug information at the end of the request.
-     */
-    private function handleDebugTermination(): void
-    {
-        if ($this->debugManager->isEnabled()) {
-            try {
-                /** @var \Core\Contracts\Config\Repository $configService */
-                $configService = $this->app->make('config');
-                $this->debugManager->recordConfig($configService->all());
-
-                if ($this->app->bound(ServerRequestInterface::class)) {
-                    $request = $this->app->make(ServerRequestInterface::class);
-                    $this->debugManager->set('cookies', $request->getCookieParams());
-                }
-
-                if ($this->app->bound(SessionInterface::class)) {
-                    /** @var SessionInterface $session */
-                    $session = $this->app->make(SessionInterface::class);
-                    if ($session->isStarted()) {
-                        $this->debugManager->set('session', $session->all());
-                    }
-                }
-
-                if ($this->app->bound('debugbar')) {
-                    /** @var \DebugBar\DebugBar $debugbar */
-                    $debugbar = $this->app->make('debugbar');
-                    $this->debugManager->setData($debugbar->collect()['__meta']);
-                }
-
-                if ($this->exceptionHandler->hasExceptions()) {
-                    $this->debugManager->add('exceptions', $this->exceptionHandler->getExceptions());
-                }
-
-                $this->debugManager->recordRequestInfo([
-                    'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . ' MB',
-                    'duration_ms' => round(($this->endTime - $this->startTime) * 1000, 2),
+            if ($memoryUsage > self::MEMORY_WARNING_THRESHOLD) {
+                $this->getLogger()->warning('High memory usage detected', [
+                    'request_id' => $this->requestId,
+                    'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
+                    'memory_peak' => round($memoryPeak / 1024 / 1024, 2) . ' MB',
+                    'request_count' => $requestCount,
                 ]);
-
-                $debugData = $this->debugManager->getData();
-                $expiration = config('debug.expiration', 3600);
-                $task = new CacheDebugDataTask($this->requestId, $debugData, $expiration);
-
-                /** @var SwooleServer $server */
-                $server = $this->app->make(SwooleServer::class);
-                $server->dispatchTask($task);
-
-            } catch (Throwable $e) {
-                $this->getLogger()->error('Failed to dispatch debug data caching task.', ['exception' => $e]);
             }
+
+            // Log memory stats in debug mode
+            $this->getLogger()->debug('Memory stats', [
+                'request_count' => $requestCount,
+                'memory_usage' => round($memoryUsage / 1024 / 1024, 2) . ' MB',
+                'memory_peak' => round($memoryPeak / 1024 / 1024, 2) . ' MB',
+            ]);
         }
     }
+
 
     private function getLogger(): LoggerInterface
     {

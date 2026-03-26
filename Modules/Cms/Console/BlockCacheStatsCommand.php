@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Cms\Console\Commands;
+namespace Modules\Cms\Console;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;

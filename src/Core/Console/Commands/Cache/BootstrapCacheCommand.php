@@ -59,14 +59,18 @@ class BootstrapCacheCommand extends BaseCommand
     protected function getEnabledModuleNames(): array
     {
         $enabledModuleNames = [];
-        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json'));
-
+        $moduleJsonPaths = glob($this->app->basePath('Modules/*/module.json')) ?: [];
         foreach ($moduleJsonPaths as $path) {
-            $data = json_decode(file_get_contents($path), true);
+            $data = json_decode((string) file_get_contents($path), true);
             if (!empty($data['name']) && !empty($data['enabled']) && $data['enabled'] === true) {
                 $enabledModuleNames[] = $data['name'];
             }
         }
-        return $enabledModuleNames;
+        if ($this->app->bound(\Core\Module\Composer\ComposerModuleDiscovery::class)) {
+            foreach ($this->app->make(\Core\Module\Composer\ComposerModuleDiscovery::class)->getManifests() as $manifest) {
+                $enabledModuleNames[] = $manifest->name;
+            }
+        }
+        return array_values(array_unique($enabledModuleNames));
     }
 }

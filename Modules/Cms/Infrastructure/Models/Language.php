@@ -38,7 +38,7 @@ class Language extends Model
         'sort_order',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'is_default' => 'boolean',
         'is_active' => 'boolean',
         'created_at' => 'datetime',

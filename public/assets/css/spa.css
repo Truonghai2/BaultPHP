@@ -1,0 +1,480 @@
+/**
+ * BaultSPA v3.0 Styles
+ * 
+ * Animations and transitions for SPA framework
+ */
+
+/* === Router Transitions === */
+
+/* Fade transition */
+.transition-fade-out {
+  animation: fadeOut 0.3s ease-out forwards;
+}
+
+.transition-fade-in {
+  animation: fadeIn 0.3s ease-in forwards;
+}
+
+@keyframes fadeOut {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Slide transition */
+.transition-slide-out {
+  animation: slideOut 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.transition-slide-in {
+  animation: slideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-30px);
+    opacity: 0;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Scale transition */
+.transition-scale-out {
+  animation: scaleOut 0.3s ease-out forwards;
+}
+
+.transition-scale-in {
+  animation: scaleIn 0.3s ease-out forwards;
+}
+
+@keyframes scaleOut {
+  from {
+    transform: scale(1);
+    opacity: 1;
+  }
+  to {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(1.05);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* === Loading States === */
+
+.route-loading {
+  cursor: wait;
+}
+
+.route-loading * {
+  pointer-events: none;
+}
+
+/* === Lazy Loading === */
+
+.lazy-loading {
+  opacity: 0.5;
+  filter: blur(5px);
+  transition: opacity 0.3s, filter 0.3s;
+}
+
+.lazy-loaded {
+  opacity: 1;
+  filter: blur(0);
+}
+
+.lazy-error {
+  opacity: 0.3;
+  background: #f5f5f5 url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23ccc" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>') center/50% no-repeat;
+}
+
+/* Blur placeholder effect */
+img[data-src] {
+  filter: blur(10px);
+  transition: filter 0.3s;
+}
+
+img.lazy-loaded {
+  filter: blur(0);
+}
+
+/* === Service Worker Notifications === */
+
+.sw-update-notification {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border-radius: 8px;
+  padding: 16px;
+  max-width: 350px;
+  z-index: 10000;
+  animation: slideUp 0.3s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.sw-update-content p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: #333;
+}
+
+.sw-update-btn,
+.sw-dismiss-btn {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  margin-right: 8px;
+  transition: background 0.2s;
+}
+
+.sw-update-btn {
+  background: #0066cc;
+  color: white;
+}
+
+.sw-update-btn:hover {
+  background: #0052a3;
+}
+
+.sw-dismiss-btn {
+  background: #f0f0f0;
+  color: #333;
+}
+
+.sw-dismiss-btn:hover {
+  background: #e0e0e0;
+}
+
+/* === Network Status === */
+
+.network-status {
+  position: fixed;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 12px 24px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: top 0.3s ease-out;
+  z-index: 10000;
+}
+
+.network-status.show {
+  top: 20px;
+}
+
+.network-status-online {
+  background: #4caf50;
+  color: white;
+}
+
+.network-status-offline {
+  background: #ff9800;
+  color: white;
+}
+
+/* === Error Notifications === */
+
+.app-error-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #f44336;
+  color: white;
+  padding: 16px;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  max-width: 400px;
+  z-index: 10000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.error-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.error-content strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.error-content p {
+  margin: 0;
+  font-size: 13px;
+  opacity: 0.9;
+}
+
+.error-close {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: transparent;
+  border: none;
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  padding: 0;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background 0.2s;
+}
+
+.error-close:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* === Progress Bar === */
+
+.spa-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 2px;
+  background: #0066cc;
+  z-index: 10001;
+  transition: width 0.2s ease-out;
+}
+
+/* === Component Loading States === */
+
+.component-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.component-loading::after {
+  content: '';
+  width: 40px;
+  height: 40px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #0066cc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* === Skeleton Loading === */
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    #f0f0f0 25%,
+    #e0e0e0 50%,
+    #f0f0f0 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-text {
+  height: 16px;
+  border-radius: 4px;
+  margin-bottom: 8px;
+}
+
+.skeleton-title {
+  height: 24px;
+  width: 60%;
+  border-radius: 4px;
+  margin-bottom: 16px;
+}
+
+.skeleton-image {
+  height: 200px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+
+/* === Responsive Images === */
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+picture {
+  display: block;
+}
+
+/* === Accessibility === */
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* === Animations === */
+
+@keyframes bounce {
+  0%, 100% { transform: scale(1); }
+  25% { transform: scale(1.1); }
+  75% { transform: scale(0.95); }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-10px); }
+  40%, 80% { transform: translateX(10px); }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.8; }
+}
+
+/* Animation utilities */
+.animate-bounce { animation: bounce 0.6s ease-in-out; }
+.animate-shake { animation: shake 0.5s; }
+.animate-pulse { animation: pulse 2s ease-in-out infinite; }
+
+/* === Performance Optimizations === */
+
+/* Use GPU acceleration for transforms */
+.transition-fade-in,
+.transition-fade-out,
+.transition-slide-in,
+.transition-slide-out,
+.transition-scale-in,
+.transition-scale-out {
+  will-change: transform, opacity;
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Prevent layout shifts during lazy loading */
+img[data-src],
+[data-bg] {
+  aspect-ratio: 16/9; /* Adjust based on your images */
+}
+
+/* === Dark Mode Support === */
+
+@media (prefers-color-scheme: dark) {
+  .sw-update-notification {
+    background: #2d2d2d;
+    color: #ffffff;
+  }
+  
+  .sw-dismiss-btn {
+    background: #444;
+    color: #ffffff;
+  }
+  
+  .sw-dismiss-btn:hover {
+    background: #555;
+  }
+  
+  .lazy-error {
+    background-color: #333;
+  }
+  
+  .skeleton {
+    background: linear-gradient(
+      90deg,
+      #2d2d2d 25%,
+      #3d3d3d 50%,
+      #2d2d2d 75%
+    );
+  }
+}
+
+/* === Print Styles === */
+
+@media print {
+  .sw-update-notification,
+  .network-status,
+  .app-error-notification,
+  .spa-progress {
+    display: none !important;
+  }
+}
+
+/* === Reduced Motion === */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

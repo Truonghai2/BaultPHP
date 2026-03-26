@@ -156,6 +156,35 @@ class ConsoleKernel implements KernelContract
     }
 
     /**
+     * Discover all command classes (same logic as when no cache).
+     * Used by command:cache so the cache matches what the kernel would load.
+     */
+    public function discoverCommandClasses(): array
+    {
+        $paths = $this->getCommandPaths();
+        $classes = [];
+        foreach ($paths as $namespace => $path) {
+            if (!is_dir($path)) {
+                continue;
+            }
+            $iterator = new RecursiveIteratorIterator(
+                new RecursiveDirectoryIterator($path, RecursiveDirectoryIterator::SKIP_DOTS),
+            );
+            /** @var SplFileInfo $file */
+            foreach ($iterator as $file) {
+                if ($file->getExtension() !== 'php') {
+                    continue;
+                }
+                $class = $this->getClassFromPath($file, $path, $namespace);
+                if ($this->isInstantiableCommand($class)) {
+                    $classes[] = $class;
+                }
+            }
+        }
+        return array_values(array_unique($classes));
+    }
+
+    /**
      * Get the paths to the directories containing console commands.
      */
     protected function getCommandPaths(): array

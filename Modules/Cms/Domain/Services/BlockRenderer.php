@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace Modules\Cms\Domain\Services;
 
 use Core\Cache\CacheManager;
+use Core\Extension\CoreExtensionPoints;
+use Modules\Cms\Domain\Repositories\BlockRegionRepositoryInterface;
 use Modules\Cms\Infrastructure\Models\BlockInstance;
 use Modules\Cms\Infrastructure\Models\BlockRegion;
 use Modules\Cms\Infrastructure\Models\BlockType;
@@ -21,6 +23,7 @@ class BlockRenderer
         private readonly BlockRegistry $registry,
         private readonly CacheManager $cache,
         private readonly LoggerInterface $logger,
+        private readonly ?BlockRegionRepositoryInterface $blockRegionRepository = null,
     ) {
     }
 
@@ -43,7 +46,7 @@ class BlockRenderer
             if (!$blockType) {
                 $this->logger->warning('Block type not found', [
                     'block_type_id' => $instance->block_type_id,
-                    'instance_id' => $instance->id,
+                    'instance_id'   => $instance->id,
                 ]);
                 return '';
             }
@@ -52,23 +55,22 @@ class BlockRenderer
 
             if (!$block) {
                 $this->logger->warning('Block type not found in registry', [
-                    'block_type' => $blockType->name,
+                    'block_type'  => $blockType->name,
                     'instance_id' => $instance->id,
                 ]);
                 return '';
             }
 
-            // Skip cache for now (cache API issue)
-            // $cacheKey = $this->getCacheKey($instance);
-            // if ($block->isCacheable() && empty($context)) {
-            //     $cached = $this->cache->get($cacheKey);
-            //     if ($cached !== null) {
-            //         return $cached;
-            //     }
-            // }
+            $cacheKey = $this->getCacheKey($instance);
+            if ($block->isCacheable() && empty($context)) {
+                $cached = $this->cache->store()->get($cacheKey);
+                if ($cached !== null) {
+                    return $cached;
+                }
+            }
 
             $blockContext = array_merge($context ?? [], [
-                'title' => $instance->title,
+                'title'   => $instance->title,
                 'content' => $instance->content,
             ]);
 
@@ -84,10 +86,17 @@ class BlockRenderer
 
             $html = $this->wrapBlock($instance, $content, $blockType);
 
-            // Skip cache for now
-            // if ($block->isCacheable() && !empty($html) && empty($context)) {
-            //     $this->cache->put($cacheKey, $html, $block->getCacheLifetime());
-            // }
+            // Allow modules to transform the rendered HTML via extension point
+            $html = apply_filter(CoreExtensionPoints::BLOCK_RENDER, $html, [
+                'block_type' => $blockType->name,
+                'block_id'   => $instance->id,
+                'config'     => $config,
+                'instance'   => $instance,
+            ]);
+
+            if ($block->isCacheable() && !empty($html) && empty($context)) {
+                $this->cache->store()->put($cacheKey, $html, $block->getCacheLifetime());
+            }
 
             return $html;
         } catch (\Throwable $e) {
@@ -240,6 +249,11 @@ class BlockRenderer
      */
     public function renderAllRegions(?string $contextType = 'global', ?int $contextId = null, ?array $userRoles = null): array
     {
+        if ($this->blockRegionRepository === null) {
+            $this->logger->warning('BlockRegionRepository not injected — renderAllRegions() skipped.');
+            return [];
+        }
+
         $regions = $this->blockRegionRepository->findAllActive();
         $rendered = [];
 

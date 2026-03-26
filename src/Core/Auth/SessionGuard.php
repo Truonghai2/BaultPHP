@@ -101,7 +101,20 @@ class SessionGuard implements Guard
     public function login(Authenticatable $user, bool $remember = false): void
     {
         $startTime = microtime(true);
-        $this->app->make(\Psr\Log\LoggerInterface::class)->info('SessionGuard login process started.', ['user_id' => $user->getAuthIdentifier()]);
+        $logger = $this->app->make(\Psr\Log\LoggerInterface::class);
+        
+        $logger->info('SessionGuard login process started.', ['user_id' => $user->getAuthIdentifier()]);
+
+        // Regenerate session ID to prevent session fixation attacks
+        $oldSessionId = $this->session->getId();
+        $this->session->regenerate(true); // Delete old session
+        $newSessionId = $this->session->getId();
+        
+        $logger->info('Session regenerated on login', [
+            'old_session_id' => substr($oldSessionId, 0, 8) . '...',
+            'new_session_id' => substr($newSessionId, 0, 8) . '...',
+            'user_id' => $user->getAuthIdentifier(),
+        ]);
 
         $this->updateSession($user->getAuthIdentifier());
 
@@ -114,7 +127,7 @@ class SessionGuard implements Guard
         $this->dispatcher?->dispatch(new Login('session', $user, $remember));
 
         $duration = microtime(true) - $startTime;
-        $this->app->make(\Psr\Log\LoggerInterface::class)->info('SessionGuard login process finished.', [
+        $logger->info('SessionGuard login process finished.', [
             'user_id' => $user->getAuthIdentifier(),
             'duration_ms' => $duration * 1000,
         ]);
@@ -135,7 +148,10 @@ class SessionGuard implements Guard
         }
 
         $this->forgetRecallerCookie();
-        $this->session->invalidate();
+        
+        // Regenerate session ID after logout to prevent session fixation
+        $this->session->regenerate(true);
+        
         $this->user = null;
         $this->userResolved = false;
     }

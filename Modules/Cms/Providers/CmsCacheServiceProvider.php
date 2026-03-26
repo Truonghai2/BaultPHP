@@ -9,10 +9,13 @@ use Modules\Cms\Domain\Events\BlockTypeUpdated;
 use Modules\Cms\Domain\Events\BlockUpdated;
 use Modules\Cms\Domain\Events\PageUpdated;
 use Modules\Cms\Domain\Listeners\InvalidateBlockCache;
+use Core\Events\EventDispatcherInterface;
 use Modules\Cms\Infrastructure\Models\BlockInstance;
+use Modules\Cms\Infrastructure\Models\BlockType;
 use Modules\Cms\Infrastructure\Models\Page;
 use Modules\Cms\Infrastructure\Models\PageBlock;
 use Modules\Cms\Infrastructure\Observers\BlockInstanceObserver;
+use Modules\Cms\Infrastructure\Observers\BlockTypeObserver;
 use Modules\Cms\Infrastructure\Observers\PageBlockObserver;
 use Modules\Cms\Infrastructure\Observers\PageObserver;
 
@@ -52,16 +55,16 @@ class CmsCacheServiceProvider extends ServiceProvider
         Page::observe(PageObserver::class);
         PageBlock::observe(PageBlockObserver::class);
         BlockInstance::observe(BlockInstanceObserver::class);
+        BlockType::observe(BlockTypeObserver::class);
 
-        // Register event listeners
+        /** @var EventDispatcherInterface $dispatcher */
+        $dispatcher = $this->app->make('events');
+
         foreach ($this->listen as $event => $listeners) {
             foreach ($listeners as $listener) {
                 [$class, $method] = $listener;
-                $this->app->bind($event, function ($app) use ($class, $method, $event) {
-                    $instance = $app->make($class);
-                    return function ($eventInstance) use ($instance, $method) {
-                        $instance->{$method}($eventInstance);
-                    };
+                $dispatcher->listen($event, function (object $eventInstance) use ($class, $method): void {
+                    $this->app->make($class)->{$method}($eventInstance);
                 });
             }
         }

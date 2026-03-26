@@ -53,7 +53,7 @@ class DefaultBlocksSeeder extends Seeder
             ],
             [
                 'region' => 'header-user',
-                'block_type' => 'user_menu',
+                'block_type' => 'user-menu',
                 'title' => 'User Menu',
                 'weight' => 0,
                 'config' => [],

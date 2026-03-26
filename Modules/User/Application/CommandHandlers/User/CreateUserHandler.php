@@ -35,13 +35,12 @@ class CreateUserHandler implements CommandHandlerInterface
         ]);
 
         // Additional audit log (model creation is auto-logged)
-        Audit::log(
-            'user_action',
+        Audit::system(
+            'user_created',
             "New user created: {$command->email}",
             [
                 'user_id' => $user->id,
                 'email' => $command->email,
-                'action' => 'user_created',
             ],
             'info',
         );

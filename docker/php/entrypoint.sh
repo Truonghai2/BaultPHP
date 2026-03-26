@@ -25,6 +25,7 @@ chown -R $APP_USER:$APP_GROUP /app/storage /app/bootstrap/cache
 echo "Running application setup as $APP_USER user..."
 if [ "${APP_ENV}" = "production" ]; then
     echo "Running in production mode. Caching configuration and routes..."
+    gosu $APP_USER php /app/cli command:clear
     gosu $APP_USER php /app/cli config:cache
     gosu $APP_USER php /app/cli optimize
 else
@@ -60,12 +61,50 @@ else
     echo "Unsupported DB_CONNECTION: ${DB_CONNECTION}. Skipping database wait."
 fi
 
-# 5. Run Database Migrations AS THE APPLICATION USER.
+# 5. Verify WASM runtime installation
+echo "Verifying WASM runtime installation..."
+if command -v wasmtime >/dev/null 2>&1; then
+    echo "WASM runtime (wasmtime) is available: $(wasmtime --version)"
+else
+    echo "WARNING: WASM runtime (wasmtime) is not available. WASM features will be disabled."
+fi
+
+# 6. Ensure WASM directory exists and has correct permissions
+echo "Ensuring WASM directory exists..."
+mkdir -p /app/wasm
+chown -R $APP_USER:$APP_GROUP /app/wasm
+
+# 7. Verify gRPC extension
+echo "Verifying gRPC extension..."
+if php -m | grep -q grpc; then
+    echo "gRPC extension is loaded"
+else
+    echo "WARNING: gRPC extension is not loaded. gRPC features will be disabled."
+fi
+
+# 8. Verify protoc compiler
+echo "Verifying protoc compiler..."
+if command -v protoc >/dev/null 2>&1; then
+    echo "protoc compiler is available: $(protoc --version)"
+else
+    echo "WARNING: protoc compiler is not available. Protocol buffer compilation will be disabled."
+fi
+
+# 9. Ensure proto and generated directories exist
+echo "Ensuring proto directories exist..."
+mkdir -p /app/proto /app/src/Grpc/Generated
+chown -R $APP_USER:$APP_GROUP /app/proto /app/src/Grpc/Generated
+
+# 7. Run Database Migrations AS THE APPLICATION USER.
 echo "Running database migrations as $APP_USER user..."
 gosu $APP_USER php /app/cli ddd:migrate --force
 
-echo "RUN_SEEDERS is true. Running database seeder..."
-gosu $APP_USER php /app/cli db:seed
+if [ "${RUN_SEEDERS}" = "true" ] || [ "${RUN_SEEDERS}" = "1" ]; then
+    echo "RUN_SEEDERS enabled. Running database seeder..."
+    gosu $APP_USER php /app/cli db:seed
+else
+    echo "RUN_SEEDERS not set. Skipping seeder (set RUN_SEEDERS=true to run on startup)."
+fi
 
 echo "Starting main process: $@"
 

@@ -2,19 +2,24 @@
 
 namespace Core\Support\Facades;
 
-use Core\Contracts\Mail\Mailable;
-use Core\Mail\PendingMail;
+use Core\Mail\Mailer;
+use Core\Mail\Mailable;
 
 /**
- * @method static PendingMail to(object|array|string $users)
+ * Mail Facade.
+ * 
  * @method static void send(Mailable $mailable)
- *
- * @see \Core\Contracts\Mail\Mailer
+ * @method static void queue(Mailable $mailable, ?string $queueName = 'emails')
+ * @method static void later(Mailable $mailable, int $delaySeconds, ?string $queueName = 'emails')
+ * @method static void sendToMany(Mailable $mailable, array $recipients)
+ * @method static void queueToMany(Mailable $mailable, array $recipients, ?string $queueName = 'emails')
+ * 
+ * @see Mailer
  */
 class Mail extends Facade
 {
     protected static function getFacadeAccessor(): string
     {
-        return \Core\Contracts\Mail\Mailer::class;
+        return Mailer::class;
     }
 }

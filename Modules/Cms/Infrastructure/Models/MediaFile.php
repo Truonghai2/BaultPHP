@@ -58,7 +58,7 @@ class MediaFile extends Model
         'description',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'size' => 'integer',
         'width' => 'integer',
         'height' => 'integer',
@@ -110,7 +110,39 @@ class MediaFile extends Model
             return '/assets/images/file-icon.png';
         }
 
-        // TODO: Implement actual thumbnail generation
-        return $this->url;
+        $thumbDir = config('wasm.image.thumbnail_dir', 'public/uploads/media/thumbnails');
+        $thumbUrlPrefix = config('wasm.image.thumbnail_url_prefix', '/uploads/media/thumbnails');
+
+        $extension = pathinfo($this->filename, PATHINFO_EXTENSION) ?: 'jpg';
+        $thumbName = pathinfo($this->filename, PATHINFO_FILENAME) . "_{$width}x{$height}." . $extension;
+
+        $thumbBasePath = base_path(trim($thumbDir, '/'));
+        $thumbFullPath = $thumbBasePath . '/' . $thumbName;
+
+        if (file_exists($thumbFullPath)) {
+            return rtrim($thumbUrlPrefix, '/') . '/' . $thumbName;
+        }
+
+        $originalPath = base_path('public/' . ltrim($this->path, '/'));
+        if (!file_exists($originalPath)) {
+            return $this->url;
+        }
+
+        if (!is_dir($thumbBasePath)) {
+            mkdir($thumbBasePath, 0755, true);
+        }
+
+        try {
+            wasm_image()->resize($originalPath, $width, $height, [
+                'output_path' => $thumbFullPath,
+                'quality' => config('wasm.image.default_quality', 85),
+                'format' => $extension,
+                'preserve_aspect' => true,
+            ]);
+
+            return rtrim($thumbUrlPrefix, '/') . '/' . $thumbName;
+        } catch (\Throwable) {
+            return $this->url;
+        }
     }
 }

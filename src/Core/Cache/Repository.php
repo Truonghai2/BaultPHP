@@ -68,6 +68,28 @@ class Repository implements StoreContract
     }
 
     /**
+     * Lấy một item từ cache, hoặc thực thi Closure và lưu kết quả vĩnh viễn.
+     *
+     * @param  string  $key
+     * @param  \Closure  $callback
+     * @return mixed
+     */
+    public function rememberForever(string $key, Closure $callback)
+    {
+        $value = $this->get($key);
+
+        if (! is_null($value)) {
+            return $value;
+        }
+
+        $value = $callback();
+
+        $this->store->set($key, $value, null);
+
+        return $value;
+    }
+
+    /**
      * Store an item in the cache (Laravel compatibility).
      *
      * @param string $key
@@ -155,5 +177,16 @@ class Repository implements StoreContract
     public function has($key)
     {
         return $this->store->has($key);
+    }
+
+    /**
+     * Remove all items from the cache that match a given pattern.
+     *
+     * @param string $pattern
+     * @return bool
+     */
+    public function forgetPattern(string $pattern): bool
+    {
+        return $this->store->forgetPattern($pattern);
     }
 }

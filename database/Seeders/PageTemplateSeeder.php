@@ -70,12 +70,12 @@ class PageTemplateSeeder extends Seeder
             // 2. About Page Template
             [
                 'name' => 'About Us',
-                'description' => 'About page with text content and team section',
+                'description' => 'About page with about section and team',
                 'category' => 'content',
                 'thumbnail' => '/assets/images/templates/about.png',
                 'blocks_config' => [
                     [
-                        'block_type_name' => 'text-block',
+                        'block_type_name' => 'about',
                         'region' => 'content',
                         'sort_order' => 0,
                     ],
@@ -102,7 +102,7 @@ class PageTemplateSeeder extends Seeder
                 'thumbnail' => '/assets/images/templates/services.png',
                 'blocks_config' => [
                     [
-                        'block_type_name' => 'text-block',
+                        'block_type_name' => 'text',
                         'region' => 'hero',
                         'sort_order' => 0,
                     ],
@@ -124,19 +124,14 @@ class PageTemplateSeeder extends Seeder
             // 4. Contact Page Template
             [
                 'name' => 'Contact',
-                'description' => 'Contact page with text and HTML blocks',
+                'description' => 'Contact page with contact info and form',
                 'category' => 'content',
                 'thumbnail' => '/assets/images/templates/contact.png',
                 'blocks_config' => [
                     [
-                        'block_type_name' => 'text-block',
+                        'block_type_name' => 'contact',
                         'region' => 'content',
                         'sort_order' => 0,
-                    ],
-                    [
-                        'block_type_name' => 'html-block',
-                        'region' => 'content',
-                        'sort_order' => 1,
                     ],
                 ],
                 'default_seo' => [
@@ -156,7 +151,7 @@ class PageTemplateSeeder extends Seeder
                 'thumbnail' => '/assets/images/templates/blog.png',
                 'blocks_config' => [
                     [
-                        'block_type_name' => 'text-block',
+                        'block_type_name' => 'text',
                         'region' => 'content',
                         'sort_order' => 0,
                     ],
@@ -194,7 +189,7 @@ class PageTemplateSeeder extends Seeder
                         'sort_order' => 1,
                     ],
                     [
-                        'block_type_name' => 'text-block',
+                        'block_type_name' => 'text',
                         'region' => 'content',
                         'sort_order' => 2,
                     ],

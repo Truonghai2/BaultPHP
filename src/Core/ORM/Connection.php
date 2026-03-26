@@ -26,8 +26,8 @@ class Connection
     protected Application $app;
 
     /**
-     * The array of active PDO connections.
-     * @var array<string, \PDO>
+     * The array of active connections.
+     * @var array<string, mixed>
      */
     protected array $connections = [];
 
@@ -53,39 +53,50 @@ class Connection
     }
 
     /**
-     * Get a PDO connection instance.
+     * Get a connection instance.
      *
      * @param string|null $name The connection name.
      * @param string      $type The connection type ('read' or 'write').
-     * @return \PDO|\Swoole\Database\PDOProxy
+     * @return mixed
      * @throws \Exception
      */
     public function connection(string $name = null, string $type = 'write'): mixed
     {
         $name ??= $this->getDefaultConnection();
 
+        $config = $this->getConfig($name);
+
+        if (($config['driver'] ?? '') === 'mongodb') {
+            return $this->resolveMongoConnection($name, $config);
+        }
+
         if (class_exists(SwoolePdoPool::class) && SwoolePdoPool::isInitialized()) {
             return $this->app->make(CoroutineConnectionManager::class)->get($name);
         }
 
-        // Trong môi trường non-Swoole hoặc nếu pool không được cấu hình, chúng ta vẫn cần một kết nối.
-        // Tuy nhiên, logic này không an toàn cho Swoole nếu pool bị tắt.
-        // Thêm một cảnh báo để người phát triển biết về rủi ro.
         if ($this->app->runningInConsole() && php_sapi_name() === 'swoole') {
             trigger_error('Swoole PDO Pool is not initialized. Falling back to a persistent PDO connection which can cause issues in a Swoole environment. Please check your server.php config.', E_USER_WARNING);
         }
 
-        // Để tránh leak, chúng ta sẽ không cache kết nối này trong thuộc tính $this->connections.
-        // Mỗi lần gọi sẽ tạo kết nối mới trong môi trường non-pool.
         return $this->createFreshPdoConnection($name, $type);
     }
 
     /**
+     * Resolve a MongoDB connection.
+     */
+    protected function resolveMongoConnection(string $name, array $config): \Core\Database\MongoConnection
+    {
+        if (isset($this->connections[$name])) {
+            return $this->connections[$name];
+        }
+
+        return $this->connections[$name] = new \Core\Database\MongoConnection($config);
+    }
+
+    /**
      * Manually release a connection back to the pool.
-     * This is primarily for use in Swoole environments where a connection
-     * might be held longer than a single coroutine's lifecycle.
      *
-     * @param \PDO|\Swoole\Database\PDOProxy $connection The connection to release.
+     * @param mixed $connection The connection to release.
      * @param string|null $name The name of the pool to return the connection to.
      */
     public function release(mixed $connection, string $name = null): void
@@ -95,7 +106,6 @@ class Connection
             $name ??= $configRepo->get('database.default', 'mysql');
             SwoolePdoPool::put($connection, $name);
         }
-        // In non-Swoole environments, connections are typically persistent per-request or per-script and don't need to be manually released.
     }
 
     /**
@@ -155,12 +165,6 @@ class Connection
 
     /**
      * Creates a new, non-pooled PDO connection.
-     * This should only be used in non-Swoole environments or CLI scripts.
-     *
-     * @param string $name
-     * @param string|null $type
-     * @return \PDO
-     * @throws \Exception
      */
     private function createFreshPdoConnection(string $name, ?string $type = null): \PDO
     {
@@ -172,7 +176,7 @@ class Connection
             $defaultOptions = [
                 \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                 \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC,
-                \PDO::ATTR_PERSISTENT => false, // Rất quan trọng khi không dùng pool
+                \PDO::ATTR_PERSISTENT => false,
             ];
             $options = ($config['options'] ?? []) + $defaultOptions;
 
@@ -184,28 +188,18 @@ class Connection
             );
         } catch (PDOException $e) {
             if (str_contains($e->getMessage(), 'Unknown database')) {
-                throw new \RuntimeException("Database `{$config['database']}` does not exist. Please ensure it is created before starting the application.", (int)$e->getCode(), $e);
+                throw new \RuntimeException("Database `{$config['database']}` does not exist.", (int)$e->getCode(), $e);
             }
             throw $e;
         }
     }
 
-    /**
-     * Close all connections in the pool.
-     */
     public function flush(): void
     {
         $this->connections = [];
         $this->grammars = [];
     }
 
-    /**
-     * Create a DSN string based on the database configuration.
-     *
-     * @param array $config
-     * @return string
-     * @throws \Exception
-     */
     protected function makeDsn(array $config): string
     {
         $driver = $config['driver'];
@@ -224,49 +218,21 @@ class Connection
         };
     }
 
-    /**
-     * Begin a transaction on the specified connection.
-     *
-     * @param string|null $name The connection name.
-     * @return void
-     * @throws \Exception
-     */
     public function beginTransaction(string $name = null): void
     {
         $this->connection($name)->beginTransaction();
     }
 
-    /**
-     * Commit a transaction on the specified connection.
-     *
-     * @param string|null $name The connection name.
-     * @return void
-     * @throws \Exception
-     */
     public function commit(string $name = null): void
     {
         $this->connection($name)->commit();
     }
 
-    /**
-     * Roll back a transaction on the specified connection.
-     *
-     * @param string|null $name The connection name.
-     * @return void
-     * @throws \Exception
-     */
     public function rollBack(string $name = null): void
     {
         $this->connection($name)->rollBack();
     }
 
-    /**
-     * Check if a transaction is active on the specified connection.
-     *
-     * @param string|null $name The connection name.
-     * @return bool
-     * @throws \Exception
-     */
     public function inTransaction(string $name = null): bool
     {
         return $this->connection($name)->inTransaction();

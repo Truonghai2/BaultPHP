@@ -20,6 +20,11 @@ class PerformanceMonitoringMiddleware implements MiddlewareInterface
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        // Bỏ qua đo lường khi không debug để giảm overhead trên production/Swoole
+        if (!config('app.debug', false)) {
+            return $handler->handle($request);
+        }
+
         $startTime = microtime(true);
         $startMemory = memory_get_usage(true);
 

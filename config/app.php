@@ -48,9 +48,18 @@ return [
         \Core\Queue\QueueServiceProvider::class,
         \App\Providers\TranslationServiceProvider::class,
         \App\Providers\CacheServiceProvider::class,
+        \App\Providers\ModuleSandboxServiceProvider::class, // Module sandbox (permissions + cache enforcement)
+        \App\Providers\ComposerModuleServiceProvider::class, // Composer package-based modules (bault-module)
         \App\Providers\FeatureServiceProvider::class,
         \App\Providers\ScheduleServiceProvider::class,
-        \App\Providers\DebugBroadcasterServiceProvider::class,
         \App\Providers\ModuleSettingsServiceProvider::class, // Module settings system
+        \App\Providers\GraphQLServiceProvider::class, // GraphQL support
+        \App\Providers\SecurityServiceProvider::class, // Security enhancements
+        \App\Providers\ClockworkServiceProvider::class, // Profiler for development
+        \App\Providers\ExtensionServiceProvider::class, // Extension Point system
+        \App\Providers\TenancyServiceProvider::class, // Multi-tenant module filtering
+        \App\Providers\GrpcServiceProvider::class, // gRPC server/client (toggle GRPC_ENABLED=true to start server)
+        \App\Providers\StreamingServiceProvider::class, // NATS JetStream event bus (NATS_HOST etc)
+        \App\Providers\WasmServiceProvider::class, // WebAssembly runtime (toggle WASM_ENABLED=true)
     ],
 ];

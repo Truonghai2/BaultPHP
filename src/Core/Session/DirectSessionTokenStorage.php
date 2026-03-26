@@ -2,6 +2,7 @@
 
 namespace Core\Session;
 
+use Core\Application;
 use Core\Contracts\Session\SessionInterface;
 use Symfony\Component\Security\Csrf\Exception\TokenNotFoundException;
 use Symfony\Component\Security\Csrf\TokenStorage\TokenStorageInterface;
@@ -20,8 +21,43 @@ class DirectSessionTokenStorage implements TokenStorageInterface
      */
     private const SESSION_NAMESPACE = '_csrf';
 
-    public function __construct(private SessionInterface $session)
+    private ?SessionInterface $session = null;
+
+    public function __construct(
+        private Application $app
+    ) {
+    }
+
+    /**
+     * Get the session instance, lazy loading it to avoid circular dependency.
+     */
+    private function getSession(): SessionInterface
     {
+        if ($this->session === null) {
+            // Lazy load session to avoid circular dependency
+            // session -> TokenStorageInterface -> DirectSessionTokenStorage -> session
+            if (!$this->app->bound('session')) {
+                throw new \RuntimeException('Session service is not available.');
+            }
+            
+            try {
+                $this->session = $this->app->make('session');
+            } catch (\Core\Exceptions\ContainerException $e) {
+                // If circular dependency detected, throw a clearer exception
+                // This should not happen if session is properly registered as lazy singleton
+                if (strpos($e->getMessage(), 'Circular dependency') !== false) {
+                    throw new \RuntimeException(
+                        'Cannot resolve session: circular dependency detected. ' .
+                        'This may occur if session is accessed during its own resolution. ' .
+                        'Ensure session is only accessed after it has been fully resolved.',
+                        0,
+                        $e
+                    );
+                }
+                throw $e;
+            }
+        }
+        return $this->session;
     }
 
     /**
@@ -29,17 +65,18 @@ class DirectSessionTokenStorage implements TokenStorageInterface
      */
     public function getToken(string $tokenId): string
     {
-        if (!$this->session->isStarted()) {
-            $this->session->start();
+        $session = $this->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
         }
 
         $key = $this->getNamespace($tokenId);
 
-        if (!$this->session->has($key)) {
+        if (!$session->has($key)) {
             throw new TokenNotFoundException(\sprintf('The CSRF token with ID "%s" does not exist.', $tokenId));
         }
 
-        return (string) $this->session->get($key);
+        return (string) $session->get($key);
     }
 
     /**
@@ -47,11 +84,12 @@ class DirectSessionTokenStorage implements TokenStorageInterface
      */
     public function setToken(string $tokenId, #[\SensitiveParameter] string $token): void
     {
-        if (!$this->session->isStarted()) {
-            $this->session->start();
+        $session = $this->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
         }
 
-        $this->session->set($this->getNamespace($tokenId), $token);
+        $session->set($this->getNamespace($tokenId), $token);
     }
 
     /**
@@ -59,11 +97,12 @@ class DirectSessionTokenStorage implements TokenStorageInterface
      */
     public function hasToken(string $tokenId): bool
     {
-        if (!$this->session->isStarted()) {
-            $this->session->start();
+        $session = $this->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
         }
 
-        return $this->session->has($this->getNamespace($tokenId));
+        return $session->has($this->getNamespace($tokenId));
     }
 
     /**
@@ -71,11 +110,12 @@ class DirectSessionTokenStorage implements TokenStorageInterface
      */
     public function removeToken(string $tokenId): ?string
     {
-        if (!$this->session->isStarted()) {
-            $this->session->start();
+        $session = $this->getSession();
+        if (!$session->isStarted()) {
+            $session->start();
         }
 
-        return $this->session->remove($this->getNamespace($tokenId));
+        return $session->remove($this->getNamespace($tokenId));
     }
 
     /**

@@ -2,7 +2,27 @@
   "name": "Cms",
   "alias": "cms",
   "version": "1.0.0",
-  "description": "Content Management System Module.",
-  "providers": ["Modules\\Cms\\Providers\\CmsServiceProvider"],
-  "enabled": true
+  "description": "Content Management System Module — pages, blocks, media library, and templates.",
+  "enabled": true,
+  "api_version": 2,
+  "min_core_version": "1.0.0",
+  "capabilities": [
+    "cms",
+    "cms.pages",
+    "cms.blocks",
+    "cms.media",
+    "cms.templates"
+  ],
+  "permissions": [
+    "cache:read",
+    "cache:write",
+    "storage:read",
+    "storage:write",
+    "events:subscribe",
+    "database:read",
+    "database:write"
+  ],
+  "providers": [
+    "Modules\\Cms\\Providers\\CmsServiceProvider"
+  ]
 }

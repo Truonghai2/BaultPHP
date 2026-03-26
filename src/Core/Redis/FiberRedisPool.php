@@ -56,13 +56,10 @@ class FiberRedisPool
      */
     public function get(): RedisClient
     {
-        $this->logger->debug(sprintf('FiberRedisPool: Attempting to get connection. Current size: %d, Max size: %d, Waiting Fibers: %d', $this->currentSize, $this->maxSize, $this->waitQueue->count()));
-
         while (!$this->pool->isEmpty()) {
             $connection = $this->pool->dequeue();
             try {
                 $connection->ping();
-                $this->logger->debug('FiberRedisPool: Reusing existing connection.');
                 return $connection;
             } catch (Throwable $e) {
                 $this->currentSize--;
@@ -103,8 +100,6 @@ class FiberRedisPool
      */
     public function put(RedisClient $connection): void
     {
-        $this->logger->debug(sprintf('FiberRedisPool: Attempting to put connection. Current size: %d, Waiting Fibers: %d', $this->currentSize, $this->waitQueue->count()));
-
         try {
             $connection->ping();
         } catch (Throwable $e) {
@@ -121,7 +116,6 @@ class FiberRedisPool
         }
 
         $this->pool->enqueue($connection);
-        $this->logger->debug('FiberRedisPool: Connection returned to pool.');
     }
 
     /**

@@ -2,19 +2,33 @@
 
 namespace Modules\User\Mail;
 
-use Core\Contracts\Queue\ShouldQueue;
 use Core\Mail\Mailable;
-use Modules\User\Infrastructure\Models\User;
 
-class WelcomeEmail extends Mailable implements ShouldQueue
+/**
+ * Welcome Email.
+ * 
+ * Sent to new users after registration.
+ */
+class WelcomeEmail extends Mailable
 {
-    public function __construct(public User $user)
-    {
+    public function __construct(
+        private object $user,
+        private ?string $verificationUrl = null
+    ) {
+        parent::__construct();
     }
 
-    public function build(): static
+    /**
+     * Build the message.
+     */
+    public function build(): \Symfony\Component\Mime\Email
     {
-        return $this->subject("Welcome to BaultPHP, {$this->user->name}!")
-                    ->view('user::emails.welcome');
+        return $this
+            ->subject('Welcome to ' . config('app.name', 'BaultFrame') . '!')
+            ->view('emails.welcome', [
+                'user' => $this->user,
+                'verificationUrl' => $this->verificationUrl,
+            ])
+            ->build();
     }
 }

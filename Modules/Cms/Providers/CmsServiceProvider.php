@@ -97,6 +97,9 @@ class CmsServiceProvider extends BaseServiceProvider
                 SyncBlocksCommand::class,
                 \Modules\Cms\Console\SetupDefaultBlocksCommand::class,
                 \Modules\Cms\Console\BlockPerformanceTestCommand::class,
+                \Modules\Cms\Console\WarmupBlockCacheCommand::class,
+                \Modules\Cms\Console\ClearBlockCacheCommand::class,
+                \Modules\Cms\Console\BlockCacheStatsCommand::class,
             ];
 
             foreach ($commands as $command) {
@@ -180,6 +183,9 @@ class CmsServiceProvider extends BaseServiceProvider
         }
     }
 
+    /** Chỉ log block discovery tối đa một lần mỗi process để tránh spam log */
+    private static bool $moduleBlocksDiscoveryLogged = false;
+
     /**
      * Discover and register blocks from all enabled modules
      *
@@ -193,14 +199,18 @@ class CmsServiceProvider extends BaseServiceProvider
         $discovery = new \Core\Module\ModuleBlockDiscovery($this->app);
 
         $cachePath = $this->app->basePath('bootstrap/cache/module-blocks.php');
+        $loadedFromCache = false;
+        $wroteCache = false;
 
         if (config('app.env') === 'production' && file_exists($cachePath)) {
             $data = $discovery->loadFromCache($cachePath);
+            $loadedFromCache = true;
         } else {
             $data = $discovery->discover();
 
             if (config('app.env') === 'production') {
                 $discovery->cacheDiscovery($cachePath);
+                $wroteCache = true;
             }
         }
 
@@ -213,11 +223,12 @@ class CmsServiceProvider extends BaseServiceProvider
             }
         }
 
-        if (config('app.debug') && !file_exists($cachePath)) {
+        if (config('app.debug') && !extension_loaded('swoole') && !self::$moduleBlocksDiscoveryLogged) {
+            self::$moduleBlocksDiscoveryLogged = true;
             $blocksCount = count($data['blocks'] ?? []);
             $modulesCount = count(array_unique(array_values($data['blocks'] ?? [])));
-
-            \Core\Support\Facades\Log::info('Module blocks discovered (cache rebuilt)', [
+            $message = $wroteCache ? 'Module blocks discovered (cache rebuilt)' : ($loadedFromCache ? 'Module blocks loaded from cache' : 'Module blocks discovered');
+            \Core\Support\Facades\Log::debug($message, [
                 'blocks_count' => $blocksCount,
                 'modules_count' => $modulesCount,
                 'blocks' => array_keys($data['blocks'] ?? []),

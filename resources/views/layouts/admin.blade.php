@@ -7,6 +7,9 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>@yield('title', 'Admin Dashboard') - {{ config('app.name') }}</title>
     <link rel="icon" type="image/png" href="{{ asset('images/logo/BaultPHP-icon.png') }}">
+    {{-- Main app CSS (cùng với trang guest) để sau login không mất style --}}
+    <link rel="stylesheet" href="{{ asset('assets/css/app.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/blocks.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/spa-animations.css') }}">
     
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -409,7 +412,6 @@
     <script src="{{ asset('assets/js/app.js') }}" type="module" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
     @stack('scripts')
-    @include('debug.bar')
 </body>
 </html>
 @endif

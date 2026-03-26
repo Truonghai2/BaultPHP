@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Core\Application;
 use Core\Contracts\Session\SessionInterface;
 use Core\Http\Redirector;
 use Core\Support\Facades\Auth;
@@ -12,9 +13,11 @@ use Psr\Http\Server\RequestHandlerInterface;
 
 class Authenticate implements MiddlewareInterface
 {
+    protected ?SessionInterface $session = null;
+
     public function __construct(
         protected Redirector $redirector,
-        protected SessionInterface $session,
+        protected Application $app,
     ) {
     }
 
@@ -34,10 +37,17 @@ class Authenticate implements MiddlewareInterface
                 ], 401);
             }
 
-            // Only save intended URL for non-admin routes
-            // Admin routes should redirect to their default admin dashboard instead
+            // Lazy load session to avoid circular dependency
+            if ($this->session === null && $this->app->bound(SessionInterface::class)) {
+                try {
+                    $this->session = $this->app->make(SessionInterface::class);
+                } catch (\Throwable $e) {
+                    // If session can't be resolved, continue without saving intended URL
+                }
+            }
+
             $path = $request->getUri()->getPath();
-            if (!str_starts_with($path, '/admin')) {
+            if (!str_starts_with($path, '/admin') && $this->session !== null) {
                 $this->session->set('url.intended', (string) $request->getUri());
             }
 

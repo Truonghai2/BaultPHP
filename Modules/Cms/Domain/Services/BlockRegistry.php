@@ -50,6 +50,10 @@ class BlockRegistry
         \Modules\Cms\Domain\Blocks\HomepageFeaturesBlock::class,
         \Modules\Cms\Domain\Blocks\HomepageStatsBlock::class,
 
+        // Page Blocks: About & Contact
+        \Modules\Cms\Domain\Blocks\AboutBlock::class,
+        \Modules\Cms\Domain\Blocks\ContactBlock::class,
+
         // Layout Blocks
         \Modules\Cms\Domain\Blocks\FooterBlock::class,
     ];

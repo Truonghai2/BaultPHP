@@ -10,6 +10,9 @@ use Core\Validation\ValidationException;
 use Core\Validation\Validator;
 use Psr\Http\Message\ServerRequestInterface;
 use Swoole\Coroutine;
+
+// Suppress static analysis warnings for Swoole
+// @phpstan-ignore-next-line
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 
 /**
@@ -18,14 +21,18 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 abstract class FormRequest
 {
-    protected ServerRequestInterface $request;
-    protected ?Authenticatable $user;
+    protected ?ServerRequestInterface $request = null;
+    protected ?Authenticatable $user = null;
     protected ?Validator $validator = null;
     protected array $routeParameters = [];
     /**
      * @var array<string, mixed>|null
      */
     protected ?array $cachedParsedBody = null;
+    /**
+     * @var array<string, mixed>|null
+     */
+    protected ?array $validatedData = null;
 
     /**
      * Các thuộc tính không nên được flash vào session khi có lỗi validation.
@@ -40,11 +47,62 @@ abstract class FormRequest
         protected Application $app,
         protected ValidatorFactory $validatorFactory,
     ) {
-        $this->request = $app->make(ServerRequestInterface::class);
-        $this->user = $this->request->getAttribute('user') ?? $this->app->make(\Core\Auth\AuthManager::class)->user();
+        // Don't resolve ServerRequestInterface here to avoid circular dependency
+        // It will be set via setRequest() method or retrieved lazily
+        $this->request = null;
+        $this->user = null;
+        $this->routeParameters = [];
+    }
 
-        $route = $this->request->getAttribute('route');
+    /**
+     * Set the request instance. Called by Kernel after resolving FormRequest.
+     */
+    public function setRequest(ServerRequestInterface $request): void
+    {
+        $this->request = $request;
+        $this->user = $request->getAttribute('user') ?? $this->app->make(\Core\Auth\AuthManager::class)->user();
+
+        $route = $request->getAttribute('route');
         $this->routeParameters = $route ? $route->parameters : [];
+    }
+
+    /**
+     * Get the request instance, lazy loading if needed.
+     */
+    protected function getRequest(): ServerRequestInterface
+    {
+        if ($this->request === null) {
+            // Try to get from container instance first (set by Kernel)
+            if ($this->app->bound(ServerRequestInterface::class)) {
+                try {
+                    $this->request = $this->app->make(ServerRequestInterface::class);
+                } catch (\Core\Exceptions\ContainerException $e) {
+                    if (strpos($e->getMessage(), 'Circular dependency') !== false) {
+                        throw new \RuntimeException(
+                            'Cannot resolve ServerRequestInterface: circular dependency detected. ' .
+                            'FormRequest must be resolved with a request instance already set in the container.',
+                            0,
+                            $e
+                        );
+                    }
+                    throw $e;
+                }
+            } else {
+                throw new \RuntimeException(
+                    'ServerRequestInterface is not available. ' .
+                    'FormRequest must be resolved with a request instance already set in the container.'
+                );
+            }
+
+            if ($this->user === null) {
+                $this->user = $this->request->getAttribute('user') ?? $this->app->make(\Core\Auth\AuthManager::class)->user();
+            }
+
+            $route = $this->request->getAttribute('route');
+            $this->routeParameters = $route ? $route->parameters : [];
+        }
+
+        return $this->request;
     }
 
     /**
@@ -124,8 +182,11 @@ abstract class FormRequest
         );
 
         if (!empty($asyncValidationResults)) {
+            $messageBag = $validator->errors();
             foreach ($asyncValidationResults as $attribute => $messages) {
-                $validator->addError($attribute, $messages);
+                foreach ((array) $messages as $message) {
+                    $messageBag->add($attribute, $message);
+                }
             }
         }
 
@@ -134,6 +195,9 @@ abstract class FormRequest
         if ($validator->fails()) {
             $this->failedValidation($validator);
         }
+
+        // Store validated data for later use
+        $this->validatedData = $validator->validated();
     }
 
     /**
@@ -170,9 +234,47 @@ abstract class FormRequest
             }
         }
 
-        Coroutine\parallel(array_merge(...array_values($coroutines)));
+        // Check if Swoole is available and we're in a coroutine context
+        if ($this->canUseSwooleCoroutines()) {
+            // @phpstan-ignore-next-line - Swoole may not be available in static analysis
+            \Swoole\Coroutine\parallel(array_merge(...array_values($coroutines)));
+        } else {
+            // Fallback to sequential execution
+            foreach ($coroutines as $attributeCoroutines) {
+                foreach ($attributeCoroutines as $coroutine) {
+                    $coroutine();
+                }
+            }
+        }
 
         return $errors;
+    }
+
+    /**
+     * Check if Swoole coroutines can be used.
+     *
+     * @return bool
+     */
+    protected function canUseSwooleCoroutines(): bool
+    {
+        // Check if Swoole extension is loaded
+        if (!extension_loaded('swoole')) {
+            return false;
+        }
+
+        // Check if we're in a coroutine context
+        // @phpstan-ignore-next-line - Swoole may not be available
+        if (!class_exists(\Swoole\Coroutine::class)) {
+            return false;
+        }
+
+        // Check if we're actually in a coroutine (CID > 0)
+        try {
+            // @phpstan-ignore-next-line - Swoole may not be available
+            return \Swoole\Coroutine::getCid() > 0;
+        } catch (\Throwable $e) {
+            return false;
+        }
     }
     /**
      * Lấy dữ liệu đã được validate, đã loại bỏ các tham số từ route để tăng bảo mật.
@@ -181,7 +283,7 @@ abstract class FormRequest
      */
     public function validated(): array
     {
-        if (empty($this->validatedData)) {
+        if ($this->validatedData === null) {
             $this->validateResolved();
         }
 
@@ -189,7 +291,8 @@ abstract class FormRequest
             throw new \LogicException('Validator not initialized before calling validated().');
         }
 
-        return array_diff_key($this->validator->validated(), $this->routeParameters);
+        // Return cached validated data, excluding route parameters
+        return array_diff_key($this->validatedData, $this->routeParameters);
     }
 
     /**
@@ -199,11 +302,12 @@ abstract class FormRequest
      */
     protected function validationData(): array
     {
+        $request = $this->getRequest();
         return array_merge(
             $this->routeParameters,
-            $this->request->getQueryParams(),
+            $request->getQueryParams(),
             $this->getParsedBody(),
-            $this->request->getUploadedFiles(),
+            $request->getUploadedFiles(),
         );
     }
 
@@ -218,10 +322,11 @@ abstract class FormRequest
             return $this->cachedParsedBody;
         }
 
-        $parsedBody = $this->request->getParsedBody() ?? [];
+        $request = $this->getRequest();
+        $parsedBody = $request->getParsedBody() ?? [];
 
-        if (empty($parsedBody) && str_contains($this->request->getHeaderLine('Content-Type'), 'application/json')) {
-            $body = $this->request->getBody()->getContents();
+        if (empty($parsedBody) && str_contains($request->getHeaderLine('Content-Type'), 'application/json')) {
+            $body = $request->getBody()->getContents();
             if (!empty($body)) {
                 $jsonBody = json_decode($body, true);
                 if (json_last_error() === JSON_ERROR_NONE) {
@@ -229,7 +334,7 @@ abstract class FormRequest
                 }
             }
             // Rewind the stream in case it needs to be read again
-            $this->request->getBody()->rewind();
+            $request->getBody()->rewind();
         }
 
         return $this->cachedParsedBody = is_array($parsedBody) ? $parsedBody : [];
@@ -244,7 +349,7 @@ abstract class FormRequest
      */
     protected function failedValidation(Validator $validator): void
     {
-        if (str_contains($this->request->getHeaderLine('Accept'), 'application/json')) {
+        if (str_contains($this->getRequest()->getHeaderLine('Accept'), 'application/json')) {
             throw new ValidationException($validator);
         }
 
@@ -270,7 +375,7 @@ abstract class FormRequest
      */
     public function file(string $key): ?UploadedFile
     {
-        $files = $this->request->getUploadedFiles();
+        $files = $this->getRequest()->getUploadedFiles();
         $file = $files[$key] ?? null;
 
         if ($file instanceof \Psr\Http\Message\UploadedFileInterface) {
@@ -304,7 +409,7 @@ abstract class FormRequest
      */
     public function __call(string $method, array $parameters)
     {
-        return $this->request->{$method}(...$parameters);
+        return $this->getRequest()->{$method}(...$parameters);
     }
 
     /**

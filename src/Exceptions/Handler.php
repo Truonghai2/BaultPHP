@@ -5,6 +5,7 @@ namespace App\Exceptions;
 use Core\Contracts\Exceptions\Handler as HandlerContract;
 use Core\Contracts\StatefulService;
 use Core\Contracts\View\Factory as ViewFactory;
+use Core\Exceptions\ContainerException;
 use Core\Http\Redirector;
 use Core\Validation\ValidationException;
 use Psr\Http\Message\ResponseInterface;
@@ -53,6 +54,10 @@ class Handler implements HandlerContract, StatefulService
     public function report(Throwable|Request|null $request, Throwable $e): void
     {
         if ($this->shouldntReport($e)) {
+            return;
+        }
+        // Tránh infinite logging loop: circular dependency session khi report có thể gọi lại session
+        if ($e instanceof ContainerException && str_contains($e->getMessage(), 'session -> session')) {
             return;
         }
 

@@ -19,6 +19,7 @@
     "predis/predis": "^3.0",
     "guzzlehttp/guzzle": "^7.9",
     "dragonmantank/cron-expression": "^3.4",
+    "mongodb/mongodb": "^1.19",
     "symfony/process": "^7.0",
     "ramsey/uuid": "^4.9",
     "monolog/monolog": "^3.9",
@@ -43,7 +44,11 @@
     "php-amqplib/php-amqplib": "^3.7",
     "revolt/event-loop": "^1.0",
     "amphp/redis": "^2.0",
-    "intervention/image": "^3.11"
+    "intervention/image": "^3.11",
+    "grpc/grpc": "^1.57",
+    "google/protobuf": "^4.26",
+    "basis-company/nats": "^1.1",
+    "google/common-protos": "^4.0"
   },
   "require-dev": {
     "fakerphp/faker": "^1.23",
@@ -52,8 +57,8 @@
     "friendsofphp/php-cs-fixer": "^3.0",
     "psy/psysh": "^0.12.9",
     "meilisearch/meilisearch-php": "^1.15",
-    "maximebf/debugbar": "^2.2",
-    "mockery/mockery": "^1.6"
+    "mockery/mockery": "^1.6",
+    "itsgoingd/clockwork": "^5.3"
   },
   "autoload": {
     "psr-4": {
@@ -67,7 +72,8 @@
       "Core\\": "src/Core/",
       "App\\Http\\": "src/Http/",
       "Modules\\": "Modules/",
-      "Database\\Seeders\\": "database/Seeders/"
+      "Database\\Seeders\\": "database/Seeders/",
+      "Proto\\": "proto/generated/"
     },
     "files": [
       "src/Core/helpers.php"

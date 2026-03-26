@@ -81,4 +81,15 @@ class TraceableCacheStore implements CacheInterface
         $this->collector->addRead($key, $hit);
         return $hit;
     }
+
+    public function forgetPattern(string $pattern): bool
+    {
+        $this->collector->addDelete($pattern . '*');
+        
+        if (method_exists($this->store, 'forgetPattern')) {
+            return $this->store->forgetPattern($pattern);
+        }
+        
+        return false;
+    }
 }

@@ -92,15 +92,18 @@ class PageSeeder extends Seeder
                 $blocks = [
                     [
                         'component_class' => 'Modules\\Cms\\Domain\\Blocks\\HomepageHeroBlock',
+                        'region' => 'hero',
                         'order' => 0,
                     ],
                     [
                         'component_class' => 'Modules\\Cms\\Domain\\Blocks\\HomepageFeaturesBlock',
-                        'order' => 1,
+                        'region' => 'content',
+                        'order' => 0,
                     ],
                     [
                         'component_class' => 'Modules\\Cms\\Domain\\Blocks\\HomepageStatsBlock',
-                        'order' => 2,
+                        'region' => 'content',
+                        'order' => 1,
                     ],
                 ];
                 break;
@@ -108,11 +111,13 @@ class PageSeeder extends Seeder
             case 'about-us':
                 $blocks = [
                     [
-                        'component_class' => 'Modules\\Cms\\Domain\\Blocks\\TextBlock',
+                        'component_class' => 'Modules\\Cms\\Domain\\Blocks\\AboutBlock',
+                        'region' => 'content',
                         'order' => 0,
                     ],
                     [
                         'component_class' => 'Modules\\Cms\\Domain\\Blocks\\TeamBlock',
+                        'region' => 'content',
                         'order' => 1,
                     ],
                 ];
@@ -130,7 +135,8 @@ class PageSeeder extends Seeder
             case 'contact':
                 $blocks = [
                     [
-                        'component_class' => 'Modules\\Cms\\Domain\\Blocks\\HtmlBlock',
+                        'component_class' => 'Modules\\Cms\\Domain\\Blocks\\ContactBlock',
+                        'region' => 'content',
                         'order' => 0,
                     ],
                 ];
@@ -155,13 +161,16 @@ class PageSeeder extends Seeder
                     continue;
                 }
 
+                // Use region from blockData, default to 'content' if not specified
+                $region = $blockData['region'] ?? 'content';
+
                 $exists = PageBlock::where('page_id', $page->id)
                     ->where('block_type_id', $blockType->id)
-                    ->where('region', 'content')
+                    ->where('region', $region)
                     ->exists();
 
                 if ($exists) {
-                    $this->command->info("    - Block '{$blockType->name}' already exists");
+                    $this->command->info("    - Block '{$blockType->name}' already exists in '{$region}' region");
                     continue;
                 }
 
@@ -173,7 +182,7 @@ class PageSeeder extends Seeder
                 $block = PageBlock::create([
                     'page_id' => $page->id,
                     'block_type_id' => $blockType->id,
-                    'region' => 'content',
+                    'region' => $region,
                     'sort_order' => $blockData['order'],
                     'visible' => true,
                 ]);

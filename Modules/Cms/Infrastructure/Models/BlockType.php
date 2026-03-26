@@ -43,7 +43,7 @@ class BlockType extends Model
         'version',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'default_config' => 'array',
         'configurable' => 'boolean',
         'is_active' => 'boolean',

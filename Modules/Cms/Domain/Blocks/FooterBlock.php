@@ -69,7 +69,37 @@ class FooterBlock extends AbstractBlock
             'social_links' => [
                 ['platform' => 'GitHub', 'url' => 'https://github.com', 'icon' => '📦'],
                 ['platform' => 'Twitter', 'url' => 'https://twitter.com', 'icon' => '🐦'],
-                ['platform' => 'Discord', 'url' => 'https://discord.com', 'icon' => '💬'],
+            ],
+        ];
+    }
+
+    public function getConfigSchema(): array
+    {
+        return [
+            'columns' => [
+                'type' => 'repeater',
+                'label' => 'Footer Columns',
+                'fields' => [
+                    'title' => ['type' => 'text', 'label' => 'Column Title'],
+                    'links' => [
+                        'type' => 'repeater',
+                        'label' => 'Links',
+                        'fields' => [
+                            'label' => ['type' => 'text', 'label' => 'Label'],
+                            'url' => ['type' => 'text', 'label' => 'URL'],
+                        ],
+                    ],
+                ],
+            ],
+            'copyright' => ['type' => 'text', 'label' => 'Copyright Text'],
+            'social_links' => [
+                'type' => 'repeater',
+                'label' => 'Social Links',
+                'fields' => [
+                    'platform' => ['type' => 'text', 'label' => 'Platform'],
+                    'url' => ['type' => 'text', 'label' => 'URL'],
+                    'icon' => ['type' => 'text', 'label' => 'Icon (Emoji or Class)'],
+                ],
             ],
         ];
     }

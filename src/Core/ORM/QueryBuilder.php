@@ -149,7 +149,7 @@ class QueryBuilder
         }
 
         if (is_null($value)) {
-            $operator = in_array(strtoupper($operator), ['!=', '<>']) ? 'IS NOT NULL' : 'IS NULL';
+            $operator = in_array(strtoupper((string) $operator), ['!=', '<>']) ? 'IS NOT NULL' : 'IS NULL';
         }
 
         $this->wheres[] = compact('column', 'operator', 'value');

@@ -7,6 +7,8 @@ use Core\Routing\Attributes\Route;
 use Core\Services\HealthCheckService;
 use Psr\Http\Message\ResponseInterface;
 
+/** Group 'light': không session/CSRF – ổn định toàn hệ thống. */
+#[Route(group: 'light')]
 class HealthCheckController
 {
     private HealthCheckService $healthCheckService;

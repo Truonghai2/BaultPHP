@@ -2,6 +2,7 @@
 
 namespace Core\ORM;
 
+use Core\ORM\Concerns\HasAttributes;
 use Core\ORM\Events\Observable;
 use Core\ORM\Relations\BelongsTo;
 use Core\ORM\Relations\BelongsToMany;
@@ -76,11 +77,11 @@ use Core\Support\Collection;
  */
 abstract class Model
 {
+    use HasAttributes;
     use Observable;
+
     protected static string $table;
     protected static string $primaryKey = 'id';
-    protected array $attributes = [];
-    protected array $original = [];
 
     /**
      * The model's fillable attributes.
@@ -145,7 +146,7 @@ abstract class Model
     {
         $this->bootIfNotBooted();
         $this->fill($attributes);
-        $this->original = $this->attributes;
+        $this->syncOriginal();
     }
 
     public function __set(string $key, $value): void
@@ -156,86 +157,6 @@ abstract class Model
     public function __get(string $key)
     {
         return $this->getAttribute($key);
-    }
-
-    public function fill(array $attributes): void
-    {
-        foreach ($attributes as $key => $value) {
-            if ($this->isFillable($key)) {
-                $this->setAttribute($key, $value);
-            }
-        }
-    }
-
-    public function setAttribute(string $key, $value): void
-    {
-        $this->attributes[$key] = $value;
-    }
-
-    /**
-     * Set a given relationship on the model.
-     */
-    public function setRelation(string $relation, $value): void
-    {
-        $this->relations[$relation] = $value;
-    }
-
-    public function getAttribute(string $key)
-    {
-        if (array_key_exists($key, $this->attributes)) {
-            return $this->attributes[$key];
-        }
-
-        if (array_key_exists($key, $this->relations)) {
-            return $this->relations[$key];
-        }
-
-        if (method_exists($this, $key)) {
-            $relation = $this->{$key}();
-            if ($relation instanceof Relation) {
-                return $this->relations[$key] = $relation->getResults();
-            }
-        }
-
-        return null;
-    }
-
-    public function isRelationLoaded(string $key): bool
-    {
-        return array_key_exists($key, $this->relations);
-    }
-
-    /**
-     * Get the original attributes of the model.
-     *
-     * @return array
-     */
-    public function getOriginal(): array
-    {
-        return $this->original;
-    }
-
-    /**
-     * Get all the current attributes on the model.
-     *
-     * @return array
-     */
-    public function getAttributes(): array
-    {
-        return $this->attributes;
-    }
-
-    protected function isFillable(string $key): bool
-    {
-        if (!empty($this->fillable)) {
-            return in_array($key, $this->fillable);
-        }
-
-        if ($this->guarded === ['*']) {
-            return false;
-        }
-
-        return !in_array($key, $this->guarded);
     }
 
     public function save(): bool
@@ -278,7 +199,7 @@ abstract class Model
             return false;
         }
 
-        $id = $query->insertGetId($this->attributes);
+        $id = $query->insertGetId($this->getAttributes());
         if ($id) {
             $this->setAttribute($this->getKeyName(), $id);
             $this->syncOriginal();
@@ -311,19 +232,11 @@ abstract class Model
         return $deleted;
     }
 
-    /**
-     * Determine if the model uses soft deletes.
-     */
     public function usesSoftDeletes(): bool
     {
         return in_array(SoftDeletes::class, class_uses_recursive(static::class));
     }
 
-    /**
-     * Update the model's update timestamp.
-     *
-     * @return bool
-     */
     public function touch(): bool
     {
         if (!$this->exists()) {
@@ -338,9 +251,6 @@ abstract class Model
         ]) > 0;
     }
 
-    /**
-     * Touch the owning relations of the model.
-     */
     protected function touchRelations(): void
     {
         foreach ($this->touches as $relation) {
@@ -354,28 +264,6 @@ abstract class Model
         return isset($this->original[$this->getKeyName()]);
     }
 
-    /**
-     * Get the attributes that have been changed since the last sync.
-     *
-     * @return array
-     */
-    public function getDirty(): array
-    {
-        $dirty = [];
-        foreach ($this->attributes as $key => $value) {
-            if (!array_key_exists($key, $this->original) || $this->original[$key] !== $value) {
-                $dirty[$key] = $value;
-            }
-        }
-        return $dirty;
-    }
-
-    /**
-     * Determine if the model or any of the given attribute(s) have been modified.
-     *
-     * @param  string|array|null  $attributes
-     * @return bool
-     */
     public function isDirty($attributes = null): bool
     {
         $dirty = $this->getDirty();
@@ -395,10 +283,30 @@ abstract class Model
         return false;
     }
 
-    public function syncOriginal(): void
+    public function isRelationLoaded(string $key): bool
     {
-        $this->original = $this->attributes;
+        return array_key_exists($key, $this->relations);
     }
+    
+    public function setRelation(string $relation, $value): void
+    {
+        $this->relations[$relation] = $value;
+    }
+    
+    protected function isFillable(string $key): bool
+    {
+        if (!empty($this->fillable)) {
+            return in_array($key, $this->fillable);
+        }
+
+        if ($this->guarded === ['*']) {
+            return false;
+        }
+
+        return !in_array($key, $this->guarded);
+    }
+
+
 
     public function getKey()
     {

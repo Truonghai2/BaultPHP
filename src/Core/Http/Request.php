@@ -138,6 +138,115 @@ class Request implements ServerRequestInterface
     }
 
     /**
+     * Get a subset of the input data
+     */
+    public function only(array $keys): array
+    {
+        $all = $this->all();
+        $results = [];
+
+        foreach ($keys as $key) {
+            if (array_key_exists($key, $all)) {
+                $results[$key] = $all[$key];
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get all input except for specified keys
+     */
+    public function except(array $keys): array
+    {
+        $all = $this->all();
+
+        foreach ($keys as $key) {
+            unset($all[$key]);
+        }
+
+        return $all;
+    }
+
+    /**
+     * Get a query parameter
+     */
+    public function query(?string $key = null, mixed $default = null): mixed
+    {
+        if ($key === null) {
+            return $this->getQueryParams();
+        }
+
+        $params = $this->getQueryParams();
+        return $params[$key] ?? $default;
+    }
+
+    /**
+     * Get a POST parameter
+     */
+    public function post(?string $key = null, mixed $default = null): mixed
+    {
+        $body = $this->getParsedBody();
+        
+        if ($key === null) {
+            return is_array($body) ? $body : [];
+        }
+
+        return is_array($body) && isset($body[$key]) ? $body[$key] : $default;
+    }
+
+    /**
+     * Get a value from JSON body
+     */
+    public function json(?string $key = null, mixed $default = null): mixed
+    {
+        $body = $this->getBody()->getContents();
+        $this->getBody()->rewind();
+
+        if (empty($body)) {
+            return $key === null ? [] : $default;
+        }
+
+        $data = json_decode($body, true);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return $key === null ? [] : $default;
+        }
+
+        if ($key === null) {
+            return $data;
+        }
+
+        return $data[$key] ?? $default;
+    }
+
+    /**
+     * Check if the input has a value that is not empty
+     */
+    public function filled(string $key): bool
+    {
+        $value = $this->input($key);
+        
+        if (is_null($value)) {
+            return false;
+        }
+
+        if (is_string($value)) {
+            return trim($value) !== '';
+        }
+
+        return !empty($value);
+    }
+
+    /**
+     * Check if the input is missing
+     */
+    public function missing(string $key): bool
+    {
+        return !$this->has($key);
+    }
+
+    /**
      * Get a header from the request.
      *
      * @param  string  $key
@@ -151,26 +260,204 @@ class Request implements ServerRequestInterface
     }
 
     /**
+     * Get the bearer token from the request headers
+     */
+    public function bearerToken(): ?string
+    {
+        $header = $this->header('Authorization', '');
+
+        if (str_starts_with($header, 'Bearer ')) {
+            return substr($header, 7);
+        }
+
+        return null;
+    }
+
+    /**
+     * Determine if the request is sending JSON
+     */
+    public function isJson(): bool
+    {
+        return str_contains($this->header('Content-Type', ''), 'application/json');
+    }
+
+    /**
+     * Determine if the current request probably expects a JSON response
+     */
+    public function expectsJson(): bool
+    {
+        return $this->isJson() || $this->wantsJson();
+    }
+
+    /**
+     * Determine if the current request is asking for JSON
+     */
+    public function wantsJson(): bool
+    {
+        $acceptable = $this->getAcceptableContentTypes();
+        
+        return isset($acceptable[0]) && str_contains($acceptable[0], 'application/json');
+    }
+
+    /**
+     * Get the data format expected in the response
+     */
+    public function format(string $default = 'html'): string
+    {
+        foreach ($this->getAcceptableContentTypes() as $type) {
+            if ($format = $this->getFormatFromMimeType($type)) {
+                return $format;
+            }
+        }
+
+        return $default;
+    }
+
+    /**
+     * Get acceptable content types from Accept header
+     */
+    protected function getAcceptableContentTypes(): array
+    {
+        $accept = $this->header('Accept', '*/*');
+        
+        // Simple parsing - just split by comma and trim
+        return array_map('trim', explode(',', $accept));
+    }
+
+    /**
+     * Get format from MIME type
+     */
+    protected function getFormatFromMimeType(string $mimeType): ?string
+    {
+        // Remove quality factor if present (e.g., "application/json;q=0.9" -> "application/json")
+        $mimeType = explode(';', $mimeType)[0];
+
+        return match ($mimeType) {
+            'application/json', 'text/json' => 'json',
+            'application/xml', 'text/xml' => 'xml',
+            'text/html' => 'html',
+            'text/plain' => 'txt',
+            'application/javascript', 'text/javascript' => 'js',
+            default => null,
+        };
+    }
+
+    /**
+     * Determine if the request is an AJAX request
+     */
+    public function ajax(): bool
+    {
+        return $this->isXmlHttpRequest();
+    }
+
+    /**
+     * Determine if the request is an XMLHttpRequest
+     */
+    public function isXmlHttpRequest(): bool
+    {
+        return $this->header('X-Requested-With') === 'XMLHttpRequest';
+    }
+
+    /**
+     * Determine if the request is a PJAX request
+     */
+    public function pjax(): bool
+    {
+        return $this->hasHeader('X-PJAX');
+    }
+
+    /**
+     * Determine if the request is over HTTPS
+     */
+    public function secure(): bool
+    {
+        $https = $this->getServerParams()['HTTPS'] ?? null;
+
+        if ($https === 'on' || $https === '1') {
+            return true;
+        }
+
+        // Check X-Forwarded-Proto header from trusted proxies
+        $proto = $this->header('X-Forwarded-Proto');
+        
+        return $proto === 'https';
+    }
+
+    /**
+     * Get a cookie value
+     */
+    public function cookie(string $name, mixed $default = null): mixed
+    {
+        $cookies = $this->getCookieParams();
+        return $cookies[$name] ?? $default;
+    }
+
+    /**
      * Get the client's IP address.
      *
-     * This method checks for common proxy headers first, then falls back to REMOTE_ADDR.
+     * This method checks for proxy headers from trusted proxies first,
+     * then falls back to REMOTE_ADDR.
      *
      * @return string|null
      */
     public function ip(): ?string
     {
         $serverParams = $this->request->getServerParams();
+        $remoteAddr = $serverParams['REMOTE_ADDR'] ?? null;
 
-        $headers = [
-            'HTTP_CLIENT_IP',
+        // If no remote address, return null
+        if (!$remoteAddr) {
+            return null;
+        }
+
+        // Check if we should trust proxy headers
+        $trustedProxyConfig = config('trustedproxy', []);
+        
+        // If no trusted proxies configured, return REMOTE_ADDR directly
+        if (empty($trustedProxyConfig['proxies'])) {
+            return $remoteAddr;
+        }
+
+        $proxyChecker = new TrustedProxyChecker($trustedProxyConfig);
+
+        // Only trust proxy headers if the request comes from a trusted proxy
+        if (!$proxyChecker->isTrusted($remoteAddr)) {
+            return $remoteAddr;
+        }
+
+        // Get headers to check from config
+        $headersToCheck = $trustedProxyConfig['headers']['client_ip'] ?? [
             'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_FORWARDED',
-            'HTTP_FORWARDED_FOR',
+            'HTTP_X_REAL_IP',
+            'HTTP_CLIENT_IP',
             'HTTP_FORWARDED',
-            'REMOTE_ADDR',
         ];
 
-        return collect($headers)->map(fn ($header) => $serverParams[$header] ?? null)->filter()->first();
+        // Check each header in order
+        foreach ($headersToCheck as $header) {
+            $value = $serverParams[$header] ?? null;
+            
+            if ($value) {
+                // X-Forwarded-For can contain multiple IPs: "client, proxy1, proxy2"
+                // We want the first (client) IP
+                if ($header === 'HTTP_X_FORWARDED_FOR' && str_contains($value, ',')) {
+                    $ips = array_map('trim', explode(',', $value));
+                    // Return the first non-trusted IP (the actual client)
+                    foreach ($ips as $ip) {
+                        if (!$proxyChecker->isTrusted($ip)) {
+                            return $ip;
+                        }
+                    }
+                    // If all are trusted, return the first one
+                    return $ips[0];
+                }
+                
+                return $value;
+            }
+        }
+
+        // Fallback to REMOTE_ADDR
+        return $remoteAddr;
     }
 
     // Delegate all PSR-7 methods to the wrapped request

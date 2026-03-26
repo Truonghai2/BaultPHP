@@ -49,7 +49,7 @@ class Page extends Model
         'schema_data',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'status' => 'string',
         'published_at' => 'datetime',
         'scheduled_publish_at' => 'datetime',
@@ -84,47 +84,12 @@ class Page extends Model
      */
     public function blocksInRegion(string $region, ?\Modules\User\Infrastructure\Models\User $user = null): \Core\Support\Collection
     {
-        // Performance optimization: Cache query results with short TTL
-        $cacheKey = "page_{$this->id}_blocks_region_{$region}";
-
-        // Include user context in cache key if provided (for role-based filtering)
-        if ($user) {
-            $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
-            $roleHash = md5(serialize($userRoles));
-            $cacheKey .= "_{$roleHash}";
-        } else {
-            $cacheKey .= '_guest';
-        }
-
-        // Cache for 60 seconds (short TTL to balance performance and freshness)
-        return cache()->remember($cacheKey, 60, function () use ($region, $user) {
-            $query = PageBlock::where('page_id', $this->id)
-                ->where('region', $region)
-                ->where('visible', true);
-
-            // Performance optimization: Pre-filter by roles if user provided
-            if ($user) {
-                $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
-
-                // If user has roles, filter blocks that allow those roles or have no restriction
-                if (!empty($userRoles)) {
-                    $query->where(function ($q) use ($userRoles) {
-                        $q->whereNull('allowed_roles')
-                          ->orWhereJsonContains('allowed_roles', $userRoles);
-                    });
-                }
-            } else {
-                // Guest: only blocks with 'guest' role or no role restriction
-                $query->where(function ($q) {
-                    $q->whereNull('allowed_roles')
-                      ->orWhereJsonContains('allowed_roles', 'guest');
-                });
-            }
-
-            return $query->with('blockType')
-                ->orderBy('sort_order')
-                ->get();
-        });
+        return PageBlock::where('page_id', $this->id)
+            ->where('region', $region)
+            ->where('visible', true)
+            ->with('blockType')
+            ->orderBy('sort_order')
+            ->get();
     }
 
     /**

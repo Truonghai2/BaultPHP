@@ -66,18 +66,127 @@ class QueueWorker
         $this->raiseBeforeJobEvent($connectionName, $job);
 
         try {
-            $this->app->call([$job, 'handle']);
+            // Execute job through middleware pipeline
+            $this->executeJobWithMiddleware($job);
 
             $job->delete();
+
+            // Handle batch completion
+            $this->handleBatchCompletion($job);
+
+            // Dispatch next job in chain
+            $this->dispatchNextChainedJob($job);
 
             $this->raiseAfterJobEvent($connectionName, $job);
 
         } catch (Throwable $e) {
             $this->raiseExceptionOccurredEvent($connectionName, $job, $e);
 
+            // Handle batch failure
+            $this->handleBatchFailure($job, $e);
+
+            // Handle chain failure
+            $this->handleChainFailure($job, $e);
+
             if (!$job->isDeleted() && !$job->isReleased()) {
                 $this->handleJobFailure($connectionName, $job, $e);
             }
+        }
+    }
+
+    /**
+     * Execute the job through middleware pipeline.
+     */
+    protected function executeJobWithMiddleware(Job $job): void
+    {
+        $middleware = method_exists($job, 'middleware') ? $job->middleware() : [];
+
+        if (empty($middleware)) {
+            $this->app->call([$job, 'handle']);
+            return;
+        }
+
+        // Build middleware pipeline
+        $pipeline = array_reduce(
+            array_reverse($middleware),
+            fn($next, $mw) => fn() => $mw->handle($job, $next),
+            fn() => $this->app->call([$job, 'handle'])
+        );
+
+        $pipeline();
+    }
+
+    /**
+     * Handle batch completion after successful job execution.
+     */
+    protected function handleBatchCompletion(Job $job): void
+    {
+        if (!isset($job->batchId)) {
+            return;
+        }
+
+        $repository = $this->app->make(\Core\Queue\BatchRepository::class);
+        $batch = $repository->find($job->batchId);
+
+        if ($batch) {
+            $batch->recordSuccessfulJob($job->getJobId());
+        }
+    }
+
+    /**
+     * Handle batch failure.
+     */
+    protected function handleBatchFailure(Job $job, Throwable $e): void
+    {
+        if (!isset($job->batchId)) {
+            return;
+        }
+
+        $repository = $this->app->make(\Core\Queue\BatchRepository::class);
+        $batch = $repository->find($job->batchId);
+
+        if ($batch) {
+            $batch->recordFailedJob($job->getJobId(), $e);
+        }
+    }
+
+    /**
+     * Dispatch the next job in the chain.
+     */
+    protected function dispatchNextChainedJob(Job $job): void
+    {
+        if (!isset($job->chainedJobs) || empty($job->chainedJobs)) {
+            return;
+        }
+
+        // Get next job in chain
+        $nextJob = array_shift($job->chainedJobs);
+
+        // Pass remaining chain to next job
+        if ($nextJob instanceof Job) {
+            $nextJob->chainedJobs = $job->chainedJobs;
+            $nextJob->chainCatchCallback = $job->chainCatchCallback ?? null;
+        }
+
+        // Dispatch next job
+        $queue = $this->manager->connection();
+        $queue->push($nextJob);
+    }
+
+    /**
+     * Handle chain failure.
+     */
+    protected function handleChainFailure(Job $job, Throwable $e): void
+    {
+        if (!isset($job->chainCatchCallback)) {
+            return;
+        }
+
+        try {
+            $callback = $job->chainCatchCallback;
+            $callback($job, $e);
+        } catch (Throwable $callbackException) {
+            $this->exceptionHandler->report($callbackException);
         }
     }
 

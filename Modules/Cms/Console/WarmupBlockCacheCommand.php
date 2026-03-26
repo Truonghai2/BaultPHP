@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Modules\Cms\Console\Commands;
+namespace Modules\Cms\Console;
 
 use Core\Application;
 use Core\Console\Contracts\BaseCommand;
@@ -61,7 +61,7 @@ class WarmupBlockCacheCommand extends BaseCommand
 
             } elseif ($all) {
                 // All pages
-                $pages = Page::all()->toArray();
+                $pages = Page::all()->all();
                 $this->info('Warming up ALL pages...');
 
             } elseif ($popular) {
@@ -70,7 +70,7 @@ class WarmupBlockCacheCommand extends BaseCommand
                     ->orWhere('status', 'published')
                     ->limit(10)
                     ->get()
-                    ->toArray();
+                    ->all();
                 $this->info('Warming up popular pages...');
 
             } else {
@@ -87,10 +87,14 @@ class WarmupBlockCacheCommand extends BaseCommand
 
             foreach ($pages as $page) {
                 try {
-                    $this->cacheManager->warmUpPage($page);
+                    $pageModel = $page instanceof Page ? $page : Page::find($page['id'] ?? $page['id'] ?? null);
+                    if ($pageModel) {
+                        $this->cacheManager->warmUpPage($pageModel);
+                    }
                     $this->io->progressAdvance();
                 } catch (\Throwable $e) {
-                    $this->warn("Failed to warm up page {$page->id}: {$e->getMessage()}");
+                    $pageId = $page instanceof Page ? $page->id : ($page['id'] ?? '?');
+                    $this->warn("Failed to warm up page {$pageId}: {$e->getMessage()}");
                 }
             }
 

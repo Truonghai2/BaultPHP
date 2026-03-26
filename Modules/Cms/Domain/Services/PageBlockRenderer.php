@@ -41,9 +41,9 @@ class PageBlockRenderer
     private bool $userCached = false;
 
     /**
-     * Enable/disable region-level caching
+     * Enable/disable region-level caching (default from config cms.block_cache.enabled)
      */
-    private bool $enableRegionCache = true;
+    private bool $enableRegionCache;
 
     /**
      * Cache statistics for debugging
@@ -59,6 +59,7 @@ class PageBlockRenderer
         private readonly BlockClassRegistry $blockRegistry,
         private readonly ?BlockCacheManager $cacheManager = null,
     ) {
+        $this->enableRegionCache = (bool) (config('cms.block_cache.enabled', config('cms.enable_block_cache', true)));
     }
 
     /**
@@ -91,6 +92,13 @@ class PageBlockRenderer
         // Performance optimization: Pass user for visibility pre-filtering
         $user = $this->getCurrentUser();
         $pageBlocks = $page->blocksInRegion($region, $user);
+
+        if ($region === 'content') {
+            $pageBlocks = $pageBlocks->filter(function ($pb) {
+                $name = $pb->blockType?->name ?? '';
+                return $name !== 'homepage-hero' && $name !== 'HomepageHeroBlock';
+            });
+        }
 
         // FALLBACK: If no page_blocks found, try legacy block_instances
         if ($pageBlocks->isEmpty()) {
@@ -466,16 +474,18 @@ class PageBlockRenderer
     }
 
     /**
-     * Render both page-specific AND global blocks for a region
+     * Render both page-specific AND global blocks for a region.
+     * Concatenates page-level blocks followed by global blocks.
      *
-     * @param Page $page
-     * @param string $region
-     * @param \Modules\User\Infrastructure\Models\User|null $user
+     * @param Page             $page
+     * @param string           $region
+     * @param array|null       $context    Additional render context data (passed to block renderers)
+     * @param \Modules\User\Infrastructure\Models\User|null $user Override current user; defaults to auth()->user()
      * @return string
      */
-    public function renderAllBlocks(Page $page, string $region = 'content', $user = null): string
+    public function renderAllBlocks(Page $page, string $region = 'content', ?array $context = null, $user = null): string
     {
-        $pageHtml = $this->renderPageBlocks($page, $region, $user);
+        $pageHtml   = $this->renderPageBlocks($page, $region, $context);
         $globalHtml = $this->renderGlobalBlocks($region, $user);
 
         return $pageHtml . $globalHtml;
@@ -495,7 +505,7 @@ class PageBlockRenderer
     /**
      * Check if page has blocks in a region
      *
-     * @param Page $page
+     * @param Page $pages
      * @param string $region
      * @return bool
      */

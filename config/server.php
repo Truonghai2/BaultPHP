@@ -42,21 +42,21 @@ return [
         | Số lượng worker process để xử lý request. Giá trị mặc định trong
         | SwooleServer.php đã được tối ưu, nhưng bạn có thể ghi đè ở đây.
         | Đối với ứng dụng I/O-bound, `swoole_cpu_num() * 2` hoặc `* 4` là lựa chọn tốt.
+        | Mục tiêu 2000 req/s: SWOOLE_WORKER_NUM=24~32 (tùy CPU), Redis session/cache bắt buộc.
         |
         */
-        'worker_num' => env('SWOOLE_WORKER_NUM', swoole_cpu_num() * 2), // Tăng số worker cho I/O-bound
-        'task_worker_num' => env('SWOOLE_TASK_WORKER_NUM', swoole_cpu_num()), // Thường bằng số CPU là đủ
+        'worker_num' => (int) env('SWOOLE_WORKER_NUM', max(16, swoole_cpu_num() * 6)),
+        'task_worker_num' => env('SWOOLE_TASK_WORKER_NUM', max(4, swoole_cpu_num() * 2)),
 
         /*
         |--------------------------------------------------------------------------
         | Advanced Performance Settings
         |--------------------------------------------------------------------------
         |
-        | Các cài đặt nâng cao để tối ưu hiệu năng Swoole
-        |
         */
-        'reactor_num' => env('SWOOLE_REACTOR_NUM', swoole_cpu_num() * 2), // Tăng số reactor thread
-        'max_conn' => env('SWOOLE_MAX_CONN', 100000), // Tăng max connections
+        'reactor_num' => min(48, (int) (env('SWOOLE_REACTOR_NUM') ?? min(48, max(16, swoole_cpu_num() * 6)))),
+        'max_conn' => env('SWOOLE_MAX_CONN', 50000),
+        'open_http2_protocol' => env('SWOOLE_HTTP2', false),
         'tcp_fastopen' => env('SWOOLE_TCP_FASTOPEN', true), // TCP Fast Open
         'tcp_defer_accept' => env('SWOOLE_TCP_DEFER_ACCEPT', 5), // Defer accept
         'open_cpu_affinity' => env('SWOOLE_CPU_AFFINITY', true), // CPU affinity
@@ -71,7 +71,18 @@ return [
         | Giúp ngăn chặn rò rỉ bộ nhớ trong các ứng dụng chạy dài hạn.
         |
         */
-        'max_request' => env('SWOOLE_MAX_REQUEST', 10000),
+        'max_request' => (int) env('SWOOLE_MAX_REQUEST', 10000),
+
+        /*
+        |--------------------------------------------------------------------------
+        | Max Wait Time (seconds)
+        |--------------------------------------------------------------------------
+        |
+        | Thời gian tối đa (giây) Swoole chờ request hoàn thành trước khi coi là timeout.
+        | Tăng lên (vd: 10–30) khi gặp timeout > 1000ms hoặc nhiều request bị kill.
+        |
+        */
+        'max_wait_time' => (int) env('SWOOLE_MAX_WAIT_TIME', 60),
 
         'pid_file' => storage_path('logs/swoole.pid'),
         'log_file' => storage_path('logs/swoole.log'),
@@ -151,7 +162,7 @@ return [
                     ],
                     'circuit_breaker' => [
                         'enabled'  => env('REDIS_CIRCUIT_BREAKER_ENABLED', true),
-                        'storage'  => env('REDIS_CIRCUIT_BREAKER_STORAGE', 'redis'),
+                        'storage'  => env('REDIS_CIRCUIT_BREAKER_STORAGE', 'apcu'), // Default to APCu for Swoole compatibility
                         'redis_pool' => env('REDIS_CIRCUIT_BREAKER_REDIS_POOL', 'default'),
                         'strategy' => env('REDIS_CIRCUIT_BREAKER_STRATEGY', 'rate'),
                         'rate' => [
@@ -165,8 +176,8 @@ return [
 
                 'connections' => [
                     'default' => [
-                        'worker_pool_size' => 50, // Tăng pool size cho Redis
-                        'task_worker_pool_size' => 20,
+                        'worker_pool_size' => (int) env('REDIS_POOL_WORKER_SIZE', 64),
+                        'task_worker_pool_size' => (int) env('REDIS_POOL_TASK_SIZE', 24),
                     ],
                     'cache' => [
                         'alias' => 'default',
@@ -197,7 +208,7 @@ return [
 
                     'circuit_breaker' => [
                         'enabled'  => env('DB_CIRCUIT_BREAKER_ENABLED', true),
-                        'storage'  => env('DB_CIRCUIT_BREAKER_STORAGE', 'redis'),
+                        'storage'  => env('DB_CIRCUIT_BREAKER_STORAGE', 'apcu'), // Default to APCu for Swoole compatibility
                         'redis_pool' => env('DB_CIRCUIT_BREAKER_REDIS_POOL', 'default'),
                         'strategy' => 'rate',
                         'rate' => [
@@ -213,15 +224,16 @@ return [
                     ...(function () {
                         $allPoolConfigs = [
                             'mysql' => [
-                                'worker_pool_size' => 15,
-                                'task_worker_pool_size' => 5,
+                                // 2000 req/s: đủ connection cho concurrent requests (64~128/worker)
+                                'worker_pool_size' => (int) env('DB_POOL_WORKER_SIZE', 64),
+                                'task_worker_pool_size' => (int) env('DB_POOL_TASK_SIZE', 24),
                                 'circuit_breaker' => [
                                     'rate' => ['failure_rate' => 30, 'minimum_requests' => 5],
                                 ],
                             ],
                             'pgsql' => [
-                                'worker_pool_size' => 20,
-                                'task_worker_pool_size' => 10,
+                                'worker_pool_size' => 50, // Increased from 20
+                                'task_worker_pool_size' => 20, // Increased from 10
                             ],
                         ];
 

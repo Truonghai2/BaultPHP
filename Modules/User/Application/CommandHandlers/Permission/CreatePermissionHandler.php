@@ -39,14 +39,13 @@ class CreatePermissionHandler implements CommandHandlerInterface
         ]);
 
         // Audit log (creation is auto-logged)
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'permission_created',
             "Permission created: {$command->name}",
             [
                 'permission_id' => $permission->id,
                 'name' => $command->name,
                 'captype' => $command->captype,
-                'action' => 'permission_created',
             ],
             'info',
         );

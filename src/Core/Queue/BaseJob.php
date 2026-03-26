@@ -10,6 +10,12 @@ use Throwable;
  * An abstract base class for jobs to reduce boilerplate code.
  * It provides default implementations for queue-related mechanics, allowing
  * concrete job classes to focus solely on their business logic.
+ * 
+ * Features:
+ * - Batch support: Track which batch this job belongs to
+ * - Chain support: Execute jobs sequentially
+ * - Middleware: Apply middleware pipeline
+ * - Uniqueness: Prevent duplicate jobs
  */
 abstract class BaseJob implements JobContract, \Serializable
 {
@@ -42,10 +48,104 @@ abstract class BaseJob implements JobContract, \Serializable
     public ?string $rawBody = null;
 
     /**
+     * The batch ID this job belongs to.
+     * @var string|null
+     */
+    public ?string $batchId = null;
+
+    /**
+     * The chain of jobs to execute after this job.
+     * @var array
+     */
+    public array $chainedJobs = [];
+
+    /**
+     * The callback to execute if the chain fails.
+     * @var \Closure|null
+     */
+    public ?\Closure $chainCatchCallback = null;
+
+    /**
+     * The timeout for this job in seconds.
+     * @var int|null
+     */
+    public ?int $timeout = null;
+
+    /**
+     * The tags for this job.
+     * @var array
+     */
+    public array $tags = [];
+
+    /**
      * Execute the job.
      * This method must be implemented by the child class.
      */
     abstract public function handle(): void;
+
+    /**
+     * Get the middleware the job should pass through.
+     * 
+     * @return array
+     */
+    public function middleware(): array
+    {
+        return [];
+    }
+
+    /**
+     * Chain jobs to execute after this job completes.
+     * 
+     * Usage:
+     * ProcessPodcast::withChain([
+     *     new OptimizePodcast,
+     *     new PublishPodcast,
+     * ])->dispatch();
+     */
+    public static function withChain(array $jobs): \Core\Queue\PendingChain
+    {
+        $instance = new static();
+        return app('bus')->chain(array_merge([$instance], $jobs));
+    }
+
+    /**
+     * Set the tags for this job.
+     */
+    public function withTags(array $tags): self
+    {
+        $this->tags = $tags;
+        return $this;
+    }
+
+    /**
+     * Get the unique ID for the job (for job uniqueness).
+     * 
+     * Override this method to implement job uniqueness.
+     * 
+     * @return string|null
+     */
+    public function uniqueId(): ?string
+    {
+        return null;
+    }
+
+    /**
+     * The number of seconds the unique lock should be maintained.
+     * 
+     * @return int
+     */
+    public function uniqueFor(): int
+    {
+        return 3600; // 1 hour default
+    }
+
+    /**
+     * Determine if the job should be unique.
+     */
+    public function isUnique(): bool
+    {
+        return $this->uniqueId() !== null;
+    }
 
     /**
      * Handle a job failure.

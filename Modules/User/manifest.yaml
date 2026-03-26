@@ -1,0 +1,24 @@
+# Declarative config for User module.
+# See docs/DECLARATIVE_CONFIG.md for schema.
+
+routes: []
+
+permissions:
+  - manage-users
+  - manage-roles
+  - view-users
+
+menu:
+  admin:
+    - label: Users
+      url: /admin/users
+      icon: users
+      order: 20
+      children:
+        - label: All Users
+          url: /admin/users
+        - label: Roles
+          url: /admin/roles
+        - label: Permissions
+          url: /admin/permissions
+  frontend: []

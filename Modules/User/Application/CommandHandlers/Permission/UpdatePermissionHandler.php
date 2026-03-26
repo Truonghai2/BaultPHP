@@ -55,12 +55,11 @@ class UpdatePermissionHandler implements CommandHandlerInterface
         $permission->save();
 
         // Audit log (update is auto-logged)
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'permission_updated',
             "Permission updated: {$permission->name}",
             [
                 'permission_id' => $permission->id,
-                'action' => 'permission_updated',
             ],
             'info',
         );

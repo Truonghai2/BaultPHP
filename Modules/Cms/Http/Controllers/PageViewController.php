@@ -63,11 +63,23 @@ class PageViewController extends Controller
     /**
      * Homepage
      * GET /
+     * Tối ưu: cache full page cho guest (60s), gộp query lấy page (3 -> 1–2).
      */
     #[Route('/', method: 'GET', name: 'home')]
     public function home(Request $request): Response
     {
-        $queryBuilder = function ($query) {
+        $isGuest = !auth()->check();
+        $query = $request->getQueryParams();
+        $skipCache = isset($query['nocache']) && (string) $query['nocache'] !== '';
+
+        if ($isGuest && !$skipCache) {
+            $cached = cache(null)->get('page.home.guest');
+            if ($cached !== null) {
+                return response($cached, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
+            }
+        }
+
+        $baseQuery = function ($query) {
             if (!auth()->check() || !auth()->user()->can('cms.pages.view')) {
                 $query->where('status', 'published');
             }
@@ -78,14 +90,13 @@ class PageViewController extends Controller
             }]);
         };
 
-        $page = $queryBuilder(Page::where('slug', 'home'))->first();
-
+        // Ưu tiên: slug home -> name Home -> first by id (tối đa 3 query; guest đã cache 60s)
+        $page = $baseQuery(Page::where('slug', 'home'))->first();
         if (!$page) {
-            $page = $queryBuilder(Page::where('name', 'Home'))->first();
+            $page = $baseQuery(Page::where('name', 'Home'))->first();
         }
-
         if (!$page) {
-            $page = $queryBuilder(Page::orderBy('id', 'asc'))->first();
+            $page = $baseQuery(Page::orderBy('id', 'asc'))->first();
         }
 
         if (!$page) {
@@ -99,10 +110,18 @@ class PageViewController extends Controller
             $userRoles = auth()->user()->getRoles() ?? [];
         }
 
-        return response(view('pages.show', [
+        $view = view('pages.show', [
             'page' => $page,
             'userRoles' => $userRoles,
             'isDraft' => $isDraft,
-        ]));
+        ]);
+
+        $html = (string) $view;
+
+        if ($isGuest) {
+            cache(null)->put('page.home.guest', $html, 60);
+        }
+
+        return response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
     }
 }

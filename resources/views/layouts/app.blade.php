@@ -30,6 +30,7 @@
     @endauth
     
     @yield('styles')
+    @stack('styles')
     
     <style>
         .js body { opacity: 0; transition: opacity 0.2s ease-in; }
@@ -53,8 +54,8 @@
                 </aside>
                 @endif
                 
-                {{-- Main Content - SPA Container --}}
-                <main id="app-content" class="flex-1 order-1 lg:order-2">
+                {{-- Main Content - SPA Container: id="page-content" khi SPA để tránh layout switch / full reload --}}
+                <main id="{{ app(\Psr\Http\Message\ServerRequestInterface::class)->hasHeader('X-SPA-NAVIGATE') ? 'page-content' : 'app-content' }}" class="flex-1 order-1 lg:order-2">
                     {{-- Header Region Blocks (Dynamic) --}}
                     @if(has_blocks_in_region('header'))
                     <div class="mb-6">
@@ -95,8 +96,6 @@
         </div>
     </div>
 
-    @include('debug.bar')
-    
     {{-- Service Worker (Production Only) --}}
     @if (config('app.env') === 'production')
     <script>

@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+package user;
+
+// User Service Definition
+service UserService {
+    // Get user by ID
+    rpc GetUser (GetUserRequest) returns (UserResponse);
+    
+    // Create a new user
+    rpc CreateUser (CreateUserRequest) returns (UserResponse);
+    
+    // Update user
+    rpc UpdateUser (UpdateUserRequest) returns (UserResponse);
+    
+    // List users
+    rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+}
+
+// Request Messages
+message GetUserRequest {
+    int32 user_id = 1;
+}
+
+message CreateUserRequest {
+    string name = 1;
+    string email = 2;
+    string password = 3;
+}
+
+message UpdateUserRequest {
+    int32 user_id = 1;
+    string name = 2;
+    string email = 3;
+}
+
+message ListUsersRequest {
+    int32 page = 1;
+    int32 per_page = 2;
+    string search = 3;
+}
+
+// Response Messages
+message UserResponse {
+    int32 id = 1;
+    string name = 2;
+    string email = 3;
+    string created_at = 4;
+    string updated_at = 5;
+}
+
+message ListUsersResponse {
+    repeated UserResponse users = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 per_page = 4;
+}

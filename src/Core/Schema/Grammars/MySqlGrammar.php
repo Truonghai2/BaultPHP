@@ -469,6 +469,9 @@ class MySqlGrammar implements Grammar
      */
     protected function compileRenameColumn(Blueprint $blueprint, Fluent $command): string
     {
-        return "ALTER TABLE {$this->quote($blueprint->getTableName())} RENAME COLUMN {$this->quote($command->from)} TO {$this->quote($command->to)}";
+        $columns = $command->columns ?? [];
+        $from = $columns['from'] ?? '';
+        $to = $columns['to'] ?? '';
+        return "ALTER TABLE {$this->quote($blueprint->getTableName())} RENAME COLUMN {$this->quote($from)} TO {$this->quote($to)}";
     }
 }

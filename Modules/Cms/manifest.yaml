@@ -1,0 +1,29 @@
+# Declarative config for Cms module (routes, permissions, menu).
+# See docs/DECLARATIVE_CONFIG.md for schema.
+
+routes: []
+
+permissions:
+  - manage-cms
+  - manage-pages
+  - manage-blocks
+  - manage-media
+
+menu:
+  admin:
+    - label: Content
+      url: /admin/pages
+      icon: file-text
+      order: 10
+      children:
+        - label: Pages
+          url: /admin/pages
+        - label: Blocks
+          url: /admin/blocks
+        - label: Regions
+          url: /admin/regions
+        - label: Media
+          url: /admin/media
+        - label: Templates
+          url: /admin/templates
+  frontend: []

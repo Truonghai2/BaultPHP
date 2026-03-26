@@ -37,6 +37,21 @@ class SwoolePsr7Bridge
     {
         $psr7Request = $this->serverRequestFactory->create($swooleRequest);
 
+        // Ensure REMOTE_ADDR is available in server params
+        // The ServerRequestFactory should handle this, but we verify and store Swoole request for fallback
+        $serverParams = $psr7Request->getServerParams();
+        if (!isset($serverParams['REMOTE_ADDR']) || $serverParams['REMOTE_ADDR'] === '?.?.?.?') {
+            // Get remote address from Swoole request directly
+            $remoteAddr = $swooleRequest->server['remote_addr'] 
+                ?? $swooleRequest->server['REMOTE_ADDR'] 
+                ?? null;
+            
+            // Store Swoole request in request attribute for fallback access
+            if ($remoteAddr) {
+                $psr7Request = $psr7Request->withAttribute('_swoole_remote_addr', $remoteAddr);
+            }
+        }
+
         // Manually parse the request body if it's not already parsed.
         if (null === $psr7Request->getParsedBody()) {
             $contentType = strtolower($swooleRequest->header['content-type'] ?? '');
@@ -57,7 +72,7 @@ class SwoolePsr7Bridge
         return $psr7Request;
     }
 
-    public function toSwooleResponse(ResponseInterface $response, SwooleResponse $swooleResponse): void
+    public function toSwooleResponse(ResponseInterface $response, SwooleResponse $swooleResponse, ?ServerRequestInterface $request = null): void
     {
         if (!$swooleResponse->isWritable()) {
             return;
@@ -81,6 +96,15 @@ class SwoolePsr7Bridge
                     $swooleResponse->header((string) $name, (string) $value);
                 }
             }
+        }
+
+        // HTTP spec: HEAD requests must not include a message body
+        // They should return the same headers as GET but without body
+        $isHeadRequest = $request !== null && strtoupper($request->getMethod()) === 'HEAD';
+        
+        if ($isHeadRequest) {
+            $swooleResponse->end();
+            return;
         }
 
         $body = $response->getBody();

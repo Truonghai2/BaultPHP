@@ -1,0 +1,1465 @@
+[2026-01-21 17:31:18 *95.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Server\RequestLogger -> Core\Server\RequestLogger] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(186): Core\Application->make('Core\\Server\\Req...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:21 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=95, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:31:21 *246.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:22 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=246, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:22 *248.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:24 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=248, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:24 *256.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:26 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=256, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:26 *258.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [session -> Core\Server\RequestLogger -> Core\Server\RequestLogger] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(186): Core\Application->make('Core\\Server\\Req...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:30 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=258, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:31:30 *271.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:31 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=271, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:31 *273.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:34 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=273, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:34 *275.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:35 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=275, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:35 *283.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:36 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=283, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:31:36 *285.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:31:39 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=285, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:33:20 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=97, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:35:24 *99.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:25 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=99, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:35:25 *304.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [session -> Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:27 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=304, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:35:30 *325.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:32 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=325, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:35:32 *353.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:33 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=353, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:35:33 *355.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:35 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=355, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:35:35 *357.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:36 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=357, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:35:36 *359.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:35:40 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=359, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:40:50 *99.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:40:54 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=99, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:41:01 *225.0]	WARNING	Channel::~Channel() (ERRNO 10003): channel is destroyed, 1 producers will be discarded
+[2026-01-21 17:41:01 *225.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:41:04 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=225, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:41:13 *254.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:41:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=254, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:42:57 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=102, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:43:03 *287.0]	WARNING	Channel::~Channel() (ERRNO 10003): channel is destroyed, 9 consumers will be discarded
+[2026-01-21 17:43:03 *287.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:04 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=287, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:43:04 *417.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:06 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=417, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:43:06 *419.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [session -> Core\Server\RequestLogger -> Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:08 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=419, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:43:08 *437.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:11 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=437, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:43:30 *445.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:33 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=445, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:43:34 *528.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:43:36 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=528, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:49:53 *273.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:49:56 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=273, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:49:56 *389.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Core\Foundation\StateResetter -> Core\Foundation\StateResetter] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(312): Core\Application->make('Core\\Foundation...')
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:49:56 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=389, id=0) abnormal exit, status=0, signal=6
+[2026-01-21 17:49:59 *391.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:50:00 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=391, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:50:07 *413.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:253
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(185): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Nyholm\Psr7\Response), Object(Swoole\Http\Response))
+#2 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#4 {main}
+  thrown in /app/src/Core/Application.php on line 253
+[2026-01-21 17:50:08 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=413, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:56:52 *306.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught UnexpectedValueException: Writing to the log file failed: unlink(/app/storage/framework/cache/data/2f/54/2f543485c4e97611fab41d69f3fe211fe21a9870): No such file or directory
+The exception occurred while attempting to log: 172.18.0.9 - - "GET / HTTP/1.1" 302 0 "-" "-"
+Context: {"duration_ms":278,"request_id":"697113641e397"} in /app/vendor/monolog/monolog/src/Monolog/Handler/StreamHandler.php:195
+Stack trace:
+#0 /app/vendor/monolog/monolog/src/Monolog/Handler/RotatingFileHandler.php(113): Monolog\Handler\StreamHandler->write(Object(Monolog\LogRecord))
+#1 /app/vendor/monolog/monolog/src/Monolog/Handler/AbstractProcessingHandler.php(44): Monolog\Handler\RotatingFileHandler->write(Object(Monolog\LogRecord))
+#2 /app/vendor/monolog/monolog/src/Monolog/Logger.php(391): Monolog\Handler\AbstractProcessingHandler->handle(Object(Monolog\LogRecord))
+#3 /app/vendor/monolog/monolog/src/Monolog/Logger.php(607): Monolog\Logger->addRecord(Object(Monolog\Level), '172.18.0.9 - - ...', Array)
+#4 /app/src/Core/Logging/LogManager.php(198): Monolog\Logger->info('172.18.0.9 - - ...', Array)
+#5 /app/src/Core/Server/RequestLogger.php(51): Core\Logging\LogManager->info('172.18.0.9 - - ...', Array)
+#6 /app/src/Core/Server/RequestLifecycle.php(205): Core\Server\RequestLogger->log(Object(Nyholm\Psr7\ServerRequest), Object(Core\Http\RedirectResponse), 1769018212.0774)
+#7 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Core\Http\RedirectResponse), Object(Swoole\Http\Response))
+#8 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#9 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#10 {main}
+  thrown in /app/vendor/monolog/monolog/src/Monolog/Handler/StreamHandler.php on line 195
+[2026-01-21 17:56:54 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=306, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:56:55 *428.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\RequestLogger" not found in /app/src/Providers/ServerServiceProvider.php:81
+Stack trace:
+#0 /app/src/Core/Application.php(300): App\Providers\ServerServiceProvider->App\Providers\{closure}(Object(Core\Application), Array)
+#1 /app/src/Core/Application.php(266): Core\Application->build('Core\\Server\\Req...', Array)
+#2 /app/src/Core/Server/RequestLifecycle.php(205): Core\Application->make('Core\\Server\\Req...')
+#3 /app/src/Core/Server/RequestLifecycle.php(87): Core\Server\RequestLifecycle->sendResponse(Object(Laminas\Diactoros\Response\RedirectResponse), Object(Swoole\Http\Response))
+#4 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#5 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#6 {main}
+  thrown in /app/src/Providers/ServerServiceProvider.php on line 81
+[2026-01-21 17:56:56 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=428, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 17:57:16 *2120.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\CoroutineContext" not found in /app/src/Core/Server/RequestLifecycle.php:63
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(315): Core\Server\RequestLifecycle->__construct(Object(Core\Application), Object(App\Http\Kernel), Object(App\Exceptions\Handler), Object(Core\Foundation\StateResetter), Object(Core\Server\SwoolePsr7Bridge), false)
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 63
+[2026-01-21 17:57:17 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=2120, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-21 18:21:51 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=102, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:30:28 *618.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught InvalidArgumentException: View [errors.debug] not found in default paths. in /app/src/Core/View/ViewFactory.php:181
+Stack trace:
+#0 /app/src/Core/View/ViewFactory.php(85): Core\View\ViewFactory->findView('errors.debug')
+#1 /app/src/Core/helpers.php(379): Core\View\ViewFactory->make('errors.debug', Array)
+#2 /app/src/Exceptions/Handler.php(126): view('errors.debug', Array)
+#3 /app/src/Exceptions/Handler.php(101): App\Exceptions\Handler->renderExceptionForDebug(Object(Nyholm\Psr7\ServerRequest), Object(InvalidArgumentException))
+#4 /app/src/Core/Server/RequestLifecycle.php(153): App\Exceptions\Handler->render(Object(Nyholm\Psr7\ServerRequest), Object(InvalidArgumentException))
+#5 /app/src/Core/Server/RequestLifecycle.php(81): Core\Server\RequestLifecycle->handleException(Object(Nyholm\Psr7\ServerRequest), Object(InvalidArgumentException))
+#6 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#7 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#8 {main}
+
+Next TypeError: Core\Server\RequestLifecycle::finalizeResponse(): Argument #1 ($response) must be of type Psr\Http\Message\ResponseInterface, null given, called in /app/src/Core/Server/RequestLifecycle.php on line 83 and defined in /app/src/Core/Server/RequestLifecycle.php:159
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(83): Core\Server\RequestLifecycle->finalizeResponse(NULL)
+#1 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 159
+[2026-01-22 02:30:31 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=618, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:31:34 *1445.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\CoroutineContext" not found in /app/src/Core/Server/RequestLifecycle.php:60
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(315): Core\Server\RequestLifecycle->__construct(Object(Core\Application), Object(App\Http\Kernel), Object(App\Exceptions\Handler), Object(Core\Foundation\StateResetter), Object(Core\Server\SwoolePsr7Bridge), false)
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 60
+[2026-01-22 02:31:36 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=1445, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:32:47 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=95, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:43:06 ^14901.7]	WARNING	Worker_reactor_try_to_exit() (ERRNO 9101): worker exit timeout, forced termination
+[2026-01-22 02:44:17 *24483.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\CoroutineContext" not found in /app/src/Core/Server/RequestLifecycle.php:60
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(315): Core\Server\RequestLifecycle->__construct(Object(Core\Application), Object(App\Http\Kernel), Object(App\Exceptions\Handler), Object(Core\Foundation\StateResetter), Object(Core\Server\SwoolePsr7Bridge), false)
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 60
+[2026-01-22 02:44:19 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=24483, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:46:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=8218, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:57:30 *48052.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\RequestLifecycle" not found in /app/src/Core/Server/SwooleServer.php:315
+Stack trace:
+#0 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#1 {main}
+  thrown in /app/src/Core/Server/SwooleServer.php on line 315
+[2026-01-22 02:57:31 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=48052, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 02:57:37 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=35506, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 03:06:59 *50492.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Error: Class "Core\Server\CoroutineContext" not found in /app/src/Core/Server/RequestLifecycle.php:60
+Stack trace:
+#0 /app/src/Core/Server/SwooleServer.php(315): Core\Server\RequestLifecycle->__construct(Object(Core\Application), Object(App\Http\Kernel), Object(App\Exceptions\Handler), Object(Core\Foundation\StateResetter), Object(Core\Server\SwoolePsr7Bridge), false)
+#1 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 60
+[2026-01-22 03:07:00 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=50492, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 03:08:21 ^58590.4]	WARNING	Worker_reactor_try_to_exit() (ERRNO 9101): worker exit timeout, forced termination
+[2026-01-22 03:17:51 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=48862, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 03:31:03 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=20556, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 03:42:08 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=46013, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 04:51:38 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=59318, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-01-22 05:03:03 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=61713, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 5.15.167.4-microsoft-standard-WSL2 #1 SMP Tue Nov 5 00:21:55 UTC 2024 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 03:12:53 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 03:26:33 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 03:36:15 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 03:56:33 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 04:11:27 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 04:26:54 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-01 04:59:55 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=114, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 05:33:57 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=1961, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 06:08:17 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=3237, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 06:42:19 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=4505, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 07:15:57 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=5765, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 07:49:54 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=7029, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 08:23:38 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=8303, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 08:57:47 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=9560, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 09:31:56 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=10835, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 10:05:45 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=12100, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 10:39:51 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=13365, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 11:13:37 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=14636, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 11:47:37 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=15899, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 12:22:00 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=17162, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 12:55:47 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=18431, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 13:29:57 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=19699, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 14:03:30 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=20964, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 14:37:13 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=22214, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 15:10:59 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=23472, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 15:44:59 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=24728, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 16:18:43 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=25997, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 16:52:48 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=27254, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 17:26:52 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=28536, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 18:00:58 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=29805, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 18:34:49 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=31061, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 19:08:34 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=32335, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 19:42:23 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=33581, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 20:16:22 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=34860, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 20:50:20 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=36141, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 21:24:09 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=37407, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 21:57:52 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=38659, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 22:31:55 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=39923, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 23:06:09 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=41192, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-01 23:39:57 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=42464, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-02 00:14:08 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=43981, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-02 00:47:39 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=45246, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-02 01:21:33 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=46502, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-07 02:39:57 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-07 03:13:53 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=95, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-07 03:47:22 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=1859, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-07 04:20:45 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=3110, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-07 04:54:52 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=4357, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-11 02:25:58 @1.0]	WARNING	Server::create(): serv->reactor_num == 72, Too many threads, reset to max value 48
+[2026-02-11 02:59:38 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=97, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-11 05:14:18 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=88, id=9) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-11 07:06:34 *578.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [Psr\Http\Message\ServerRequestInterface -> Psr\Http\Message\ServerRequestInterface] in /app/src/Core/Application.php:318
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(79): Core\Application->make('Psr\\Http\\Messag...')
+#1 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 {main}
+
+Next TypeError: Core\Server\RequestLifecycle::finalizeResponse(): Argument #1 ($response) must be of type Psr\Http\Message\ResponseInterface, null given, called in /app/src/Core/Server/RequestLifecycle.php on line 83 and defined in /app/src/Core/Server/RequestLifecycle.php:137
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(83): Core\Server\RequestLifecycle->finalizeResponse(NULL)
+#1 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 137
+[2026-02-11 07:06:35 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=578, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+
+[2026-02-11 07:06:36 *597.0]	ERROR	php_swoole_server_rshutdown() (ERRNO 503): Fatal error: Uncaught Core\Exceptions\ContainerException: Circular dependency detected while resolving: [App\Http\ResponseFactory -> App\Http\ResponseFactory] in /app/src/Core/Application.php:318
+Stack trace:
+#0 /app/src/Core/helpers.php(28): Core\Application->make('App\\Http\\Respon...', Array)
+#1 /app/src/Core/helpers.php(301): app('App\\Http\\Respon...')
+#2 /app/src/Exceptions/Handler.php(127): response('<!DOCTYPE html>...', 500)
+#3 /app/src/Exceptions/Handler.php(101): App\Exceptions\Handler->renderExceptionForDebug(Object(Laminas\Diactoros\ServerRequest), Object(Error))
+#4 /app/src/Core/Server/RequestLifecycle.php(131): App\Exceptions\Handler->render(Object(Laminas\Diactoros\ServerRequest), Object(Error))
+#5 /app/src/Core/Server/RequestLifecycle.php(81): Core\Server\RequestLifecycle->handleException(Object(Laminas\Diactoros\ServerRequest), Object(Error))
+#6 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#7 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#8 {main}
+
+Next TypeError: Core\Server\RequestLifecycle::finalizeResponse(): Argument #1 ($response) must be of type Psr\Http\Message\ResponseInterface, null given, called in /app/src/Core/Server/RequestLifecycle.php on line 83 and defined in /app/src/Core/Server/RequestLifecycle.php:137
+Stack trace:
+#0 /app/src/Core/Server/RequestLifecycle.php(83): Core\Server\RequestLifecycle->finalizeResponse(NULL)
+#1 /app/src/Core/Server/SwooleServer.php(322): Core\Server\RequestLifecycle->handle(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#2 [internal function]: Core\Server\SwooleServer->handleRequest(Object(Swoole\Http\Request), Object(Swoole\Http\Response))
+#3 {main}
+  thrown in /app/src/Core/Server/RequestLifecycle.php on line 137
+[2026-02-11 07:06:37 #1.0]	WARNING	Server::check_worker_exit_status(): worker(pid=597, id=0) abnormal exit, status=0, signal=11
+A bug occurred in Swoole-v5.1.3, please report it.
+The Swoole developers probably don't know about it,
+and unless you report it, chances are it won't be fixed.
+You can read How to report a bug doc before submitting any bug reports:
+>> https://github.com/swoole/swoole-src/blob/master/.github/ISSUE.md 
+Please do not send bug reports in the mailing list or personal letters.
+The issue page is also suitable to submit feature requests.
+
+OS: Linux 6.6.87.2-microsoft-standard-WSL2 #1 SMP PREEMPT_DYNAMIC Thu Jun  5 18:30:46 UTC 2025 x86_64
+GCC_VERSION: 12.2.0
+OPENSSL_VERSION: OpenSSL 3.0.11 19 Sep 2023
+PHP_VERSION : 8.2.20
+

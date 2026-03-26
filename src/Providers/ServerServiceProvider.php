@@ -32,12 +32,40 @@ class ServerServiceProvider extends ServiceProvider
         $this->app->singleton(CodecInterface::class, JsonCodec::class);
 
         $this->app->bind(ServerRequestInterface::class, function ($app) {
+            // Check if we're already resolving this to prevent circular dependency
+            try {
+                $reflection = new \ReflectionClass($app);
+                $resolvingStackProperty = $reflection->getProperty('resolvingStack');
+                $resolvingStackProperty->setAccessible(true);
+                $resolvingStack = $resolvingStackProperty->getValue($app);
+                
+                // If already resolving, return fallback to break cycle
+                if (in_array(ServerRequestInterface::class, $resolvingStack)) {
+                    return ServerRequestFactory::fromGlobals();
+                }
+                
+                // Check if an instance already exists (set via instance() method)
+                // Access instances directly to avoid calling make() recursively
+                $instancesProperty = $reflection->getProperty('instances');
+                $instancesProperty->setAccessible(true);
+                $instances = $instancesProperty->getValue($app);
+                $abstract = $app->getAlias(ServerRequestInterface::class);
+                
+                if (isset($instances[$abstract])) {
+                    return $instances[$abstract];
+                }
+            } catch (\ReflectionException $e) {
+                // If reflection fails, continue with normal resolution
+            }
+
+            // Try to get from Swoole request if available
             if ($app->has(SwooleRequest::class)) {
                 $swooleRequest = $app->get(SwooleRequest::class);
                 $bridge = new \Core\Server\SwoolePsr7Bridge();
                 return $bridge->toPsr7Request($swooleRequest);
             }
 
+            // Fallback to globals
             return ServerRequestFactory::fromGlobals();
         });
 
@@ -47,6 +75,13 @@ class ServerServiceProvider extends ServiceProvider
 
         $this->app->singleton(SwooleServer::class, function ($app) {
             return new SwooleServer($app);
+        });
+
+        $this->app->singleton(\Core\Server\RequestLogger::class, function ($app) {
+            return new \Core\Server\RequestLogger(
+                $app,
+                $app->make(\Psr\Log\LoggerInterface::class)
+            );
         });
     }
 }

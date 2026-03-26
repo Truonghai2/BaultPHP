@@ -11,6 +11,7 @@ use Core\CQRS\Middleware\LoggingCommandMiddleware;
 use Core\CQRS\Query\Implementation\QueryBusWithMiddleware as QueryBusWithMiddlewareImplementation;
 use Core\CQRS\Query\Implementation\SimpleQueryBus as SimpleQueryBusImplementation;
 use Core\CQRS\Query\QueryBus;
+use Core\CQRS\ReadModelOptimizer;
 use Core\Support\ServiceProvider;
 
 class CqrsServiceProvider extends ServiceProvider implements DeferrableProvider
@@ -43,6 +44,22 @@ class CqrsServiceProvider extends ServiceProvider implements DeferrableProvider
                 ],
                 $app,
             );
+        });
+
+        // Register ReadModelOptimizer
+        $this->app->singleton(ReadModelOptimizer::class, function ($app) {
+            $pdo = $app->make(\PDO::class);
+            $config = config('read-model-optimization', []);
+            
+            $optimizer = new ReadModelOptimizer($pdo, $config);
+            
+            // Register projections from config
+            $projections = $config['projections'] ?? [];
+            foreach ($projections as $name => $projectionConfig) {
+                $optimizer->registerProjection($name, $projectionConfig);
+            }
+            
+            return $optimizer;
         });
     }
 

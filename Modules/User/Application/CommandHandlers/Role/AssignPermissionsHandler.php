@@ -39,15 +39,14 @@ class AssignPermissionsHandler implements CommandHandlerInterface
 
         event(new RolePermissionsChanged($role, $command->permissionIds));
 
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'permissions_assigned',
             "Permissions assigned to role: {$role->name}",
             [
                 'role_id' => $role->id,
                 'role_name' => $role->name,
                 'permission_ids' => $command->permissionIds,
                 'permission_count' => count($command->permissionIds),
-                'action' => 'permissions_assigned',
             ],
             'info',
         );

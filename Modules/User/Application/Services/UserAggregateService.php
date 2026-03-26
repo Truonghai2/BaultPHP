@@ -45,8 +45,8 @@ class UserAggregateService
 
         $this->aggregateRepository->save($user);
 
-        Audit::log(
-            'user_action',
+        Audit::system(
+            'user_registered_es',
             "User registered via Event Sourcing: {$email}",
             [
                 'user_id' => $userId,
@@ -83,8 +83,8 @@ class UserAggregateService
 
         $this->aggregateRepository->save($user);
 
-        Audit::log(
-            'user_action',
+        Audit::system(
+            'user_email_changed',
             "User email changed: {$oldEmail} → {$newEmail}",
             [
                 'user_id' => $userId,
@@ -115,8 +115,8 @@ class UserAggregateService
 
         $this->aggregateRepository->save($user);
 
-        Audit::log(
-            'user_action',
+        Audit::system(
+            'user_email_verified',
             "User email verified: {$user->getEmail()}",
             ['user_id' => $userId],
             'info',
@@ -137,8 +137,8 @@ class UserAggregateService
         $user->suspend($reason);
         $this->aggregateRepository->save($user);
 
-        Audit::log(
-            'security',
+        Audit::security(
+            'user_suspended',
             "User suspended: {$user->getEmail()}",
             [
                 'user_id' => $userId,

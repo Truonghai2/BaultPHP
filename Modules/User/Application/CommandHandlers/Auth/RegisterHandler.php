@@ -33,20 +33,17 @@ class RegisterHandler implements CommandHandlerInterface
             'name' => $command->name,
             'email' => $command->email,
             'password' => Hash::make($command->password),
-            'status' => 'active',
         ]);
 
         // Dispatch domain event
         event(new UserRegistered($user->id, $user->email, $user->name));
 
         // Audit log (creation is auto-logged by Auditable trait)
-        Audit::log(
-            'authentication',
-            "New user registered: {$user->email}",
+        Audit::auth(
+            'user_registered',
             $user,
             [
                 'ip_address' => request()->ip() ?? 'unknown',
-                'action' => 'user_registered',
             ],
             'info',
         );

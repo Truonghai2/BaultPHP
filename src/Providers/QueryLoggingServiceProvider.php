@@ -26,16 +26,15 @@ class QueryLoggingServiceProvider extends ServiceProvider
         });
 
         $this->app->extend(PDO::class, function (PDO $pdo, $app) {
-            if ($pdo instanceof \DebugBar\DataCollector\PDO\TraceablePDO) {
+            $originalPdo = $pdo;
+            if (class_exists(\DebugBar\DataCollector\PDO\TraceablePDO::class) && $pdo instanceof \DebugBar\DataCollector\PDO\TraceablePDO) {
                 try {
                     $reflection = new ReflectionProperty($pdo, 'pdo');
                     $reflection->setAccessible(true);
                     $originalPdo = $reflection->getValue($pdo);
                 } catch (\ReflectionException) {
-                    $originalPdo = $pdo;
+                    // keep $originalPdo as $pdo
                 }
-            } else {
-                $originalPdo = $pdo;
             }
 
             return new LoggingTraceablePDO($originalPdo, $app->make(QueryLoggerCollector::class));

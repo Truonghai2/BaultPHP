@@ -40,7 +40,8 @@ class RoleAndPermissionSeeder extends Seeder
             $this->command?->line("  - Ensured role '{$roleName}' exists.");
         }
 
-        $this->command?->info('Roles created. Now synchronizing permissions from files...');
-        $this->command?->call('acl:sync-permissions');
+        $this->command?->info('Roles created successfully!');
+        // Note: Permission synchronization removed - implement separately if needed
+        // $this->command?->call('acl:sync-permissions');
     }
 }

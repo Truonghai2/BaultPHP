@@ -66,57 +66,40 @@
         </div>
         @endif
         
-        {{-- Header Region (Global Blocks) --}}
-        @php
-            // Header uses GLOBAL blocks (BlockInstances), not page blocks
-            $headerContent = render_block_region('header');
-        @endphp
-        
-        <div data-no-spa>
-            @if($headerContent)
-                <div class="header-region">
-                    {!! $headerContent !!}
-                </div>
-            @else
-                @include('layouts.partials.header')
+        {{-- Header: luôn hiển thị partial, sau đó block region (nếu có) để tránh header trống --}}
+        <div data-no-spa class="header-wrapper">
+            @include('layouts.partials.header', ['page' => $page])
+            @php
+                $headerBlockContent = trim((string) render_block_region('header'));
+            @endphp
+            @if(trim(strip_tags($headerBlockContent)) !== '')
+                <div class="header-region">{!! $headerBlockContent !!}</div>
             @endif
         </div>
         
-        {{-- SPA Content Container --}}
+        {{-- Nội dung trang (hero chỉ một lần trong main, tránh duplicate) --}}
         <div id="page-content">
-            {{-- Hero Region --}}
-            @php
-                $heroContent = render_page_blocks($page, 'hero', null, $userRoles ?? null);
-            @endphp
-            
-            @if($heroContent)
-                <div class="hero-region">
-                    {!! $heroContent !!}
-                </div>
-            @endif
-            
-            {{-- Main Content Layout --}}
-            <div class="container mx-auto px-4 py-12">
+            <div class="container mx-auto">
                 <div class="flex flex-col lg:flex-row gap-8">
                     {{-- Sidebar Left --}}
                     @php
                         $sidebarLeftContent = render_page_blocks($page, 'sidebar-left', null, $userRoles ?? null);
                     @endphp
-                    
-                    @if($sidebarLeftContent)
-                        <aside class="w-full lg:w-80 order-2 lg:order-1">
-                            {!! $sidebarLeftContent !!}
-                        </aside>
+                    @if(trim((string) $sidebarLeftContent) !== '')
+                        <aside class="w-full lg:w-80 order-2 lg:order-1">{!! $sidebarLeftContent !!}</aside>
                     @endif
                     
-                    {{-- Main Content --}}
+                    {{-- Main: hero (một lần) + content --}}
                     <main class="flex-1 order-1 lg:order-2">
                         @php
+                            $heroContent = trim((string) render_page_blocks($page, 'hero', null, $userRoles ?? null));
                             $contentHtml = render_page_blocks($page, 'content', null, $userRoles ?? null);
                         @endphp
-                        
-                        @if($contentHtml)
-                            {!! $contentHtml !!}
+                        @if($heroContent !== '')
+                            <div class="hero-region mb-10">{!! $heroContent !!}</div>
+                        @endif
+                        @if(trim((string) $contentHtml) !== '')
+                            <div class="page-content-region">{!! $contentHtml !!}</div>
                         @else
                             <div class="empty-state bg-gray-800/30 rounded-xl p-12 text-center">
                                 <div class="text-6xl mb-4">📄</div>
@@ -137,31 +120,17 @@
                     @php
                         $sidebarRightContent = render_page_blocks($page, 'sidebar', null, $userRoles ?? null);
                     @endphp
-                    
-                    @if($sidebarRightContent)
-                        <aside class="w-full lg:w-80 order-3">
-                            {!! $sidebarRightContent !!}
-                        </aside>
+                    @if(trim((string) $sidebarRightContent) !== '')
+                        <aside class="w-full lg:w-80 order-3">{!! $sidebarRightContent !!}</aside>
                     @endif
                 </div>
             </div>
         </div>
 
 @if (!app(\Psr\Http\Message\ServerRequestInterface::class)->hasHeader('X-SPA-NAVIGATE'))
-        {{-- Footer Region (Global Blocks) --}}
-        @php
-            // Footer uses GLOBAL blocks (BlockInstances), not page blocks
-            $footerContent = render_block_region('footer');
-        @endphp
-        
-        <div data-no-spa>
-            @if($footerContent)
-                <div class="footer-region mt-20">
-                    {!! $footerContent !!}
-                </div>
-            @else
-                @include('layouts.partials.footer')
-            @endif
+        {{-- Footer: luôn hiển thị partial (partial đã gọi render_block_region('footer') bên trong) --}}
+        <div data-no-spa class="footer-wrapper">
+            @include('layouts.partials.footer', ['page' => $page])
         </div>
     </div>
     
@@ -180,7 +149,6 @@
     @endif
     
     <script src="{{ asset('assets/js/app.js') }}" type="module" defer></script>
-    @include('debug.bar')
     @stack('scripts')
 </body>
 </html>

@@ -34,7 +34,7 @@ class BlockRegion extends Model
         'is_active',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'max_blocks' => 'integer',
         'is_active' => 'boolean',
         'created_at' => 'datetime',

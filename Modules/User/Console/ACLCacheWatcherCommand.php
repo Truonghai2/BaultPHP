@@ -233,7 +233,6 @@ class ACLCacheWatcherCommand extends BaseCommand
     private function warmupActiveUsers(ACLOptimizer $optimizer): void
     {
         $activeUsers = User::where('updated_at', '>=', date('Y-m-d H:i:s', strtotime('-7 days')))
-            ->where('status', '=', 'active')
             ->select('id')
             ->limit(500)
             ->get();

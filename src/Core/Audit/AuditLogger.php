@@ -39,7 +39,7 @@ class AuditLogger
         string $eventType,
         array $data = [],
         string $severity = 'info',
-    ): AuditLog {
+    ): ?AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'oauth',
@@ -57,7 +57,7 @@ class AuditLogger
         ?Authenticatable $user = null,
         array $data = [],
         string $severity = 'info',
-    ): AuditLog {
+    ): ?AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'auth',
@@ -76,7 +76,7 @@ class AuditLogger
         $model,
         ?array $oldValues = null,
         ?array $newValues = null,
-    ): AuditLog {
+    ): ?AuditLog {
         $modelClass = get_class($model);
         $modelId = method_exists($model, 'getKey') ? $model->getKey() : null;
 
@@ -100,7 +100,7 @@ class AuditLogger
         string $description,
         array $metadata = [],
         string $severity = 'info',
-    ): AuditLog {
+    ): ?AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'system',
@@ -118,7 +118,7 @@ class AuditLogger
         string $description,
         array $metadata = [],
         string $severity = 'warning',
-    ): AuditLog {
+    ): ?AuditLog {
         return $this->log(
             eventType: $eventType,
             eventCategory: 'security',
@@ -131,6 +131,7 @@ class AuditLogger
 
     /**
      * Generic log method.
+     * Returns null when audit cannot be persisted (e.g. CLI without DB or table missing).
      */
     public function log(
         string $eventType,
@@ -144,14 +145,14 @@ class AuditLogger
         ?array $metadata = null,
         string $severity = 'info',
         bool $isSensitive = false,
-    ): AuditLog {
+    ): ?AuditLog {
         $user = $user ?? $this->user;
 
         $data = [
             'event_type' => $eventType,
             'event_category' => $eventCategory,
-            'user_id' => $user?->getAuthIdentifier(),
-            'user_type' => $user ? get_class($user) : null,
+            'user_id' => $user instanceof Authenticatable ? $user->getAuthIdentifier() : null,
+            'user_type' => $user instanceof Authenticatable ? get_class($user) : null,
             'ip_address' => $this->getIpAddress(),
             'user_agent' => $this->getUserAgent(),
             'auditable_type' => $auditableType,
@@ -164,7 +165,12 @@ class AuditLogger
             'is_sensitive' => $isSensitive,
         ];
 
-        return AuditLog::create($data);
+        try {
+            $log = AuditLog::create($data);
+            return $log instanceof AuditLog ? $log : null;
+        } catch (\Throwable $e) {
+            return null;
+        }
     }
 
     /**

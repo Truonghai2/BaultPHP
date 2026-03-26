@@ -112,6 +112,10 @@ class Router implements StatefulService
 
         $route = $this->findRoute($method, $uri);
 
+        if (!$route && $method === 'HEAD') {
+            $route = $this->findRoute('GET', $uri);
+        }
+
         if (!$route) {
             throw new RouteNotFoundException("Route not found for {$method} {$uri}");
         }
@@ -123,15 +127,12 @@ class Router implements StatefulService
 
     protected function findRoute(string $method, string $uri): ?Route
     {
-        // Fast path: O(1) lookup for static routes
         if (isset($this->staticRoutes[$method][$uri])) {
             return $this->staticRoutes[$method][$uri];
         }
 
-        // Slow path: Regex matching for dynamic routes (with pre-compiled patterns)
         if (isset($this->dynamicRoutes[$method])) {
             foreach ($this->dynamicRoutes[$method] as $routeUri => $route) {
-                // Use pre-compiled pattern instead of compiling each time
                 $pattern = $this->compiledPatterns[$method][$routeUri] ?? null;
 
                 if ($pattern && preg_match('#^' . $pattern . '$#', $uri, $matches)) {
@@ -147,7 +148,6 @@ class Router implements StatefulService
 
     public function gatherRouteMiddleware(Route $route): array
     {
-        // Performance optimization: Cache kernel instance
         static $kernel = null;
         if ($kernel === null) {
             $kernel = $this->app->make(Kernel::class);
@@ -190,7 +190,6 @@ class Router implements StatefulService
             }
         }
 
-        // After loading from cache, ensure all routes are optimized
         $this->rebuildRouteIndexes();
     }
 

@@ -36,13 +36,12 @@ class DeleteRoleHandler implements CommandHandlerInterface
 
         $role->delete();
 
-        Audit::log(
-            'data_change',
+        Audit::system(
+            'role_deleted',
             "Role deleted: {$roleName}",
             [
                 'role_id' => $command->roleId,
                 'role_name' => $roleName,
-                'action' => 'role_deleted',
             ],
             'warning',
         );

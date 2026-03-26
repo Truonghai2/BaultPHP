@@ -38,20 +38,14 @@ class LoginHandler implements CommandHandlerInterface
             $user = $guard->user();
 
             // Audit log successful login
-            Audit::log(
-                'authentication',
-                "User logged in: {$user->email}",
+            Audit::auth(
+                'login_success',
                 $user,
-                null,
-                null,
-                null,
-                null,
-                null,
                 [
+                    'email' => $user->email,
                     'remember' => $command->remember,
                     'ip_address' => request()->ip() ?? 'unknown',
                     'user_agent' => request()->header('User-Agent') ?? 'unknown',
-                    'action' => 'login_success',
                 ],
                 'info',
             );
@@ -60,15 +54,13 @@ class LoginHandler implements CommandHandlerInterface
         }
 
         // Audit log failed login
-        Audit::log(
-            'authentication',
-            "Failed login attempt: {$command->email}",
-            null, // No user object on failed login
+        Audit::auth(
+            'login_failed',
+            null,
             [
                 'email' => $command->email,
                 'ip_address' => request()->ip() ?? 'unknown',
                 'user_agent' => request()->header('User-Agent') ?? 'unknown',
-                'action' => 'login_failed',
             ],
             'warning',
         );

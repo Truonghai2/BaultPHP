@@ -183,4 +183,25 @@ class RedisStore implements Store
 
         return (int) $ttl;
     }
+
+    /**
+     * {@inheritdoc}
+     */
+    public function forgetPattern(string $pattern): bool
+    {
+        $iterator = null;
+        $deleted = 0;
+        
+        // Ensure pattern includes prefix if not wildcard start
+        $fullPattern = $this->prefix . $pattern;
+
+        do {
+            $keys = $this->redis->scan($iterator, $fullPattern);
+            if (!empty($keys)) {
+                $deleted += $this->redis->del($keys);
+            }
+        } while ($iterator > 0);
+
+        return $deleted > 0;
+    }
 }

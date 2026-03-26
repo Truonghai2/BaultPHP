@@ -64,11 +64,21 @@ RUN buildDeps=" \
         default-mysql-client \
         postgresql-client \
         curl \
-    && pecl install redis apcu \
-    && docker-php-ext-enable redis apcu \
+        wget \
+        ca-certificates \
+        protobuf-compiler \
+    && pecl install redis apcu grpc \
+    && docker-php-ext-enable redis apcu grpc \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pdo_pgsql pcntl bcmath sockets \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Install WebAssembly runtime (wasmtime)
+RUN curl https://wasmtime.dev/install.sh -sSf | bash \
+    && mv /root/.wasmtime/bin/wasmtime /usr/local/bin/wasmtime \
+    && chmod +x /usr/local/bin/wasmtime \
+    && rm -rf /root/.wasmtime \
+    && wasmtime --version
  
 # [IMPORTANT] Use resources from the framework:
 # Copy custom configuration files into the image.
@@ -121,7 +131,7 @@ RUN chown $APP_USER:$APP_GROUP $APP_HOME
 # Switch to the application user to create necessary directories with the correct ownership.
 # This helps reduce the logic that needs to be handled in the entrypoint script.
 USER $APP_USER
-RUN mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache bootstrap/cache
+RUN mkdir -p storage/logs storage/framework/sessions storage/framework/views storage/framework/cache bootstrap/cache wasm proto src/Grpc/Generated
  
 # Switch back to root. The entrypoint will use `gosu` to switch to $APP_USER when running the application.
 USER root

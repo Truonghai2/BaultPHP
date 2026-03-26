@@ -11,5 +11,11 @@ use Psr\SimpleCache\CacheInterface;
  */
 interface Store extends CacheInterface
 {
-    // You can add framework-specific methods here if necessary.
+    /**
+     * Remove all items from the cache that match a given pattern.
+     *
+     * @param string $pattern
+     * @return bool
+     */
+    public function forgetPattern(string $pattern): bool;
 }

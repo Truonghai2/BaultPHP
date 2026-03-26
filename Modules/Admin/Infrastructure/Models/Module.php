@@ -25,7 +25,7 @@ class Module extends Model
 
     protected array $fillable = ['name', 'version', 'enabled', 'status', 'description'];
 
-    protected $casts = ['enabled' => 'boolean'];
+    protected array $casts = ['enabled' => 'boolean'];
 
     /**
      * Define which events should be audited.

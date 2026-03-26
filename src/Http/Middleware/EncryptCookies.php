@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use Core\Application;
 use Core\Encryption\Encrypter;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\ServerRequestInterface;
@@ -11,7 +12,7 @@ use Symfony\Component\HttpFoundation\Cookie;
 
 class EncryptCookies implements MiddlewareInterface
 {
-    protected Encrypter $encrypter;
+    protected ?Encrypter $encrypter = null;
 
     /**
      * Tên của các cookie không nên được mã hóa.
@@ -42,13 +43,29 @@ class EncryptCookies implements MiddlewareInterface
         return false;
     }
 
-    public function __construct(Encrypter $encrypter)
-    {
-        $this->encrypter = $encrypter;
+    public function __construct(
+        protected Application $app,
+    ) {
     }
 
     public function process(ServerRequestInterface $request, RequestHandlerInterface $handler): ResponseInterface
     {
+        // Lazy load encrypter to avoid circular dependency
+        // Encrypter -> (some service) -> EncryptCookies
+        if ($this->encrypter === null && $this->app->bound(Encrypter::class)) {
+            try {
+                $this->encrypter = $this->app->make(Encrypter::class);
+            } catch (\Throwable $e) {
+                // If encrypter can't be resolved, skip encryption/decryption
+                return $handler->handle($request);
+            }
+        }
+
+        // Skip if encrypter is not available
+        if ($this->encrypter === null) {
+            return $handler->handle($request);
+        }
+
         $decryptedRequest = $this->decrypt($request);
 
         $response = $handler->handle($decryptedRequest);

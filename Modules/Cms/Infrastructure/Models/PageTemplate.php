@@ -43,7 +43,7 @@ class PageTemplate extends Model
         'sort_order',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'blocks_config' => 'array',
         'default_seo' => 'array',
         'is_active' => 'boolean',

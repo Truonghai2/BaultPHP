@@ -297,8 +297,16 @@ if (!function_exists('response')) {
      */
     function response(string $content = null, int $status = 200, array $headers = []): ResponseFactory|ResponseInterface
     {
-        /** @var ResponseFactory $factory */
-        $factory = app(ResponseFactory::class);
+        try {
+            /** @var ResponseFactory $factory */
+            $factory = app(ResponseFactory::class);
+        } catch (\Throwable $e) {
+            // Avoid container (e.g. circular dependency when rendering exception page)
+            if (!isset($headers['Content-Type']) && !isset($headers['content-type'])) {
+                $headers['Content-Type'] = 'text/html; charset=UTF-8';
+            }
+            return new \Nyholm\Psr7\Response($status ?: 200, $headers, $content ?? '');
+        }
 
         if (is_null($content)) {
             return $factory;
@@ -383,16 +391,28 @@ if (! function_exists('view')) {
 if (!function_exists('asset')) {
     /**
      * Generate a URL for an asset.
+     * Ưu tiên base URL từ request hiện tại (sau redirect vẫn đúng host/port), fallback config app.url.
      *
      * @param  string  $path
      * @return string
      */
     function asset(string $path): string
     {
-        $baseUrl = rtrim(config('app.url', '/'), '/');
-
         $path = ltrim($path, '/');
 
+        try {
+            $request = app(\Psr\Http\Message\ServerRequestInterface::class);
+            $uri = $request->getUri();
+            $baseUrl = (string) $uri->withPath('')->withQuery('')->withFragment('');
+            $baseUrl = rtrim($baseUrl, '/');
+            if ($baseUrl !== '') {
+                return "{$baseUrl}/{$path}";
+            }
+        } catch (\Throwable $e) {
+            // CLI hoặc không có request
+        }
+
+        $baseUrl = rtrim(config('app.url', '/'), '/');
         return "{$baseUrl}/{$path}";
     }
 }
@@ -859,27 +879,29 @@ if (!function_exists('render_page_blocks')) {
         try {
             $html = $renderer->renderPageBlocks($page, $region, $context, $userRoles);
 
-            // DEBUG: Add info about blocks
-            if (config('app.debug') && empty($html)) {
+            // DEBUG: only when region had blocks but rendered empty (avoid HTML comments when 0 blocks)
+            if (config('app.debug') && $html === '') {
                 $blocks = $page->blocksInRegion($region);
                 $blockCount = $blocks->count();
-                $blockInfo = [];
-                foreach ($blocks as $block) {
-                    $blockInfo[] = sprintf(
-                        'Block #%d: %s (visible: %s, type: %s)',
-                        $block->id,
-                        $block->blockType ? $block->blockType->name : 'NULL',
-                        $block->visible ? 'yes' : 'no',
-                        $block->blockType ? 'exists' : 'MISSING',
+                if ($blockCount > 0) {
+                    $blockInfo = [];
+                    foreach ($blocks as $block) {
+                        $blockInfo[] = sprintf(
+                            'Block #%d: %s (visible: %s, type: %s)',
+                            $block->id,
+                            $block->blockType ? $block->blockType->name : 'NULL',
+                            $block->visible ? 'yes' : 'no',
+                            $block->blockType ? 'exists' : 'MISSING',
+                        );
+                    }
+                    return sprintf(
+                        "<!-- DEBUG: Page #%d, Region '%s', Found %d blocks but rendered empty\n%s\n-->",
+                        $page->id,
+                        $region,
+                        $blockCount,
+                        implode("\n", $blockInfo),
                     );
                 }
-                return sprintf(
-                    "<!-- DEBUG: Page #%d, Region '%s', Found %d blocks but rendered empty\n%s\n-->",
-                    $page->id,
-                    $region,
-                    $blockCount,
-                    implode("\n", $blockInfo),
-                );
             }
 
             return $html;
@@ -1663,6 +1685,182 @@ if (!function_exists('apcu_clear')) {
 }
 
 // ============================================================================
+// WebAssembly Helper Functions
+// ============================================================================
+
+if (!function_exists('wasm')) {
+    /**
+     * Get WASM executor instance or execute WASM module.
+     *
+     * @param string|null $module WASM module name or file path
+     * @param array $inputs Input parameters
+     * @param array $options Execution options
+     * @return \Core\WebAssembly\WasmExecutor|mixed
+     */
+    function wasm(?string $module = null, array $inputs = [], array $options = [])
+    {
+        $executor = app(\Core\WebAssembly\WasmExecutor::class);
+
+        if ($module === null) {
+            return $executor;
+        }
+
+        return $executor->execute($module, $inputs, $options);
+    }
+}
+
+if (!function_exists('wasm_image')) {
+    /**
+     * Get WASM image processor instance.
+     *
+     * @return \Core\WebAssembly\WasmImageProcessor
+     */
+    function wasm_image(): \Core\WebAssembly\WasmImageProcessor
+    {
+        return app(\Core\WebAssembly\WasmImageProcessor::class);
+    }
+}
+
+if (!function_exists('wasm_calc')) {
+    /**
+     * Get WASM calculator instance.
+     *
+     * @return \Core\WebAssembly\WasmCalculator
+     */
+    function wasm_calc(): \Core\WebAssembly\WasmCalculator
+    {
+        return app(\Core\WebAssembly\WasmCalculator::class);
+    }
+}
+
+if (!function_exists('wasm_available')) {
+    /**
+     * Check if WASM runtime is available.
+     *
+     * @return bool
+     */
+    function wasm_available(): bool
+    {
+        $executor = app(\Core\WebAssembly\WasmExecutor::class);
+        return $executor->isAvailable();
+    }
+}
+
+if (!function_exists('wasm_plugin')) {
+    /**
+     * Run a module WASM plugin (Modules/<module>/wasm/<plugin>.wasm).
+     * Uses plugin ABI: JSON input -> stdin, JSON output <- stdout.
+     *
+     * @param string $moduleName e.g. "Cms"
+     * @param string $pluginName e.g. "rule_engine" (file rule_engine.wasm)
+     * @param array $input input payload (sent as JSON to WASM)
+     * @param array $options optional timeout, output_format, etc.
+     * @return mixed decoded JSON from stdout or parsed per output_format
+     */
+    function wasm_plugin(string $moduleName, string $pluginName, array $input = [], array $options = []): mixed
+    {
+        $options['io_mode'] = $options['io_mode'] ?? 'stdio';
+        return wasm($moduleName . '/' . $pluginName, $input, $options);
+    }
+}
+
+// ============================================================================
+// Multi-tenancy Helpers
+// ============================================================================
+
+if (!function_exists('tenant')) {
+    /**
+     * Get current tenant model or null (when tenancy enabled and tenant resolved).
+     *
+     * @return \Core\Tenancy\Tenant|null
+     */
+    function tenant(): ?\Core\Tenancy\Tenant
+    {
+        $id = \Core\Support\Context::getTenantId();
+        if ($id === null) {
+            return null;
+        }
+        return \Core\Tenancy\Tenant::find($id);
+    }
+}
+
+if (!function_exists('current_tenant_id')) {
+    /**
+     * Get current tenant ID from context.
+     */
+    function current_tenant_id(): ?int
+    {
+        return \Core\Support\Context::getTenantId();
+    }
+}
+
+// ============================================================================
+// gRPC Helper Functions
+// ============================================================================
+
+if (!function_exists('grpc')) {
+    /**
+     * Get gRPC service manager or call a gRPC service.
+     *
+     * @param string|null $service Service name (e.g., 'user.UserService')
+     * @param string|null $method Method name (e.g., 'GetUser')
+     * @param mixed $request Request message
+     * @param array $options Call options
+     * @return \Core\RPC\GrpcServiceManager|mixed
+     */
+    function grpc(?string $service = null, ?string $method = null, mixed $request = null, array $options = [])
+    {
+        $manager = app(\Core\RPC\GrpcServiceManager::class);
+
+        if ($service === null) {
+            return $manager;
+        }
+
+        if ($method === null) {
+            return $manager->getClient();
+        }
+
+        return $manager->call($service, $method, $request, $options);
+    }
+}
+
+if (!function_exists('grpc_client')) {
+    /**
+     * Get gRPC client instance.
+     *
+     * @return \Core\RPC\GrpcClient
+     */
+    function grpc_client(): \Core\RPC\GrpcClient
+    {
+        return app(\Core\RPC\GrpcServiceManager::class)->getClient();
+    }
+}
+
+if (!function_exists('grpc_server')) {
+    /**
+     * Get gRPC server instance.
+     *
+     * @return \Core\RPC\GrpcServer
+     */
+    function grpc_server(): \Core\RPC\GrpcServer
+    {
+        return app(\Core\RPC\GrpcServiceManager::class)->getServer();
+    }
+}
+
+if (!function_exists('grpc_available')) {
+    /**
+     * Check if gRPC extension is available.
+     *
+     * @return bool
+     */
+    function grpc_available(): bool
+    {
+        return extension_loaded('grpc');
+    }
+}
+
+// ============================================================================
 // OAuth Cache Helper Functions
 // ============================================================================
 
@@ -1784,6 +1982,69 @@ if (!function_exists('oauth_get_scope')) {
 
         // L3: Check persistent cache
         return cache()->get($key);
+    }
+}
+
+// =============================================================================
+// Extension Point helpers
+// =============================================================================
+
+if (!function_exists('extend_point')) {
+    /**
+     * Register a handler for a named extension point.
+     *
+     * Equivalent to: app(ExtensionRegistry::class)->register(...)
+     *
+     * @param string        $name        Extension point name (use CoreExtensionPoints::* constants).
+     * @param callable      $handler     The handler callable.
+     * @param int           $priority    Lower runs first (default 10).
+     * @param string|null   $registeredBy  Optional FQCN for introspection.
+     */
+    function extend_point(string $name, callable $handler, int $priority = 10, ?string $registeredBy = null): void
+    {
+        app(\Core\Extension\ExtensionRegistry::class)->register($name, $handler, $priority, $registeredBy);
+    }
+}
+
+if (!function_exists('apply_filter')) {
+    /**
+     * Pass a value through all FILTER handlers registered for an extension point.
+     *
+     * @param string $name     Extension point name.
+     * @param mixed  $value    The value to filter.
+     * @param array  $context  Additional read-only context for handlers.
+     * @return mixed           The filtered value.
+     */
+    function apply_filter(string $name, mixed $value, array $context = []): mixed
+    {
+        return app(\Core\Extension\ExtensionRegistry::class)->filter($name, $value, $context);
+    }
+}
+
+if (!function_exists('run_action')) {
+    /**
+     * Trigger all ACTION handlers registered for an extension point.
+     *
+     * @param string $name    Extension point name.
+     * @param array  $context Context data passed to every handler.
+     */
+    function run_action(string $name, array $context = []): void
+    {
+        app(\Core\Extension\ExtensionRegistry::class)->action($name, $context);
+    }
+}
+
+if (!function_exists('collect_extensions')) {
+    /**
+     * Call all COLLECTOR handlers for an extension point and merge their arrays.
+     *
+     * @param string $name    Extension point name.
+     * @param array  $context Context data passed to every handler.
+     * @return array          Merged contribution from all handlers.
+     */
+    function collect_extensions(string $name, array $context = []): array
+    {
+        return app(\Core\Extension\ExtensionRegistry::class)->collect($name, $context);
     }
 }
 

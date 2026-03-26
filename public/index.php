@@ -1,7 +1,5 @@
 <?php
 
-file_put_contents(base_path('storage/logs/public_index_test.log'), 'public/index.php reached\n', FILE_APPEND);
-
 use Core\AppKernel;
 use Laminas\Diactoros\Response\SapiEmitter;
 use Nyholm\Psr7\Factory\Psr17Factory;

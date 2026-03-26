@@ -43,6 +43,7 @@ class DatabaseSeeder extends Seeder
             // 2. Block System
             BlockRegionSeeder::class,          // Default block regions (header, footer, etc.)
             DefaultBlocksSeeder::class,        // Global block instances for default regions
+            ThemeBlocksSeeder::class,          // Dynamic header/footer blocks
 
             // 3. CMS Pages & Templates
             PageTemplateSeeder::class,         // Page templates (7 defaults)

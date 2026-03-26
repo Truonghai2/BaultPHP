@@ -48,7 +48,6 @@ class DelayedJobScheduler
 
         $redis = null;
         try {
-            $this->logger->debug('Attempting to get Redis connection for DelayedJobScheduler.');
             $redis = $this->redisManager->getForScheduler($this->redisConnectionName);
 
             if (!$redis) {
@@ -56,24 +55,16 @@ class DelayedJobScheduler
                 return;
             }
 
-            $this->logger->debug('Successfully obtained Redis connection.');
-
             $jobsToProcess = $this->fetchAndRemoveDueJobs($redis);
-            $this->logger->debug('fetchAndRemoveDueJobs completed.');
         } catch (Throwable $e) {
             $this->logger->error('Failed to fetch delayed jobs from Redis: ' . $e->getMessage(), ['exception' => $e]);
         } finally {
             if ($redis) {
-                $this->logger->debug('Returning Redis connection to pool.', ['connection_name' => $this->redisConnectionName]);
                 $this->redisManager->put($redis, $this->redisConnectionName);
-                $this->logger->debug('Redis connection returned to pool.');
-            } else {
-                $this->logger->debug('Redis connection was null, no need to return to pool.');
             }
         }
 
         if (empty($jobsToProcess)) {
-            $this->logger->debug('No delayed jobs to process.');
             return;
         }
 

@@ -5,8 +5,6 @@ use Core\Foundation\ProviderRepository;
 use Core\Support\Facade;
 use Dotenv\Dotenv;
 
-require_once __DIR__ . '/../vendor/autoload.php';
-
 /*
 |--------------------------------------------------------------------------
 | Create The Application

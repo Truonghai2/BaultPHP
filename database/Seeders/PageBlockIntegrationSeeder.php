@@ -59,6 +59,10 @@ class PageBlockIntegrationSeeder extends Seeder
                 $this->createAboutPageBlocks($page);
                 break;
 
+            case 'contact':
+                $this->createContactPageBlocks($page);
+                break;
+
             default:
                 // Other pages use default layout
                 $this->command->info("  - Page '{$page->name}' uses default layout (no page-specific blocks)");
@@ -68,12 +72,12 @@ class PageBlockIntegrationSeeder extends Seeder
 
     /**
      * Create blocks for home page
+     * Hero chỉ ở region 'hero' (layout render hero 1 lần); features & stats ở 'content'.
      */
     private function createHomePageBlocks(Page $page): void
     {
-        // Homepage uses 3 homepage blocks
         $blocks = [
-            ['name' => 'homepage-hero', 'region' => 'content', 'order' => 0],
+            ['name' => 'homepage-hero', 'region' => 'hero', 'order' => 0],
             ['name' => 'homepage-features', 'region' => 'content', 'order' => 1],
             ['name' => 'homepage-stats', 'region' => 'content', 'order' => 2],
         ];
@@ -97,10 +101,33 @@ class PageBlockIntegrationSeeder extends Seeder
      */
     private function createAboutPageBlocks(Page $page): void
     {
-        // About page uses text and team blocks
+        // About page uses text and team blocks (TextBlock::getName() = 'text')
         $blocks = [
-            ['name' => 'text-block', 'region' => 'content', 'order' => 0],
+            ['name' => 'text', 'region' => 'content', 'order' => 0],
             ['name' => 'team', 'region' => 'content', 'order' => 1],
+        ];
+
+        foreach ($blocks as $blockData) {
+            $blockType = BlockType::where('name', $blockData['name'])->first();
+
+            if (!$blockType) {
+                $this->command->warn("  ⚠ Block type '{$blockData['name']}' not found, skipping...");
+                continue;
+            }
+
+            $this->createPageBlock($page, $blockType, $blockData['region'], $blockData['order']);
+        }
+
+        $this->command->info("  ✓ Assigned blocks to page: {$page->name}");
+    }
+
+    /**
+     * Create blocks for contact page (ContactBlock)
+     */
+    private function createContactPageBlocks(Page $page): void
+    {
+        $blocks = [
+            ['name' => 'contact', 'region' => 'content', 'order' => 0],
         ];
 
         foreach ($blocks as $blockData) {

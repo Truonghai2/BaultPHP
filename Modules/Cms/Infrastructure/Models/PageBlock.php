@@ -46,7 +46,7 @@ class PageBlock extends Model
         'created_by',
     ];
 
-    protected $casts = [
+    protected array $casts = [
         'visibility_rules' => 'array',
         'allowed_roles' => 'array',
         'sort_order' => 'integer',
@@ -229,22 +229,24 @@ class PageBlock extends Model
      */
     public function isVisibleTo(?User $user = null): bool
     {
-        if (!$this->visible) {
+        if (!$this->getAttribute('visible')) {
             return false;
         }
 
-        if ($this->allowed_roles && count($this->allowed_roles) > 0) {
+        $allowedRoles = $this->getAttribute('allowed_roles');
+        if (!empty($allowedRoles) && is_array($allowedRoles)) {
             if (!$user) {
-                return in_array('guest', $this->allowed_roles);
+                return in_array('guest', $allowedRoles);
             }
-
+            
             $userRoles = method_exists($user, 'getRoles') ? $user->getRoles() : [];
-            if (count(array_intersect($userRoles, $this->allowed_roles)) === 0) {
+            if (count(array_intersect($userRoles, $allowedRoles)) === 0) {
                 return false;
             }
         }
 
-        if ($this->visibility_rules && count($this->visibility_rules) > 0) {
+        $visibilityRules = $this->getAttribute('visibility_rules');
+        if (!empty($visibilityRules) && is_array($visibilityRules)) {
             return $this->evaluateVisibilityRules($user);
         }
 

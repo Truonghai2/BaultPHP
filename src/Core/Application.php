@@ -26,6 +26,9 @@ class Application implements ContainerInterface, \ArrayAccess
     /** @var array<string, array<int, string>> The array of tags and their assigned abstracts. */
     protected array $tags = [];
 
+    /** @var array<string, array<int, \Closure>> The registered rebinding callbacks. */
+    protected array $reboundCallbacks = [];
+
     /** @var array The compiled container factories. */
     protected array $compiledFactories = [];
 
@@ -147,9 +150,16 @@ class Application implements ContainerInterface, \ArrayAccess
         $path = $this->bootstrapPath('cache/container.php');
 
         if (file_exists($path)) {
-            $compiled = require $path;
-            $this->compiledFactories = $compiled['factories'] ?? [];
-            $this->aliases = array_merge($compiled['aliases'] ?? [], $this->aliases);
+            try {
+                $compiled = require $path;
+                $this->compiledFactories = $compiled['factories'] ?? [];
+                $this->aliases = array_merge($compiled['aliases'] ?? [], $this->aliases);
+            } catch (\Throwable $e) {
+                // If compiled container is corrupted or references non-existent classes,
+                // delete it and fall back to normal resolution
+                @unlink($path);
+                // Silently continue - normal resolution will work fine
+            }
         }
     }
 
@@ -174,12 +184,62 @@ class Application implements ContainerInterface, \ArrayAccess
         if (is_null($concrete)) {
             $concrete = $abstract;
         }
-        $this->bindings[$abstract] = compact('concrete', 'singleton');
+        $this->bindings[$abstract] = [
+            'concrete' => $concrete,
+            'singleton' => $singleton,
+            'scoped' => false,
+        ];
     }
 
     public function singleton(string $abstract, mixed $concrete = null): void
     {
         $this->bind($abstract, $concrete ?? $abstract, true);
+    }
+
+    /**
+     * Register a shared binding if it hasn't been registered.
+     */
+    public function singletonIf(string $abstract, mixed $concrete = null): void
+    {
+        if (!$this->bound($abstract)) {
+            $this->singleton($abstract, $concrete);
+        }
+    }
+
+    /**
+     * Register a binding if it hasn't been registered.
+     */
+    public function bindIf(string $abstract, mixed $concrete = null, bool $singleton = false): void
+    {
+        if (!$this->bound($abstract)) {
+            $this->bind($abstract, $concrete, $singleton);
+        }
+    }
+
+    /**
+     * Register a scoped binding (one instance per request/coroutine).
+     */
+    public function scoped(string $abstract, mixed $concrete = null): void
+    {
+        if (is_null($concrete)) {
+            $concrete = $abstract;
+        }
+
+        $this->bindings[$abstract] = [
+            'concrete' => $concrete,
+            'singleton' => false,
+            'scoped' => true,
+        ];
+    }
+
+    /**
+     * Register a scoped binding if it hasn't been registered.
+     */
+    public function scopedIf(string $abstract, mixed $concrete = null): void
+    {
+        if (!$this->bound($abstract)) {
+            $this->scoped($abstract, $concrete);
+        }
     }
 
     /**
@@ -210,6 +270,7 @@ class Application implements ContainerInterface, \ArrayAccess
     public function instance(string $abstract, mixed $instance): mixed
     {
         $this->instances[$abstract] = $instance;
+        $this->fireRebindingCallbacks($abstract);
         return $instance;
     }
 
@@ -221,6 +282,8 @@ class Application implements ContainerInterface, \ArrayAccess
      */
     public function make(string $abstract, array $parameters = []): mixed
     {
+        // Store original abstract before alias resolution for circular dependency detection
+        $originalAbstract = $abstract;
         $abstract = $this->getAlias($abstract);
 
         if (isset($this->deferredServices[$abstract]) && !isset($this->instances[$abstract])) {
@@ -228,16 +291,47 @@ class Application implements ContainerInterface, \ArrayAccess
         }
 
         if (empty($parameters) && isset($this->compiledFactories[$abstract])) {
-            return $this->compiledFactories[$abstract]($this);
+            try {
+                return $this->compiledFactories[$abstract]($this);
+            } catch (\Throwable $e) {
+                // If compiled factory fails (e.g., class not found), fall back to normal resolution
+                // Remove the problematic factory from cache
+                unset($this->compiledFactories[$abstract]);
+            }
         }
 
         if (isset($this->instances[$abstract])) {
             return $this->instances[$abstract];
         }
 
+        // Scoped bindings: return from context cache if available
+        if (!empty($this->bindings[$abstract]['scoped'])) {
+            $scopedInstance = $this->getScopedInstance($abstract);
+            if ($scopedInstance !== null) {
+                return $scopedInstance;
+            }
+        }
+
+        // Check if the resolved abstract is already being resolved
         if (in_array($abstract, $this->resolvingStack)) {
             $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
             throw new ContainerException("Circular dependency detected while resolving: [{$path}]");
+        }
+        
+        // Check if the original abstract (before alias resolution) is in the resolving stack
+        // This catches cases where SessionInterface::class -> 'session' circular dependency
+        if ($originalAbstract !== $abstract && in_array($originalAbstract, $this->resolvingStack)) {
+            $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
+            throw new ContainerException("Circular dependency detected while resolving: [{$path}]");
+        }
+        
+        // Check if any alias pointing to this abstract is in the resolving stack
+        // This catches cases where 'session' -> SessionInterface::class -> 'session'
+        foreach ($this->aliases as $alias => $resolvedAbstract) {
+            if ($resolvedAbstract === $abstract && in_array($alias, $this->resolvingStack)) {
+                $path = implode(' -> ', $this->resolvingStack) . " -> {$abstract}";
+                throw new ContainerException("Circular dependency detected while resolving: [{$path}]");
+            }
         }
 
         $this->resolvingStack[] = $abstract;
@@ -257,6 +351,10 @@ class Application implements ContainerInterface, \ArrayAccess
 
         if (isset($this->bindings[$abstract]['singleton']) && $this->bindings[$abstract]['singleton']) {
             $this->instances[$abstract] = $object;
+        }
+
+        if (!empty($this->bindings[$abstract]['scoped'])) {
+            $this->setScopedInstance($abstract, $object);
         }
 
         if (isset($this->resolvingCallbacks[$abstract])) {
@@ -293,7 +391,7 @@ class Application implements ContainerInterface, \ArrayAccess
             return new $concrete();
         }
 
-        $dependencies = $this->resolveDependencies($constructor->getParameters());
+        $dependencies = $this->resolveDependencies($constructor->getParameters(), $parameters);
 
         return $reflector->newInstanceArgs($dependencies);
     }
@@ -303,11 +401,16 @@ class Application implements ContainerInterface, \ArrayAccess
      *
      * @throws RuntimeException
      */
-    protected function resolveDependencies(array $dependencies): array
+    protected function resolveDependencies(array $dependencies, array $parameters = []): array
     {
         $results = [];
 
         foreach ($dependencies as $dependency) {
+            $paramName = $dependency->getName();
+            if (array_key_exists($paramName, $parameters)) {
+                $results[] = $parameters[$paramName];
+                continue;
+            }
             $type = $dependency->getType();
 
             if ($type instanceof \ReflectionNamedType && !$type->isBuiltin()) {
@@ -321,7 +424,6 @@ class Application implements ContainerInterface, \ArrayAccess
             }
 
             $context = end($this->resolvingStack);
-            $paramName = $dependency->getName();
             $message = "Cannot resolve parameter `{$paramName}`";
             if ($context) {
                 $message .= " in class `{$context}`";
@@ -347,6 +449,25 @@ class Application implements ContainerInterface, \ArrayAccess
         if (isset($this->contextual[$context][$type])) {
             $implementation = $this->contextual[$context][$type];
             return is_callable($implementation) ? $implementation($this) : $this->make($implementation);
+        }
+
+        // Check if the type is already bound (even if class doesn't exist)
+        // This allows optional dependencies like Clockwork to be bound as null
+        if (isset($this->instances[$type])) {
+            return $this->instances[$type];
+        }
+        if (isset($this->bindings[$type])) {
+            return $this->make($type);
+        }
+
+        // If class doesn't exist and isn't bound, check if it's an optional dependency
+        if (!class_exists($type) && !interface_exists($type)) {
+            // If parameter has a default value, use it
+            if ($parameter->isDefaultValueAvailable()) {
+                return $parameter->getDefaultValue();
+            }
+            // Otherwise, try to make it (might be bound by a service provider)
+            // This will throw if it can't be resolved, which is expected
         }
 
         return $this->make($type);
@@ -385,6 +506,95 @@ class Application implements ContainerInterface, \ArrayAccess
             }
         }
         return $callback(...$dependencies);
+    }
+
+    /**
+     * Register a rebinding callback for a given abstract.
+     */
+    public function rebinding(string $abstract, \Closure $callback): void
+    {
+        $abstract = $this->getAlias($abstract);
+        $this->reboundCallbacks[$abstract][] = $callback;
+    }
+
+    /**
+     * Rebind an abstract and trigger rebinding callbacks.
+     */
+    public function rebind(string $abstract, mixed $concrete = null, bool $singleton = false): void
+    {
+        $this->bind($abstract, $concrete, $singleton);
+        $this->forgetInstance($abstract);
+        $this->fireRebindingCallbacks($abstract);
+    }
+
+    /**
+     * Refresh an instance on a target object.
+     */
+    public function refresh(string $abstract, object $target, string $method): void
+    {
+        $this->rebinding($abstract, function ($app, $instance) use ($target, $method) {
+            $target->{$method}($instance);
+        });
+    }
+
+    /**
+     * Fire rebinding callbacks for an abstract.
+     */
+    protected function fireRebindingCallbacks(string $abstract): void
+    {
+        $abstract = $this->getAlias($abstract);
+        if (!isset($this->reboundCallbacks[$abstract])) {
+            return;
+        }
+
+        $instance = $this->bound($abstract) ? $this->make($abstract) : null;
+        foreach ($this->reboundCallbacks[$abstract] as $callback) {
+            $callback($this, $instance);
+        }
+    }
+
+    /**
+     * Get a scoped instance from request/coroutine context.
+     */
+    protected function getScopedInstance(string $abstract): mixed
+    {
+        if (!class_exists(\Core\Support\Context::class)) {
+            return null;
+        }
+
+        return \Core\Support\Context::get('scoped:' . $abstract);
+    }
+
+    /**
+     * Store a scoped instance in request/coroutine context.
+     */
+    protected function setScopedInstance(string $abstract, mixed $instance): void
+    {
+        if (!class_exists(\Core\Support\Context::class)) {
+            return;
+        }
+
+        \Core\Support\Context::set('scoped:' . $abstract, $instance);
+    }
+
+    /**
+     * Remove all resolved instances from the container.
+     */
+    public function flush(): void
+    {
+        $this->instances = [];
+    }
+
+    /**
+     * Remove multiple resolved instances.
+     *
+     * @param array<string> $abstracts
+     */
+    public function forgetInstances(array $abstracts): void
+    {
+        foreach ($abstracts as $abstract) {
+            $this->forgetInstance($abstract);
+        }
     }
 
     protected function getReflector(string $class): \ReflectionClass
@@ -432,6 +642,25 @@ class Application implements ContainerInterface, \ArrayAccess
         $this->registeredProviders[$providerClass] = true;
 
         $this->serviceProviders[] = $provider;
+    }
+
+    /**
+     * Register a service provider and, if the application has already booted,
+     * run its boot() method immediately. Used when lazy-loading module providers
+     * on request (activate=on_request).
+     *
+     * @param string $providerClass FQCN of the service provider
+     */
+    public function registerProviderAndBoot(string $providerClass): void
+    {
+        $this->register($providerClass);
+
+        if ($this->isBooted()) {
+            $provider = $this->getProvider($providerClass);
+            if ($provider !== null && method_exists($provider, 'boot')) {
+                $this->call([$provider, 'boot']);
+            }
+        }
     }
 
     /**
