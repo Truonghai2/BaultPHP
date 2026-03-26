@@ -28,7 +28,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip, apcu, grpc, mongodb, ffi, bcmath, intl
           coverage: xdebug
 
       - name: Cache Composer dependencies
@@ -77,7 +77,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ env.PHP_VERSION }}
-          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip, apcu, grpc, mongodb, ffi, bcmath, intl
 
       - name: Cache Composer dependencies
         uses: actions/cache@v4
@@ -112,6 +112,7 @@ jobs:
       APP_ENV: testing
       APP_DEBUG: true
       APP_KEY: base64:testKeyForCIOnly123456789012345678901234567890=
+      WASM_ENABLED: false
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -120,7 +121,7 @@ jobs:
         uses: shivammathur/setup-php@v2
         with:
           php-version: ${{ matrix.php-version }}
-          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip
+          extensions: swoole, pdo, pdo_mysql, redis, mbstring, xml, curl, zip, apcu, grpc, mongodb, ffi, bcmath, intl
           coverage: xdebug
 
       - name: Cache Composer dependencies
@@ -165,6 +166,7 @@ jobs:
       APP_ENV: testing
       APP_DEBUG: true
       APP_KEY: base64:testKeyForCIOnly123456789012345678901234567890=
+      WASM_ENABLED: false
       DB_CONNECTION: mysql
       DB_HOST: db
       DB_PORT: 3306

@@ -50,6 +50,7 @@ RUN buildDeps=" \
         make \
         g++ \
         unzip \
+        libffi-dev \
     " && \
     apt-get update && apt-get install -y --no-install-recommends $buildDeps \
         python3 \
@@ -67,10 +68,10 @@ RUN buildDeps=" \
         wget \
         ca-certificates \
         protobuf-compiler \
-    && pecl install redis apcu grpc \
-    && docker-php-ext-enable redis apcu grpc \
+    && pecl install redis apcu grpc mongodb \
+    && docker-php-ext-enable redis apcu grpc mongodb \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pdo_pgsql pcntl bcmath sockets \
+    && docker-php-ext-install -j$(nproc) gd zip pdo_mysql pdo_pgsql pcntl bcmath sockets ffi \
     && apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false $buildDeps && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install WebAssembly runtime (wasmtime)

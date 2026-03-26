@@ -293,12 +293,14 @@ class WebRTCManager
      */
     public function getStats(): array
     {
+        $totalPeers = 0;
+        foreach ($this->sessions as $session) {
+            $totalPeers += count($session['peers'] ?? []);
+        }
+
         return [
             'total_sessions' => count($this->sessions),
-            'total_peers' => array_sum(array_map(
-                fn($s) => count($s['peers']),
-                $this->sessions
-            )),
+            'total_peers' => $totalPeers,
             'sessions' => $this->listSessions(),
         ];
     }

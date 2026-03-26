@@ -49,7 +49,7 @@ class SSEStream
     public function stream(ResponseInterface $response, string $channel, ?callable $filter = null): ResponseInterface
     {
         $connectionId = $this->generateConnectionId();
-        
+
         // Set SSE headers
         $headers = [
             'Content-Type' => 'text/event-stream',
@@ -96,7 +96,7 @@ class SSEStream
             'buffer' => [],
         ];
 
-        Log::info("SSE connection registered", [
+        Log::info('SSE connection registered', [
             'connection_id' => $connectionId,
             'channel' => $channel,
         ]);
@@ -109,7 +109,7 @@ class SSEStream
         string $connectionId,
         string $channel,
         ResponseInterface $response,
-        ?callable $filter
+        ?callable $filter,
     ): void {
         if (!isset($this->channels[$channel])) {
             return;
@@ -138,7 +138,7 @@ class SSEStream
 
                 // Handle backpressure
                 if (count($buffer) >= $this->maxBufferSize) {
-                    Log::warning("SSE buffer overflow, dropping oldest events", [
+                    Log::warning('SSE buffer overflow, dropping oldest events', [
                         'connection_id' => $connectionId,
                         'buffer_size' => count($buffer),
                     ]);
@@ -151,7 +151,7 @@ class SSEStream
                 $this->sendEvent($response, $event['type'] ?? 'message', $event['data'] ?? $event);
 
             } catch (\Throwable $e) {
-                Log::error("SSE event processing error", [
+                Log::error('SSE event processing error', [
                     'connection_id' => $connectionId,
                     'error' => $e->getMessage(),
                 ]);
@@ -176,11 +176,11 @@ class SSEStream
         ];
 
         $message = $this->formatSSEMessage($event);
-        
+
         // In Swoole, we would use response->write()
         // For PSR-7, we need to handle streaming differently
         // This is a placeholder - actual implementation depends on server
-        Log::debug("SSE event sent", [
+        Log::debug('SSE event sent', [
             'type' => $type,
             'event_id' => $event['id'],
         ]);
@@ -193,7 +193,7 @@ class SSEStream
     {
         $message = "id: {$event['id']}\n";
         $message .= "event: {$event['type']}\n";
-        $message .= "data: " . json_encode($event['data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
+        $message .= 'data: ' . json_encode($event['data'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n";
         $message .= "retry: 3000\n"; // 3 seconds retry interval
         $message .= "\n";
 
@@ -210,7 +210,7 @@ class SSEStream
         go(function () use ($connectionId, $response) {
             while (isset($this->connections[$connectionId])) {
                 sleep($this->heartbeatInterval);
-                
+
                 if (!isset($this->connections[$connectionId])) {
                     break;
                 }
@@ -244,12 +244,12 @@ class SSEStream
         $pushed = $this->channels[$channel]->push($event, 0.001);
 
         if (!$pushed) {
-            Log::warning("SSE channel buffer full, event dropped", [
+            Log::warning('SSE channel buffer full, event dropped', [
                 'channel' => $channel,
                 'type' => $type,
             ]);
         } else {
-            Log::debug("SSE event published", [
+            Log::debug('SSE event published', [
                 'channel' => $channel,
                 'type' => $type,
             ]);
@@ -290,7 +290,7 @@ class SSEStream
             $channel = $this->connections[$connectionId]['channel'];
             unset($this->connections[$connectionId]);
 
-            Log::info("SSE connection unregistered", [
+            Log::info('SSE connection unregistered', [
                 'connection_id' => $connectionId,
                 'channel' => $channel,
             ]);
@@ -323,7 +323,9 @@ class SSEStream
             $channelStats[$channel] = [
                 'connections' => count(array_filter(
                     $this->connections,
-                    fn($conn) => $conn['channel'] === $channel
+                    function ($conn) use ($channel) {
+                        return $conn['channel'] === $channel;
+                    },
                 )),
                 'buffer_size' => $channelInstance->length(),
             ];
@@ -346,6 +348,6 @@ class SSEStream
         }
 
         $this->channels = [];
-        Log::info("All SSE connections closed");
+        Log::info('All SSE connections closed');
     }
 }
